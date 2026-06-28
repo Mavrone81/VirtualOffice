@@ -1,0 +1,8012 @@
+1
+00:00:00,000 --> 00:00:01,880
+ - Is that okay? - No, it's not.
+
+2
+00:00:01,880 --> 00:00:03,840
+ I'll do it for a while. It's easier.
+
+3
+00:00:04,320 --> 00:00:07,680
+ - I'm sorry, I'll give you this. - Okay, okay.
+
+4
+00:00:08,680 --> 00:00:09,400
+ Let's start.
+
+5
+00:00:14,120 --> 00:00:16,680
+ Okay, basically, we know the second management system.
+
+6
+00:00:16,680 --> 00:00:18,800
+ So, the union will consist of
+
+7
+00:00:19,160 --> 00:00:20,840
+ - a recruitment form. - Okay.
+
+8
+00:00:20,840 --> 00:00:23,040
+ Okay, so, recruitment form, just whatever,
+
+9
+00:00:23,040 --> 00:00:24,600
+ recruit a之後, right?
+
+10
+00:00:24,880 --> 00:00:26,800
+ How am I signed that agreement?
+
+11
+00:00:27,040 --> 00:00:31,560
+ - Because the management will submit. - Okay.
+
+12
+00:00:31,560 --> 00:00:33,680
+ Okay, submit, then it will go to
+
+13
+00:00:35,120 --> 00:00:37,840
+ the considered HR system, the associate master.
+
+14
+00:00:38,120 --> 00:00:40,720
+ So, we will record all the things.
+
+15
+00:00:40,720 --> 00:00:42,680
+ - I'll go through each one. - Okay.
+
+16
+00:00:42,680 --> 00:00:46,440
+ Then it will go to the sale submission form.
+
+17
+00:00:46,800 --> 00:00:49,320
+ So, once they have a sales transaction,
+
+18
+00:00:49,320 --> 00:00:52,520
+ they will submit the details that will be recorded here.
+
+19
+00:00:52,520 --> 00:00:54,320
+ - Okay. - Then it will auto-generate
+
+20
+00:00:54,320 --> 00:00:56,160
+ - into the commission structure. - Okay.
+
+21
+00:00:56,160 --> 00:00:59,720
+ Then, with this auto-generated engine,
+
+22
+00:00:59,720 --> 00:01:02,120
+ they will calculate the money paid out.
+
+23
+00:01:02,120 --> 00:01:06,320
+ Then, the dashboard, individual manager, director,
+
+24
+00:01:06,320 --> 00:01:08,120
+ they can see the tier.
+
+25
+00:01:08,120 --> 00:01:10,440
+ - So, once open, they can see the tier. - Okay.
+
+26
+00:01:11,040 --> 00:01:15,120
+ Then, as a Vincent, they can see the leader.
+
+27
+00:01:15,120 --> 00:01:17,640
+ - Yes. - Then they can see the sales.
+
+28
+00:01:17,640 --> 00:01:19,520
+ - Okay. - Okay.
+
+29
+00:01:19,520 --> 00:01:21,880
+ So, basically, for this form,
+
+30
+00:01:21,880 --> 00:01:24,120
+ the main purpose is to
+
+31
+00:01:25,800 --> 00:01:27,800
+ create the associate record,
+
+32
+00:01:27,800 --> 00:01:29,480
+ the hierarchy, up lines,
+
+33
+00:01:29,480 --> 00:01:30,840
+ the approval status,
+
+34
+00:01:30,840 --> 00:01:33,280
+ active and dominated status.
+
+35
+00:01:33,280 --> 00:01:33,920
+ - Okay. - Okay.
+
+36
+00:01:33,920 --> 00:01:37,280
+ I will use the approval form to do this.
+
+37
+00:01:38,280 --> 00:01:41,320
+ One is like this.
+
+38
+00:01:41,320 --> 00:01:43,240
+ - Okay. - Okay, so...
+
+39
+00:01:44,720 --> 00:01:48,840
+ Okay, it will auto-generate an associate ID.
+
+40
+00:01:48,840 --> 00:01:50,600
+ - Okay. - Then there is a timestamp.
+
+41
+00:01:50,600 --> 00:01:52,880
+ - So, we know that it will go into the commission structure.
+
+42
+00:01:52,880 --> 00:01:54,080
+ - Okay. - Okay.
+
+43
+00:01:54,080 --> 00:01:56,600
+ Then, the associate, the full name,
+
+44
+00:01:58,480 --> 00:01:59,920
+ his business name is what?
+
+45
+00:01:59,920 --> 00:02:01,520
+ The name of the store.
+
+46
+00:02:01,520 --> 00:02:04,440
+ - This is the HR, so-called master lease.
+
+47
+00:02:04,440 --> 00:02:05,800
+ - Yes, master lease. - Okay.
+
+48
+00:02:05,800 --> 00:02:07,240
+ - Okay. - Okay.
+
+49
+00:02:07,240 --> 00:02:09,280
+ So, email address.
+
+50
+00:02:09,280 --> 00:02:10,480
+ - Okay. - Okay, then we will...
+
+51
+00:02:10,480 --> 00:02:12,000
+ - Yes, you can download this.
+
+52
+00:02:12,000 --> 00:02:14,440
+ I will go according to this format.
+
+53
+00:02:14,440 --> 00:02:15,200
+ - Yes. - Okay.
+
+54
+00:02:15,200 --> 00:02:17,360
+ Then, when the data...
+
+55
+00:02:17,360 --> 00:02:20,640
+ Actually, the data is email uploaded.
+
+56
+00:02:20,640 --> 00:02:22,520
+ - This is uploaded. - There is.
+
+57
+00:02:22,520 --> 00:02:26,080
+ Okay, so, you can see that there are these destinations.
+
+58
+00:02:26,080 --> 00:02:28,640
+ - Then, the upline is water. - Okay, okay.
+
+59
+00:02:28,640 --> 00:02:30,400
+ - All of these will be followed in. - Followed in.
+
+60
+00:02:30,400 --> 00:02:31,920
+ - Yes, yes. - Then, there will be...
+
+61
+00:02:31,920 --> 00:02:35,640
+ - A better method. - Yes, no problem.
+
+62
+00:02:35,640 --> 00:02:37,720
+ - Then, the number will be the same. - Okay.
+
+63
+00:02:37,720 --> 00:02:40,600
+ Then, there is a proof active.
+
+64
+00:02:40,600 --> 00:02:41,800
+ - Okay, I understand. - Okay.
+
+65
+00:02:41,800 --> 00:02:44,840
+ When I do this, I actually put their details
+
+66
+00:02:44,840 --> 00:02:49,400
+ in the Google context.
+
+67
+00:02:49,400 --> 00:02:51,800
+ - Oh. - So, in any event,
+
+68
+00:02:51,800 --> 00:02:55,720
+ we have to blast out email to them or whatever.
+
+69
+00:02:55,720 --> 00:02:57,120
+ - Okay. - Then, I will just Google
+
+70
+00:02:57,120 --> 00:02:59,320
+ - the context. - I understand.
+
+71
+00:02:59,320 --> 00:03:00,440
+ - Okay. - Okay.
+
+72
+00:03:00,440 --> 00:03:03,120
+ This person has a banding.
+
+73
+00:03:03,120 --> 00:03:06,280
+ Because his banding must be inactive.
+
+74
+00:03:06,280 --> 00:03:07,080
+ - Okay. - Okay.
+
+75
+00:03:07,080 --> 00:03:08,640
+ Let me see.
+
+76
+00:03:08,640 --> 00:03:11,120
+ This is a proof status, is it your approval?
+
+77
+00:03:11,120 --> 00:03:13,400
+ Yes, we have looked at the document.
+
+78
+00:03:13,400 --> 00:03:16,480
+ After we have looked at the agreement,
+
+79
+00:03:16,480 --> 00:03:18,760
+ it will...
+
+80
+00:03:18,760 --> 00:03:22,360
+ When we click on the proof, we will know if it is active.
+
+81
+00:03:22,360 --> 00:03:23,400
+ - Okay. - Okay.
+
+82
+00:03:23,400 --> 00:03:25,960
+ - Then, we can click on the base. - I understand.
+
+83
+00:03:25,960 --> 00:03:28,040
+ Okay, so this is...
+
+84
+00:03:28,040 --> 00:03:29,960
+ If you look at the document,
+
+85
+00:03:29,960 --> 00:03:32,480
+ then the status is...
+
+86
+00:03:32,480 --> 00:03:34,120
+ Then, after we say, "Oh, okay."
+
+87
+00:03:34,120 --> 00:03:35,360
+ - Then, it will be a proof status. - Yes.
+
+88
+00:03:35,360 --> 00:03:37,840
+ Because his banding is completely wrong.
+
+89
+00:03:37,840 --> 00:03:39,400
+ So, we have to re-sign it.
+
+90
+00:03:39,400 --> 00:03:41,480
+ - So, it will be inactive. - Yes.
+
+91
+00:03:41,480 --> 00:03:44,320
+ If he re-signed it, then we will replace it.
+
+92
+00:03:44,320 --> 00:03:46,120
+ - We will replace it. - Yes, yes.
+
+93
+00:03:46,120 --> 00:03:49,640
+ This is still a proof status. Because the document is inactive.
+
+94
+00:03:49,640 --> 00:03:52,120
+ - No, because it is inactive. - Yes.
+
+95
+00:03:52,120 --> 00:03:55,400
+ So, we have active, suspended, dominated, or inactive.
+
+96
+00:03:55,400 --> 00:03:56,400
+ Okay.
+
+97
+00:03:58,680 --> 00:03:59,680
+ I understand.
+
+98
+00:04:02,520 --> 00:04:06,280
+ So, these are what is needed over there.
+
+99
+00:04:06,280 --> 00:04:08,040
+ - Wow, very detailed, okay. - Very detailed.
+
+100
+00:04:08,040 --> 00:04:11,160
+ What you just saw are these things.
+
+101
+00:04:11,160 --> 00:04:12,280
+ - Okay. - Okay.
+
+102
+00:04:12,280 --> 00:04:14,400
+ The commission structure, right?
+
+103
+00:04:14,400 --> 00:04:17,880
+ We need to create a product, a core product.
+
+104
+00:04:17,880 --> 00:04:19,680
+ Because we don't have a lot of products.
+
+105
+00:04:19,680 --> 00:04:20,920
+ - I understand. - Yes.
+
+106
+00:04:20,920 --> 00:04:25,320
+ Because we said, "Oh, external products,
+
+107
+00:04:25,320 --> 00:04:28,640
+ like with a memory niche,
+
+108
+00:04:28,640 --> 00:04:32,360
+ they will create that kind of...
+
+109
+00:04:32,360 --> 00:04:33,400
+ they will take away."
+
+110
+00:04:33,400 --> 00:04:35,080
+ We don't need to...
+
+111
+00:04:35,080 --> 00:04:37,680
+ The company should hold a little bit.
+
+112
+00:04:37,680 --> 00:04:41,920
+ I will discuss with Vincent about what is the commission structure
+
+113
+00:04:41,920 --> 00:04:44,080
+ for this category.
+
+114
+00:04:44,080 --> 00:04:47,040
+ Because we need to collect a little bit.
+
+115
+00:04:47,040 --> 00:04:51,000
+ At the time, building maintenance, admin maintenance is what we still need.
+
+116
+00:04:51,000 --> 00:04:51,640
+ - Yes. - Yes.
+
+117
+00:04:51,640 --> 00:04:53,600
+ Oh, it's impossible for all of you to go there.
+
+118
+00:04:53,600 --> 00:04:54,840
+ We didn't receive it.
+
+119
+00:04:54,840 --> 00:04:55,880
+ How can I go to the maintenance?
+
+120
+00:04:55,880 --> 00:04:59,560
+ Wait, I have to say that we need to maintain a system for free.
+
+121
+00:04:59,560 --> 00:05:00,520
+ - I understand. - Yes.
+
+122
+00:05:00,520 --> 00:05:03,920
+ This is what we have company cut.
+
+123
+00:05:03,920 --> 00:05:06,120
+ System manager overrides.
+
+124
+00:05:06,120 --> 00:05:08,400
+ Sales manager, sales director overrides.
+
+125
+00:05:08,400 --> 00:05:11,080
+ Yes, these are the data that you can download.
+
+126
+00:05:11,080 --> 00:05:13,360
+ An admin can download that number.
+
+127
+00:05:13,360 --> 00:05:14,640
+ Yes, okay.
+
+128
+00:05:14,640 --> 00:05:16,600
+ We will have this thing.
+
+129
+00:05:16,600 --> 00:05:20,520
+ When you are ready,
+
+130
+00:05:20,520 --> 00:05:24,320
+ we will keep those details here.
+
+131
+00:05:24,320 --> 00:05:26,720
+ Okay, after that,
+
+132
+00:05:26,720 --> 00:05:30,360
+ when you make that system,
+
+133
+00:05:30,360 --> 00:05:33,160
+ they will self-submit and not keep those details.
+
+134
+00:05:33,160 --> 00:05:35,000
+ They will auto-generate.
+
+135
+00:05:35,000 --> 00:05:39,960
+ - Okay. - This is an example.
+
+136
+00:05:39,960 --> 00:05:43,120
+ When you sell the submission system,
+
+137
+00:05:43,120 --> 00:05:45,560
+ these are the things that they need to be key-in.
+
+138
+00:05:45,560 --> 00:05:50,160
+ - I understand. - After they are key-in,
+
+139
+00:05:50,160 --> 00:05:54,160
+ our sales transaction record will have these things.
+
+140
+00:05:54,160 --> 00:05:56,160
+ They will auto-generate these things.
+
+141
+00:05:56,160 --> 00:05:57,640
+ - Okay. - Okay?
+
+142
+00:05:57,640 --> 00:05:58,840
+ Let me take a look.
+
+143
+00:05:58,840 --> 00:06:00,400
+ I'm going to sign here.
+
+144
+00:06:00,400 --> 00:06:02,360
+ Most of them are not calculations.
+
+145
+00:06:02,360 --> 00:06:03,560
+ Not calculations.
+
+146
+00:06:03,560 --> 00:06:05,000
+ Okay, this is...
+
+147
+00:06:05,000 --> 00:06:07,120
+ Are we able to generate invoices from here?
+
+148
+00:06:07,120 --> 00:06:08,240
+ - Yes. - You can?
+
+149
+00:06:08,240 --> 00:06:10,120
+ - Yes. - So you can help me make an invoice.
+
+150
+00:06:10,120 --> 00:06:14,120
+ By right, be the customer of the transaction.
+
+151
+00:06:14,120 --> 00:06:15,680
+ I'm not kidding.
+
+152
+00:06:15,680 --> 00:06:19,320
+ You know that the system needs money.
+
+153
+00:06:19,320 --> 00:06:20,600
+ But I have something for you.
+
+154
+00:06:20,600 --> 00:06:23,560
+ Maybe you can tell me how you want to trade invoices.
+
+155
+00:06:23,560 --> 00:06:25,720
+ - I can give you a symbol. - You can give me a symbol.
+
+156
+00:06:25,720 --> 00:06:27,480
+ It's our invoice right now.
+
+157
+00:06:27,480 --> 00:06:29,280
+ You can try some of these insurance packs.
+
+158
+00:06:29,280 --> 00:06:30,960
+ - Okay. - You can see it.
+
+159
+00:06:30,960 --> 00:06:32,680
+ The difference later, I'll open it for you.
+
+160
+00:06:32,680 --> 00:06:33,480
+ What can I say?
+
+161
+00:06:33,480 --> 00:06:34,600
+ You decide.
+
+162
+00:06:34,600 --> 00:06:36,960
+ Do you want different types of invoices
+
+163
+00:06:36,960 --> 00:06:39,280
+ or do you want to consolidate them into invoices?
+
+164
+00:06:39,280 --> 00:06:40,880
+ - You can. - I want different types.
+
+165
+00:06:40,880 --> 00:06:44,560
+ Because it has different payments to different companies.
+
+166
+00:06:44,560 --> 00:06:45,240
+ No problem.
+
+167
+00:06:45,240 --> 00:06:46,640
+ If you want different types,
+
+168
+00:06:46,640 --> 00:06:48,560
+ you can give me a different sample.
+
+169
+00:06:48,560 --> 00:06:49,600
+ Then after that...
+
+170
+00:06:49,600 --> 00:06:52,920
+ I'll give you a sample of the invoice.
+
+171
+00:06:52,920 --> 00:06:53,840
+ Okay.
+
+172
+00:06:53,840 --> 00:06:55,400
+ Okay, this is the insurance service.
+
+173
+00:06:55,400 --> 00:06:56,920
+ - The invoice. - Yes.
+
+174
+00:06:56,920 --> 00:06:58,640
+ Okay, let me show you.
+
+175
+00:06:58,640 --> 00:07:00,600
+ The only difference is only here.
+
+176
+00:07:00,600 --> 00:07:02,200
+ Oh, then it's okay.
+
+177
+00:07:02,200 --> 00:07:04,120
+ Then there's the other invoices.
+
+178
+00:07:04,120 --> 00:07:05,760
+ - The invoice number. - Yes.
+
+179
+00:07:05,760 --> 00:07:07,160
+ Okay, then insurance packs.
+
+180
+00:07:07,160 --> 00:07:10,640
+ - Then the invoice number is generated. - Yes.
+
+181
+00:07:10,640 --> 00:07:12,720
+ Okay, so it's not different invoices.
+
+182
+00:07:12,720 --> 00:07:17,840
+ It's just different companies that have invoices.
+
+183
+00:07:17,840 --> 00:07:19,200
+ This is a small problem.
+
+184
+00:07:19,200 --> 00:07:20,240
+ If it's like this,
+
+185
+00:07:20,240 --> 00:07:24,240
+ we don't need the invoices for the company right now.
+
+186
+00:07:24,240 --> 00:07:25,680
+ It's all...
+
+187
+00:07:25,680 --> 00:07:27,880
+ - Computer generated. - Computer generated, right?
+
+188
+00:07:27,880 --> 00:07:30,120
+ I'll think about it.
+
+189
+00:07:30,120 --> 00:07:31,960
+ - I've heard a lot. - I think so.
+
+190
+00:07:31,960 --> 00:07:33,560
+ It's the idea.
+
+191
+00:07:33,560 --> 00:07:38,680
+ This is a computer generated invoice that is known...
+
+192
+00:07:38,680 --> 00:07:41,280
+ - What's the name of the invoices? - I think it's that one.
+
+193
+00:07:41,280 --> 00:07:42,600
+ Yes, yes.
+
+194
+00:07:42,600 --> 00:07:45,160
+ The invoices use a system called Xero.
+
+195
+00:07:45,160 --> 00:07:47,400
+ - Xerox. - Xerox.
+
+196
+00:07:47,400 --> 00:07:49,440
+ - Xero. - Xerox.
+
+197
+00:07:49,440 --> 00:07:50,920
+ I'm just trying to find them.
+
+198
+00:07:50,920 --> 00:07:52,000
+ You're trying to find them?
+
+199
+00:07:52,000 --> 00:07:53,560
+ They should use this one.
+
+200
+00:07:53,560 --> 00:07:57,600
+ You can see that they don't have signature invoices.
+
+201
+00:07:57,600 --> 00:08:00,360
+ But of course I need to check with lawyer.
+
+202
+00:08:00,360 --> 00:08:03,760
+ If customers sign, it's a security for us.
+
+203
+00:08:03,760 --> 00:08:05,720
+ So if they don't pay,
+
+204
+00:08:05,720 --> 00:08:08,800
+ it's always bigger bound that we can sue them.
+
+205
+00:08:08,800 --> 00:08:11,840
+ If they don't pay me or sign, it's a...
+
+206
+00:08:11,840 --> 00:08:13,520
+ Okay, customer signature.
+
+207
+00:08:13,520 --> 00:08:15,800
+ There are two things you can do.
+
+208
+00:08:15,800 --> 00:08:18,120
+ I can do this for you, Min Fei.
+
+209
+00:08:18,120 --> 00:08:19,520
+ We can put this on the system.
+
+210
+00:08:19,520 --> 00:08:20,920
+ It's also a function for me.
+
+211
+00:08:20,920 --> 00:08:22,760
+ I've learned how to do this.
+
+212
+00:08:22,760 --> 00:08:28,320
+ One way is to download PDFs and give them a return beginning.
+
+213
+00:08:28,320 --> 00:08:32,720
+ Okay, second method is I'll give them a login link.
+
+214
+00:08:32,720 --> 00:08:34,800
+ They'll go to the digital sign.
+
+215
+00:08:36,880 --> 00:08:37,800
+ Okay.
+
+216
+00:08:41,400 --> 00:08:43,880
+ The lack of digital sign is that if it's an old person,
+
+217
+00:08:43,880 --> 00:08:45,680
+ they might not be able to pay.
+
+218
+00:08:45,680 --> 00:08:47,440
+ That will be a problem.
+
+219
+00:08:47,440 --> 00:08:50,160
+ So you can consider this.
+
+220
+00:08:50,160 --> 00:08:52,360
+ - I'll tell you later. - I'm using digital invoices.
+
+221
+00:08:52,360 --> 00:08:55,240
+ I'll take my iPad back and give it to them.
+
+222
+00:08:55,240 --> 00:08:57,520
+ If that's the case, you can...
+
+223
+00:08:57,520 --> 00:09:01,480
+ I'll give you an example.
+
+224
+00:09:01,480 --> 00:09:04,480
+ We have some tests.
+
+225
+00:09:04,480 --> 00:09:07,320
+ - Yeah. - We have some tests here.
+
+226
+00:09:07,320 --> 00:09:08,840
+ What?
+
+227
+00:09:08,840 --> 00:09:11,640
+ Okay, tests.
+
+228
+00:09:11,640 --> 00:09:16,240
+ Test, because they're paying money in stock.
+
+229
+00:09:16,240 --> 00:09:18,400
+ So we actually...
+
+230
+00:09:18,400 --> 00:09:20,840
+ After they return, we'll issue an invoice data
+
+231
+00:09:20,840 --> 00:09:22,080
+ to keep us from covering it.
+
+232
+00:09:22,080 --> 00:09:23,960
+ Okay.
+
+233
+00:09:23,960 --> 00:09:25,240
+ I get it.
+
+234
+00:09:26,640 --> 00:09:28,040
+ Okay, so we have two invoices.
+
+235
+00:09:28,040 --> 00:09:30,200
+ One is to sign the invoices, and the other is to receive them.
+
+236
+00:09:30,200 --> 00:09:33,280
+ Because if they sign the invoices, they'll issue them.
+
+237
+00:09:33,280 --> 00:09:35,080
+ What do you think of the domain?
+
+238
+00:09:35,080 --> 00:09:38,320
+ You don't need them to sign the invoices.
+
+239
+00:09:38,320 --> 00:09:42,640
+ Actually, your legal system will give you better advice.
+
+240
+00:09:42,640 --> 00:09:44,280
+ They'll give you better advice.
+
+241
+00:09:44,280 --> 00:09:45,520
+ They'll give you better advice.
+
+242
+00:09:45,520 --> 00:09:48,160
+ If you don't sign the invoices, you'll get a headache.
+
+243
+00:09:48,160 --> 00:09:49,040
+ Yeah, you'll lose.
+
+244
+00:09:49,040 --> 00:09:50,920
+ I mean, it's a long story.
+
+245
+00:09:50,920 --> 00:09:53,200
+ If you're more than 19 years old,
+
+246
+00:09:53,200 --> 00:09:56,600
+ if you lose to someone, it's not that easy.
+
+247
+00:09:56,600 --> 00:09:58,160
+ It's only $30.
+
+248
+00:09:58,160 --> 00:10:00,240
+ Don't be mad at them.
+
+249
+00:10:00,240 --> 00:10:01,040
+ Don't be mad.
+
+250
+00:10:01,040 --> 00:10:03,040
+ If you don't sign the invoices, you'll get a headache.
+
+251
+00:10:03,040 --> 00:10:05,360
+ If you don't sign the invoices, you'll get a headache.
+
+252
+00:10:05,360 --> 00:10:06,920
+ - Okay. - Okay.
+
+253
+00:10:06,920 --> 00:10:09,120
+ - You can't. - You can't say you can't.
+
+254
+00:10:09,120 --> 00:10:11,560
+ - You can't say you can't. - You can't.
+
+255
+00:10:11,560 --> 00:10:13,920
+ You can't. I can sign the invoices.
+
+256
+00:10:13,920 --> 00:10:15,120
+ You don't get it.
+
+257
+00:10:15,120 --> 00:10:17,840
+ This is not a government contract.
+
+258
+00:10:17,840 --> 00:10:20,240
+ It's not a state contract.
+
+259
+00:10:20,240 --> 00:10:22,560
+ If you don't sign the invoices, you'll get a headache.
+
+260
+00:10:22,560 --> 00:10:24,560
+ - You can't say you can't. - You can't sign the invoices.
+
+261
+00:10:24,560 --> 00:10:26,360
+ You can't say you can't.
+
+262
+00:10:26,360 --> 00:10:29,480
+ If you don't sign the invoices, you'll get a headache.
+
+263
+00:10:29,480 --> 00:10:32,080
+ If you don't sign the invoices, you'll get a headache.
+
+264
+00:10:32,080 --> 00:10:34,440
+ If you don't sign the invoices, you'll get a headache.
+
+265
+00:10:34,440 --> 00:10:36,360
+ If you don't sign the invoices, you'll get a headache.
+
+266
+00:10:36,360 --> 00:10:39,080
+ If you don't sign the invoices, you'll get a headache.
+
+267
+00:10:39,080 --> 00:10:40,560
+ If you don't sign the invoices, you'll get a headache.
+
+268
+00:10:40,560 --> 00:10:41,720
+ That's it.
+
+269
+00:10:41,720 --> 00:10:44,720
+ - Okay, it doesn't matter. - Anyway, the make-back to the original thing
+
+270
+00:10:44,720 --> 00:10:47,640
+ is that if you want to sign the invoices, you can.
+
+271
+00:10:47,640 --> 00:10:49,280
+ If you don't sign the invoices, you'll get a headache.
+
+272
+00:10:49,280 --> 00:10:52,640
+ So, what I will do is that I'll do up a system for you
+
+273
+00:10:52,640 --> 00:10:55,680
+ that you can use your make-back to sign them.
+
+274
+00:10:55,680 --> 00:10:59,560
+ Or, you want to bring them directly to sign them.
+
+275
+00:10:59,560 --> 00:11:01,040
+ - Okay. - Then you'll get a headache.
+
+276
+00:11:01,040 --> 00:11:03,200
+ We don't have a lot of papers.
+
+277
+00:11:03,200 --> 00:11:04,520
+ - We don't have a lot of papers. - Okay.
+
+278
+00:11:04,520 --> 00:11:06,960
+ - We don't have a lot of digital screens. - Okay.
+
+279
+00:11:06,960 --> 00:11:10,560
+ So, if like at Pat's, the next issue,
+
+280
+00:11:10,560 --> 00:11:12,760
+ maybe the signature of that part,
+
+281
+00:11:12,760 --> 00:11:16,480
+ you can create one that way.
+
+282
+00:11:16,480 --> 00:11:22,200
+ I can take a button and it appears a big "Z" over there.
+
+283
+00:11:22,200 --> 00:11:24,720
+ So, instead of signing, it's a stated "K".
+
+284
+00:11:24,720 --> 00:11:25,960
+ Oh.
+
+285
+00:11:25,960 --> 00:11:29,400
+ - Can you understand? - No, I'm thinking that there will be a problem.
+
+286
+00:11:29,400 --> 00:11:31,920
+ So, if you sign the invoices, you'll get a headache.
+
+287
+00:11:31,920 --> 00:11:34,000
+ No, I've already paid for it.
+
+288
+00:11:34,000 --> 00:11:35,160
+ Okay, I've already paid for it.
+
+289
+00:11:35,160 --> 00:11:37,680
+ So, if we want to do a funeral case,
+
+290
+00:11:37,680 --> 00:11:40,960
+ they'll give me a few days, I'll give you a few days.
+
+291
+00:11:40,960 --> 00:11:44,040
+ - Okay. - I'll ask them to give me a few days.
+
+292
+00:11:44,040 --> 00:11:45,880
+ - Okay, okay. - I'll give you a few days.
+
+293
+00:11:45,880 --> 00:11:47,200
+ No, okay, I can tell you what.
+
+294
+00:11:47,200 --> 00:11:48,640
+ In your invoice tab,
+
+295
+00:11:48,640 --> 00:11:50,360
+ there's a tab where you go to invoices.
+
+296
+00:11:50,360 --> 00:11:53,240
+ All your outstanding invoices will be there.
+
+297
+00:11:53,240 --> 00:11:54,800
+ Then I'll give you a button over there.
+
+298
+00:11:54,800 --> 00:11:59,120
+ If it's already offline, you click "Paid".
+
+299
+00:11:59,120 --> 00:12:01,680
+ Then your invoices will be reflected as paid.
+
+300
+00:12:01,680 --> 00:12:04,040
+ - Oh, okay. - So, no matter what you download,
+
+301
+00:12:04,040 --> 00:12:05,760
+ it will be placed as paid.
+
+302
+00:12:05,760 --> 00:12:08,800
+ - If I didn't click "Paid", it will be... - It will be shared as paid.
+
+303
+00:12:08,800 --> 00:12:11,000
+ Then you download it as a PDF.
+
+304
+00:12:11,000 --> 00:12:13,480
+ So, originally, because it's faster,
+
+305
+00:12:13,480 --> 00:12:15,640
+ I'll give you a direct download of the PDF.
+
+306
+00:12:15,640 --> 00:12:18,880
+ Then you explain normally, you use your iPad to sign it for them.
+
+307
+00:12:18,880 --> 00:12:20,600
+ - Because you're the PDF, right? - Yes.
+
+308
+00:12:20,600 --> 00:12:21,600
+ I'll sign it for them.
+
+309
+00:12:21,600 --> 00:12:23,400
+ At that time, I'll make another one for you.
+
+310
+00:12:23,400 --> 00:12:25,440
+ You can sign it directly from the system.
+
+311
+00:12:25,440 --> 00:12:27,240
+ You just send a link to them.
+
+312
+00:12:27,240 --> 00:12:29,200
+ You don't have to go to them, they can sign it.
+
+313
+00:12:29,200 --> 00:12:31,880
+ They don't have to sign it, you just have to find them.
+
+314
+00:12:31,880 --> 00:12:33,920
+ - Okay. - Okay, that means I have a question.
+
+315
+00:12:33,920 --> 00:12:34,800
+ This is for...
+
+316
+00:12:34,800 --> 00:12:37,240
+ I'll be able to track the installer and commission.
+
+317
+00:12:37,240 --> 00:12:39,880
+ You have eligibility to be auto.
+
+318
+00:12:39,880 --> 00:12:42,800
+ Just because you're called "backmix",
+
+319
+00:12:42,800 --> 00:12:45,640
+ they call it "instormers". The third one is "instormers".
+
+320
+00:12:45,640 --> 00:12:47,760
+ We'll be able to pay out the commission.
+
+321
+00:12:47,760 --> 00:12:48,480
+ I understand.
+
+322
+00:12:48,480 --> 00:12:51,080
+ But what's the only drawback?
+
+323
+00:12:51,080 --> 00:12:53,040
+ Is it payment, cash, or what?
+
+324
+00:12:53,040 --> 00:12:54,680
+ Inferning is transfer.
+
+325
+00:12:54,680 --> 00:12:55,600
+ Transfer.
+
+326
+00:12:55,600 --> 00:12:57,400
+ Almost all of them are transfer.
+
+327
+00:12:57,400 --> 00:13:02,800
+ Transfer is fine, but there will be charges.
+
+328
+00:13:02,800 --> 00:13:04,960
+ Because we need to use the transaction gateway.
+
+329
+00:13:04,960 --> 00:13:06,440
+ We can't do that.
+
+330
+00:13:06,440 --> 00:13:08,320
+ We must use this, for example,
+
+331
+00:13:08,320 --> 00:13:12,120
+ you can use the red dot, the heat pay, the strike.
+
+332
+00:13:12,120 --> 00:13:14,120
+ - We need to use the exchange gateway. - It's simple.
+
+333
+00:13:14,120 --> 00:13:16,320
+ For example, I have an account now.
+
+334
+00:13:16,320 --> 00:13:18,840
+ It's for me now, okay.
+
+335
+00:13:18,840 --> 00:13:21,240
+ So, when we have an account,
+
+336
+00:13:21,240 --> 00:13:24,920
+ whenever customers pay the installment,
+
+337
+00:13:24,920 --> 00:13:27,000
+ they just need to generate invoices.
+
+338
+00:13:27,000 --> 00:13:28,440
+ Once they generate invoices,
+
+339
+00:13:28,440 --> 00:13:32,520
+ they will note that a second installment is paid.
+
+340
+00:13:32,520 --> 00:13:35,320
+ - Third installment is paid. - That's the problem.
+
+341
+00:13:35,320 --> 00:13:37,920
+ So, we don't have to use the gateway.
+
+342
+00:13:37,920 --> 00:13:39,440
+ - Okay, but... - We can't do that, right?
+
+343
+00:13:39,440 --> 00:13:40,600
+ - We can't do that. - We can't do that.
+
+344
+00:13:40,600 --> 00:13:42,720
+ We can't do that, but the problem is that it's you.
+
+345
+00:13:42,720 --> 00:13:44,600
+ Because they have charges.
+
+346
+00:13:44,600 --> 00:13:48,160
+ - How much? - I think it's 20% to 30%.
+
+347
+00:13:48,160 --> 00:13:49,720
+ It depends.
+
+348
+00:13:49,720 --> 00:13:50,880
+ It depends.
+
+349
+00:13:50,880 --> 00:13:53,480
+ If you can get rid of your account,
+
+350
+00:13:53,480 --> 00:13:55,120
+ then it's a waste of money.
+
+351
+00:13:55,120 --> 00:13:57,280
+ Right? It depends.
+
+352
+00:13:57,280 --> 00:13:58,200
+ But it depends.
+
+353
+00:13:58,200 --> 00:14:00,400
+ It depends on the amount you have.
+
+354
+00:14:00,400 --> 00:14:02,240
+ If you say it's 20% every year,
+
+355
+00:14:02,240 --> 00:14:04,560
+ then it's also a lot of money.
+
+356
+00:14:04,560 --> 00:14:05,720
+ 20% is a lot.
+
+357
+00:14:05,720 --> 00:14:07,480
+ It's okay.
+
+358
+00:14:07,480 --> 00:14:12,360
+ Actually, honestly, Binsert and Silvia are not so good,
+
+359
+00:14:12,360 --> 00:14:15,240
+ but whatever we earn from it,
+
+360
+00:14:15,240 --> 00:14:17,920
+ if we pay out everything, we have a balance.
+
+361
+00:14:17,920 --> 00:14:20,680
+ - Money, profit, profit... - It's too much.
+
+362
+00:14:20,680 --> 00:14:21,600
+ - Okay. - Okay.
+
+363
+00:14:21,600 --> 00:14:24,280
+ It goes back to the cost of everything.
+
+364
+00:14:24,280 --> 00:14:25,840
+ - Oh, I see. - Yeah.
+
+365
+00:14:25,840 --> 00:14:28,240
+ So, it's almost free of charge.
+
+366
+00:14:28,240 --> 00:14:29,840
+ So, I have to pay more.
+
+367
+00:14:29,840 --> 00:14:31,920
+ They have to sell more to cover.
+
+368
+00:14:31,920 --> 00:14:35,280
+ - Yes. - Then they have to maintain the system.
+
+369
+00:14:35,280 --> 00:14:38,360
+ - Customers pay 1.4 yuan per year. - Yes.
+
+370
+00:14:38,360 --> 00:14:40,920
+ So, I think that 2%...
+
+371
+00:14:40,920 --> 00:14:42,800
+ - It's a lot of money. - It's a lot of money.
+
+372
+00:14:42,800 --> 00:14:44,520
+ At least, you can put one person to click.
+
+373
+00:14:44,520 --> 00:14:47,120
+ When it's really smooth and big,
+
+374
+00:14:47,120 --> 00:14:50,000
+ you have to pay more to do it.
+
+375
+00:14:50,000 --> 00:14:51,560
+ - Or do it again. - Yes.
+
+376
+00:14:51,560 --> 00:14:53,520
+ It's my strength.
+
+377
+00:14:53,520 --> 00:14:54,800
+ Connect to Stripes is my strength.
+
+378
+00:14:54,800 --> 00:14:57,880
+ But the problem is that I can't do that payment.
+
+379
+00:14:57,880 --> 00:15:00,600
+ Because you have to do M.A.S.
+
+380
+00:15:00,600 --> 00:15:02,320
+ If I do it big in the future,
+
+381
+00:15:02,320 --> 00:15:07,120
+ if I find an investor, I will do Stripes.
+
+382
+00:15:07,120 --> 00:15:09,360
+ But I have to pay M.A.S.
+
+383
+00:15:09,360 --> 00:15:10,680
+ So, M.A.S. has 1.5% charge.
+
+384
+00:15:10,680 --> 00:15:12,520
+ The charge is about the same as 2%.
+
+385
+00:15:12,520 --> 00:15:13,440
+ Okay.
+
+386
+00:15:13,440 --> 00:15:17,120
+ Since now, our account is still low.
+
+387
+00:15:17,120 --> 00:15:20,640
+ It's just under the digital.
+
+388
+00:15:20,640 --> 00:15:22,080
+ We can still do manuals.
+
+389
+00:15:22,080 --> 00:15:23,960
+ So, 8 customers have to pay more.
+
+390
+00:15:23,960 --> 00:15:28,600
+ Then, our accounts have to pay more.
+
+391
+00:15:28,600 --> 00:15:32,200
+ Okay, we can generate voice and send to the customer.
+
+392
+00:15:32,200 --> 00:15:35,560
+ Then, the system will track the second payment page.
+
+393
+00:15:35,560 --> 00:15:37,120
+ - Okay. - The third payment page.
+
+394
+00:15:37,120 --> 00:15:38,800
+ Once the third payment page,
+
+395
+00:15:38,800 --> 00:15:43,000
+ the commission will be available.
+
+396
+00:15:43,000 --> 00:15:44,080
+ Okay, this is okay.
+
+397
+00:15:44,080 --> 00:15:47,080
+ Because this is for manual input, there's no problem.
+
+398
+00:15:47,080 --> 00:15:47,720
+ Okay.
+
+399
+00:15:47,720 --> 00:15:50,680
+ I know that in the nine-part sentimental flow,
+
+400
+00:15:50,680 --> 00:15:52,840
+ to indicate some of the options.
+
+401
+00:15:52,840 --> 00:15:55,480
+ Then, that means that there are total...
+
+402
+00:15:55,480 --> 00:15:56,280
+ I need to know.
+
+403
+00:15:56,280 --> 00:15:58,280
+ I will ask more details later.
+
+404
+00:15:58,280 --> 00:16:00,640
+ How many instalments are there?
+
+405
+00:16:00,640 --> 00:16:05,200
+ For example, there are 3 or 4 or 5 instalments.
+
+406
+00:16:05,200 --> 00:16:07,480
+ Then, the instalment you have to select,
+
+407
+00:16:07,480 --> 00:16:09,480
+ this is how many instalments are there.
+
+408
+00:16:09,480 --> 00:16:11,320
+ So, every time we generate invoices,
+
+409
+00:16:11,320 --> 00:16:14,520
+ the instalment will track the second payment page.
+
+410
+00:16:18,200 --> 00:16:20,480
+ Okay, look in the event,
+
+411
+00:16:20,480 --> 00:16:23,040
+ because we have a manager,
+
+412
+00:16:23,040 --> 00:16:25,360
+ now we have 1 or 2 customers.
+
+413
+00:16:25,360 --> 00:16:35,640
+ They have no way to negotiate for instalments.
+
+414
+00:16:35,640 --> 00:16:40,120
+ So, we need to consider the new instalments, right?
+
+415
+00:16:40,120 --> 00:16:40,800
+ Yes.
+
+416
+00:16:40,800 --> 00:16:41,880
+ Okay.
+
+417
+00:16:41,880 --> 00:16:45,560
+ I will tell you about that part.
+
+418
+00:16:45,560 --> 00:16:46,800
+ But the main thing is,
+
+419
+00:16:46,800 --> 00:16:48,680
+ this portion, most likely,
+
+420
+00:16:48,680 --> 00:16:53,080
+ I will give you an adjustable amount.
+
+421
+00:16:53,080 --> 00:16:54,320
+ Okay.
+
+422
+00:16:54,320 --> 00:16:57,960
+ Another adjustable amount is like a sub-category.
+
+423
+00:16:57,960 --> 00:17:00,840
+ So, a sub-category whereby hard originals took up,
+
+424
+00:17:00,840 --> 00:17:02,560
+ then after they became a sub-category,
+
+425
+00:17:02,560 --> 00:17:06,360
+ then the instalment will start from here onwards.
+
+426
+00:17:06,360 --> 00:17:08,360
+ Then, how much is the new amount?
+
+427
+00:17:08,360 --> 00:17:12,000
+ So, that whatever that was being built previously, right?
+
+428
+00:17:12,000 --> 00:17:12,960
+ Just an example,
+
+429
+00:17:12,960 --> 00:17:14,480
+ we have a thousand.
+
+430
+00:17:14,480 --> 00:17:15,920
+ Each month, we have 3.
+
+431
+00:17:15,920 --> 00:17:19,560
+ With 1,000, we have to split to 3 months.
+
+432
+00:17:19,560 --> 00:17:22,920
+ That is, maybe 300, 300, 300, 100.
+
+433
+00:17:22,920 --> 00:17:23,320
+ Okay.
+
+434
+00:17:23,320 --> 00:17:25,000
+ Then, the cost of that,
+
+435
+00:17:25,000 --> 00:17:27,360
+ he has to fund the existing monthly 300.
+
+436
+00:17:27,360 --> 00:17:31,680
+ So, it will be 600, 600, 400,
+
+437
+00:17:31,680 --> 00:17:33,440
+ then back to 300, 300, 300, 300.
+
+438
+00:17:33,440 --> 00:17:35,560
+ So, this will be manually adjusted.
+
+439
+00:17:35,560 --> 00:17:36,040
+ Oh, okay.
+
+440
+00:17:36,040 --> 00:17:38,520
+ Actually, this is what I think is quite easy.
+
+441
+00:17:38,520 --> 00:17:42,600
+ You just create another product, right?
+
+442
+00:17:42,600 --> 00:17:43,360
+ Remember, right?
+
+443
+00:17:43,360 --> 00:17:45,520
+ That means, it becomes another product
+
+444
+00:17:45,520 --> 00:17:48,200
+ called instalment payment.
+
+445
+00:17:48,200 --> 00:17:50,760
+ Then, you just tag with him.
+
+446
+00:17:50,760 --> 00:17:53,680
+ 1000, then, this is the instalment payment.
+
+447
+00:17:53,680 --> 00:17:56,040
+ Then, that, how lapsed, that,
+
+448
+00:17:56,040 --> 00:17:58,880
+ you just click as manually overwrite.
+
+449
+00:17:58,880 --> 00:17:59,400
+ He pays.
+
+450
+00:17:59,400 --> 00:18:01,560
+ Then, you just turn it off.
+
+451
+00:18:01,560 --> 00:18:05,400
+ But, in fact, one more line will come out.
+
+452
+00:18:05,400 --> 00:18:06,480
+ Then, it becomes your,
+
+453
+00:18:06,480 --> 00:18:08,080
+ you have to pay him twice.
+
+454
+00:18:08,080 --> 00:18:08,520
+ Okay.
+
+455
+00:18:08,520 --> 00:18:09,240
+ That's it.
+
+456
+00:18:09,240 --> 00:18:13,160
+ Then, his, his, this,
+
+457
+00:18:13,160 --> 00:18:15,960
+ inverse can be installed in the invoice.
+
+458
+00:18:15,960 --> 00:18:16,440
+ Yes.
+
+459
+00:18:16,440 --> 00:18:17,640
+ Then, this instalment.
+
+460
+00:18:17,640 --> 00:18:19,760
+ Okay, it can be installed.
+
+461
+00:18:19,760 --> 00:18:21,360
+ Okay, I'll, I'll, I'll see if I can pay him.
+
+462
+00:18:21,360 --> 00:18:24,320
+ Worst case scenario, you pay him twice, right?
+
+463
+00:18:24,320 --> 00:18:26,160
+ Okay, I'll see if I can pay him twice.
+
+464
+00:18:26,160 --> 00:18:30,000
+ That means, I'll help you see if you can create a function
+
+465
+00:18:30,000 --> 00:18:31,840
+ so merge invoices.
+
+466
+00:18:31,840 --> 00:18:32,720
+ Then, you can tag,
+
+467
+00:18:32,720 --> 00:18:34,720
+ buy a number, buy a number.
+
+468
+00:18:34,720 --> 00:18:35,760
+ That will be more troublesome.
+
+469
+00:18:35,760 --> 00:18:37,200
+ I'll try, try to make it longer.
+
+470
+00:18:37,200 --> 00:18:39,040
+ If it's okay, then you can merge invoices.
+
+471
+00:18:39,040 --> 00:18:40,080
+ If it's not okay, then temporarily,
+
+472
+00:18:40,080 --> 00:18:42,400
+ you can pay him.
+
+473
+00:18:42,400 --> 00:18:45,600
+ Then, instalment, most, most,
+
+474
+00:18:45,600 --> 00:18:46,880
+ that is to say, for example,
+
+475
+00:18:46,880 --> 00:18:49,120
+ he bought 3,800.
+
+476
+00:18:49,120 --> 00:18:51,120
+ Okay, then, how the instalment is,
+
+477
+00:18:51,120 --> 00:18:54,560
+ okay, it's auto calculated now.
+
+478
+00:18:54,560 --> 00:18:57,840
+ And, yeah, what you mean by auto calculated?
+
+479
+00:18:57,840 --> 00:19:02,560
+ Just, once the sales person key in 3,800,
+
+480
+00:19:02,560 --> 00:19:06,080
+ 12 months instalment, deposit is how much?
+
+481
+00:19:06,080 --> 00:19:06,480
+ Okay.
+
+482
+00:19:06,480 --> 00:19:08,320
+ The balance, how do you auto calculate,
+
+483
+00:19:08,320 --> 00:19:09,440
+ how do you generate to, right?
+
+484
+00:19:09,440 --> 00:19:09,840
+ Yes.
+
+485
+00:19:09,840 --> 00:19:10,400
+ Okay.
+
+486
+00:19:10,400 --> 00:19:12,400
+ What, do you have any,
+
+487
+00:19:12,400 --> 00:19:13,200
+ how do you say percentage,
+
+488
+00:19:13,200 --> 00:19:14,320
+ how do you add, what are the things?
+
+489
+00:19:14,320 --> 00:19:16,640
+ Example, do you have GSD,
+
+490
+00:19:16,640 --> 00:19:18,080
+ what do you want me to say?
+
+491
+00:19:18,080 --> 00:19:20,240
+ At the moment, no GSD, no GSD.
+
+492
+00:19:20,240 --> 00:19:21,920
+ I'm just saying, if there's anything,
+
+493
+00:19:21,920 --> 00:19:23,040
+ add-on, you want me to say,
+
+494
+00:19:23,040 --> 00:19:24,240
+ so that I can translate the formula.
+
+495
+00:19:24,240 --> 00:19:25,840
+ Blah, formula is very simple.
+
+496
+00:19:25,840 --> 00:19:28,880
+ 3,800, subtract, deposit, divide by 12.
+
+497
+00:19:28,880 --> 00:19:29,440
+ That's it.
+
+498
+00:19:29,440 --> 00:19:31,760
+ At the moment, it's like this.
+
+499
+00:19:31,760 --> 00:19:33,520
+ By the time you have GSD,
+
+500
+00:19:33,520 --> 00:19:35,920
+ I will need you to help me do that.
+
+501
+00:19:35,920 --> 00:19:36,800
+ Adjust, adjust.
+
+502
+00:19:36,800 --> 00:19:37,840
+ Adjust, okay.
+
+503
+00:19:37,840 --> 00:19:38,480
+ Okay.
+
+504
+00:19:38,480 --> 00:19:39,600
+ If you have GSD,
+
+505
+00:19:39,600 --> 00:19:41,040
+ you're already over 1 million, right?
+
+506
+00:19:41,040 --> 00:19:41,600
+ Yes.
+
+507
+00:19:41,600 --> 00:19:43,120
+ That's no problem.
+
+508
+00:19:43,120 --> 00:19:43,600
+ Yes.
+
+509
+00:19:43,600 --> 00:19:45,360
+ (laughs)
+
+510
+00:19:45,360 --> 00:19:47,120
+ Sales figures are over 1 million.
+
+511
+00:19:47,120 --> 00:19:47,920
+ Revenue, right?
+
+512
+00:19:47,920 --> 00:19:49,680
+ (speaks in foreign language)
+
+513
+00:19:49,680 --> 00:19:51,040
+ No, revenue is 1 million.
+
+514
+00:19:51,040 --> 00:19:52,640
+ Profit per type.
+
+515
+00:19:52,640 --> 00:19:54,800
+ (speaks in foreign language)
+
+516
+00:19:54,800 --> 00:19:56,400
+ (speaks in foreign language)
+
+517
+00:19:56,400 --> 00:19:57,840
+ (laughs)
+
+518
+00:19:57,840 --> 00:19:59,840
+ But revenue up, profit, way up.
+
+519
+00:19:59,840 --> 00:20:00,960
+ This one is,
+
+520
+00:20:00,960 --> 00:20:03,360
+ we're going to discuss the auto-commissioned engine,
+
+521
+00:20:03,360 --> 00:20:05,840
+ just how we closing commission,
+
+522
+00:20:05,840 --> 00:20:08,160
+ how we auto-generate through, right?
+
+523
+00:20:08,160 --> 00:20:09,760
+ So just say it's,
+
+524
+00:20:09,760 --> 00:20:14,320
+ she wants to, so I will start direct applying.
+
+525
+00:20:14,320 --> 00:20:21,760
+ (speaks in foreign language)
+
+526
+00:20:21,760 --> 00:20:26,320
+ (speaks in foreign language)
+
+527
+00:20:26,320 --> 00:20:27,600
+ (speaks in foreign language)
+
+528
+00:20:27,600 --> 00:20:28,160
+ (speaks in foreign language)
+
+529
+00:20:28,160 --> 00:20:31,680
+ (speaks in foreign language)
+
+530
+00:20:31,680 --> 00:20:38,400
+ (speaks in foreign language)
+
+531
+00:20:38,400 --> 00:20:39,920
+ (speaks in foreign language)
+
+532
+00:20:39,920 --> 00:20:40,960
+ (speaks in foreign language)
+
+533
+00:20:40,960 --> 00:20:42,400
+ (speaks in foreign language)
+
+534
+00:20:42,400 --> 00:20:43,360
+ (laughs)
+
+535
+00:20:43,360 --> 00:20:44,720
+ (speaks in foreign language)
+
+536
+00:20:44,720 --> 00:20:45,920
+ (speaks in foreign language)
+
+537
+00:20:45,920 --> 00:20:47,600
+ (speaks in foreign language)
+
+538
+00:20:47,600 --> 00:20:48,400
+ (speaks in foreign language)
+
+539
+00:20:48,400 --> 00:20:49,040
+ (speaks in foreign language)
+
+540
+00:20:49,040 --> 00:20:50,240
+ (speaks in foreign language)
+
+541
+00:20:50,240 --> 00:20:51,440
+ (speaks in foreign language)
+
+542
+00:20:51,440 --> 00:20:52,160
+ (speaks in foreign language)
+
+543
+00:20:52,160 --> 00:20:53,600
+ (speaks in foreign language)
+
+544
+00:20:53,600 --> 00:20:55,600
+ (speaks in foreign language)
+
+545
+00:20:55,600 --> 00:20:57,600
+ (speaks in foreign language)
+
+546
+00:20:57,600 --> 00:20:58,400
+ (speaks in foreign language)
+
+547
+00:20:58,400 --> 00:20:59,520
+ Okay, I tell you what,
+
+548
+00:20:59,520 --> 00:21:03,120
+ I will, I will, this is more like a payment structure.
+
+549
+00:21:03,120 --> 00:21:04,480
+ So auto-commissioned engine,
+
+550
+00:21:04,480 --> 00:21:06,720
+ this is our internal internal.
+
+551
+00:21:06,720 --> 00:21:07,440
+ (speaks in foreign language)
+
+552
+00:21:07,440 --> 00:21:08,480
+ (speaks in foreign language)
+
+553
+00:21:08,480 --> 00:21:10,960
+ So your auto-commissioned engine is,
+
+554
+00:21:10,960 --> 00:21:34,960
+ based on the price, this person will get a lot of commissions, right? So this amount whatever changes, right? This person's commission will go down accordingly. Is that how it works? Whichever amount, for example, the direct online ID, direct online copyright.
+
+555
+00:21:34,960 --> 00:21:54,960
+ This person will base on the product code. Okay, like Fatmich, how much direct applies, how much does it apply, how much money we did, is zero? Then if this product code is Funeral, Funeral will be different.
+
+556
+00:21:54,960 --> 00:22:13,960
+ Every product code, okay, this is a tag to that product code. Now, my question is not, my question is, for example, now we set direct online let's say 2%, then example, then second online let's say 1%, let's say it's like this, then its calculation will be based on here.
+
+557
+00:22:13,960 --> 00:22:27,960
+ So if we change this, okay, let's say direct online now, you can change it to 1.5%, instead of 2%, so you can change it to 1.5%. So that commission will calculate the cost, right? So what's the calculation for commission?
+
+558
+00:22:27,960 --> 00:22:50,960
+ Okay, you have to know this a little bit, their commission, let's say there is a percentage, that kind of, we are going to talk about Fatmich, that kind of percentage. Because there is a company card, company card is a 10% so direct online and second online, that overriding is from this 10% rate.
+
+559
+00:22:50,960 --> 00:23:00,960
+ It's 10% of, let's say, 2%, it's 2% of other commission, but it's from this pool, so it won't affect other commission.
+
+560
+00:23:00,960 --> 00:23:16,960
+ No problem, even, okay, so I will give you all the field, but in reality, if you say it's like this example, then you directly put the direct online commission on zero, it won't code, then you just take it from this pool, do you understand?
+
+561
+00:23:16,960 --> 00:23:28,960
+ Yeah, but this is commission and it has to calculate, this is for, oh, every product has its own calculation, okay, so it will be a little complicated.
+
+562
+00:23:28,960 --> 00:23:37,960
+ I can't be able to customize, but worst case scenario is that you calculate the upline, how many percent, then you put it in, do you understand?
+
+563
+00:23:37,960 --> 00:23:52,960
+ There will be a back-end, yes, only admin can see it, like for example, I will give you an admin login, your admin login is product manager, then you can create a product, you can create another similar product,
+
+564
+00:23:52,960 --> 00:24:06,960
+ because in the future, they will have Typhoon, space, funeral or something, okay, you create a similar product, then this pool thing will appear, then you take him, for example, for example, for your funeral service,
+
+565
+00:24:06,960 --> 00:24:25,960
+ in the future, direct upline from 2 percent to 1.5 percent, then you mass-brief your system, you directly exchange 1.5 percent, from that date onwards, all the commission will be changed to 1.5 percent calculation, so you have an admin control.
+
+566
+00:24:25,960 --> 00:24:41,960
+ Okay, so now this admin control has a small problem, funeral here, how the commission calculation will be a little complicated, because, for example, 1.5 percent will be closed.
+
+567
+00:24:41,960 --> 00:24:42,960
+ Okay.
+
+568
+00:24:42,960 --> 00:25:04,960
+ Someone took a sender package, this package needs a commission from 1.5 percent, but it has an upgrade cascade, so it has an upgrade setup, then it has an upgrade unit, then it has additional source funeral, which means it has an upgrade.
+
+569
+00:25:04,960 --> 00:25:06,960
+ Can you do it?
+
+570
+00:25:06,960 --> 00:25:23,960
+ Okay, okay, then it's the same in this admin portion, what I do is I create something down here called commission code, com code, so you can create a new com code, then you can put how many percent or absolute amount, for example, 20 yuan or 28 cents,
+
+571
+00:25:23,960 --> 00:25:36,960
+ then whenever this com code has been used, it will directly go to the commission, or rather from the overall amount, add it to the commission.
+
+572
+00:25:36,960 --> 00:25:42,960
+ Okay, so this com code, what is the additional com that they will need?
+
+573
+00:25:42,960 --> 00:25:43,960
+ Right.
+
+574
+00:25:43,960 --> 00:25:47,960
+ The sales person has to know very well in their fingertips.
+
+575
+00:25:47,960 --> 00:25:58,960
+ Actually, it has nothing to do with the company, when they submit, they have to submit, because when they submit a new case, they have to figure out what is the additional thing that they have.
+
+576
+00:25:58,960 --> 00:26:03,960
+ Then after that, they will go through your accounts, your accounts approval, or your HIL approval, either one.
+
+577
+00:26:03,960 --> 00:26:07,960
+ So once it's approved, then the commission will be directly launched.
+
+578
+00:26:07,960 --> 00:26:16,960
+ So what happens is, when I say okay, you're getting a big picture, for example, when you log in as a product owner, then you create a product, then that product, you receive information,
+
+579
+00:26:16,960 --> 00:26:21,960
+ then the new product, you add additional com code.
+
+580
+00:26:21,960 --> 00:26:29,960
+ So when I'm the seller, or I'm your sales rep, I don't sell things, I go to submit.
+
+581
+00:26:29,960 --> 00:26:33,960
+ I submit, okay, for example, Funeral Service, submit.
+
+582
+00:26:33,960 --> 00:26:35,960
+ Then after that, there are a few things below, you can take.
+
+583
+00:26:35,960 --> 00:26:37,960
+ All of them are your com code.
+
+584
+00:26:37,960 --> 00:26:50,960
+ Additional rights, you will have a click, additional C scattering, you will have a click, additional, maybe, I don't know, like, remembrance, for example, then we'll click.
+
+585
+00:26:50,960 --> 00:26:51,960
+ There are these three.
+
+586
+00:26:51,960 --> 00:26:53,960
+ It means you will set how much money here.
+
+587
+00:26:53,960 --> 00:26:58,960
+ The Q can be percentage of the overall, or the absolute amount of money.
+
+588
+00:26:58,960 --> 00:26:59,960
+ Okay.
+
+589
+00:26:59,960 --> 00:27:05,960
+ Then after they submit, you have to have someone to verify them.
+
+590
+00:27:05,960 --> 00:27:08,960
+ So you have to have someone to verify them.
+
+591
+00:27:08,960 --> 00:27:12,960
+ But there was a small issue, it can be your HR, it can be your towns, wherever it is.
+
+592
+00:27:12,960 --> 00:27:18,960
+ So once they approve, okay, then your commission will directly go into their dashboard.
+
+593
+00:27:18,960 --> 00:27:22,960
+ Then I will see, oh, I've earned money this month, my commission has earned money.
+
+594
+00:27:22,960 --> 00:27:23,960
+ Okay.
+
+595
+00:27:23,960 --> 00:27:24,960
+ Okay.
+
+596
+00:27:24,960 --> 00:27:32,960
+ Then this is the summary, how much each associate should receive every month.
+
+597
+00:27:32,960 --> 00:27:37,960
+ So the payout status is either bending, bending may be under installment of customer.
+
+598
+00:27:37,960 --> 00:27:38,960
+ It doesn't matter.
+
+599
+00:27:38,960 --> 00:27:40,960
+ Approve will be paid out.
+
+600
+00:27:40,960 --> 00:27:42,960
+ Pay will be paid out.
+
+601
+00:27:42,960 --> 00:27:43,960
+ It's annoying.
+
+602
+00:27:43,960 --> 00:27:45,960
+ Payout, maybe there are some issues.
+
+603
+00:27:45,960 --> 00:27:46,960
+ It will hold good.
+
+604
+00:27:46,960 --> 00:27:48,960
+ Or customer cancer.
+
+605
+00:27:48,960 --> 00:27:49,960
+ Okay.
+
+606
+00:27:49,960 --> 00:27:50,960
+ Just cancer.
+
+607
+00:27:50,960 --> 00:27:51,960
+ Okay.
+
+608
+00:27:51,960 --> 00:27:52,960
+ That's it.
+
+609
+00:27:52,960 --> 00:27:53,960
+ Yes.
+
+610
+00:27:53,960 --> 00:28:02,960
+ It will hold a little, I want to think about it, how will it, oh.
+
+611
+00:28:02,960 --> 00:28:04,960
+ I can tell you, it may hold, we can take it.
+
+612
+00:28:04,960 --> 00:28:06,960
+ Because it will directly bend.
+
+613
+00:28:06,960 --> 00:28:07,960
+ Ah, I was thinking.
+
+614
+00:28:07,960 --> 00:28:08,960
+ It will be more troublesome.
+
+615
+00:28:08,960 --> 00:28:09,960
+ Yeah.
+
+616
+00:28:09,960 --> 00:28:10,960
+ But I see, I see.
+
+617
+00:28:10,960 --> 00:28:12,960
+ If I can do it, I will do it for you.
+
+618
+00:28:12,960 --> 00:28:13,960
+ Otherwise, I will put it in bending.
+
+619
+00:28:13,960 --> 00:28:14,960
+ No, no need.
+
+620
+00:28:14,960 --> 00:28:15,960
+ Okay.
+
+621
+00:28:15,960 --> 00:28:16,960
+ In short, it means bending.
+
+622
+00:28:16,960 --> 00:28:17,960
+ Basically it means bending.
+
+623
+00:28:17,960 --> 00:28:19,960
+ Whatever reason is, it means bending.
+
+624
+00:28:19,960 --> 00:28:20,960
+ Yes.
+
+625
+00:28:20,960 --> 00:28:21,960
+ Okay.
+
+626
+00:28:21,960 --> 00:28:25,960
+ Either it's approved, it's paid, or it's cancer.
+
+627
+00:28:25,960 --> 00:28:26,960
+ Okay.
+
+628
+00:28:26,960 --> 00:28:27,960
+ Just like that.
+
+629
+00:28:27,960 --> 00:28:28,960
+ Okay.
+
+630
+00:28:28,960 --> 00:28:29,960
+ So it hasn't paid out yet.
+
+631
+00:28:29,960 --> 00:28:30,960
+ Approve is here.
+
+632
+00:28:30,960 --> 00:28:31,960
+ It will jump.
+
+633
+00:28:31,960 --> 00:28:32,960
+ It will jump.
+
+634
+00:28:32,960 --> 00:28:33,960
+ Okay.
+
+635
+00:28:33,960 --> 00:28:36,960
+ Then the other one is this dashboard thing.
+
+636
+00:28:36,960 --> 00:28:37,960
+ Okay.
+
+637
+00:28:37,960 --> 00:28:40,960
+ Dashboard basically is just individual.
+
+638
+00:28:40,960 --> 00:28:44,960
+ They can see these things.
+
+639
+00:28:44,960 --> 00:28:46,960
+ There are individual performance things.
+
+640
+00:28:46,960 --> 00:28:48,960
+ This is director dashboard.
+
+641
+00:28:48,960 --> 00:28:49,960
+ And manager dashboard.
+
+642
+00:28:49,960 --> 00:28:50,960
+ Okay.
+
+643
+00:28:50,960 --> 00:28:51,960
+ I understand.
+
+644
+00:28:51,960 --> 00:28:52,960
+ You see the team.
+
+645
+00:28:52,960 --> 00:28:53,960
+ Yeah.
+
+646
+00:28:53,960 --> 00:28:54,960
+ Personal dashboard.
+
+647
+00:28:54,960 --> 00:28:55,960
+ Yes.
+
+648
+00:28:55,960 --> 00:28:57,960
+ Personal dashboard actually is kind of like that.
+
+649
+00:28:57,960 --> 00:28:59,960
+ This is what they will see.
+
+650
+00:28:59,960 --> 00:29:01,960
+ This is their dashboard actually.
+
+651
+00:29:01,960 --> 00:29:04,960
+ But this will show their performance.
+
+652
+00:29:04,960 --> 00:29:05,960
+ No.
+
+653
+00:29:05,960 --> 00:29:06,960
+ You have to show them.
+
+654
+00:29:06,960 --> 00:29:09,960
+ They only have to see how much money they have.
+
+655
+00:29:09,960 --> 00:29:11,960
+ Breaking their individual break.
+
+656
+00:29:11,960 --> 00:29:12,960
+ Yeah.
+
+657
+00:29:12,960 --> 00:29:13,960
+ You have to show them.
+
+658
+00:29:13,960 --> 00:29:14,960
+ I mean up to you.
+
+659
+00:29:14,960 --> 00:29:15,960
+ I don't think you need to.
+
+660
+00:29:15,960 --> 00:29:16,960
+ After you show them.
+
+661
+00:29:16,960 --> 00:29:17,960
+ Wait a minute.
+
+662
+00:29:17,960 --> 00:29:18,960
+ I will check.
+
+663
+00:29:18,960 --> 00:29:20,960
+ Okay.
+
+664
+00:29:20,960 --> 00:29:21,960
+ Okay.
+
+665
+00:29:21,960 --> 00:29:22,960
+ You have to show them.
+
+666
+00:29:22,960 --> 00:29:23,960
+ You have to show them.
+
+667
+00:29:23,960 --> 00:29:24,960
+ You have to show them.
+
+668
+00:29:24,960 --> 00:29:25,960
+ Maybe for now we will not show them.
+
+669
+00:29:25,960 --> 00:29:26,960
+ Because we are still young.
+
+670
+00:29:26,960 --> 00:29:27,960
+ Yes.
+
+671
+00:29:27,960 --> 00:29:28,960
+ But later when.
+
+672
+00:29:28,960 --> 00:29:29,960
+ Big enough.
+
+673
+00:29:29,960 --> 00:29:31,960
+ Then they will come back to the team.
+
+674
+00:29:31,960 --> 00:29:32,960
+ You know.
+
+675
+00:29:32,960 --> 00:29:33,960
+ Then they will see Charlie.
+
+676
+00:29:33,960 --> 00:29:34,960
+ I also want you to be big.
+
+677
+00:29:34,960 --> 00:29:35,960
+ One dollar, one dollar.
+
+678
+00:29:35,960 --> 00:29:36,960
+ You can get a few hundred.
+
+679
+00:29:36,960 --> 00:29:37,960
+ I will get a few hundred every month.
+
+680
+00:29:37,960 --> 00:29:38,960
+ I will get a few hundred every month.
+
+681
+00:29:38,960 --> 00:29:39,960
+ I will get a few hundred every month.
+
+682
+00:29:39,960 --> 00:29:40,960
+ I will get a few hundred every month.
+
+683
+00:29:40,960 --> 00:29:41,960
+ I will get a few hundred every month.
+
+684
+00:29:41,960 --> 00:29:42,960
+ I will get a few hundred every month.
+
+685
+00:29:42,960 --> 00:29:43,960
+ I will get a few hundred every month.
+
+686
+00:29:43,960 --> 00:29:44,960
+ I will get a few hundred every month.
+
+687
+00:29:44,960 --> 00:29:45,960
+ I will get a few hundred every month.
+
+688
+00:29:45,960 --> 00:29:48,960
+ I will get a few hundred every month.
+
+689
+00:29:48,960 --> 00:29:49,960
+ I will get a few hundred every month.
+
+690
+00:29:49,960 --> 00:29:50,960
+ I will get a few hundred every month.
+
+691
+00:29:50,960 --> 00:29:51,960
+ I will get a few hundred every month.
+
+692
+00:29:51,960 --> 00:29:52,960
+ I will get a few hundred every month.
+
+693
+00:29:52,960 --> 00:29:53,960
+ I will get a few hundred every month.
+
+694
+00:29:53,960 --> 00:29:54,960
+ I will get a few hundred every month.
+
+695
+00:29:54,960 --> 00:29:55,960
+ I will get a few hundred every month.
+
+696
+00:29:55,960 --> 00:29:56,960
+ I will get a few hundred every month.
+
+697
+00:29:56,960 --> 00:29:57,960
+ I will get a few hundred every month.
+
+698
+00:29:57,960 --> 00:29:58,960
+ I will get a few hundred every month.
+
+699
+00:29:58,960 --> 00:29:59,960
+ I will get a few hundred every month.
+
+700
+00:29:59,960 --> 00:30:00,960
+ I will get a few hundred every month.
+
+701
+00:30:00,960 --> 00:30:01,960
+ I will get a few hundred every month.
+
+702
+00:30:01,960 --> 00:30:02,960
+ I will get a few hundred every month.
+
+703
+00:30:02,960 --> 00:30:03,960
+ I will get a few hundred every month.
+
+704
+00:30:03,960 --> 00:30:04,960
+ I will get a few hundred every month.
+
+705
+00:30:04,960 --> 00:30:05,960
+ I will get a few hundred every month.
+
+706
+00:30:05,960 --> 00:30:06,960
+ I will get a few hundred every month.
+
+707
+00:30:06,960 --> 00:30:07,960
+ I will get a few hundred every month.
+
+708
+00:30:15,960 --> 00:30:16,960
+ I will get a few hundred every month.
+
+709
+00:30:16,960 --> 00:30:17,960
+ I will get a few hundred every month.
+
+710
+00:30:17,960 --> 00:30:18,960
+ I will get a few hundred every month.
+
+711
+00:30:18,960 --> 00:30:19,960
+ I will get a few hundred every month.
+
+712
+00:30:19,960 --> 00:30:20,960
+ I will get a few hundred every month.
+
+713
+00:30:20,960 --> 00:30:21,960
+ I will get a few hundred every month.
+
+714
+00:30:21,960 --> 00:30:22,960
+ I will get a few hundred every month.
+
+715
+00:30:22,960 --> 00:30:23,960
+ I will get a few hundred every month.
+
+716
+00:30:23,960 --> 00:30:24,960
+ I will get a few hundred every month.
+
+717
+00:30:24,960 --> 00:30:25,960
+ I will get a few hundred every month.
+
+718
+00:30:25,960 --> 00:30:26,960
+ I will get a few hundred every month.
+
+719
+00:30:26,960 --> 00:30:27,960
+ I will get a few hundred every month.
+
+720
+00:30:27,960 --> 00:30:28,960
+ I will get a few hundred every month.
+
+721
+00:30:28,960 --> 00:30:29,960
+ I will get a few hundred every month.
+
+722
+00:30:29,960 --> 00:30:30,960
+ I will get a few hundred every month.
+
+723
+00:30:30,960 --> 00:30:31,960
+ I will get a few hundred every month.
+
+724
+00:30:31,960 --> 00:30:32,960
+ I will get a few hundred every month.
+
+725
+00:30:32,960 --> 00:30:33,960
+ I will get a few hundred every month.
+
+726
+00:30:33,960 --> 00:30:34,960
+ I will get a few hundred every month.
+
+727
+00:30:34,960 --> 00:30:35,960
+ I will get a few hundred every month.
+
+728
+00:30:45,960 --> 00:30:47,960
+ I will get a few hundred every month.
+
+729
+00:30:47,960 --> 00:30:48,960
+ I will get a few hundred every month.
+
+730
+00:30:48,960 --> 00:30:49,960
+ I will get a few hundred every month.
+
+731
+00:30:49,960 --> 00:30:50,960
+ I will get a few hundred every month.
+
+732
+00:30:50,960 --> 00:30:51,960
+ I will get a few hundred every month.
+
+733
+00:30:51,960 --> 00:30:52,960
+ I will get a few hundred every month.
+
+734
+00:30:52,960 --> 00:30:53,960
+ I will get a few hundred every month.
+
+735
+00:30:53,960 --> 00:30:54,960
+ I will get a few hundred every month.
+
+736
+00:30:54,960 --> 00:30:55,960
+ I will get a few hundred every month.
+
+737
+00:30:55,960 --> 00:30:56,960
+ I will get a few hundred every month.
+
+738
+00:30:56,960 --> 00:30:57,960
+ I will get a few hundred every month.
+
+739
+00:30:57,960 --> 00:30:58,960
+ I will get a few hundred every month.
+
+740
+00:30:58,960 --> 00:30:59,960
+ I will get a few hundred every month.
+
+741
+00:30:59,960 --> 00:31:00,960
+ I will get a few hundred every month.
+
+742
+00:31:00,960 --> 00:31:01,960
+ I will get a few hundred every month.
+
+743
+00:31:01,960 --> 00:31:02,960
+ I will get a few hundred every month.
+
+744
+00:31:02,960 --> 00:31:03,960
+ I will get a few hundred every month.
+
+745
+00:31:03,960 --> 00:31:04,960
+ I will get a few hundred every month.
+
+746
+00:31:04,960 --> 00:31:05,960
+ I will get a few hundred every month.
+
+747
+00:31:05,960 --> 00:31:06,960
+ I will get a few hundred every month.
+
+748
+00:31:15,960 --> 00:31:16,960
+ I will get a few hundred every month.
+
+749
+00:31:16,960 --> 00:31:17,960
+ I will get a few hundred every month.
+
+750
+00:31:17,960 --> 00:31:18,960
+ I will get a few hundred every month.
+
+751
+00:31:18,960 --> 00:31:19,960
+ I will get a few hundred every month.
+
+752
+00:31:19,960 --> 00:31:20,960
+ I will get a few hundred every month.
+
+753
+00:31:20,960 --> 00:31:21,960
+ I will get a few hundred every month.
+
+754
+00:31:21,960 --> 00:31:22,960
+ I will get a few hundred every month.
+
+755
+00:31:22,960 --> 00:31:23,960
+ I will get a few hundred every month.
+
+756
+00:31:23,960 --> 00:31:24,960
+ I will get a few hundred every month.
+
+757
+00:31:24,960 --> 00:31:25,960
+ I will get a few hundred every month.
+
+758
+00:31:25,960 --> 00:31:26,960
+ I will get a few hundred every month.
+
+759
+00:31:26,960 --> 00:31:27,960
+ I will get a few hundred every month.
+
+760
+00:31:27,960 --> 00:31:28,960
+ I will get a few hundred every month.
+
+761
+00:31:28,960 --> 00:31:29,960
+ I will get a few hundred every month.
+
+762
+00:31:29,960 --> 00:31:30,960
+ I will get a few hundred every month.
+
+763
+00:31:30,960 --> 00:31:31,960
+ I will get a few hundred every month.
+
+764
+00:31:31,960 --> 00:31:32,960
+ I will get a few hundred every month.
+
+765
+00:31:32,960 --> 00:31:33,960
+ I will get a few hundred every month.
+
+766
+00:31:33,960 --> 00:31:34,960
+ I will get a few hundred every month.
+
+767
+00:31:34,960 --> 00:31:35,960
+ I will get a few hundred every month.
+
+768
+00:31:45,960 --> 00:31:46,960
+ I will get a few hundred every month.
+
+769
+00:31:46,960 --> 00:31:47,960
+ I will get a few hundred every month.
+
+770
+00:31:47,960 --> 00:31:48,960
+ I will get a few hundred every month.
+
+771
+00:31:48,960 --> 00:31:49,960
+ I will get a few hundred every month.
+
+772
+00:31:49,960 --> 00:31:50,960
+ I will get a few hundred every month.
+
+773
+00:31:50,960 --> 00:31:51,960
+ I will get a few hundred every month.
+
+774
+00:31:51,960 --> 00:31:52,960
+ I will get a few hundred every month.
+
+775
+00:31:52,960 --> 00:31:53,960
+ I will get a few hundred every month.
+
+776
+00:31:53,960 --> 00:31:54,960
+ I will get a few hundred every month.
+
+777
+00:31:54,960 --> 00:31:55,960
+ I will get a few hundred every month.
+
+778
+00:31:55,960 --> 00:31:56,960
+ I will get a few hundred every month.
+
+779
+00:31:56,960 --> 00:31:57,960
+ I will get a few hundred every month.
+
+780
+00:31:57,960 --> 00:31:58,960
+ I will get a few hundred every month.
+
+781
+00:31:58,960 --> 00:31:59,960
+ I will get a few hundred every month.
+
+782
+00:31:59,960 --> 00:32:00,960
+ I will get a few hundred every month.
+
+783
+00:32:00,960 --> 00:32:01,960
+ I will get a few hundred every month.
+
+784
+00:32:01,960 --> 00:32:02,960
+ I will get a few hundred every month.
+
+785
+00:32:02,960 --> 00:32:03,960
+ I will get a few hundred every month.
+
+786
+00:32:03,960 --> 00:32:04,960
+ I will get a few hundred every month.
+
+787
+00:32:04,960 --> 00:32:05,960
+ I will get a few hundred every month.
+
+788
+00:32:15,960 --> 00:32:16,960
+ I will get a few hundred every month.
+
+789
+00:32:16,960 --> 00:32:17,960
+ I will get a few hundred every month.
+
+790
+00:32:17,960 --> 00:32:18,960
+ I will get a few hundred every month.
+
+791
+00:32:18,960 --> 00:32:19,960
+ I will get a few hundred every month.
+
+792
+00:32:19,960 --> 00:32:20,960
+ I will get a few hundred every month.
+
+793
+00:32:20,960 --> 00:32:21,960
+ I will get a few hundred every month.
+
+794
+00:32:21,960 --> 00:32:22,960
+ I will get a few hundred every month.
+
+795
+00:32:22,960 --> 00:32:23,960
+ I will get a few hundred every month.
+
+796
+00:32:23,960 --> 00:32:24,960
+ I will get a few hundred every month.
+
+797
+00:32:24,960 --> 00:32:25,960
+ I will get a few hundred every month.
+
+798
+00:32:25,960 --> 00:32:26,960
+ I will get a few hundred every month.
+
+799
+00:32:26,960 --> 00:32:27,960
+ I will get a few hundred every month.
+
+800
+00:32:27,960 --> 00:32:28,960
+ I will get a few hundred every month.
+
+801
+00:32:28,960 --> 00:32:29,960
+ I will get a few hundred every month.
+
+802
+00:32:29,960 --> 00:32:30,960
+ I will get a few hundred every month.
+
+803
+00:32:30,960 --> 00:32:31,960
+ I will get a few hundred every month.
+
+804
+00:32:31,960 --> 00:32:32,960
+ I will get a few hundred every month.
+
+805
+00:32:32,960 --> 00:32:33,960
+ I will get a few hundred every month.
+
+806
+00:32:33,960 --> 00:32:34,960
+ I will get a few hundred every month.
+
+807
+00:32:34,960 --> 00:32:35,960
+ I will get a few hundred every month.
+
+808
+00:32:45,960 --> 00:32:46,960
+ I will get a few hundred every month.
+
+809
+00:32:46,960 --> 00:32:47,960
+ I will get a few hundred every month.
+
+810
+00:32:47,960 --> 00:32:48,960
+ I will get a few hundred every month.
+
+811
+00:32:48,960 --> 00:32:49,960
+ I will get a few hundred every month.
+
+812
+00:32:49,960 --> 00:32:50,960
+ I will get a few hundred every month.
+
+813
+00:32:50,960 --> 00:32:51,960
+ I will get a few hundred every month.
+
+814
+00:32:51,960 --> 00:32:52,960
+ I will get a few hundred every month.
+
+815
+00:32:52,960 --> 00:32:53,960
+ I will get a few hundred every month.
+
+816
+00:32:53,960 --> 00:32:54,960
+ I will get a few hundred every month.
+
+817
+00:32:54,960 --> 00:32:55,960
+ I will get a few hundred every month.
+
+818
+00:32:55,960 --> 00:32:56,960
+ I will get a few hundred every month.
+
+819
+00:32:56,960 --> 00:32:57,960
+ I will get a few hundred every month.
+
+820
+00:32:57,960 --> 00:32:58,960
+ I will get a few hundred every month.
+
+821
+00:32:58,960 --> 00:32:59,960
+ I will get a few hundred every month.
+
+822
+00:32:59,960 --> 00:33:00,960
+ I will get a few hundred every month.
+
+823
+00:33:00,960 --> 00:33:01,960
+ I will get a few hundred every month.
+
+824
+00:33:01,960 --> 00:33:02,960
+ I will get a few hundred every month.
+
+825
+00:33:02,960 --> 00:33:03,960
+ I will get a few hundred every month.
+
+826
+00:33:03,960 --> 00:33:04,960
+ I will get a few hundred every month.
+
+827
+00:33:04,960 --> 00:33:05,960
+ I will get a few hundred every month.
+
+828
+00:33:15,960 --> 00:33:16,960
+ I will get a few hundred every month.
+
+829
+00:33:16,960 --> 00:33:17,960
+ I will get a few hundred every month.
+
+830
+00:33:17,960 --> 00:33:18,960
+ I will get a few hundred every month.
+
+831
+00:33:18,960 --> 00:33:19,960
+ I will get a few hundred every month.
+
+832
+00:33:19,960 --> 00:33:20,960
+ I will get a few hundred every month.
+
+833
+00:33:20,960 --> 00:33:21,960
+ I will get a few hundred every month.
+
+834
+00:33:21,960 --> 00:33:22,960
+ I will get a few hundred every month.
+
+835
+00:33:22,960 --> 00:33:23,960
+ I will get a few hundred every month.
+
+836
+00:33:23,960 --> 00:33:24,960
+ I will get a few hundred every month.
+
+837
+00:33:24,960 --> 00:33:25,960
+ I will get a few hundred every month.
+
+838
+00:33:25,960 --> 00:33:26,960
+ I will get a few hundred every month.
+
+839
+00:33:26,960 --> 00:33:27,960
+ I will get a few hundred every month.
+
+840
+00:33:27,960 --> 00:33:28,960
+ I will get a few hundred every month.
+
+841
+00:33:28,960 --> 00:33:29,960
+ I will get a few hundred every month.
+
+842
+00:33:29,960 --> 00:33:30,960
+ I will get a few hundred every month.
+
+843
+00:33:30,960 --> 00:33:31,960
+ I will get a few hundred every month.
+
+844
+00:33:31,960 --> 00:33:32,960
+ I will get a few hundred every month.
+
+845
+00:33:32,960 --> 00:33:33,960
+ I will get a few hundred every month.
+
+846
+00:33:33,960 --> 00:33:34,960
+ I will get a few hundred every month.
+
+847
+00:33:34,960 --> 00:33:35,960
+ I will get a few hundred every month.
+
+848
+00:33:45,960 --> 00:33:46,960
+ I will get a few hundred every month.
+
+849
+00:33:46,960 --> 00:33:47,960
+ I will get a few hundred every month.
+
+850
+00:33:47,960 --> 00:33:48,960
+ I will get a few hundred every month.
+
+851
+00:33:48,960 --> 00:33:49,960
+ I will get a few hundred every month.
+
+852
+00:33:49,960 --> 00:33:50,960
+ I will get a few hundred every month.
+
+853
+00:33:50,960 --> 00:33:51,960
+ I will get a few hundred every month.
+
+854
+00:33:51,960 --> 00:33:52,960
+ I will get a few hundred every month.
+
+855
+00:33:52,960 --> 00:33:53,960
+ I will get a few hundred every month.
+
+856
+00:33:53,960 --> 00:33:54,960
+ I will get a few hundred every month.
+
+857
+00:33:54,960 --> 00:33:55,960
+ I will get a few hundred every month.
+
+858
+00:33:55,960 --> 00:33:56,960
+ I will get a few hundred every month.
+
+859
+00:33:56,960 --> 00:33:57,960
+ I will get a few hundred every month.
+
+860
+00:33:57,960 --> 00:33:58,960
+ I will get a few hundred every month.
+
+861
+00:33:58,960 --> 00:33:59,960
+ I will get a few hundred every month.
+
+862
+00:33:59,960 --> 00:34:00,960
+ I will get a few hundred every month.
+
+863
+00:34:00,960 --> 00:34:01,960
+ I will get a few hundred every month.
+
+864
+00:34:01,960 --> 00:34:02,960
+ I will get a few hundred every month.
+
+865
+00:34:02,960 --> 00:34:03,960
+ I will get a few hundred every month.
+
+866
+00:34:03,960 --> 00:34:04,960
+ I will get a few hundred every month.
+
+867
+00:34:04,960 --> 00:34:05,960
+ I will get a few hundred every month.
+
+868
+00:34:15,960 --> 00:34:16,960
+ I will get a few hundred every month.
+
+869
+00:34:16,960 --> 00:34:17,960
+ I will get a few hundred every month.
+
+870
+00:34:17,960 --> 00:34:18,960
+ I will get a few hundred every month.
+
+871
+00:34:18,960 --> 00:34:19,960
+ I will get a few hundred every month.
+
+872
+00:34:19,960 --> 00:34:20,960
+ I will get a few hundred every month.
+
+873
+00:34:20,960 --> 00:34:21,960
+ I will get a few hundred every month.
+
+874
+00:34:21,960 --> 00:34:22,960
+ I will get a few hundred every month.
+
+875
+00:34:22,960 --> 00:34:23,960
+ I will get a few hundred every month.
+
+876
+00:34:23,960 --> 00:34:24,960
+ I will get a few hundred every month.
+
+877
+00:34:24,960 --> 00:34:25,960
+ I will get a few hundred every month.
+
+878
+00:34:25,960 --> 00:34:26,960
+ I will get a few hundred every month.
+
+879
+00:34:26,960 --> 00:34:27,960
+ I will get a few hundred every month.
+
+880
+00:34:27,960 --> 00:34:28,960
+ I will get a few hundred every month.
+
+881
+00:34:28,960 --> 00:34:29,960
+ I will get a few hundred every month.
+
+882
+00:34:29,960 --> 00:34:30,960
+ I will get a few hundred every month.
+
+883
+00:34:30,960 --> 00:34:31,960
+ I will get a few hundred every month.
+
+884
+00:34:31,960 --> 00:34:32,960
+ I will get a few hundred every month.
+
+885
+00:34:32,960 --> 00:34:33,960
+ I will get a few hundred every month.
+
+886
+00:34:33,960 --> 00:34:34,960
+ I will get a few hundred every month.
+
+887
+00:34:34,960 --> 00:34:35,960
+ I will get a few hundred every month.
+
+888
+00:34:45,960 --> 00:34:46,960
+ I will get a few hundred every month.
+
+889
+00:34:46,960 --> 00:34:47,960
+ I will get a few hundred every month.
+
+890
+00:34:47,960 --> 00:34:48,960
+ I will get a few hundred every month.
+
+891
+00:34:48,960 --> 00:34:49,960
+ I will get a few hundred every month.
+
+892
+00:34:49,960 --> 00:34:50,960
+ I will get a few hundred every month.
+
+893
+00:34:50,960 --> 00:34:51,960
+ I will get a few hundred every month.
+
+894
+00:34:51,960 --> 00:34:52,960
+ I will get a few hundred every month.
+
+895
+00:34:52,960 --> 00:34:53,960
+ I will get a few hundred every month.
+
+896
+00:34:53,960 --> 00:34:54,960
+ I will get a few hundred every month.
+
+897
+00:34:54,960 --> 00:34:55,960
+ I will get a few hundred every month.
+
+898
+00:34:55,960 --> 00:34:56,960
+ I will get a few hundred every month.
+
+899
+00:34:56,960 --> 00:34:57,960
+ I will get a few hundred every month.
+
+900
+00:34:57,960 --> 00:34:58,960
+ I will get a few hundred every month.
+
+901
+00:34:58,960 --> 00:34:59,960
+ I will get a few hundred every month.
+
+902
+00:34:59,960 --> 00:35:00,960
+ I will get a few hundred every month.
+
+903
+00:35:00,960 --> 00:35:01,960
+ I will get a few hundred every month.
+
+904
+00:35:01,960 --> 00:35:02,960
+ I will get a few hundred every month.
+
+905
+00:35:02,960 --> 00:35:03,960
+ I will get a few hundred every month.
+
+906
+00:35:03,960 --> 00:35:04,960
+ I will get a few hundred every month.
+
+907
+00:35:04,960 --> 00:35:05,960
+ I will get a few hundred every month.
+
+908
+00:35:15,960 --> 00:35:16,960
+ I will get a few hundred every month.
+
+909
+00:35:16,960 --> 00:35:17,960
+ I will get a few hundred every month.
+
+910
+00:35:17,960 --> 00:35:18,960
+ I will get a few hundred every month.
+
+911
+00:35:18,960 --> 00:35:19,960
+ I will get a few hundred every month.
+
+912
+00:35:19,960 --> 00:35:20,960
+ I will get a few hundred every month.
+
+913
+00:35:20,960 --> 00:35:21,960
+ I will get a few hundred every month.
+
+914
+00:35:21,960 --> 00:35:22,960
+ I will get a few hundred every month.
+
+915
+00:35:22,960 --> 00:35:23,960
+ I will get a few hundred every month.
+
+916
+00:35:23,960 --> 00:35:24,960
+ I will get a few hundred every month.
+
+917
+00:35:24,960 --> 00:35:25,960
+ I will get a few hundred every month.
+
+918
+00:35:25,960 --> 00:35:26,960
+ I will get a few hundred every month.
+
+919
+00:35:26,960 --> 00:35:27,960
+ I will get a few hundred every month.
+
+920
+00:35:27,960 --> 00:35:28,960
+ I will get a few hundred every month.
+
+921
+00:35:28,960 --> 00:35:29,960
+ I will get a few hundred every month.
+
+922
+00:35:29,960 --> 00:35:30,960
+ I will get a few hundred every month.
+
+923
+00:35:30,960 --> 00:35:31,960
+ I will get a few hundred every month.
+
+924
+00:35:31,960 --> 00:35:32,960
+ I will get a few hundred every month.
+
+925
+00:35:32,960 --> 00:35:33,960
+ I will get a few hundred every month.
+
+926
+00:35:33,960 --> 00:35:34,960
+ I will get a few hundred every month.
+
+927
+00:35:34,960 --> 00:35:35,960
+ I will get a few hundred every month.
+
+928
+00:35:45,960 --> 00:35:46,960
+ I will get a few hundred every month.
+
+929
+00:35:46,960 --> 00:35:47,960
+ I will get a few hundred every month.
+
+930
+00:35:47,960 --> 00:35:48,960
+ I will get a few hundred every month.
+
+931
+00:35:48,960 --> 00:35:49,960
+ I will get a few hundred every month.
+
+932
+00:35:49,960 --> 00:35:50,960
+ I will get a few hundred every month.
+
+933
+00:35:50,960 --> 00:35:51,960
+ I will get a few hundred every month.
+
+934
+00:35:51,960 --> 00:35:52,960
+ I will get a few hundred every month.
+
+935
+00:35:52,960 --> 00:35:53,960
+ I will get a few hundred every month.
+
+936
+00:35:53,960 --> 00:35:54,960
+ I will get a few hundred every month.
+
+937
+00:35:54,960 --> 00:35:55,960
+ I will get a few hundred every month.
+
+938
+00:35:55,960 --> 00:35:56,960
+ I will get a few hundred every month.
+
+939
+00:35:56,960 --> 00:35:57,960
+ I will get a few hundred every month.
+
+940
+00:35:57,960 --> 00:35:58,960
+ I will get a few hundred every month.
+
+941
+00:35:58,960 --> 00:35:59,960
+ I will get a few hundred every month.
+
+942
+00:35:59,960 --> 00:36:00,960
+ I will get a few hundred every month.
+
+943
+00:36:00,960 --> 00:36:01,960
+ I will get a few hundred every month.
+
+944
+00:36:01,960 --> 00:36:02,960
+ I will get a few hundred every month.
+
+945
+00:36:02,960 --> 00:36:03,960
+ I will get a few hundred every month.
+
+946
+00:36:03,960 --> 00:36:04,960
+ I will get a few hundred every month.
+
+947
+00:36:04,960 --> 00:36:05,960
+ I will get a few hundred every month.
+
+948
+00:36:15,960 --> 00:36:16,960
+ I will get a few hundred every month.
+
+949
+00:36:16,960 --> 00:36:17,960
+ I will get a few hundred every month.
+
+950
+00:36:17,960 --> 00:36:18,960
+ I will get a few hundred every month.
+
+951
+00:36:18,960 --> 00:36:19,960
+ I will get a few hundred every month.
+
+952
+00:36:19,960 --> 00:36:20,960
+ I will get a few hundred every month.
+
+953
+00:36:20,960 --> 00:36:21,960
+ I will get a few hundred every month.
+
+954
+00:36:21,960 --> 00:36:22,960
+ I will get a few hundred every month.
+
+955
+00:36:22,960 --> 00:36:23,960
+ I will get a few hundred every month.
+
+956
+00:36:23,960 --> 00:36:24,960
+ I will get a few hundred every month.
+
+957
+00:36:24,960 --> 00:36:25,960
+ I will get a few hundred every month.
+
+958
+00:36:25,960 --> 00:36:26,960
+ I will get a few hundred every month.
+
+959
+00:36:26,960 --> 00:36:27,960
+ I will get a few hundred every month.
+
+960
+00:36:27,960 --> 00:36:28,960
+ I will get a few hundred every month.
+
+961
+00:36:28,960 --> 00:36:29,960
+ I will get a few hundred every month.
+
+962
+00:36:29,960 --> 00:36:30,960
+ I will get a few hundred every month.
+
+963
+00:36:30,960 --> 00:36:31,960
+ I will get a few hundred every month.
+
+964
+00:36:31,960 --> 00:36:32,960
+ I will get a few hundred every month.
+
+965
+00:36:32,960 --> 00:36:33,960
+ I will get a few hundred every month.
+
+966
+00:36:33,960 --> 00:36:34,960
+ I will get a few hundred every month.
+
+967
+00:36:34,960 --> 00:36:35,960
+ I will get a few hundred every month.
+
+968
+00:36:45,960 --> 00:36:46,960
+ I will get a few hundred every month.
+
+969
+00:36:46,960 --> 00:36:47,960
+ I will get a few hundred every month.
+
+970
+00:36:47,960 --> 00:36:48,960
+ I will get a few hundred every month.
+
+971
+00:36:48,960 --> 00:36:49,960
+ I will get a few hundred every month.
+
+972
+00:36:49,960 --> 00:36:50,960
+ I will get a few hundred every month.
+
+973
+00:36:50,960 --> 00:36:51,960
+ I will get a few hundred every month.
+
+974
+00:36:51,960 --> 00:36:52,960
+ I will get a few hundred every month.
+
+975
+00:36:52,960 --> 00:36:53,960
+ I will get a few hundred every month.
+
+976
+00:36:53,960 --> 00:36:54,960
+ I will get a few hundred every month.
+
+977
+00:36:54,960 --> 00:36:55,960
+ I will get a few hundred every month.
+
+978
+00:36:55,960 --> 00:36:56,960
+ I will get a few hundred every month.
+
+979
+00:36:56,960 --> 00:36:57,960
+ I will get a few hundred every month.
+
+980
+00:36:57,960 --> 00:36:58,960
+ I will get a few hundred every month.
+
+981
+00:36:58,960 --> 00:36:59,960
+ I will get a few hundred every month.
+
+982
+00:36:59,960 --> 00:37:00,960
+ I will get a few hundred every month.
+
+983
+00:37:00,960 --> 00:37:01,960
+ I will get a few hundred every month.
+
+984
+00:37:01,960 --> 00:37:02,960
+ I will get a few hundred every month.
+
+985
+00:37:02,960 --> 00:37:03,960
+ I will get a few hundred every month.
+
+986
+00:37:03,960 --> 00:37:04,960
+ I will get a few hundred every month.
+
+987
+00:37:04,960 --> 00:37:05,960
+ I will get a few hundred every month.
+
+988
+00:37:15,960 --> 00:37:16,960
+ I will get a few hundred every month.
+
+989
+00:37:16,960 --> 00:37:17,960
+ I will get a few hundred every month.
+
+990
+00:37:17,960 --> 00:37:18,960
+ I will get a few hundred every month.
+
+991
+00:37:18,960 --> 00:37:19,960
+ I will get a few hundred every month.
+
+992
+00:37:19,960 --> 00:37:20,960
+ I will get a few hundred every month.
+
+993
+00:37:20,960 --> 00:37:21,960
+ I will get a few hundred every month.
+
+994
+00:37:21,960 --> 00:37:22,960
+ I will get a few hundred every month.
+
+995
+00:37:22,960 --> 00:37:23,960
+ I will get a few hundred every month.
+
+996
+00:37:23,960 --> 00:37:24,960
+ I will get a few hundred every month.
+
+997
+00:37:24,960 --> 00:37:25,960
+ I will get a few hundred every month.
+
+998
+00:37:25,960 --> 00:37:26,960
+ I will get a few hundred every month.
+
+999
+00:37:26,960 --> 00:37:27,960
+ I will get a few hundred every month.
+
+1000
+00:37:27,960 --> 00:37:28,960
+ I will get a few hundred every month.
+
+1001
+00:37:28,960 --> 00:37:29,960
+ I will get a few hundred every month.
+
+1002
+00:37:29,960 --> 00:37:30,960
+ I will get a few hundred every month.
+
+1003
+00:37:30,960 --> 00:37:31,960
+ I will get a few hundred every month.
+
+1004
+00:37:31,960 --> 00:37:32,960
+ I will get a few hundred every month.
+
+1005
+00:37:32,960 --> 00:37:33,960
+ I will get a few hundred every month.
+
+1006
+00:37:33,960 --> 00:37:34,960
+ I will get a few hundred every month.
+
+1007
+00:37:34,960 --> 00:37:35,960
+ I will get a few hundred every month.
+
+1008
+00:37:45,960 --> 00:37:49,960
+ Payroll is more on permanent staff.
+
+1009
+00:37:49,960 --> 00:37:50,960
+ No, not only that.
+
+1010
+00:37:50,960 --> 00:37:51,960
+ The commission is the same.
+
+1011
+00:37:51,960 --> 00:37:52,960
+ That means,
+
+1012
+00:37:52,960 --> 00:37:53,960
+ because now you transfer,
+
+1013
+00:37:53,960 --> 00:37:54,960
+ you use bank accounts,
+
+1014
+00:37:54,960 --> 00:37:55,960
+ you transfer them one by one, right?
+
+1015
+00:37:55,960 --> 00:37:56,960
+ Yes.
+
+1016
+00:37:56,960 --> 00:37:57,960
+ Payroll is,
+
+1017
+00:37:57,960 --> 00:37:59,960
+ as long as you have time,
+
+1018
+00:37:59,960 --> 00:38:04,960
+ you download a text file.
+
+1019
+00:38:04,960 --> 00:38:05,960
+ That text file,
+
+1020
+00:38:05,960 --> 00:38:06,960
+ you upload it,
+
+1021
+00:38:06,960 --> 00:38:07,960
+ you go to the bank.
+
+1022
+00:38:07,960 --> 00:38:09,960
+ That's all you need to do.
+
+1023
+00:38:09,960 --> 00:38:10,960
+ Within the next two days,
+
+1024
+00:38:10,960 --> 00:38:11,960
+ you go to the bank for your center.
+
+1025
+00:38:11,960 --> 00:38:12,960
+ Oh.
+
+1026
+00:38:12,960 --> 00:38:13,960
+ You don't know.
+
+1027
+00:38:13,960 --> 00:38:14,960
+ It's like this.
+
+1028
+00:38:14,960 --> 00:38:17,960
+ You can do permanent staff and common staff.
+
+1029
+00:38:17,960 --> 00:38:18,960
+ Supplier?
+
+1030
+00:38:18,960 --> 00:38:20,960
+ Supplier is different.
+
+1031
+00:38:20,960 --> 00:38:22,960
+ Supplier is also available.
+
+1032
+00:38:22,960 --> 00:38:28,960
+ But the bank request for supplier is different.
+
+1033
+00:38:28,960 --> 00:38:31,960
+ So supplier is different.
+
+1034
+00:38:31,960 --> 00:38:32,960
+ Yes, yes, yes.
+
+1035
+00:38:32,960 --> 00:38:33,960
+ Bank is also available.
+
+1036
+00:38:33,960 --> 00:38:36,960
+ But supplier is also different.
+
+1037
+00:38:36,960 --> 00:38:39,960
+ Supplier system is under,
+
+1038
+00:38:39,960 --> 00:38:41,960
+ what is it called?
+
+1039
+00:38:41,960 --> 00:38:43,960
+ Logistic management system.
+
+1040
+00:38:43,960 --> 00:38:44,960
+ LMS.
+
+1041
+00:38:44,960 --> 00:38:47,960
+ This is more like HR system.
+
+1042
+00:38:47,960 --> 00:38:49,960
+ HR system is only for payroll.
+
+1043
+00:38:49,960 --> 00:38:53,960
+ But we're still for vendor payment,
+
+1044
+00:38:53,960 --> 00:38:54,960
+ supplier payment,
+
+1045
+00:38:54,960 --> 00:38:56,960
+ your business account,
+
+1046
+00:38:56,960 --> 00:38:58,960
+ you can't use the same function.
+
+1047
+00:38:58,960 --> 00:39:01,960
+ You can use the same bank to pay.
+
+1048
+00:39:01,960 --> 00:39:03,960
+ But the function for upload,
+
+1049
+00:39:03,960 --> 00:39:05,960
+ that's just for salary gyro.
+
+1050
+00:39:05,960 --> 00:39:09,960
+ So if you want to do the bulk upload,
+
+1051
+00:39:09,960 --> 00:39:11,960
+ you have to select another function.
+
+1052
+00:39:11,960 --> 00:39:13,960
+ They have charge.
+
+1053
+00:39:13,960 --> 00:39:14,960
+ OK.
+
+1054
+00:39:14,960 --> 00:39:15,960
+ OK.
+
+1055
+00:39:15,960 --> 00:39:19,960
+ You don't need to do the bulk upload.
+
+1056
+00:39:19,960 --> 00:39:20,960
+ Yes, yes.
+
+1057
+00:39:20,960 --> 00:39:23,960
+ This is what you do before you do this.
+
+1058
+00:39:23,960 --> 00:39:26,960
+ You think there are too many people.
+
+1059
+00:39:26,960 --> 00:39:28,960
+ Because you can't translate until a certain time.
+
+1060
+00:39:28,960 --> 00:39:29,960
+ Yes.
+
+1061
+00:39:29,960 --> 00:39:30,960
+ Really, don't talk too much.
+
+1062
+00:39:30,960 --> 00:39:31,960
+ I'm not telling you.
+
+1063
+00:39:31,960 --> 00:39:33,960
+ As long as there are about 40 people,
+
+1064
+00:39:33,960 --> 00:39:35,960
+ you can't translate.
+
+1065
+00:39:35,960 --> 00:39:38,960
+ I can't translate for 30 people at that time.
+
+1066
+00:39:38,960 --> 00:39:41,960
+ I have to translate for 30 people.
+
+1067
+00:39:41,960 --> 00:39:43,960
+ I can't translate for 30 people.
+
+1068
+00:39:43,960 --> 00:39:44,960
+ Don't talk too much.
+
+1069
+00:39:44,960 --> 00:39:46,960
+ You can't translate for 30 people.
+
+1070
+00:39:46,960 --> 00:39:47,960
+ You can't translate for 30 people.
+
+1071
+00:39:47,960 --> 00:39:49,960
+ You can't translate for 30 people.
+
+1072
+00:39:49,960 --> 00:39:51,960
+ You can't translate for 30 people.
+
+1073
+00:39:51,960 --> 00:39:53,960
+ You can't translate for 30 people.
+
+1074
+00:39:53,960 --> 00:39:55,960
+ You can't translate for 30 people.
+
+1075
+00:39:55,960 --> 00:39:57,960
+ You can't translate for 30 people.
+
+1076
+00:39:57,960 --> 00:39:59,960
+ You can't translate for 30 people.
+
+1077
+00:39:59,960 --> 00:40:01,960
+ You can't translate for 30 people.
+
+1078
+00:40:01,960 --> 00:40:03,960
+ You can't translate for 30 people.
+
+1079
+00:40:03,960 --> 00:40:05,960
+ You can't translate for 30 people.
+
+1080
+00:40:05,960 --> 00:40:08,960
+ You can't translate for 30 people.
+
+1081
+00:40:08,960 --> 00:40:10,960
+ You can't translate for 30 people.
+
+1082
+00:40:10,960 --> 00:40:12,960
+ You can't translate for 30 people.
+
+1083
+00:40:12,960 --> 00:40:14,960
+ You can't translate for 30 people.
+
+1084
+00:40:14,960 --> 00:40:16,960
+ You can't translate for 30 people.
+
+1085
+00:40:16,960 --> 00:40:18,960
+ You can't translate for 30 people.
+
+1086
+00:40:18,960 --> 00:40:20,960
+ You can't translate for 30 people.
+
+1087
+00:40:20,960 --> 00:40:22,960
+ You can't translate for 30 people.
+
+1088
+00:40:22,960 --> 00:40:24,960
+ You can't translate for 30 people.
+
+1089
+00:40:24,960 --> 00:40:26,960
+ You can't translate for 30 people.
+
+1090
+00:40:26,960 --> 00:40:28,960
+ You can't translate for 30 people.
+
+1091
+00:40:28,960 --> 00:40:30,960
+ You can't translate for 30 people.
+
+1092
+00:40:30,960 --> 00:40:32,960
+ You can't translate for 30 people.
+
+1093
+00:40:32,960 --> 00:40:34,960
+ You can't translate for 30 people.
+
+1094
+00:40:34,960 --> 00:40:36,960
+ You can't translate for 30 people.
+
+1095
+00:40:36,960 --> 00:40:38,960
+ You can't translate for 30 people.
+
+1096
+00:40:38,960 --> 00:40:40,960
+ You can't translate for 30 people.
+
+1097
+00:40:40,960 --> 00:40:42,960
+ You can't translate for 30 people.
+
+1098
+00:40:42,960 --> 00:40:44,960
+ You can't translate for 30 people.
+
+1099
+00:40:44,960 --> 00:40:46,960
+ You can't translate for 30 people.
+
+1100
+00:40:46,960 --> 00:40:48,960
+ You can't translate for 30 people.
+
+1101
+00:40:48,960 --> 00:40:50,960
+ You can't translate for 30 people.
+
+1102
+00:40:50,960 --> 00:40:52,960
+ You can't translate for 30 people.
+
+1103
+00:40:52,960 --> 00:40:54,960
+ You can't translate for 30 people.
+
+1104
+00:40:54,960 --> 00:40:56,960
+ You can't translate for 30 people.
+
+1105
+00:40:56,960 --> 00:40:58,960
+ You can't translate for 30 people.
+
+1106
+00:40:58,960 --> 00:41:00,960
+ You can't translate for 30 people.
+
+1107
+00:41:00,960 --> 00:41:02,960
+ You can't translate for 30 people.
+
+1108
+00:41:02,960 --> 00:41:04,960
+ You can't translate for 30 people.
+
+1109
+00:41:04,960 --> 00:41:06,960
+ You can't translate for 30 people.
+
+1110
+00:41:06,960 --> 00:41:08,960
+ You can't translate for 30 people.
+
+1111
+00:41:08,960 --> 00:41:10,960
+ You can't translate for 30 people.
+
+1112
+00:41:10,960 --> 00:41:12,960
+ You can't translate for 30 people.
+
+1113
+00:41:12,960 --> 00:41:14,960
+ You can't translate for 30 people.
+
+1114
+00:41:14,960 --> 00:41:16,960
+ You can't translate for 30 people.
+
+1115
+00:41:16,960 --> 00:41:18,960
+ You can't translate for 30 people.
+
+1116
+00:41:18,960 --> 00:41:20,960
+ You can't translate for 30 people.
+
+1117
+00:41:20,960 --> 00:41:22,960
+ You can't translate for 30 people.
+
+1118
+00:41:22,960 --> 00:41:24,960
+ You can't translate for 30 people.
+
+1119
+00:41:24,960 --> 00:41:26,960
+ You can't translate for 30 people.
+
+1120
+00:41:26,960 --> 00:41:28,960
+ You can't translate for 30 people.
+
+1121
+00:41:28,960 --> 00:41:30,960
+ You can't translate for 30 people.
+
+1122
+00:41:30,960 --> 00:41:32,960
+ You can't translate for 30 people.
+
+1123
+00:41:32,960 --> 00:41:34,960
+ You can't translate for 30 people.
+
+1124
+00:41:34,960 --> 00:41:36,960
+ You can't translate for 30 people.
+
+1125
+00:41:36,960 --> 00:41:38,960
+ You can't translate for 30 people.
+
+1126
+00:41:38,960 --> 00:41:40,960
+ You can't translate for 30 people.
+
+1127
+00:41:40,960 --> 00:41:42,960
+ You can't translate for 30 people.
+
+1128
+00:41:42,960 --> 00:41:44,960
+ You can't translate for 30 people.
+
+1129
+00:41:44,960 --> 00:41:46,960
+ You can't translate for 30 people.
+
+1130
+00:41:46,960 --> 00:41:48,960
+ You can't translate for 30 people.
+
+1131
+00:41:48,960 --> 00:41:50,960
+ You can't translate for 30 people.
+
+1132
+00:41:50,960 --> 00:41:52,960
+ You can't translate for 30 people.
+
+1133
+00:41:52,960 --> 00:41:54,960
+ You can't translate for 30 people.
+
+1134
+00:41:54,960 --> 00:41:56,960
+ You can't translate for 30 people.
+
+1135
+00:41:56,960 --> 00:41:58,960
+ You can't translate for 30 people.
+
+1136
+00:41:58,960 --> 00:42:00,960
+ You can't translate for 30 people.
+
+1137
+00:42:00,960 --> 00:42:02,960
+ You can't translate for 30 people.
+
+1138
+00:42:02,960 --> 00:42:04,960
+ You can't translate for 30 people.
+
+1139
+00:42:04,960 --> 00:42:06,960
+ You can't translate for 30 people.
+
+1140
+00:42:06,960 --> 00:42:08,960
+ You can't translate for 30 people.
+
+1141
+00:42:08,960 --> 00:42:10,960
+ You can't translate for 30 people.
+
+1142
+00:42:10,960 --> 00:42:12,960
+ You can't translate for 30 people.
+
+1143
+00:42:12,960 --> 00:42:14,960
+ You can't translate for 30 people.
+
+1144
+00:42:14,960 --> 00:42:16,960
+ You can't translate for 30 people.
+
+1145
+00:42:16,960 --> 00:42:18,960
+ You can't translate for 30 people.
+
+1146
+00:42:18,960 --> 00:42:20,960
+ You can't translate for 30 people.
+
+1147
+00:42:20,960 --> 00:42:22,960
+ You can't translate for 30 people.
+
+1148
+00:42:22,960 --> 00:42:24,960
+ You can't translate for 30 people.
+
+1149
+00:42:24,960 --> 00:42:26,960
+ You can't translate for 30 people.
+
+1150
+00:42:26,960 --> 00:42:28,960
+ You can't translate for 30 people.
+
+1151
+00:42:28,960 --> 00:42:30,960
+ You can't translate for 30 people.
+
+1152
+00:42:30,960 --> 00:42:32,960
+ You can't translate for 30 people.
+
+1153
+00:42:32,960 --> 00:42:34,960
+ You can't translate for 30 people.
+
+1154
+00:42:34,960 --> 00:42:36,960
+ You can't translate for 30 people.
+
+1155
+00:42:36,960 --> 00:42:38,960
+ You can't translate for 30 people.
+
+1156
+00:42:38,960 --> 00:42:40,960
+ You can't translate for 30 people.
+
+1157
+00:42:40,960 --> 00:42:42,960
+ You can't translate for 30 people.
+
+1158
+00:42:42,960 --> 00:42:44,960
+ You can't translate for 30 people.
+
+1159
+00:42:44,960 --> 00:42:46,960
+ You can't translate for 30 people.
+
+1160
+00:42:46,960 --> 00:42:48,960
+ You can't translate for 30 people.
+
+1161
+00:42:48,960 --> 00:42:50,960
+ You can't translate for 30 people.
+
+1162
+00:42:50,960 --> 00:42:52,960
+ You can't translate for 30 people.
+
+1163
+00:42:52,960 --> 00:42:54,960
+ You can't translate for 30 people.
+
+1164
+00:42:54,960 --> 00:42:56,960
+ You can't translate for 30 people.
+
+1165
+00:42:56,960 --> 00:42:58,960
+ You can't translate for 30 people.
+
+1166
+00:42:58,960 --> 00:43:00,960
+ You can't translate for 30 people.
+
+1167
+00:43:00,960 --> 00:43:02,960
+ You can't translate for 30 people.
+
+1168
+00:43:02,960 --> 00:43:04,960
+ You can't translate for 30 people.
+
+1169
+00:43:04,960 --> 00:43:06,960
+ You can't translate for 30 people.
+
+1170
+00:43:06,960 --> 00:43:08,960
+ You can't translate for 30 people.
+
+1171
+00:43:08,960 --> 00:43:10,960
+ You can't translate for 30 people.
+
+1172
+00:43:10,960 --> 00:43:12,960
+ You can't translate for 30 people.
+
+1173
+00:43:12,960 --> 00:43:14,960
+ You can't translate for 30 people.
+
+1174
+00:43:14,960 --> 00:43:16,960
+ You can't translate for 30 people.
+
+1175
+00:43:16,960 --> 00:43:18,960
+ You can't translate for 30 people.
+
+1176
+00:43:18,960 --> 00:43:20,960
+ You can't translate for 30 people.
+
+1177
+00:43:20,960 --> 00:43:22,960
+ You can't translate for 30 people.
+
+1178
+00:43:22,960 --> 00:43:24,960
+ You can't translate for 30 people.
+
+1179
+00:43:24,960 --> 00:43:26,960
+ You can't translate for 30 people.
+
+1180
+00:43:26,960 --> 00:43:28,960
+ You can't translate for 30 people.
+
+1181
+00:43:28,960 --> 00:43:30,960
+ You can't translate for 30 people.
+
+1182
+00:43:30,960 --> 00:43:32,960
+ You can't translate for 30 people.
+
+1183
+00:43:32,960 --> 00:43:34,960
+ You can't translate for 30 people.
+
+1184
+00:43:34,960 --> 00:43:36,960
+ You can't translate for 30 people.
+
+1185
+00:43:36,960 --> 00:43:38,960
+ You can't translate for 30 people.
+
+1186
+00:43:38,960 --> 00:43:40,960
+ You can't translate for 30 people.
+
+1187
+00:43:40,960 --> 00:43:42,960
+ You can't translate for 30 people.
+
+1188
+00:43:42,960 --> 00:43:44,960
+ You can't translate for 30 people.
+
+1189
+00:43:44,960 --> 00:43:46,960
+ You can't translate for 30 people.
+
+1190
+00:43:46,960 --> 00:43:48,960
+ You can't translate for 30 people.
+
+1191
+00:43:48,960 --> 00:43:50,960
+ You can't translate for 30 people.
+
+1192
+00:43:50,960 --> 00:43:52,960
+ You can't translate for 30 people.
+
+1193
+00:43:52,960 --> 00:43:54,960
+ You can't translate for 30 people.
+
+1194
+00:43:54,960 --> 00:43:56,960
+ You can't translate for 30 people.
+
+1195
+00:43:56,960 --> 00:43:58,960
+ You can't translate for 30 people.
+
+1196
+00:43:58,960 --> 00:44:00,960
+ You can't translate for 30 people.
+
+1197
+00:44:00,960 --> 00:44:02,960
+ You can't translate for 30 people.
+
+1198
+00:44:02,960 --> 00:44:04,960
+ You can't translate for 30 people.
+
+1199
+00:44:04,960 --> 00:44:06,960
+ You can't translate for 30 people.
+
+1200
+00:44:06,960 --> 00:44:08,960
+ You can't translate for 30 people.
+
+1201
+00:44:08,960 --> 00:44:10,960
+ You can't translate for 30 people.
+
+1202
+00:44:10,960 --> 00:44:12,960
+ You can't translate for 30 people.
+
+1203
+00:44:12,960 --> 00:44:14,960
+ You can't translate for 30 people.
+
+1204
+00:44:14,960 --> 00:44:16,960
+ You can't translate for 30 people.
+
+1205
+00:44:16,960 --> 00:44:18,960
+ You can't translate for 30 people.
+
+1206
+00:44:18,960 --> 00:44:20,960
+ You can't translate for 30 people.
+
+1207
+00:44:20,960 --> 00:44:22,960
+ You can't translate for 30 people.
+
+1208
+00:44:22,960 --> 00:44:24,960
+ You can't translate for 30 people.
+
+1209
+00:44:24,960 --> 00:44:26,960
+ You can't translate for 30 people.
+
+1210
+00:44:26,960 --> 00:44:28,960
+ You can't translate for 30 people.
+
+1211
+00:44:28,960 --> 00:44:30,960
+ You can't translate for 30 people.
+
+1212
+00:44:30,960 --> 00:44:32,960
+ You can't translate for 30 people.
+
+1213
+00:44:32,960 --> 00:44:34,960
+ You can't translate for 30 people.
+
+1214
+00:44:34,960 --> 00:44:36,960
+ You can't translate for 30 people.
+
+1215
+00:44:36,960 --> 00:44:38,960
+ You can't translate for 30 people.
+
+1216
+00:44:38,960 --> 00:44:40,960
+ You can't translate for 30 people.
+
+1217
+00:44:40,960 --> 00:44:42,960
+ You can't translate for 30 people.
+
+1218
+00:44:42,960 --> 00:44:44,960
+ You can't translate for 30 people.
+
+1219
+00:44:44,960 --> 00:44:46,960
+ You can't translate for 30 people.
+
+1220
+00:44:46,960 --> 00:44:48,960
+ You can't translate for 30 people.
+
+1221
+00:44:48,960 --> 00:44:50,960
+ You can't translate for 30 people.
+
+1222
+00:44:50,960 --> 00:44:52,960
+ You can't translate for 30 people.
+
+1223
+00:44:52,960 --> 00:44:54,960
+ You can't translate for 30 people.
+
+1224
+00:44:54,960 --> 00:44:56,960
+ You can't translate for 30 people.
+
+1225
+00:44:56,960 --> 00:44:58,960
+ You can't translate for 30 people.
+
+1226
+00:44:58,960 --> 00:45:00,960
+ You can't translate for 30 people.
+
+1227
+00:45:00,960 --> 00:45:02,960
+ You can't translate for 30 people.
+
+1228
+00:45:02,960 --> 00:45:04,960
+ You can't translate for 30 people.
+
+1229
+00:45:04,960 --> 00:45:06,960
+ You can't translate for 30 people.
+
+1230
+00:45:06,960 --> 00:45:08,960
+ You can't translate for 30 people.
+
+1231
+00:45:08,960 --> 00:45:10,960
+ You can't translate for 30 people.
+
+1232
+00:45:10,960 --> 00:45:12,960
+ You can't translate for 30 people.
+
+1233
+00:45:12,960 --> 00:45:14,960
+ You can't translate for 30 people.
+
+1234
+00:45:14,960 --> 00:45:16,960
+ You can't translate for 30 people.
+
+1235
+00:45:16,960 --> 00:45:18,960
+ You can't translate for 30 people.
+
+1236
+00:45:18,960 --> 00:45:20,960
+ You can't translate for 30 people.
+
+1237
+00:45:20,960 --> 00:45:22,960
+ You can't translate for 30 people.
+
+1238
+00:45:22,960 --> 00:45:24,960
+ You can't translate for 30 people.
+
+1239
+00:45:24,960 --> 00:45:26,960
+ You can't translate for 30 people.
+
+1240
+00:45:26,960 --> 00:45:28,960
+ You can't translate for 30 people.
+
+1241
+00:45:28,960 --> 00:45:30,960
+ You can't translate for 30 people.
+
+1242
+00:45:30,960 --> 00:45:32,960
+ You can't translate for 30 people.
+
+1243
+00:45:32,960 --> 00:45:34,960
+ You can't translate for 30 people.
+
+1244
+00:45:34,960 --> 00:45:36,960
+ You can't translate for 30 people.
+
+1245
+00:45:36,960 --> 00:45:38,960
+ You can't translate for 30 people.
+
+1246
+00:45:38,960 --> 00:45:40,960
+ You can't translate for 30 people.
+
+1247
+00:45:40,960 --> 00:45:42,960
+ You can't translate for 30 people.
+
+1248
+00:45:42,960 --> 00:45:44,960
+ You can't translate for 30 people.
+
+1249
+00:45:44,960 --> 00:45:46,960
+ You can't translate for 30 people.
+
+1250
+00:45:46,960 --> 00:45:48,960
+ You can't translate for 30 people.
+
+1251
+00:45:48,960 --> 00:45:50,960
+ You can't translate for 30 people.
+
+1252
+00:45:50,960 --> 00:45:52,960
+ You can't translate for 30 people.
+
+1253
+00:45:52,960 --> 00:45:54,960
+ You can't translate for 30 people.
+
+1254
+00:45:54,960 --> 00:45:56,960
+ You can't translate for 30 people.
+
+1255
+00:45:56,960 --> 00:45:58,960
+ You can't translate for 30 people.
+
+1256
+00:45:58,960 --> 00:46:00,960
+ You can't translate for 30 people.
+
+1257
+00:46:00,960 --> 00:46:02,960
+ You can't translate for 30 people.
+
+1258
+00:46:02,960 --> 00:46:04,960
+ You can't translate for 30 people.
+
+1259
+00:46:04,960 --> 00:46:06,960
+ You can't translate for 30 people.
+
+1260
+00:46:06,960 --> 00:46:08,960
+ You can't translate for 30 people.
+
+1261
+00:46:08,960 --> 00:46:10,960
+ You can't translate for 30 people.
+
+1262
+00:46:10,960 --> 00:46:12,960
+ You can't translate for 30 people.
+
+1263
+00:46:12,960 --> 00:46:14,960
+ You can't translate for 30 people.
+
+1264
+00:46:14,960 --> 00:46:16,960
+ You can't translate for 30 people.
+
+1265
+00:46:16,960 --> 00:46:18,960
+ You can't translate for 30 people.
+
+1266
+00:46:18,960 --> 00:46:20,960
+ You can't translate for 30 people.
+
+1267
+00:46:20,960 --> 00:46:22,960
+ You can't translate for 30 people.
+
+1268
+00:46:22,960 --> 00:46:24,960
+ You can't translate for 30 people.
+
+1269
+00:46:24,960 --> 00:46:26,960
+ You can't translate for 30 people.
+
+1270
+00:46:26,960 --> 00:46:28,960
+ You can't translate for 30 people.
+
+1271
+00:46:28,960 --> 00:46:30,960
+ You can't translate for 30 people.
+
+1272
+00:46:30,960 --> 00:46:32,960
+ You can't translate for 30 people.
+
+1273
+00:46:32,960 --> 00:46:34,960
+ You can't translate for 30 people.
+
+1274
+00:46:34,960 --> 00:46:36,960
+ You can't translate for 30 people.
+
+1275
+00:46:36,960 --> 00:46:38,960
+ You can't translate for 30 people.
+
+1276
+00:46:38,960 --> 00:46:40,960
+ You can't translate for 30 people.
+
+1277
+00:46:40,960 --> 00:46:42,960
+ You can't translate for 30 people.
+
+1278
+00:46:42,960 --> 00:46:44,960
+ You can't translate for 30 people.
+
+1279
+00:46:44,960 --> 00:46:46,960
+ You can't translate for 30 people.
+
+1280
+00:46:46,960 --> 00:46:48,960
+ You can't translate for 30 people.
+
+1281
+00:46:48,960 --> 00:46:50,960
+ You can't translate for 30 people.
+
+1282
+00:46:50,960 --> 00:46:52,960
+ You can't translate for 30 people.
+
+1283
+00:46:52,960 --> 00:46:54,960
+ You can't translate for 30 people.
+
+1284
+00:46:54,960 --> 00:46:56,960
+ You can't translate for 30 people.
+
+1285
+00:46:56,960 --> 00:46:58,960
+ You can't translate for 30 people.
+
+1286
+00:46:58,960 --> 00:47:00,960
+ You can't translate for 30 people.
+
+1287
+00:47:00,960 --> 00:47:02,960
+ You can't translate for 30 people.
+
+1288
+00:47:02,960 --> 00:47:04,960
+ You can't translate for 30 people.
+
+1289
+00:47:04,960 --> 00:47:06,960
+ You can't translate for 30 people.
+
+1290
+00:47:06,960 --> 00:47:08,960
+ You can't translate for 30 people.
+
+1291
+00:47:08,960 --> 00:47:10,960
+ You can't translate for 30 people.
+
+1292
+00:47:10,960 --> 00:47:12,960
+ You can't translate for 30 people.
+
+1293
+00:47:12,960 --> 00:47:14,960
+ You can't translate for 30 people.
+
+1294
+00:47:14,960 --> 00:47:16,960
+ You can't translate for 30 people.
+
+1295
+00:47:16,960 --> 00:47:18,960
+ You can't translate for 30 people.
+
+1296
+00:47:18,960 --> 00:47:20,960
+ You can't translate for 30 people.
+
+1297
+00:47:20,960 --> 00:47:22,960
+ You can't translate for 30 people.
+
+1298
+00:47:22,960 --> 00:47:24,960
+ You can't translate for 30 people.
+
+1299
+00:47:24,960 --> 00:47:26,960
+ You can't translate for 30 people.
+
+1300
+00:47:26,960 --> 00:47:28,960
+ You can't translate for 30 people.
+
+1301
+00:47:28,960 --> 00:47:30,960
+ You can't translate for 30 people.
+
+1302
+00:47:30,960 --> 00:47:32,960
+ You can't translate for 30 people.
+
+1303
+00:47:32,960 --> 00:47:34,960
+ You can't translate for 30 people.
+
+1304
+00:47:34,960 --> 00:47:36,960
+ You can't translate for 30 people.
+
+1305
+00:47:36,960 --> 00:47:38,960
+ You can't translate for 30 people.
+
+1306
+00:47:38,960 --> 00:47:40,960
+ You can't translate for 30 people.
+
+1307
+00:47:40,960 --> 00:47:42,960
+ You can't translate for 30 people.
+
+1308
+00:47:42,960 --> 00:47:44,960
+ You can't translate for 30 people.
+
+1309
+00:47:44,960 --> 00:47:46,960
+ You can't translate for 30 people.
+
+1310
+00:47:46,960 --> 00:47:48,960
+ You can't translate for 30 people.
+
+1311
+00:47:48,960 --> 00:47:50,960
+ You can't translate for 30 people.
+
+1312
+00:47:50,960 --> 00:47:52,960
+ You can't translate for 30 people.
+
+1313
+00:47:52,960 --> 00:47:54,960
+ You can't translate for 30 people.
+
+1314
+00:47:54,960 --> 00:47:56,960
+ You can't translate for 30 people.
+
+1315
+00:47:56,960 --> 00:47:58,960
+ You can't translate for 30 people.
+
+1316
+00:47:58,960 --> 00:48:00,960
+ You can't translate for 30 people.
+
+1317
+00:48:00,960 --> 00:48:02,960
+ You can't translate for 30 people.
+
+1318
+00:48:02,960 --> 00:48:04,960
+ You can't translate for 30 people.
+
+1319
+00:48:04,960 --> 00:48:06,960
+ You can't translate for 30 people.
+
+1320
+00:48:06,960 --> 00:48:08,960
+ You can't translate for 30 people.
+
+1321
+00:48:08,960 --> 00:48:10,960
+ You can't translate for 30 people.
+
+1322
+00:48:10,960 --> 00:48:12,960
+ You can't translate for 30 people.
+
+1323
+00:48:12,960 --> 00:48:14,960
+ You can't translate for 30 people.
+
+1324
+00:48:14,960 --> 00:48:16,960
+ You can't translate for 30 people.
+
+1325
+00:48:16,960 --> 00:48:18,960
+ You can't translate for 30 people.
+
+1326
+00:48:18,960 --> 00:48:20,960
+ You can't translate for 30 people.
+
+1327
+00:48:20,960 --> 00:48:22,960
+ You can't translate for 30 people.
+
+1328
+00:48:22,960 --> 00:48:24,960
+ You can't translate for 30 people.
+
+1329
+00:48:24,960 --> 00:48:26,960
+ You can't translate for 30 people.
+
+1330
+00:48:26,960 --> 00:48:28,960
+ You can't translate for 30 people.
+
+1331
+00:48:28,960 --> 00:48:30,960
+ You can't translate for 30 people.
+
+1332
+00:48:30,960 --> 00:48:32,960
+ You can't translate for 30 people.
+
+1333
+00:48:32,960 --> 00:48:34,960
+ You can't translate for 30 people.
+
+1334
+00:48:34,960 --> 00:48:36,960
+ You can't translate for 30 people.
+
+1335
+00:48:36,960 --> 00:48:38,960
+ You can't translate for 30 people.
+
+1336
+00:48:38,960 --> 00:48:40,960
+ You can't translate for 30 people.
+
+1337
+00:48:40,960 --> 00:48:42,960
+ You can't translate for 30 people.
+
+1338
+00:48:42,960 --> 00:48:44,960
+ You can't translate for 30 people.
+
+1339
+00:48:44,960 --> 00:48:46,960
+ You can't translate for 30 people.
+
+1340
+00:48:46,960 --> 00:48:48,960
+ You can't translate for 30 people.
+
+1341
+00:48:48,960 --> 00:48:50,960
+ You can't translate for 30 people.
+
+1342
+00:48:50,960 --> 00:48:52,960
+ You can't translate for 30 people.
+
+1343
+00:48:52,960 --> 00:48:54,960
+ You can't translate for 30 people.
+
+1344
+00:48:54,960 --> 00:48:56,960
+ You can't translate for 30 people.
+
+1345
+00:48:56,960 --> 00:48:58,960
+ You can't translate for 30 people.
+
+1346
+00:48:58,960 --> 00:49:00,960
+ You can't translate for 30 people.
+
+1347
+00:49:00,960 --> 00:49:02,960
+ You can't translate for 30 people.
+
+1348
+00:49:02,960 --> 00:49:04,960
+ You can't translate for 30 people.
+
+1349
+00:49:04,960 --> 00:49:06,960
+ You can't translate for 30 people.
+
+1350
+00:49:06,960 --> 00:49:08,960
+ You can't translate for 30 people.
+
+1351
+00:49:08,960 --> 00:49:10,960
+ You can't translate for 30 people.
+
+1352
+00:49:10,960 --> 00:49:12,960
+ You can't translate for 30 people.
+
+1353
+00:49:12,960 --> 00:49:14,960
+ You can't translate for 30 people.
+
+1354
+00:49:14,960 --> 00:49:16,960
+ You can't translate for 30 people.
+
+1355
+00:49:16,960 --> 00:49:18,960
+ You can't translate for 30 people.
+
+1356
+00:49:18,960 --> 00:49:20,960
+ You can't translate for 30 people.
+
+1357
+00:49:20,960 --> 00:49:22,960
+ You can't translate for 30 people.
+
+1358
+00:49:22,960 --> 00:49:24,960
+ You can't translate for 30 people.
+
+1359
+00:49:24,960 --> 00:49:26,960
+ You can't translate for 30 people.
+
+1360
+00:49:26,960 --> 00:49:28,960
+ You can't translate for 30 people.
+
+1361
+00:49:28,960 --> 00:49:30,960
+ You can't translate for 30 people.
+
+1362
+00:49:30,960 --> 00:49:32,960
+ You can't translate for 30 people.
+
+1363
+00:49:32,960 --> 00:49:34,960
+ You can't translate for 30 people.
+
+1364
+00:49:34,960 --> 00:49:36,960
+ You can't translate for 30 people.
+
+1365
+00:49:36,960 --> 00:49:38,960
+ You can't translate for 30 people.
+
+1366
+00:49:38,960 --> 00:49:40,960
+ You can't translate for 30 people.
+
+1367
+00:49:40,960 --> 00:49:42,960
+ You can't translate for 30 people.
+
+1368
+00:49:42,960 --> 00:49:44,960
+ You can't translate for 30 people.
+
+1369
+00:49:44,960 --> 00:49:46,960
+ You can't translate for 30 people.
+
+1370
+00:49:46,960 --> 00:49:48,960
+ You can't translate for 30 people.
+
+1371
+00:49:48,960 --> 00:49:50,960
+ You can't translate for 30 people.
+
+1372
+00:49:50,960 --> 00:49:52,960
+ You can't translate for 30 people.
+
+1373
+00:49:52,960 --> 00:49:54,960
+ You can't translate for 30 people.
+
+1374
+00:49:54,960 --> 00:49:56,960
+ You can't translate for 30 people.
+
+1375
+00:49:56,960 --> 00:49:58,960
+ You can't translate for 30 people.
+
+1376
+00:49:58,960 --> 00:50:00,960
+ You can't translate for 30 people.
+
+1377
+00:50:00,960 --> 00:50:02,960
+ You can't translate for 30 people.
+
+1378
+00:50:02,960 --> 00:50:04,960
+ You can't translate for 30 people.
+
+1379
+00:50:04,960 --> 00:50:06,960
+ You can't translate for 30 people.
+
+1380
+00:50:06,960 --> 00:50:08,960
+ You can't translate for 30 people.
+
+1381
+00:50:08,960 --> 00:50:10,960
+ You can't translate for 30 people.
+
+1382
+00:50:10,960 --> 00:50:12,960
+ You can't translate for 30 people.
+
+1383
+00:50:12,960 --> 00:50:14,960
+ You can't translate for 30 people.
+
+1384
+00:50:14,960 --> 00:50:16,960
+ You can't translate for 30 people.
+
+1385
+00:50:16,960 --> 00:50:18,960
+ You can't translate for 30 people.
+
+1386
+00:50:18,960 --> 00:50:20,960
+ You can't translate for 30 people.
+
+1387
+00:50:20,960 --> 00:50:22,960
+ You can't translate for 30 people.
+
+1388
+00:50:22,960 --> 00:50:24,960
+ You can't translate for 30 people.
+
+1389
+00:50:24,960 --> 00:50:26,960
+ You can't translate for 30 people.
+
+1390
+00:50:26,960 --> 00:50:28,960
+ You can't translate for 30 people.
+
+1391
+00:50:28,960 --> 00:50:30,960
+ You can't translate for 30 people.
+
+1392
+00:50:30,960 --> 00:50:32,960
+ You can't translate for 30 people.
+
+1393
+00:50:32,960 --> 00:50:34,960
+ You can't translate for 30 people.
+
+1394
+00:50:34,960 --> 00:50:36,960
+ You can't translate for 30 people.
+
+1395
+00:50:36,960 --> 00:50:38,960
+ You can't translate for 30 people.
+
+1396
+00:50:38,960 --> 00:50:40,960
+ You can't translate for 30 people.
+
+1397
+00:50:40,960 --> 00:50:42,960
+ You can't translate for 30 people.
+
+1398
+00:50:42,960 --> 00:50:44,960
+ You can't translate for 30 people.
+
+1399
+00:50:44,960 --> 00:50:46,960
+ You can't translate for 30 people.
+
+1400
+00:50:46,960 --> 00:50:48,960
+ You can't translate for 30 people.
+
+1401
+00:50:48,960 --> 00:50:50,960
+ You can't translate for 30 people.
+
+1402
+00:50:50,960 --> 00:50:52,960
+ You can't translate for 30 people.
+
+1403
+00:50:52,960 --> 00:50:54,960
+ You can't translate for 30 people.
+
+1404
+00:50:54,960 --> 00:50:56,960
+ You can't translate for 30 people.
+
+1405
+00:50:56,960 --> 00:50:58,960
+ You can't translate for 30 people.
+
+1406
+00:50:58,960 --> 00:51:00,960
+ You can't translate for 30 people.
+
+1407
+00:51:00,960 --> 00:51:02,960
+ You can't translate for 30 people.
+
+1408
+00:51:02,960 --> 00:51:04,960
+ You can't translate for 30 people.
+
+1409
+00:51:04,960 --> 00:51:06,960
+ You can't translate for 30 people.
+
+1410
+00:51:06,960 --> 00:51:08,960
+ You can't translate for 30 people.
+
+1411
+00:51:08,960 --> 00:51:10,960
+ You can't translate for 30 people.
+
+1412
+00:51:10,960 --> 00:51:12,960
+ You can't translate for 30 people.
+
+1413
+00:51:12,960 --> 00:51:14,960
+ You can't translate for 30 people.
+
+1414
+00:51:14,960 --> 00:51:16,960
+ You can't translate for 30 people.
+
+1415
+00:51:16,960 --> 00:51:18,960
+ You can't translate for 30 people.
+
+1416
+00:51:18,960 --> 00:51:20,960
+ You can't translate for 30 people.
+
+1417
+00:51:20,960 --> 00:51:22,960
+ You can't translate for 30 people.
+
+1418
+00:51:22,960 --> 00:51:24,960
+ You can't translate for 30 people.
+
+1419
+00:51:24,960 --> 00:51:26,960
+ You can't translate for 30 people.
+
+1420
+00:51:26,960 --> 00:51:28,960
+ You can't translate for 30 people.
+
+1421
+00:51:28,960 --> 00:51:30,960
+ You can't translate for 30 people.
+
+1422
+00:51:30,960 --> 00:51:32,960
+ You can't translate for 30 people.
+
+1423
+00:51:32,960 --> 00:51:34,960
+ You can't translate for 30 people.
+
+1424
+00:51:34,960 --> 00:51:36,960
+ You can't translate for 30 people.
+
+1425
+00:51:36,960 --> 00:51:38,960
+ You can't translate for 30 people.
+
+1426
+00:51:38,960 --> 00:51:40,960
+ You can't translate for 30 people.
+
+1427
+00:51:40,960 --> 00:51:42,960
+ You can't translate for 30 people.
+
+1428
+00:51:42,960 --> 00:51:44,960
+ You can't translate for 30 people.
+
+1429
+00:51:44,960 --> 00:51:46,960
+ You can't translate for 30 people.
+
+1430
+00:51:46,960 --> 00:51:48,960
+ You can't translate for 30 people.
+
+1431
+00:51:48,960 --> 00:51:50,960
+ You can't translate for 30 people.
+
+1432
+00:51:50,960 --> 00:51:52,960
+ You can't translate for 30 people.
+
+1433
+00:51:52,960 --> 00:51:54,960
+ You can't translate for 30 people.
+
+1434
+00:51:54,960 --> 00:51:56,960
+ You can't translate for 30 people.
+
+1435
+00:51:56,960 --> 00:51:58,960
+ You can't translate for 30 people.
+
+1436
+00:51:58,960 --> 00:52:00,960
+ You can't translate for 30 people.
+
+1437
+00:52:00,960 --> 00:52:02,960
+ You can't translate for 30 people.
+
+1438
+00:52:02,960 --> 00:52:04,960
+ You can't translate for 30 people.
+
+1439
+00:52:04,960 --> 00:52:06,960
+ You can't translate for 30 people.
+
+1440
+00:52:06,960 --> 00:52:08,960
+ You can't translate for 30 people.
+
+1441
+00:52:08,960 --> 00:52:10,960
+ You can't translate for 30 people.
+
+1442
+00:52:10,960 --> 00:52:12,960
+ You can't translate for 30 people.
+
+1443
+00:52:12,960 --> 00:52:14,960
+ You can't translate for 30 people.
+
+1444
+00:52:14,960 --> 00:52:16,960
+ You can't translate for 30 people.
+
+1445
+00:52:16,960 --> 00:52:18,960
+ You can't translate for 30 people.
+
+1446
+00:52:18,960 --> 00:52:20,960
+ You can't translate for 30 people.
+
+1447
+00:52:20,960 --> 00:52:22,960
+ You can't translate for 30 people.
+
+1448
+00:52:22,960 --> 00:52:24,960
+ You can't translate for 30 people.
+
+1449
+00:52:24,960 --> 00:52:26,960
+ You can't translate for 30 people.
+
+1450
+00:52:26,960 --> 00:52:28,960
+ You can't translate for 30 people.
+
+1451
+00:52:28,960 --> 00:52:30,960
+ You can't translate for 30 people.
+
+1452
+00:52:30,960 --> 00:52:32,960
+ You can't translate for 30 people.
+
+1453
+00:52:32,960 --> 00:52:34,960
+ You can't translate for 30 people.
+
+1454
+00:52:34,960 --> 00:52:36,960
+ You can't translate for 30 people.
+
+1455
+00:52:36,960 --> 00:52:38,960
+ You can't translate for 30 people.
+
+1456
+00:52:38,960 --> 00:52:40,960
+ You can't translate for 30 people.
+
+1457
+00:52:40,960 --> 00:52:42,960
+ You can't translate for 30 people.
+
+1458
+00:52:42,960 --> 00:52:44,960
+ You can't translate for 30 people.
+
+1459
+00:52:44,960 --> 00:52:46,960
+ You can't translate for 30 people.
+
+1460
+00:52:46,960 --> 00:52:48,960
+ You can't translate for 30 people.
+
+1461
+00:52:48,960 --> 00:52:50,960
+ You can't translate for 30 people.
+
+1462
+00:52:50,960 --> 00:52:52,960
+ You can't translate for 30 people.
+
+1463
+00:52:52,960 --> 00:52:54,960
+ You can't translate for 30 people.
+
+1464
+00:52:54,960 --> 00:52:56,960
+ You can't translate for 30 people.
+
+1465
+00:52:56,960 --> 00:52:58,960
+ You can't translate for 30 people.
+
+1466
+00:52:58,960 --> 00:53:00,960
+ You can't translate for 30 people.
+
+1467
+00:53:00,960 --> 00:53:02,960
+ You can't translate for 30 people.
+
+1468
+00:53:02,960 --> 00:53:04,960
+ You can't translate for 30 people.
+
+1469
+00:53:04,960 --> 00:53:06,960
+ You can't translate for 30 people.
+
+1470
+00:53:06,960 --> 00:53:08,960
+ You can't translate for 30 people.
+
+1471
+00:53:08,960 --> 00:53:10,960
+ You can't translate for 30 people.
+
+1472
+00:53:10,960 --> 00:53:12,960
+ You can't translate for 30 people.
+
+1473
+00:53:12,960 --> 00:53:14,960
+ You can't translate for 30 people.
+
+1474
+00:53:14,960 --> 00:53:16,960
+ You can't translate for 30 people.
+
+1475
+00:53:16,960 --> 00:53:18,960
+ You can't translate for 30 people.
+
+1476
+00:53:18,960 --> 00:53:20,960
+ You can't translate for 30 people.
+
+1477
+00:53:20,960 --> 00:53:22,960
+ You can't translate for 30 people.
+
+1478
+00:53:22,960 --> 00:53:24,960
+ You can't translate for 30 people.
+
+1479
+00:53:24,960 --> 00:53:26,960
+ You can't translate for 30 people.
+
+1480
+00:53:26,960 --> 00:53:28,960
+ You can't translate for 30 people.
+
+1481
+00:53:28,960 --> 00:53:30,960
+ You can't translate for 30 people.
+
+1482
+00:53:30,960 --> 00:53:32,960
+ You can't translate for 30 people.
+
+1483
+00:53:32,960 --> 00:53:34,960
+ You can't translate for 30 people.
+
+1484
+00:53:34,960 --> 00:53:36,960
+ You can't translate for 30 people.
+
+1485
+00:53:36,960 --> 00:53:38,960
+ You can't translate for 30 people.
+
+1486
+00:53:38,960 --> 00:53:40,960
+ You can't translate for 30 people.
+
+1487
+00:53:40,960 --> 00:53:42,960
+ You can't translate for 30 people.
+
+1488
+00:53:42,960 --> 00:53:44,960
+ You can't translate for 30 people.
+
+1489
+00:53:44,960 --> 00:53:46,960
+ You can't translate for 30 people.
+
+1490
+00:53:46,960 --> 00:53:48,960
+ You can't translate for 30 people.
+
+1491
+00:53:48,960 --> 00:53:50,960
+ You can't translate for 30 people.
+
+1492
+00:53:50,960 --> 00:53:52,960
+ You can't translate for 30 people.
+
+1493
+00:53:52,960 --> 00:53:54,960
+ You can't translate for 30 people.
+
+1494
+00:53:54,960 --> 00:53:56,960
+ You can't translate for 30 people.
+
+1495
+00:53:56,960 --> 00:53:58,960
+ You can't translate for 30 people.
+
+1496
+00:53:58,960 --> 00:54:00,960
+ You can't translate for 30 people.
+
+1497
+00:54:00,960 --> 00:54:02,960
+ You can't translate for 30 people.
+
+1498
+00:54:02,960 --> 00:54:04,960
+ You can't translate for 30 people.
+
+1499
+00:54:04,960 --> 00:54:06,960
+ You can't translate for 30 people.
+
+1500
+00:54:06,960 --> 00:54:08,960
+ You can't translate for 30 people.
+
+1501
+00:54:08,960 --> 00:54:10,960
+ You can't translate for 30 people.
+
+1502
+00:54:10,960 --> 00:54:12,960
+ You can't translate for 30 people.
+
+1503
+00:54:12,960 --> 00:54:14,960
+ You can't translate for 30 people.
+
+1504
+00:54:14,960 --> 00:54:16,960
+ You can't translate for 30 people.
+
+1505
+00:54:16,960 --> 00:54:18,960
+ You can't translate for 30 people.
+
+1506
+00:54:18,960 --> 00:54:20,960
+ You can't translate for 30 people.
+
+1507
+00:54:20,960 --> 00:54:22,960
+ You can't translate for 30 people.
+
+1508
+00:54:22,960 --> 00:54:24,960
+ You can't translate for 30 people.
+
+1509
+00:54:24,960 --> 00:54:26,960
+ You can't translate for 30 people.
+
+1510
+00:54:26,960 --> 00:54:28,960
+ You can't translate for 30 people.
+
+1511
+00:54:28,960 --> 00:54:30,960
+ You can't translate for 30 people.
+
+1512
+00:54:30,960 --> 00:54:32,960
+ You can't translate for 30 people.
+
+1513
+00:54:32,960 --> 00:54:34,960
+ You can't translate for 30 people.
+
+1514
+00:54:34,960 --> 00:54:36,960
+ You can't translate for 30 people.
+
+1515
+00:54:36,960 --> 00:54:38,960
+ You can't translate for 30 people.
+
+1516
+00:54:38,960 --> 00:54:40,960
+ You can't translate for 30 people.
+
+1517
+00:54:40,960 --> 00:54:42,960
+ You can't translate for 30 people.
+
+1518
+00:54:42,960 --> 00:54:44,960
+ You can't translate for 30 people.
+
+1519
+00:54:44,960 --> 00:54:46,960
+ You can't translate for 30 people.
+
+1520
+00:54:46,960 --> 00:54:48,960
+ You can't translate for 30 people.
+
+1521
+00:54:48,960 --> 00:54:50,960
+ You can't translate for 30 people.
+
+1522
+00:54:50,960 --> 00:54:52,960
+ You can't translate for 30 people.
+
+1523
+00:54:52,960 --> 00:54:54,960
+ You can't translate for 30 people.
+
+1524
+00:54:54,960 --> 00:54:56,960
+ You can't translate for 30 people.
+
+1525
+00:54:56,960 --> 00:54:58,960
+ You can't translate for 30 people.
+
+1526
+00:54:58,960 --> 00:55:00,960
+ You can't translate for 30 people.
+
+1527
+00:55:00,960 --> 00:55:02,960
+ You can't translate for 30 people.
+
+1528
+00:55:02,960 --> 00:55:04,960
+ You can't translate for 30 people.
+
+1529
+00:55:04,960 --> 00:55:06,960
+ You can't translate for 30 people.
+
+1530
+00:55:06,960 --> 00:55:08,960
+ You can't translate for 30 people.
+
+1531
+00:55:08,960 --> 00:55:10,960
+ You can't translate for 30 people.
+
+1532
+00:55:10,960 --> 00:55:12,960
+ You can't translate for 30 people.
+
+1533
+00:55:12,960 --> 00:55:14,960
+ You can't translate for 30 people.
+
+1534
+00:55:14,960 --> 00:55:16,960
+ You can't translate for 30 people.
+
+1535
+00:55:16,960 --> 00:55:18,960
+ You can't translate for 30 people.
+
+1536
+00:55:18,960 --> 00:55:20,960
+ You can't translate for 30 people.
+
+1537
+00:55:20,960 --> 00:55:22,960
+ You can't translate for 30 people.
+
+1538
+00:55:22,960 --> 00:55:24,960
+ You can't translate for 30 people.
+
+1539
+00:55:24,960 --> 00:55:26,960
+ You can't translate for 30 people.
+
+1540
+00:55:26,960 --> 00:55:28,960
+ You can't translate for 30 people.
+
+1541
+00:55:28,960 --> 00:55:30,960
+ You can't translate for 30 people.
+
+1542
+00:55:30,960 --> 00:55:32,960
+ You can't translate for 30 people.
+
+1543
+00:55:32,960 --> 00:55:34,960
+ You can't translate for 30 people.
+
+1544
+00:55:34,960 --> 00:55:36,960
+ You can't translate for 30 people.
+
+1545
+00:55:36,960 --> 00:55:38,960
+ You can't translate for 30 people.
+
+1546
+00:55:38,960 --> 00:55:40,960
+ You can't translate for 30 people.
+
+1547
+00:55:40,960 --> 00:55:42,960
+ You can't translate for 30 people.
+
+1548
+00:55:42,960 --> 00:55:44,960
+ You can't translate for 30 people.
+
+1549
+00:55:44,960 --> 00:55:46,960
+ You can't translate for 30 people.
+
+1550
+00:55:46,960 --> 00:55:48,960
+ You can't translate for 30 people.
+
+1551
+00:55:48,960 --> 00:55:50,960
+ You can't translate for 30 people.
+
+1552
+00:55:50,960 --> 00:55:52,960
+ You can't translate for 30 people.
+
+1553
+00:55:52,960 --> 00:55:54,960
+ You can't translate for 30 people.
+
+1554
+00:55:54,960 --> 00:55:56,960
+ You can't translate for 30 people.
+
+1555
+00:55:56,960 --> 00:55:58,960
+ You can't translate for 30 people.
+
+1556
+00:55:58,960 --> 00:56:00,960
+ You can't translate for 30 people.
+
+1557
+00:56:00,960 --> 00:56:02,960
+ You can't translate for 30 people.
+
+1558
+00:56:02,960 --> 00:56:04,960
+ You can't translate for 30 people.
+
+1559
+00:56:04,960 --> 00:56:06,960
+ You can't translate for 30 people.
+
+1560
+00:56:06,960 --> 00:56:08,960
+ You can't translate for 30 people.
+
+1561
+00:56:08,960 --> 00:56:10,960
+ You can't translate for 30 people.
+
+1562
+00:56:10,960 --> 00:56:12,960
+ You can't translate for 30 people.
+
+1563
+00:56:12,960 --> 00:56:14,960
+ You can't translate for 30 people.
+
+1564
+00:56:14,960 --> 00:56:16,960
+ You can't translate for 30 people.
+
+1565
+00:56:16,960 --> 00:56:18,960
+ You can't translate for 30 people.
+
+1566
+00:56:18,960 --> 00:56:20,960
+ You can't translate for 30 people.
+
+1567
+00:56:20,960 --> 00:56:22,960
+ You can't translate for 30 people.
+
+1568
+00:56:22,960 --> 00:56:24,960
+ You can't translate for 30 people.
+
+1569
+00:56:24,960 --> 00:56:26,960
+ You can't translate for 30 people.
+
+1570
+00:56:26,960 --> 00:56:28,960
+ You can't translate for 30 people.
+
+1571
+00:56:28,960 --> 00:56:30,960
+ You can't translate for 30 people.
+
+1572
+00:56:30,960 --> 00:56:32,960
+ You can't translate for 30 people.
+
+1573
+00:56:32,960 --> 00:56:34,960
+ You can't translate for 30 people.
+
+1574
+00:56:34,960 --> 00:56:36,960
+ You can't translate for 30 people.
+
+1575
+00:56:36,960 --> 00:56:38,960
+ You can't translate for 30 people.
+
+1576
+00:56:38,960 --> 00:56:40,960
+ You can't translate for 30 people.
+
+1577
+00:56:40,960 --> 00:56:42,960
+ You can't translate for 30 people.
+
+1578
+00:56:42,960 --> 00:56:44,960
+ You can't translate for 30 people.
+
+1579
+00:56:44,960 --> 00:56:46,960
+ You can't translate for 30 people.
+
+1580
+00:56:46,960 --> 00:56:48,960
+ You can't translate for 30 people.
+
+1581
+00:56:48,960 --> 00:56:50,960
+ You can't translate for 30 people.
+
+1582
+00:56:50,960 --> 00:56:52,960
+ You can't translate for 30 people.
+
+1583
+00:56:52,960 --> 00:56:54,960
+ You can't translate for 30 people.
+
+1584
+00:56:54,960 --> 00:56:56,960
+ You can't translate for 30 people.
+
+1585
+00:56:56,960 --> 00:56:58,960
+ You can't translate for 30 people.
+
+1586
+00:56:58,960 --> 00:57:00,960
+ You can't translate for 30 people.
+
+1587
+00:57:00,960 --> 00:57:02,960
+ You can't translate for 30 people.
+
+1588
+00:57:02,960 --> 00:57:04,960
+ You can't translate for 30 people.
+
+1589
+00:57:04,960 --> 00:57:06,960
+ You can't translate for 30 people.
+
+1590
+00:57:06,960 --> 00:57:08,960
+ You can't translate for 30 people.
+
+1591
+00:57:08,960 --> 00:57:10,960
+ You can't translate for 30 people.
+
+1592
+00:57:10,960 --> 00:57:12,960
+ You can't translate for 30 people.
+
+1593
+00:57:12,960 --> 00:57:14,960
+ You can't translate for 30 people.
+
+1594
+00:57:14,960 --> 00:57:16,960
+ You can't translate for 30 people.
+
+1595
+00:57:16,960 --> 00:57:18,960
+ You can't translate for 30 people.
+
+1596
+00:57:18,960 --> 00:57:20,960
+ You can't translate for 30 people.
+
+1597
+00:57:20,960 --> 00:57:22,960
+ You can't translate for 30 people.
+
+1598
+00:57:22,960 --> 00:57:24,960
+ You can't translate for 30 people.
+
+1599
+00:57:24,960 --> 00:57:26,960
+ You can't translate for 30 people.
+
+1600
+00:57:26,960 --> 00:57:28,960
+ You can't translate for 30 people.
+
+1601
+00:57:28,960 --> 00:57:30,960
+ You can't translate for 30 people.
+
+1602
+00:57:30,960 --> 00:57:32,960
+ You can't translate for 30 people.
+
+1603
+00:57:32,960 --> 00:57:34,960
+ You can't translate for 30 people.
+
+1604
+00:57:34,960 --> 00:57:36,960
+ You can't translate for 30 people.
+
+1605
+00:57:36,960 --> 00:57:38,960
+ You can't translate for 30 people.
+
+1606
+00:57:38,960 --> 00:57:40,960
+ You can't translate for 30 people.
+
+1607
+00:57:40,960 --> 00:57:42,960
+ You can't translate for 30 people.
+
+1608
+00:57:42,960 --> 00:57:44,960
+ You can't translate for 30 people.
+
+1609
+00:57:44,960 --> 00:57:46,960
+ You can't translate for 30 people.
+
+1610
+00:57:46,960 --> 00:57:48,960
+ You can't translate for 30 people.
+
+1611
+00:57:48,960 --> 00:57:50,960
+ You can't translate for 30 people.
+
+1612
+00:57:50,960 --> 00:57:52,960
+ You can't translate for 30 people.
+
+1613
+00:57:52,960 --> 00:57:54,960
+ You can't translate for 30 people.
+
+1614
+00:57:54,960 --> 00:57:56,960
+ You can't translate for 30 people.
+
+1615
+00:57:56,960 --> 00:57:58,960
+ You can't translate for 30 people.
+
+1616
+00:57:58,960 --> 00:58:00,960
+ You can't translate for 30 people.
+
+1617
+00:58:00,960 --> 00:58:02,960
+ You can't translate for 30 people.
+
+1618
+00:58:02,960 --> 00:58:04,960
+ You can't translate for 30 people.
+
+1619
+00:58:04,960 --> 00:58:06,960
+ You can't translate for 30 people.
+
+1620
+00:58:06,960 --> 00:58:08,960
+ You can't translate for 30 people.
+
+1621
+00:58:08,960 --> 00:58:10,960
+ You can't translate for 30 people.
+
+1622
+00:58:10,960 --> 00:58:12,960
+ You can't translate for 30 people.
+
+1623
+00:58:12,960 --> 00:58:14,960
+ You can't translate for 30 people.
+
+1624
+00:58:14,960 --> 00:58:16,960
+ You can't translate for 30 people.
+
+1625
+00:58:16,960 --> 00:58:18,960
+ You can't translate for 30 people.
+
+1626
+00:58:18,960 --> 00:58:20,960
+ You can't translate for 30 people.
+
+1627
+00:58:20,960 --> 00:58:22,960
+ You can't translate for 30 people.
+
+1628
+00:58:22,960 --> 00:58:24,960
+ You can't translate for 30 people.
+
+1629
+00:58:24,960 --> 00:58:26,960
+ You can't translate for 30 people.
+
+1630
+00:58:26,960 --> 00:58:28,960
+ You can't translate for 30 people.
+
+1631
+00:58:28,960 --> 00:58:30,960
+ You can't translate for 30 people.
+
+1632
+00:58:30,960 --> 00:58:32,960
+ You can't translate for 30 people.
+
+1633
+00:58:32,960 --> 00:58:34,960
+ You can't translate for 30 people.
+
+1634
+00:58:34,960 --> 00:58:36,960
+ You can't translate for 30 people.
+
+1635
+00:58:36,960 --> 00:58:38,960
+ You can't translate for 30 people.
+
+1636
+00:58:38,960 --> 00:58:40,960
+ You can't translate for 30 people.
+
+1637
+00:58:40,960 --> 00:58:42,960
+ You can't translate for 30 people.
+
+1638
+00:58:42,960 --> 00:58:44,960
+ You can't translate for 30 people.
+
+1639
+00:58:44,960 --> 00:58:46,960
+ You can't translate for 30 people.
+
+1640
+00:58:46,960 --> 00:58:48,960
+ You can't translate for 30 people.
+
+1641
+00:58:48,960 --> 00:58:50,960
+ You can't translate for 30 people.
+
+1642
+00:58:50,960 --> 00:58:52,960
+ You can't translate for 30 people.
+
+1643
+00:58:52,960 --> 00:58:54,960
+ You can't translate for 30 people.
+
+1644
+00:58:54,960 --> 00:58:56,960
+ You can't translate for 30 people.
+
+1645
+00:58:56,960 --> 00:58:58,960
+ You can't translate for 30 people.
+
+1646
+00:58:58,960 --> 00:59:00,960
+ You can't translate for 30 people.
+
+1647
+00:59:00,960 --> 00:59:02,960
+ You can't translate for 30 people.
+
+1648
+00:59:02,960 --> 00:59:04,960
+ You can't translate for 30 people.
+
+1649
+00:59:04,960 --> 00:59:06,960
+ You can't translate for 30 people.
+
+1650
+00:59:06,960 --> 00:59:08,960
+ You can't translate for 30 people.
+
+1651
+00:59:08,960 --> 00:59:10,960
+ You can't translate for 30 people.
+
+1652
+00:59:10,960 --> 00:59:12,960
+ You can't translate for 30 people.
+
+1653
+00:59:12,960 --> 00:59:14,960
+ You can't translate for 30 people.
+
+1654
+00:59:14,960 --> 00:59:16,960
+ You can't translate for 30 people.
+
+1655
+00:59:16,960 --> 00:59:18,960
+ You can't translate for 30 people.
+
+1656
+00:59:18,960 --> 00:59:20,960
+ You can't translate for 30 people.
+
+1657
+00:59:20,960 --> 00:59:22,960
+ You can't translate for 30 people.
+
+1658
+00:59:22,960 --> 00:59:24,960
+ You can't translate for 30 people.
+
+1659
+00:59:24,960 --> 00:59:26,960
+ You can't translate for 30 people.
+
+1660
+00:59:26,960 --> 00:59:28,960
+ You can't translate for 30 people.
+
+1661
+00:59:28,960 --> 00:59:30,960
+ You can't translate for 30 people.
+
+1662
+00:59:30,960 --> 00:59:32,960
+ You can't translate for 30 people.
+
+1663
+00:59:32,960 --> 00:59:34,960
+ You can't translate for 30 people.
+
+1664
+00:59:34,960 --> 00:59:36,960
+ You can't translate for 30 people.
+
+1665
+00:59:36,960 --> 00:59:38,960
+ You can't translate for 30 people.
+
+1666
+00:59:38,960 --> 00:59:40,960
+ You can't translate for 30 people.
+
+1667
+00:59:40,960 --> 00:59:42,960
+ You can't translate for 30 people.
+
+1668
+00:59:42,960 --> 00:59:44,960
+ You can't translate for 30 people.
+
+1669
+00:59:44,960 --> 00:59:46,960
+ You can't translate for 30 people.
+
+1670
+00:59:46,960 --> 00:59:48,960
+ You can't translate for 30 people.
+
+1671
+00:59:48,960 --> 00:59:50,960
+ You can't translate for 30 people.
+
+1672
+00:59:50,960 --> 00:59:52,960
+ You can't translate for 30 people.
+
+1673
+00:59:52,960 --> 00:59:54,960
+ You can't translate for 30 people.
+
+1674
+00:59:54,960 --> 00:59:56,960
+ You can't translate for 30 people.
+
+1675
+00:59:56,960 --> 00:59:58,960
+ You can't translate for 30 people.
+
+1676
+00:59:58,960 --> 01:00:00,960
+ You can't translate for 30 people.
+
+1677
+01:00:00,960 --> 01:00:02,960
+ You can't translate for 30 people.
+
+1678
+01:00:02,960 --> 01:00:04,960
+ You can't translate for 30 people.
+
+1679
+01:00:04,960 --> 01:00:06,960
+ You can't translate for 30 people.
+
+1680
+01:00:06,960 --> 01:00:08,960
+ You can't translate for 30 people.
+
+1681
+01:00:08,960 --> 01:00:10,960
+ You can't translate for 30 people.
+
+1682
+01:00:10,960 --> 01:00:12,960
+ You can't translate for 30 people.
+
+1683
+01:00:12,960 --> 01:00:14,960
+ You can't translate for 30 people.
+
+1684
+01:00:14,960 --> 01:00:16,960
+ You can't translate for 30 people.
+
+1685
+01:00:16,960 --> 01:00:18,960
+ You can't translate for 30 people.
+
+1686
+01:00:18,960 --> 01:00:20,960
+ You can't translate for 30 people.
+
+1687
+01:00:20,960 --> 01:00:22,960
+ You can't translate for 30 people.
+
+1688
+01:00:22,960 --> 01:00:24,960
+ You can't translate for 30 people.
+
+1689
+01:00:24,960 --> 01:00:26,960
+ You can't translate for 30 people.
+
+1690
+01:00:26,960 --> 01:00:28,960
+ You can't translate for 30 people.
+
+1691
+01:00:28,960 --> 01:00:30,960
+ You can't translate for 30 people.
+
+1692
+01:00:30,960 --> 01:00:32,960
+ You can't translate for 30 people.
+
+1693
+01:00:32,960 --> 01:00:34,960
+ You can't translate for 30 people.
+
+1694
+01:00:34,960 --> 01:00:36,960
+ You can't translate for 30 people.
+
+1695
+01:00:36,960 --> 01:00:38,960
+ You can't translate for 30 people.
+
+1696
+01:00:38,960 --> 01:00:40,960
+ You can't translate for 30 people.
+
+1697
+01:00:40,960 --> 01:00:42,960
+ You can't translate for 30 people.
+
+1698
+01:00:42,960 --> 01:00:44,960
+ You can't translate for 30 people.
+
+1699
+01:00:44,960 --> 01:00:46,960
+ You can't translate for 30 people.
+
+1700
+01:00:46,960 --> 01:00:48,960
+ You can't translate for 30 people.
+
+1701
+01:00:48,960 --> 01:00:50,960
+ You can't translate for 30 people.
+
+1702
+01:00:50,960 --> 01:00:52,960
+ You can't translate for 30 people.
+
+1703
+01:00:52,960 --> 01:00:54,960
+ You can't translate for 30 people.
+
+1704
+01:00:54,960 --> 01:00:56,960
+ You can't translate for 30 people.
+
+1705
+01:00:56,960 --> 01:00:58,960
+ You can't translate for 30 people.
+
+1706
+01:00:58,960 --> 01:01:00,960
+ You can't translate for 30 people.
+
+1707
+01:01:00,960 --> 01:01:02,960
+ You can't translate for 30 people.
+
+1708
+01:01:02,960 --> 01:01:04,960
+ You can't translate for 30 people.
+
+1709
+01:01:04,960 --> 01:01:06,960
+ You can't translate for 30 people.
+
+1710
+01:01:06,960 --> 01:01:08,960
+ You can't translate for 30 people.
+
+1711
+01:01:08,960 --> 01:01:10,960
+ You can't translate for 30 people.
+
+1712
+01:01:10,960 --> 01:01:12,960
+ You can't translate for 30 people.
+
+1713
+01:01:12,960 --> 01:01:14,960
+ You can't translate for 30 people.
+
+1714
+01:01:14,960 --> 01:01:16,960
+ You can't translate for 30 people.
+
+1715
+01:01:16,960 --> 01:01:18,960
+ You can't translate for 30 people.
+
+1716
+01:01:18,960 --> 01:01:20,960
+ You can't translate for 30 people.
+
+1717
+01:01:20,960 --> 01:01:22,960
+ You can't translate for 30 people.
+
+1718
+01:01:22,960 --> 01:01:24,960
+ You can't translate for 30 people.
+
+1719
+01:01:24,960 --> 01:01:26,960
+ You can't translate for 30 people.
+
+1720
+01:01:26,960 --> 01:01:28,960
+ You can't translate for 30 people.
+
+1721
+01:01:28,960 --> 01:01:30,960
+ You can't translate for 30 people.
+
+1722
+01:01:30,960 --> 01:01:32,960
+ You can't translate for 30 people.
+
+1723
+01:01:32,960 --> 01:01:34,960
+ You can't translate for 30 people.
+
+1724
+01:01:34,960 --> 01:01:36,960
+ You can't translate for 30 people.
+
+1725
+01:01:36,960 --> 01:01:38,960
+ You can't translate for 30 people.
+
+1726
+01:01:38,960 --> 01:01:40,960
+ You can't translate for 30 people.
+
+1727
+01:01:40,960 --> 01:01:42,960
+ You can't translate for 30 people.
+
+1728
+01:01:42,960 --> 01:01:44,960
+ You can't translate for 30 people.
+
+1729
+01:01:44,960 --> 01:01:46,960
+ You can't translate for 30 people.
+
+1730
+01:01:46,960 --> 01:01:48,960
+ You can't translate for 30 people.
+
+1731
+01:01:48,960 --> 01:01:50,960
+ You can't translate for 30 people.
+
+1732
+01:01:50,960 --> 01:01:52,960
+ You can't translate for 30 people.
+
+1733
+01:01:52,960 --> 01:01:54,960
+ You can't translate for 30 people.
+
+1734
+01:01:54,960 --> 01:01:56,960
+ You can't translate for 30 people.
+
+1735
+01:01:56,960 --> 01:01:58,960
+ You can't translate for 30 people.
+
+1736
+01:01:58,960 --> 01:02:00,960
+ You can't translate for 30 people.
+
+1737
+01:02:00,960 --> 01:02:02,960
+ You can't translate for 30 people.
+
+1738
+01:02:02,960 --> 01:02:04,960
+ You can't translate for 30 people.
+
+1739
+01:02:04,960 --> 01:02:06,960
+ You can't translate for 30 people.
+
+1740
+01:02:06,960 --> 01:02:08,960
+ You can't translate for 30 people.
+
+1741
+01:02:08,960 --> 01:02:10,960
+ You can't translate for 30 people.
+
+1742
+01:02:10,960 --> 01:02:12,960
+ You can't translate for 30 people.
+
+1743
+01:02:12,960 --> 01:02:14,960
+ You can't translate for 30 people.
+
+1744
+01:02:14,960 --> 01:02:16,960
+ You can't translate for 30 people.
+
+1745
+01:02:16,960 --> 01:02:18,960
+ You can't translate for 30 people.
+
+1746
+01:02:18,960 --> 01:02:20,960
+ You can't translate for 30 people.
+
+1747
+01:02:20,960 --> 01:02:22,960
+ You can't translate for 30 people.
+
+1748
+01:02:22,960 --> 01:02:24,960
+ You can't translate for 30 people.
+
+1749
+01:02:24,960 --> 01:02:26,960
+ You can't translate for 30 people.
+
+1750
+01:02:26,960 --> 01:02:28,960
+ You can't translate for 30 people.
+
+1751
+01:02:28,960 --> 01:02:30,960
+ You can't translate for 30 people.
+
+1752
+01:02:30,960 --> 01:02:32,960
+ You can't translate for 30 people.
+
+1753
+01:02:32,960 --> 01:02:34,960
+ You can't translate for 30 people.
+
+1754
+01:02:34,960 --> 01:02:36,960
+ You can't translate for 30 people.
+
+1755
+01:02:36,960 --> 01:02:38,960
+ You can't translate for 30 people.
+
+1756
+01:02:38,960 --> 01:02:40,960
+ You can't translate for 30 people.
+
+1757
+01:02:40,960 --> 01:02:42,960
+ You can't translate for 30 people.
+
+1758
+01:02:42,960 --> 01:02:44,960
+ You can't translate for 30 people.
+
+1759
+01:02:44,960 --> 01:02:46,960
+ You can't translate for 30 people.
+
+1760
+01:02:46,960 --> 01:02:48,960
+ You can't translate for 30 people.
+
+1761
+01:02:48,960 --> 01:02:50,960
+ You can't translate for 30 people.
+
+1762
+01:02:50,960 --> 01:02:52,960
+ You can't translate for 30 people.
+
+1763
+01:02:52,960 --> 01:02:54,960
+ You can't translate for 30 people.
+
+1764
+01:02:54,960 --> 01:02:56,960
+ You can't translate for 30 people.
+
+1765
+01:02:56,960 --> 01:02:58,960
+ You can't translate for 30 people.
+
+1766
+01:02:58,960 --> 01:03:00,960
+ You can't translate for 30 people.
+
+1767
+01:03:00,960 --> 01:03:02,960
+ You can't translate for 30 people.
+
+1768
+01:03:02,960 --> 01:03:04,960
+ You can't translate for 30 people.
+
+1769
+01:03:04,960 --> 01:03:06,960
+ You can't translate for 30 people.
+
+1770
+01:03:06,960 --> 01:03:08,960
+ You can't translate for 30 people.
+
+1771
+01:03:08,960 --> 01:03:10,960
+ You can't translate for 30 people.
+
+1772
+01:03:10,960 --> 01:03:12,960
+ You can't translate for 30 people.
+
+1773
+01:03:12,960 --> 01:03:14,960
+ You can't translate for 30 people.
+
+1774
+01:03:14,960 --> 01:03:16,960
+ You can't translate for 30 people.
+
+1775
+01:03:16,960 --> 01:03:18,960
+ You can't translate for 30 people.
+
+1776
+01:03:18,960 --> 01:03:20,960
+ You can't translate for 30 people.
+
+1777
+01:03:20,960 --> 01:03:22,960
+ You can't translate for 30 people.
+
+1778
+01:03:22,960 --> 01:03:24,960
+ You can't translate for 30 people.
+
+1779
+01:03:24,960 --> 01:03:26,960
+ You can't translate for 30 people.
+
+1780
+01:03:26,960 --> 01:03:28,960
+ You can't translate for 30 people.
+
+1781
+01:03:28,960 --> 01:03:30,960
+ You can't translate for 30 people.
+
+1782
+01:03:30,960 --> 01:03:32,960
+ You can't translate for 30 people.
+
+1783
+01:03:32,960 --> 01:03:34,960
+ You can't translate for 30 people.
+
+1784
+01:03:34,960 --> 01:03:36,960
+ You can't translate for 30 people.
+
+1785
+01:03:36,960 --> 01:03:38,960
+ You can't translate for 30 people.
+
+1786
+01:03:38,960 --> 01:03:40,960
+ You can't translate for 30 people.
+
+1787
+01:03:40,960 --> 01:03:42,960
+ You can't translate for 30 people.
+
+1788
+01:03:42,960 --> 01:03:44,960
+ You can't translate for 30 people.
+
+1789
+01:03:44,960 --> 01:03:46,960
+ You can't translate for 30 people.
+
+1790
+01:03:46,960 --> 01:03:48,960
+ You can't translate for 30 people.
+
+1791
+01:03:48,960 --> 01:03:50,960
+ You can't translate for 30 people.
+
+1792
+01:03:50,960 --> 01:03:52,960
+ You can't translate for 30 people.
+
+1793
+01:03:52,960 --> 01:03:54,960
+ You can't translate for 30 people.
+
+1794
+01:03:54,960 --> 01:03:56,960
+ You can't translate for 30 people.
+
+1795
+01:03:56,960 --> 01:03:58,960
+ You can't translate for 30 people.
+
+1796
+01:03:58,960 --> 01:04:00,960
+ You can't translate for 30 people.
+
+1797
+01:04:00,960 --> 01:04:02,960
+ You can't translate for 30 people.
+
+1798
+01:04:02,960 --> 01:04:04,960
+ You can't translate for 30 people.
+
+1799
+01:04:04,960 --> 01:04:06,960
+ You can't translate for 30 people.
+
+1800
+01:04:06,960 --> 01:04:08,960
+ You can't translate for 30 people.
+
+1801
+01:04:08,960 --> 01:04:10,960
+ You can't translate for 30 people.
+
+1802
+01:04:10,960 --> 01:04:12,960
+ You can't translate for 30 people.
+
+1803
+01:04:12,960 --> 01:04:14,960
+ You can't translate for 30 people.
+
+1804
+01:04:14,960 --> 01:04:16,960
+ You can't translate for 30 people.
+
+1805
+01:04:16,960 --> 01:04:18,960
+ You can't translate for 30 people.
+
+1806
+01:04:18,960 --> 01:04:20,960
+ You can't translate for 30 people.
+
+1807
+01:04:20,960 --> 01:04:22,960
+ You can't translate for 30 people.
+
+1808
+01:04:22,960 --> 01:04:24,960
+ You can't translate for 30 people.
+
+1809
+01:04:24,960 --> 01:04:26,960
+ You can't translate for 30 people.
+
+1810
+01:04:26,960 --> 01:04:28,960
+ You can't translate for 30 people.
+
+1811
+01:04:28,960 --> 01:04:30,960
+ You can't translate for 30 people.
+
+1812
+01:04:30,960 --> 01:04:32,960
+ You can't translate for 30 people.
+
+1813
+01:04:32,960 --> 01:04:34,960
+ You can't translate for 30 people.
+
+1814
+01:04:34,960 --> 01:04:36,960
+ You can't translate for 30 people.
+
+1815
+01:04:36,960 --> 01:04:38,960
+ You can't translate for 30 people.
+
+1816
+01:04:38,960 --> 01:04:40,960
+ You can't translate for 30 people.
+
+1817
+01:04:40,960 --> 01:04:42,960
+ You can't translate for 30 people.
+
+1818
+01:04:42,960 --> 01:04:44,960
+ You can't translate for 30 people.
+
+1819
+01:04:44,960 --> 01:04:46,960
+ You can't translate for 30 people.
+
+1820
+01:04:46,960 --> 01:04:48,960
+ You can't translate for 30 people.
+
+1821
+01:04:48,960 --> 01:04:50,960
+ You can't translate for 30 people.
+
+1822
+01:04:50,960 --> 01:04:52,960
+ You can't translate for 30 people.
+
+1823
+01:04:52,960 --> 01:04:54,960
+ You can't translate for 30 people.
+
+1824
+01:04:54,960 --> 01:04:56,960
+ You can't translate for 30 people.
+
+1825
+01:04:56,960 --> 01:04:58,960
+ You can't translate for 30 people.
+
+1826
+01:04:58,960 --> 01:05:00,960
+ You can't translate for 30 people.
+
+1827
+01:05:00,960 --> 01:05:02,960
+ You can't translate for 30 people.
+
+1828
+01:05:02,960 --> 01:05:04,960
+ You can't translate for 30 people.
+
+1829
+01:05:04,960 --> 01:05:06,960
+ You can't translate for 30 people.
+
+1830
+01:05:06,960 --> 01:05:08,960
+ You can't translate for 30 people.
+
+1831
+01:05:08,960 --> 01:05:10,960
+ You can't translate for 30 people.
+
+1832
+01:05:10,960 --> 01:05:12,960
+ You can't translate for 30 people.
+
+1833
+01:05:12,960 --> 01:05:14,960
+ You can't translate for 30 people.
+
+1834
+01:05:14,960 --> 01:05:16,960
+ You can't translate for 30 people.
+
+1835
+01:05:16,960 --> 01:05:18,960
+ You can't translate for 30 people.
+
+1836
+01:05:18,960 --> 01:05:20,960
+ You can't translate for 30 people.
+
+1837
+01:05:20,960 --> 01:05:22,960
+ You can't translate for 30 people.
+
+1838
+01:05:22,960 --> 01:05:24,960
+ You can't translate for 30 people.
+
+1839
+01:05:24,960 --> 01:05:26,960
+ You can't translate for 30 people.
+
+1840
+01:05:26,960 --> 01:05:28,960
+ You can't translate for 30 people.
+
+1841
+01:05:28,960 --> 01:05:30,960
+ You can't translate for 30 people.
+
+1842
+01:05:30,960 --> 01:05:32,960
+ You can't translate for 30 people.
+
+1843
+01:05:32,960 --> 01:05:34,960
+ You can't translate for 30 people.
+
+1844
+01:05:34,960 --> 01:05:36,960
+ You can't translate for 30 people.
+
+1845
+01:05:36,960 --> 01:05:38,960
+ You can't translate for 30 people.
+
+1846
+01:05:38,960 --> 01:05:40,960
+ You can't translate for 30 people.
+
+1847
+01:05:40,960 --> 01:05:42,960
+ You can't translate for 30 people.
+
+1848
+01:05:42,960 --> 01:05:44,960
+ You can't translate for 30 people.
+
+1849
+01:05:44,960 --> 01:05:46,960
+ You can't translate for 30 people.
+
+1850
+01:05:46,960 --> 01:05:48,960
+ You can't translate for 30 people.
+
+1851
+01:05:48,960 --> 01:05:50,960
+ You can't translate for 30 people.
+
+1852
+01:05:50,960 --> 01:05:52,960
+ You can't translate for 30 people.
+
+1853
+01:05:52,960 --> 01:05:54,960
+ You can't translate for 30 people.
+
+1854
+01:05:54,960 --> 01:05:56,960
+ You can't translate for 30 people.
+
+1855
+01:05:56,960 --> 01:05:58,960
+ You can't translate for 30 people.
+
+1856
+01:05:58,960 --> 01:06:00,960
+ You can't translate for 30 people.
+
+1857
+01:06:00,960 --> 01:06:02,960
+ You can't translate for 30 people.
+
+1858
+01:06:02,960 --> 01:06:04,960
+ You can't translate for 30 people.
+
+1859
+01:06:04,960 --> 01:06:06,960
+ You can't translate for 30 people.
+
+1860
+01:06:06,960 --> 01:06:08,960
+ You can't translate for 30 people.
+
+1861
+01:06:08,960 --> 01:06:10,960
+ You can't translate for 30 people.
+
+1862
+01:06:10,960 --> 01:06:12,960
+ You can't translate for 30 people.
+
+1863
+01:06:12,960 --> 01:06:14,960
+ You can't translate for 30 people.
+
+1864
+01:06:14,960 --> 01:06:16,960
+ You can't translate for 30 people.
+
+1865
+01:06:16,960 --> 01:06:18,960
+ You can't translate for 30 people.
+
+1866
+01:06:18,960 --> 01:06:20,960
+ You can't translate for 30 people.
+
+1867
+01:06:20,960 --> 01:06:22,960
+ You can't translate for 30 people.
+
+1868
+01:06:22,960 --> 01:06:24,960
+ You can't translate for 30 people.
+
+1869
+01:06:24,960 --> 01:06:26,960
+ You can't translate for 30 people.
+
+1870
+01:06:26,960 --> 01:06:28,960
+ You can't translate for 30 people.
+
+1871
+01:06:28,960 --> 01:06:30,960
+ You can't translate for 30 people.
+
+1872
+01:06:30,960 --> 01:06:32,960
+ You can't translate for 30 people.
+
+1873
+01:06:32,960 --> 01:06:34,960
+ You can't translate for 30 people.
+
+1874
+01:06:34,960 --> 01:06:36,960
+ You can't translate for 30 people.
+
+1875
+01:06:36,960 --> 01:06:38,960
+ You can't translate for 30 people.
+
+1876
+01:06:38,960 --> 01:06:40,960
+ You can't translate for 30 people.
+
+1877
+01:06:40,960 --> 01:06:42,960
+ You can't translate for 30 people.
+
+1878
+01:06:42,960 --> 01:06:44,960
+ You can't translate for 30 people.
+
+1879
+01:06:44,960 --> 01:06:46,960
+ You can't translate for 30 people.
+
+1880
+01:06:46,960 --> 01:06:48,960
+ You can't translate for 30 people.
+
+1881
+01:06:48,960 --> 01:06:50,960
+ You can't translate for 30 people.
+
+1882
+01:06:50,960 --> 01:06:52,960
+ You can't translate for 30 people.
+
+1883
+01:06:52,960 --> 01:06:54,960
+ You can't translate for 30 people.
+
+1884
+01:06:54,960 --> 01:06:56,960
+ You can't translate for 30 people.
+
+1885
+01:06:56,960 --> 01:06:58,960
+ You can't translate for 30 people.
+
+1886
+01:06:58,960 --> 01:07:00,960
+ You can't translate for 30 people.
+
+1887
+01:07:00,960 --> 01:07:02,960
+ You can't translate for 30 people.
+
+1888
+01:07:02,960 --> 01:07:04,960
+ You can't translate for 30 people.
+
+1889
+01:07:04,960 --> 01:07:06,960
+ You can't translate for 30 people.
+
+1890
+01:07:06,960 --> 01:07:08,960
+ You can't translate for 30 people.
+
+1891
+01:07:08,960 --> 01:07:10,960
+ You can't translate for 30 people.
+
+1892
+01:07:10,960 --> 01:07:12,960
+ You can't translate for 30 people.
+
+1893
+01:07:12,960 --> 01:07:14,960
+ You can't translate for 30 people.
+
+1894
+01:07:14,960 --> 01:07:16,960
+ You can't translate for 30 people.
+
+1895
+01:07:16,960 --> 01:07:18,960
+ You can't translate for 30 people.
+
+1896
+01:07:18,960 --> 01:07:20,960
+ You can't translate for 30 people.
+
+1897
+01:07:20,960 --> 01:07:22,960
+ You can't translate for 30 people.
+
+1898
+01:07:22,960 --> 01:07:24,960
+ You can't translate for 30 people.
+
+1899
+01:07:24,960 --> 01:07:26,960
+ You can't translate for 30 people.
+
+1900
+01:07:26,960 --> 01:07:28,960
+ You can't translate for 30 people.
+
+1901
+01:07:28,960 --> 01:07:30,960
+ You can't translate for 30 people.
+
+1902
+01:07:30,960 --> 01:07:32,960
+ You can't translate for 30 people.
+
+1903
+01:07:32,960 --> 01:07:34,960
+ You can't translate for 30 people.
+
+1904
+01:07:34,960 --> 01:07:36,960
+ You can't translate for 30 people.
+
+1905
+01:07:36,960 --> 01:07:38,960
+ You can't translate for 30 people.
+
+1906
+01:07:38,960 --> 01:07:40,960
+ You can't translate for 30 people.
+
+1907
+01:07:40,960 --> 01:07:42,960
+ You can't translate for 30 people.
+
+1908
+01:07:42,960 --> 01:07:44,960
+ You can't translate for 30 people.
+
+1909
+01:07:44,960 --> 01:07:46,960
+ You can't translate for 30 people.
+
+1910
+01:07:46,960 --> 01:07:48,960
+ You can't translate for 30 people.
+
+1911
+01:07:48,960 --> 01:07:50,960
+ You can't translate for 30 people.
+
+1912
+01:07:50,960 --> 01:07:52,960
+ You can't translate for 30 people.
+
+1913
+01:07:52,960 --> 01:07:54,960
+ You can't translate for 30 people.
+
+1914
+01:07:54,960 --> 01:07:56,960
+ You can't translate for 30 people.
+
+1915
+01:07:56,960 --> 01:07:58,960
+ You can't translate for 30 people.
+
+1916
+01:07:58,960 --> 01:08:00,960
+ You can't translate for 30 people.
+
+1917
+01:08:00,960 --> 01:08:02,960
+ You can't translate for 30 people.
+
+1918
+01:08:02,960 --> 01:08:04,960
+ You can't translate for 30 people.
+
+1919
+01:08:04,960 --> 01:08:06,960
+ You can't translate for 30 people.
+
+1920
+01:08:06,960 --> 01:08:08,960
+ You can't translate for 30 people.
+
+1921
+01:08:08,960 --> 01:08:10,960
+ You can't translate for 30 people.
+
+1922
+01:08:10,960 --> 01:08:12,960
+ You can't translate for 30 people.
+
+1923
+01:08:12,960 --> 01:08:14,960
+ You can't translate for 30 people.
+
+1924
+01:08:14,960 --> 01:08:16,960
+ You can't translate for 30 people.
+
+1925
+01:08:16,960 --> 01:08:18,960
+ You can't translate for 30 people.
+
+1926
+01:08:18,960 --> 01:08:20,960
+ You can't translate for 30 people.
+
+1927
+01:08:20,960 --> 01:08:22,960
+ You can't translate for 30 people.
+
+1928
+01:08:22,960 --> 01:08:24,960
+ You can't translate for 30 people.
+
+1929
+01:08:24,960 --> 01:08:26,960
+ You can't translate for 30 people.
+
+1930
+01:08:26,960 --> 01:08:28,960
+ You can't translate for 30 people.
+
+1931
+01:08:28,960 --> 01:08:30,960
+ You can't translate for 30 people.
+
+1932
+01:08:30,960 --> 01:08:32,960
+ You can't translate for 30 people.
+
+1933
+01:08:32,960 --> 01:08:34,960
+ You can't translate for 30 people.
+
+1934
+01:08:34,960 --> 01:08:36,960
+ You can't translate for 30 people.
+
+1935
+01:08:36,960 --> 01:08:38,960
+ You can't translate for 30 people.
+
+1936
+01:08:38,960 --> 01:08:40,960
+ You can't translate for 30 people.
+
+1937
+01:08:40,960 --> 01:08:42,960
+ You can't translate for 30 people.
+
+1938
+01:08:42,960 --> 01:08:44,960
+ You can't translate for 30 people.
+
+1939
+01:08:44,960 --> 01:08:46,960
+ You can't translate for 30 people.
+
+1940
+01:08:46,960 --> 01:08:48,960
+ You can't translate for 30 people.
+
+1941
+01:08:48,960 --> 01:08:50,960
+ You can't translate for 30 people.
+
+1942
+01:08:50,960 --> 01:08:52,960
+ You can't translate for 30 people.
+
+1943
+01:08:52,960 --> 01:08:54,960
+ You can't translate for 30 people.
+
+1944
+01:08:54,960 --> 01:08:56,960
+ You can't translate for 30 people.
+
+1945
+01:08:56,960 --> 01:08:58,960
+ You can't translate for 30 people.
+
+1946
+01:08:58,960 --> 01:09:00,960
+ You can't translate for 30 people.
+
+1947
+01:09:00,960 --> 01:09:02,960
+ You can't translate for 30 people.
+
+1948
+01:09:02,960 --> 01:09:04,960
+ You can't translate for 30 people.
+
+1949
+01:09:04,960 --> 01:09:06,960
+ You can't translate for 30 people.
+
+1950
+01:09:06,960 --> 01:09:08,960
+ You can't translate for 30 people.
+
+1951
+01:09:08,960 --> 01:09:10,960
+ You can't translate for 30 people.
+
+1952
+01:09:10,960 --> 01:09:12,960
+ You can't translate for 30 people.
+
+1953
+01:09:12,960 --> 01:09:14,960
+ You can't translate for 30 people.
+
+1954
+01:09:14,960 --> 01:09:16,960
+ You can't translate for 30 people.
+
+1955
+01:09:16,960 --> 01:09:18,960
+ You can't translate for 30 people.
+
+1956
+01:09:18,960 --> 01:09:20,960
+ You can't translate for 30 people.
+
+1957
+01:09:20,960 --> 01:09:22,960
+ You can't translate for 30 people.
+
+1958
+01:09:22,960 --> 01:09:24,960
+ You can't translate for 30 people.
+
+1959
+01:09:24,960 --> 01:09:26,960
+ You can't translate for 30 people.
+
+1960
+01:09:26,960 --> 01:09:28,960
+ You can't translate for 30 people.
+
+1961
+01:09:28,960 --> 01:09:30,960
+ You can't translate for 30 people.
+
+1962
+01:09:30,960 --> 01:09:32,960
+ You can't translate for 30 people.
+
+1963
+01:09:32,960 --> 01:09:34,960
+ You can't translate for 30 people.
+
+1964
+01:09:34,960 --> 01:09:36,960
+ You can't translate for 30 people.
+
+1965
+01:09:36,960 --> 01:09:38,960
+ You can't translate for 30 people.
+
+1966
+01:09:38,960 --> 01:09:40,960
+ You can't translate for 30 people.
+
+1967
+01:09:40,960 --> 01:09:42,960
+ You can't translate for 30 people.
+
+1968
+01:09:42,960 --> 01:09:44,960
+ You can't translate for 30 people.
+
+1969
+01:09:44,960 --> 01:09:46,960
+ You can't translate for 30 people.
+
+1970
+01:09:46,960 --> 01:09:48,960
+ You can't translate for 30 people.
+
+1971
+01:09:48,960 --> 01:09:50,960
+ You can't translate for 30 people.
+
+1972
+01:09:50,960 --> 01:09:52,960
+ You can't translate for 30 people.
+
+1973
+01:09:52,960 --> 01:09:54,960
+ You can't translate for 30 people.
+
+1974
+01:09:54,960 --> 01:09:56,960
+ You can't translate for 30 people.
+
+1975
+01:09:56,960 --> 01:09:58,960
+ You can't translate for 30 people.
+
+1976
+01:09:58,960 --> 01:10:00,960
+ You can't translate for 30 people.
+
+1977
+01:10:00,960 --> 01:10:02,960
+ You can't translate for 30 people.
+
+1978
+01:10:02,960 --> 01:10:04,960
+ You can't translate for 30 people.
+
+1979
+01:10:04,960 --> 01:10:06,960
+ You can't translate for 30 people.
+
+1980
+01:10:06,960 --> 01:10:08,960
+ You can't translate for 30 people.
+
+1981
+01:10:08,960 --> 01:10:10,960
+ You can't translate for 30 people.
+
+1982
+01:10:10,960 --> 01:10:12,960
+ You can't translate for 30 people.
+
+1983
+01:10:12,960 --> 01:10:14,960
+ You can't translate for 30 people.
+
+1984
+01:10:14,960 --> 01:10:16,960
+ You can't translate for 30 people.
+
+1985
+01:10:16,960 --> 01:10:18,960
+ You can't translate for 30 people.
+
+1986
+01:10:18,960 --> 01:10:20,960
+ You can't translate for 30 people.
+
+1987
+01:10:20,960 --> 01:10:22,960
+ You can't translate for 30 people.
+
+1988
+01:10:22,960 --> 01:10:24,960
+ You can't translate for 30 people.
+
+1989
+01:10:24,960 --> 01:10:26,960
+ You can't translate for 30 people.
+
+1990
+01:10:26,960 --> 01:10:28,960
+ You can't translate for 30 people.
+
+1991
+01:10:28,960 --> 01:10:30,960
+ You can't translate for 30 people.
+
+1992
+01:10:30,960 --> 01:10:32,960
+ You can't translate for 30 people.
+
+1993
+01:10:32,960 --> 01:10:34,960
+ You can't translate for 30 people.
+
+1994
+01:10:34,960 --> 01:10:36,960
+ You can't translate for 30 people.
+
+1995
+01:10:36,960 --> 01:10:38,960
+ You can't translate for 30 people.
+
+1996
+01:10:38,960 --> 01:10:40,960
+ You can't translate for 30 people.
+
+1997
+01:10:40,960 --> 01:10:42,960
+ You can't translate for 30 people.
+
+1998
+01:10:42,960 --> 01:10:44,960
+ You can't translate for 30 people.
+
+1999
+01:10:44,960 --> 01:10:46,960
+ You can't translate for 30 people.
+
+2000
+01:10:46,960 --> 01:10:48,960
+ You can't translate for 30 people.
+
+2001
+01:10:48,960 --> 01:10:50,960
+ You can't translate for 30 people.
+
+2002
+01:10:50,960 --> 01:10:52,960
+ You can't translate for 30 people.
+
+2003
+01:10:52,960 --> 01:10:54,960
+ You can't translate for 30 people.
+

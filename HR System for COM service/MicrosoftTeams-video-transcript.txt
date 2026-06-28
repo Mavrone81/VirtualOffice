@@ -1,0 +1,3476 @@
+不是不是我做来访定一下比较容易
+但是你这个东西的话会给
+可以OK可以
+you start
+ok 基本上我们要是一个management system
+嗯嗯
+所以理念会 consist of
+recruitment from ok ok
+so recruitment for just to ever recruit a之後对吗
+他们赛了那个评判
+the cuz associate then the manager will submit
+ok ok submit
+他就会去到一个
+is considered hr system the associate master
+所以我们就 record
+全部的东西给一下一个一个我都出啦
+ok然后他就会连去这个sale submission from
+so once come a sales transaction from a submit
+the details will be recorded here ok
+然后就会 auto generate into the commission structure
+ok然后
+他with this auto commission engine对吗
+他就会calculate that money back out
+然后最后是那个dashboard
+就是individual manager director
+就说他们可以看到他们的tier
+就是pens open他可以看到自己的明白
+然后他的
+save insert他就会看到你的
+谢谢
+起人进可以看到你下面的这样明白
+ok so basically for this format
+the main purpose is to
+create that associate the record
+merrake up lines of previous status
+active and dominated status
+ok这个好我用那个谷歌
+做好的好
+一个是
+是这样子
+ok ok so
+ok他就会有他就会 auto generate
+一个associate id
+ok然后他有一个downstamp
+so我们知道水先进水附近
+ok ok然后
+associate the food name
+他的business name是什么电话号码
+这个是那个hr
+so-called master lease
+bake master lease ok ok
+ok so email address
+ok到时我们会理解我这个就可以了
+我会我会 according to this format
+然后到时候data
+这个是actual data 还是
+email upload
+这个是这是upload的还有啦
+ok so你看你看这个那就有
+测试designation
+然后他的Apply是水
+可以可以这些全部我会follow进去
+follow进去对对
+然后时候data
+就是到时他们的
+对没问题
+带number to see
+可以
+then there's a proof active
+嗯嗯明白我做这个的时候
+我其实把他们的detail
+就连去
+google context in it
+oh
+so in any event我们要
+blast out
+email to them or whatever
+okay
+然后直接google context
+那边
+明白
+okay
+就是这一个这一个人
+他的是bending
+因为他bending master in active
+ok等一下我看一下啊
+这个是approved
+这就是你们approved啦
+对就是我们说好看了document
+看了so-called agreement
+比了之后啊
+okay
+他就会啊我们click approve
+那我们就会知道他是不是active
+okay就可以click the base
+明白啊
+ok说这个是这个是
+你们看有没有他的document
+那你就State是有
+then after如果说
+oh okay的话就变成approved这样子了
+因为这个他bending吗
+他的错吗
+嗯
+所以会把它re-sign回来吗
+所以他暂时是
+他re-signed了
+那这个我们就会换成
+我们就会换
+对对
+这个还是轻似了
+因为他document有少命过啦
+就是这样子
+没有因为他现在是inactive
+对
+其实我们要active suspended
+dominator还是inactive
+okay
+明白
+这样子啊
+嗯
+所以这些是what is needed
+that over there的啦
+哇很detail
+okay啊
+很detail
+就是刚才你看到的会是这些
+这些东西
+okay
+then commission structure对吗
+我们需要的是
+我们需要create
+那个product
+co-product name
+因为我们有很多products
+明白
+对吗
+then because you said
+out external
+external products
+like with a memory
+with a niche
+嗯
+shifu
+shifu会create那种
+会排位
+这些我们需要
+company shall show一点点
+我们会跟认识
+discuss about what is the commission
+structure for
+这些
+atcary
+因为怎么样
+我们需要show一点点进来
+到时候building maintenance
+admin maintenance
+这些我们还是需要
+是
+不可能你们全部转那边
+我们这边没有收到
+我这样去每天
+等下我还要
+我们每天一个system
+他们free的
+对吧
+嗯
+这个是我们
+到时候会有company card
+哪啊
+system manager overrides
+sales manager
+sales director overrides
+是
+这些letters你们可以key in啦
+一个admin可以key in那个number
+就是
+okay
+这个东西我们就会有一个
+你可以
+when you ready的时候
+我们就会key in那些
+detail在这边
+okay that after that对吗
+啊
+when you做出那个system的时候啊
+他们sales submit
+他不是key那些比对了
+他就会auto generate
+就是这个
+这个是一个example啦
+that sales submission system的时候
+这些是他们需要key in的东西
+明白
+他们key in了之后哦
+嗯
+啊
+我们的sales transaction record
+就会有这些东西出来
+他会auto generate这些东西
+okay
+下我看一下啊
+我能做
+大多数都是你们没有什么convolution
+没有什么convolution
+okay
+这个就是
+are we able to generate invoice from here
+可以啊
+可以
+所以你可以帮我做一个invoice for you
+可以
+可以
+by right
+be the customer of trust in our company for you
+真的我没可以看下
+你你自己知道有种系统是
+做这种东西是要钱的吧
+但是有做给你给你
+maybe you can follow
+exclaims that how you want to create the invoice
+not to get a symbol
+你给我个三分就可以啊
+it's our invoice line
+and try some of this and try pets
+okay
+open seal
+but difference 等一下我开给你看
+ok 你讲什么
+你你resite
+你要它是different type invoice
+还是你要consolidate
+can either invoice
+都可以
+我要different type
+even if it has different maintenance to different company
+没问题
+如果你要different type的话啊
+你交给我different sample
+then after that
+我们
+ok 你看一个sample
+我的invoice啊
+ok
+ok 这不是entry service the invoice
+是
+ok 给你看
+only difference is only here
+哦
+then okay啊
+then have you heard of this invoice number
+对对对
+okay then and try pets
+touch also depends on entry pets
+then how to open that invoice number
+generate the state
+就不是不同的invoice
+只是不同的company stand這個invoice number
+这个这个小问题
+然后如果是这样子的话
+我们就actually
+现在的invoice已经没有share
+这个company sign了都是
+computer generator
+computer generator 是不是啊
+我想一下啊
+我想一下啊
+我说到很多
+好像是
+是大约的
+后来都是那种
+this is a computer generator
+invoice there is no
+什么什么什么这样子对吗
+我最近是那个一个
+是是是
+好像是
+咱們應該是用一個系統叫Zero
+ZeroX
+Zero啦
+ZeroX
+我就是嘗試去掃描它們
+你嘗試掃描它們
+它們應該是用這個
+那你看它們都不會有尋常的
+會直接運用
+但我當然要檢查它們的產品
+如果客人選擇
+它是一個保證
+所以如果它們不賣
+它是永遠比我們可以使用的
+如果沒有賣就是一個
+這個也是我可以幫你做的免費
+我們可以帶上這個系統
+因為對我來講也是一個好處
+因為我學做這個東西
+一個方式就是我們一樣
+然後你下載BDF3給它
+然後它們簽了Return資訊給你
+第二方是
+我給它們一個Lock-in
+它們進行裡面Digital Sign
+這樣
+Digital Sign的缺點是
+如果是老人的話
+它們可能被要
+那就會有問題
+所以你可以考慮這件事
+我上次是給你考慮
+是用Digital Sign
+因為這裡我都是拿iPad過去
+給它們簽的
+如果是這樣的話也可以
+只有一些
+例如像我給你看看
+我們有一些就是Task的
+Task的
+因為它們是
+這些是在PayMoney Installed
+所以我們就
+其實就是它們還了
+我們就issue一個Invoice Data
+Keep As Recall而已
+可以
+明白
+OK 所以有兩個Invoice Data
+一個是要它簽名
+你們要收的
+因為它們簽了一宿給它
+對不對
+我給它們一個Domain
+不需要它們簽單收
+其實你的理解
+要給你更好的提供
+它們是講更好的
+人就給它們上課
+因為到時候不還錢的話
+人家頭痛
+想輸啦
+講一句難聽的
+你如果
+你做生意九年多了
+你要輸一個人
+其實也不是那麼容易的事
+雖然只是三十塊
+把那個人不要
+接你的姓名
+都不要
+沒有那個Connect就不同了
+沒有Connect
+我不接你也沒辦法了
+可以
+可以
+不可以
+你沒有時間講不可以
+Connect可以issue什麼
+不可以
+不可以
+那個三萬我可以不要接的
+你不懂
+這個Sever
+這個不是
+不是Globalman Code
+不是State Code
+State Code你不接的話
+是犯法的
+but
+State Code
+啊
+Sever Code
+不管是Sever Code
+只要是Sever Code
+你不接沒有錯
+它三萬
+Sever Code
+不是一定要接的
+我可以不要接
+但你一接到你就
+我別讓你
+你不tern up
+你不tern up也沒有事
+它只是
+你continue the trial without you
+那你就是無疑啦
+是這樣子的
+OK沒關係
+anyway
+but ok
+the makeback to the original thing
+是你要sign的話
+也可以
+你不要sign也是可以
+so what I will do is that
+I'll do up a system for you
+that
+你可以用你libeck
+給他們去簽
+or
+你要直接bring給他們去簽
+OK
+oh
+我們
+我們也不做vapor的
+我們做vaporlust
+for digital screen
+OK
+OK
+so if like
+pads的那邊是那種issue
+每天那個signature的那個part
+就可以有一個
+可不可以create一個that way
+我可以that if button
+that how
+它
+appear一個big字在那邊
+so instead of sign
+it's state of kit
+oh
+可以嗎會不會
+可以可以可以沒有
+我再想你那邊會有問題
+就這樣子就
+sign有什麼編面
+沒有那種已經baked了嗎
+啊已經派遣了啦
+所以說我們叫fueler case
+玩了他們可能
+baked給我幾天
+我算白金的才給
+然後就會叫他go to arcade
+可以可以可以
+先
+可以可以可以
+沒有ok
+我可以講什麼
+在你的invoice tab
+它有一個tab
+你去invoice的時候
+你全部的outstanding
+invoice都會在那邊
+那我會給你一個button在那邊
+如果你他已經
+offline
+完成了啊
+你按click bait
+那你的invoice自己
+裡面就會reflect as paid
+oh
+so no matter what
+有download
+它都會到bass find a paid
+如果我沒有click paid
+它就是要
+就是要share簽名
+對
+那你download就是那個bdf
+so
+original
+因為比較快
+但是我只給你一個
+直接download bdf
+then就asperd
+你normal
+你用你的ipad給他們簽證
+因為你都是bdf的對不對
+然後再給他簽證
+到時候我跟你做另外一個出來
+可以直接從系統給他們簽的
+你直接sending給他們
+你都不要再去找他們
+他們簽的就可以了
+只會他們不要
+不要簽
+你再去找他們這樣
+ok
+ok that means like a question
+就是
+I'll be able to track
+instormer and commission
+alangeability to auto
+就是
+因為你知道backmix嗎
+他們instormer
+叫第三個instormer
+我們才會pay out commission
+我明白
+反正那個way的缺點是
+the payment is cash
+還是什麼
+financing those transfer
+transfer
+almost全部是transfer
+transfer的話
+可以
+但是這樣子的話
+會有charges
+因為transaction
+我們需要用gateway
+我沒有辦法做
+這個一定要用一下
+比如說
+你聽到什麼red dot
+heat pay
+stripe
+我們需要用換做gateway
+簡單的
+example我現在有一個account
+現在是
+我吧
+ok
+解釋
+到時候會有一個account
+就是
+whenever customer pay
+instormer
+can choose to generate invoice
+ok
+once generate invoice
+then it means you will
+note that a second
+instormer pay
+可以
+instormer pay
+這樣子有問題
+對
+so the payment
+我們就不用用gateway
+可以
+but
+做不到什麼
+做到
+做到
+做到
+but then
+問題不是我是你
+因為他們有charge
+做不到什麼
+I think
+兩三十%的
+通勤不算
+I'm depend
+如果這個可以get rid of
+你的account的話就無話了
+對不對
+depends
+but it depends
+depends on the amount
+多大
+27%如果你講每年
+幾百萬的話
+也是很多錢
+27%很多
+sure
+已經是沒有
+我們好像是
+actually
+honestly
+Bincer and Silvia
+for them
+whatever we earn from the niche
+we pay out everything
+whatever values
+money profit
+don't change
+ok
+it goes back to the cost
+of the deal
+喔明白
+yeah
+so it's almost
+不用賺錢
+so I give more
+在邊叫多賣
+do cover
+是
+然後到時候還要
+medalons
+so say
+customers
+一年四塊錢
+嗯
+所以你那個
+27%我覺得
+剩下一千
+剩下一千
+你也 at least
+放一個人去click
+到時候真的是
+很smooth
+很大的時候啊
+你要
+我都沒的時候啊
+再來做
+我們再來做
+就是這個
+這個其實我強項一點
+connect to strap
+是我的強項
+把問題說到
+我沒有辦法做那個
+payment
+因為
+You can
+save your MES
+如果以後做大了
+過後我有找到
+investor的話
+我才去做
+自己做stripe的話
+再跟你講
+but
+暫時我一定要用一個 gateway
+so gateway
+他們一定有charge
+charge就是差不多
+多獨去percent
+ok
+since now
+from dump is
+still low
+就是我的第一次就夠了
+我們還能做manual
+so the eight customer
+有完結了
+then
+account
+我們的account
+去做customer
+有完結了
+ok
+to click
+generate voice
+and send to the customer
+then the
+system auto track
+that are
+second payment
+bake
+明白
+third payment
+bake
+jump
+once the payment
+bake
+then the
+commission
+那邊就會跳
+vote
+payable
+明白
+這個可以
+這個
+因為這個for your manual
+input
+所以沒有問題
+ok
+我知道
+in
+哪一部分是
+matter flow
+to indicate
+some more
+fortunes
+這樣子
+then
+that means
+that are
+dota
+我需要知道
+我會
+會 ask more detail
+等一下啦
+like how many
+installment are there
+比如你有三個
+installment
+example
+你有三個
+installment
+四個
+installment
+五個
+installment
+then
+你
+那個
+installment
+你要去select
+說這個是
+how many
+installment
+so that every
+that are
+generate
+invoices
+so
+那個
+那個installment
+它自己會去抵擋
+好
+ok
+如果
+in an event
+because
+我們
+也是有經理工
+現在也是有一兩個customer
+他們的fame
+對
+matter
+that
+that
+所以他們有辦法
+OK
+因為他們
+跟我們
+really negotiate
+negotiate
+for
+installment
+so
+我們要從system
+也重新調整
+它的
+installment是嗎
+對
+ok
+那個你要
+呃
+我看怎麼樣可以做那法
+but main thing
+是disportion
+most likely
+會
+我會給你一個adjustable amount
+ok
+ another adjustable amount
+是
+like a subcategory
+so a subcategory
+where by hard originals
+then often you
+變成一個 subcategory
+then
+the
+installment will start from here
+onwards
+then how much is the new about y'all
+so that whatever
+that was being played
+previously right
+just an example
+它外伸了一圈
+把它每個月晚上
+它這個一圈
+它要spread to 3個月
+就是可能
+300 300 300 100
+then
+它很多 of that
+它還是要
+換它assisting money to 300
+so it will be
+by 600 600 400
+then back to 300 300 300
+so
+這個要manually去adjust
+oh ok
+actually
+這個我的想法是蠻容易的
+你只要
+create多一個
+product出來
+明白吧
+that means
+它變成
+another product
+叫做
+installment payment
+then
+你就直接
+tag with him
+1000
+then
+busy installment payment
+then
+howlabs
+then
+你就直接
+click as
+manually
+overwrite
+how pay
+then
+就是你當作
+它麻掉了
+but
+它的款其實是
+多一個
+多一個
+多一個line
+to line
+then
+變成你的
+counter要
+g它兩次
+ok
+這樣子
+它的
+它的這個
+inverse
+可以在
+counter這樣inverse payment
+對啊
+then
+這個installment
+ok
+counter這樣inverse
+ok
+我看我可以被拜託
+worst case
+哪有你結案
+在inverse
+ok
+我看k的話
+跟你成敗
+that means
+uh
+我幫你看
+可以不可以
+create一個 function
+so merge
+invoices
+then
+你可以
+tap
+买一個number
+跟买一个number
+那個會比較麻煩
+我
+try
+try
+long
+it's up
+如果k的話
+你這樣子
+you can merge
+inverse
+不然的話
+dembrating
+你這樣子
+直接結案
+ok
+then
+installment
+mouse
+auto
+就是說很像
+example
+它買的是
+3800的
+ok
+then
+它的installment
+is
+ok
+it's auto calculated
+mum
+嗯
+對啊
+我
+我也沒買
+autocalculate
+就是
+once the salesperson
+key in
+3800
+12 months
+installment
+deposit
+是多少
+get the balance
+touch it
+autocalculate
+pregenerate
+truise
+ok
+ok
+有沒有什麼
+很像percentage
+需要加什麼東西
+example
+有沒有
+gst
+什麼這邊
+你要跟我講
+and the moment
+no gst
+我已經沒有key
+我是這樣講
+如果有什麼東西
+有什麼app on
+你要跟我講
+so that
+我可以翻去了formula
+bluff formula
+就是很簡單的
+3800
+剪掉deposit
+divide by top
+就這樣子
+對
+and the moment
+是這樣子
+到時後有gst了
+I'll need you to help me do
+adjust
+adjust
+ok
+有gst
+就是
+你已經超過1million了
+對
+那個就是
+沒問題了
+對
+(笑)
+the sales figures
+超過1million
+revenue
+代表我的revenue
+有1million
+沒有revenue
+is 1million
+profit
+不代表
+(笑)
+我好歹沒有這樣做
+(笑)
+but revenue up
+profit也會up
+this one is
+我們剛才discussed
+autocommission
+engine
+就是它會
+closing commission
+那個
+它會autogenerate
+truise
+所以這些是
+需要知道
+所以我會知道
+那個direct applying
+這些
+in the fall wall
+so far
+for both funeral service and
+patna
+我只是
+for a small percentage of
+directed VGA
+因為我不draw things
+明白
+yeah
+so
+so she
+要這些東西
+你想看一下
+這個是
+畫膜
+老花了
+你幾歲有什麼
+那你幾歲
+我想你一點點
+(笑)
+知道嗎
+看到
+concernation id
+serves date
+vodacode
+ok
+差不多一樣的東西
+對 差不多一樣的東西
+ok
+ok
+then the
+payout cycle
+就是
+在剛才我們講的
+啊
+我說你是
+ok
+I tell you what
+我會
+我會
+這個是more like a
+payment structure
+so
+autocommission engine
+這個是我們自己
+in burner裡面的東西
+對
+我明白
+so
+你這個
+autocommission engine
+是你改的時候
+你會
+它會算
+based on
+這個
+價格
+這個人
+會拿多少commission
+對不對
+so this amount
+whatever changes
+right
+這個人的commission
+就會上和下
+alcoholicly
+是不是這樣講
+哪個 amount changes
+whichever amount
+比如說
+you mean amount
+the
+the next
+這裡
+direct online id
+direct online
+這個就會
+它會給
+它就based on the product code
+ok that
+backmatch
+它是
+direct online store
+多少
+then second
+application store
+多少
+分裹 date
+是0嗎
+是
+then如果這個
+product code是
+uh
+general的話
+okay
+general就會
+比較不同
+可能
+每個product code
+你自己
+ok
+這個是
+tag to
+那個product code
+對
+now
+我的
+question
+不是
+我的question
+是比如說
+現在
+我們set
+direct online
+let's say
+2%
+then
+example
+then
+second
+upline
+let's say
+1%
+let's say
+是這樣子
+then
+它的calculation
+就是會based on
+這裡嗎
+所以有一天
+突然間
+okay
+我們
+跟每個人講
+so okay
+direct online now
+you got 1.5%
+instead of 2%
+所以你換成1.5%
+so that
+commission
+自己會
+calculate成掉嘛
+對不對
+so
+我的calculation
+for commission
+ok
+你要知道
+這個
+這一點
+他們的commission
+let's say
+that is
+that is a
+percentage
+那種
+我們都到
+backmatch
+到percentage
+那種
+percentage
+它是有一個company card
+company card
+see the 10%
+so direct online
+跟second upline
+the other
+overriding
+so from
+這個10%
+with
+in fact
+is
+10%
+out
+let's say
+2%
+is 2%
+of
+它的commission
+but it's
+from
+這個pool
+so不會
+no fact
+它的commission
+沒問題
+even
+in okay
+so
+我會給你
+全部的feel
+but in
+in reality
+是你
+look or so
+gram
+it's
+stack
+這個example
+is that的話
+那你直接把
+direct upline
+the commission
+你放進機落
+就它就不會扣了
+then
+你就直接從這個pool
+這裡拿
+你明白嗎
+yamper
+這個是commission
+and it will calculate
+這個是for
+到時候
+you every product
+you自己的conclusion
+yes
+okay
+這樣子會有點complicated
+我看could we get you customized
+but worst case scenario
+就是
+你calculate好那個upline
+多少percent
+then you put it in
+明白嗎
+就是
+就會有一個back end的一個
+是
+只有admin可以看到
+一個data
+是
+好像比如說
+我會給你一個admin login
+你的admin login
+就是product
+product manager
+那進去裡面
+你可以create a product
+你可以create
+另外一個signal product
+因為他們以後
+他們要有Tython kind of
+space
+fumeral or something
+okay
+你create a single product
+then this voting will appear
+then you take him
+那個
+then for example
+看來那個example
+比如說你的
+fumeral system
+以後可能direct upline
+從2percent掉到1.5percent
+then you mass brief
+你進去你那個system
+你直接換1.5percent
+從那個date onwards
+全部人的conclusion
+就換成1.5percent
+conclusion
+okay
+所以你有一個admin control
+okay
+所以現在這個admin control
+這邊有一個小問題就是
+fumeral這邊
+它的conclusion calculation
+會有點 complicated
+因為example
+有1.5percent
+fumeral system
+okay
+另外一個sender package
+okay
+這個package
+你的conclusion
+是1.5percent
+okay
+但它有upgrade cascade
+所以它有upgrade
+你是有專用
+okay
+那它有upgrade set up
+那它upgrade
+你會有專用
+okay
+那它有加了就是
+source funeral的東西
+okay
+你也是有專用
+可以
+可以
+可以做嗎
+可以
+那這樣子的話
+一樣在這個admin portion
+What I do is I'll create something
+down here called commission code
+com code
+所以你可以自己
+create something in the com code
+那你可以放
+how many percent
+還是absolute amount
+比如說20塊
+還是28 cent example
+那 whenever
+這個code
+ has been
+用到的話
+它就直接從你的commission up in
+or rather from the overall amount
+加進去它的commission
+okay
+So this code
+the what
+what is the additional com
+that they will be
+對
+the salesperson has to know
+very well in their fingertips
+actually
+他們
+actually this is the same as the consumer
+他們 submit的時候
+他們得 submit
+因為他們比較 submit
+but in case also
+他們得tick off
+what is the additional thing
+that they have
+thereafter that
+we go through
+your accounts
+your accounts are approved
+還是你的H.I.O and ProofR
+either one
+so once it's approved
+then it will
+commission will
+直接
+long出來
+So what happens
+when I say okay
+you're getting a big picture
+像比如說
+you log in as
+product owner
+then you create a product
+then that product
+you have this information
+then your
+your new product
+you have additional com
+you add a com code
+so when I was
+that seller
+or
+wasn't in the sales rep
+我賣的東西
+不和我去賺密的時候
+我賺密
+okay
+example
+funeral service
+賺密
+then after
+它下面有幾個東西
+can you tick
+我全部是你的com code
+Idle
+additional rights
+有的話我click
+additional
+sees scattering
+有的話我click
+additional
+maybe
+I don't know
+remembrance
+example
+then I will click
+這三個都有
+就是你這邊
+will set
+多少錢
+the Q can be
+percentage
+of the overall
+or the
+absolute amount
+of money
+就這樣子了
+ok
+then
+它這個
+它一賺密過後
+你一定要有一個人
+to verify them
+so you have to verify them
+as it is
+but there was a small issue
+can be your HR
+can be your towns
+wherever it is
+so once they approve
+ok的時候
+你的commission
+它就會直接打進去
+它的 dashboard
+那我就會看到
+oh
+這個月我賺到錢了
+我的commission
+都到現在
+ok
+可以
+這個ok
+then
+就是
+this is
+the summary
+is how much each association
+receives every month
+so the payout status
+is either bending
+bending
+就是maybe under
+installment of customer
+还没关系
+a proof
+就是会被
+pick out
+pick就是
+还进烦了
+pick
+可能
+there are some issues
+就會Hold住
+或者customer cancer
+我的
+就cancer them
+ok
+就是这样子而已
+對
+how的
+会
+会有一点
+我想一下
+how
+how will it
+我跟妳讲
+how可能我们可以拿掉
+因为可以直接放bending
+啊
+我是想讲
+它会比较麻烦
+yeah
+我看
+我可以做how的话
+我就给你做
+不然的话我就放在bending
+要
+必要
+ok
+control的话
+就是it's bending
+的意思
+basically it's bending
+whatever reason
+就是在bending
+对了
+ok
+either it's approved
+it's paid
+or it's cancer
+ok
+就是这样的
+ok
+所以还没有备好把approved的事
+在这边
+它会跳
+它会跳
+ok
+那另外一个就是
+这个dashboard的东西
+ok
+dashboard basically
+it's just individual
+他们可以
+看到这些东西
+还有individual performance的东西
+这个是director dashboard
+还有manager dashboard
+manager
+明白
+就see the team的啦
+yeah
+然后还有personal dashboard也是
+personal dashboard
+hd是看到那个吗
+this is what they will see
+这个是他们的dashboard
+这是他们的
+这个会看到他们的performance
+不会啦
+你要给他们看
+他们只要看他们装到的前面
+braking
+他们的individual
+你要给他们看
+I mean I'll do you
+我觉得不需要
+他看了我等下
+我一天我这样插
+我不要做了
+有时候
+你在英镇这样我们看了之后
+我会
+诶
+我要去
+ok
+这个你比较厉害
+对了 你要给他看
+就不要给他看
+你要给他看
+maybe for now
+我们比较厉害
+因为我们还是很小点
+but later when
+大了
+过分
+yeah
+then
+become back to the team
+你比较厉害
+给他们那些trial
+我也希望你大
+一个人一块钱
+你可以几百个的
+我们每个月有100块
+我们做过的
+做过的
+你的sales不要买到
+不会啦
+你那个你要到一万个人
+你知道吗
+我这些都要做过
+ok
+这个就是
+这个是那个bopper的meanbopper
+嗯
+meanbopper
+thank you
+你不不
+呃
+thank you
+你昨天我还要给你看的是这个
+嗯
+就是
+在我们的这个individualbopper里面
+ok
+不过我用
+不然来说做一个
+做一个
+ok
+呃
+那天看起来
+我们看individuali
+我就会看到
+谢谢蜜蜜
+but
+ok
+individuali
+我会看到我自己的CRM
+for the personal performance
+for the recruitment
+ok
+如果the recruitment
+就是代表一人
+我自己
+我的downline
+我全部的downline
+那我的downline
+split the theme
+这些
+ok
+ok
+呃
+这个会有这个form submission
+对吗
+对
+ok
+我想要有
+多两个东西
+明白
+ok wish
+but I think it's not here
+because in one company's CRM
+它有一个是
+有一些东西是在
+嗯
+就是呃
+第一就是Festive的时候
+我们的
+我们有一个media的一个
+可能
+它会
+做一个那种dm出来
+ok
+then呃
+yeah
+so
+所说可以自己去
+add in他们的名字
+照片
+whatever
+then they can send to their customers
+then they can upload download
+嗯
+so
+so I want to have a tab like
+festive
+or
+我不懂是在哪里
+sume events
+not to show
+I don't think it's
+supposed to training
+应该不在这里
+I want to show like it
+so that
+它是dm play AI
+嗯
+that's all
+现在什么东西都叫AI了
+yeah
+next festive readings
+so festive readings right
+so
+that's a bit
+你看到没有
+看到看到
+是那种小字我就看不到
+嗯
+then you can
+它会
+oh that's the thing
+but
+呃
+public circle
+比较厄大时间就是
+我可以进去
+我可以直接generate
+我的
+picture my number
+然后
+在里面
+名字 number
+在里面
+还会 auto generate
+这个是否那个 sales的
+否那个 sales thing
+if they want to send
+to their customer
+like
+诶
+if
+the father's thing
+tell them what's send
+to their customer
+it says
+so I can do it
+嗯
+他们不用说
+去想create
+it actually gives them the benefit
+that we
+并我们已经
+have been done
+so we can do that
+是
+so
+那就直接
+download
+add它的名字
+他们是这样子
+嗯
+这是the original line
+嗯
+ok
+so I can
+generate
+so once I generate
+然后
+啊
+它就会有我自己的
+view出来
+这个啊
+就我看
+不用这样考新当
+他们写这个啦
+现在确定理解太简单了
+嗯
+那它就会
+嗯
+嗯
+yeah
+嗯
+if this part is too difficult
+then don't need
+we just
+没有
+这个不是
+难
+这个是
+要加钱
+因为这个要
+click to AI
+ok
+这样
+我们不是
+因为我
+不用每个
+associate的找给
+so我们也很难
+你可以
+因为你那个
+associate他们
+要log in
+to
+to
+to submit
+东西之类吗
+你只要
+你只要跟他们讲说
+现在用这个新的system
+then第一次
+log in的时候
+我可以make sure
+that他们一定要
+拍照
+可以这样子做
+ok but in a
+property agent
+so我们的照片是
+我们第一张照片是
+component sponsor
+去拍的
+professionally去拍
+哦
+这个没有professionally
+它可以直接送入
+这样子
+then you say
+我们就不看了
+就补 them
+so不要
+对吗
+不要
+then这个也是
+难对吗
+不会有的
+差点
+这整个东西
+你要这样子做啊
+这个东西
+我可以帮你做出来
+but then
+问题出的不是这个
+是出的要
+connect to
+insert
+那个
+AI system
+那个AI system
+要
+you charge
+ok
+then in
+in that case
+for now
+we don't do that first
+later on
+then we give this
+benefits to the agents
+yeah
+what we do is
+previously
+property agent
+they will just give you
+a template like that
+without this
+so you
+one self can add in your number
+this one
+I think none of the phone
+the app
+you can add in the same
+yeah
+就可以了了
+then另外一个
+我想要有的就是
+我要一个
+is either a notice
+ok
+example like
+missing any of the agent
+那边
+他们有要改 code train
+ok
+所以要改 code
+不是 for harm only
+it has to be
+overall for the whole company
+so if there are
+crosses change
+we have to send out a notice
+to everyone
+that
+there are some changes
+in the clause
+for associate payment
+嗯
+ok and it will be in the folder
+the notice folder
+yeah
+so
+他们
+他们可以自己
+receive the email
+so that is a notice
+in your notice folder
+他们可以自己
+进去那个 folder
+看那个
+可以
+就是我们
+notification
+within the system
+yeah
+可以
+然后
+然后就是要有一个
+可以给他们有那个
+folder
+to
+看那个 notice
+可以
+就是全部的
+我应该是会翻讲
+这个标
+你click完那个标
+也是可以
+也是可以
+but click那个标
+那个 notice
+要放在哪一个
+that你就要
+应该是没有
+你可以啊
+他就会出来的
+然后就
+会搜在里面吗
+搜在里面会啊
+哦
+那他以后
+以后他click完的
+他去哪里找
+你要吗
+click标标翻
+在这边啊
+but
+我会
+will appear here
+不是在小小的啦
+因为他
+message
+全部会
+就坐在这边
+yeah
+after
+after they read the review
+like three months later
+they want to read again
+可以啊
+just scroll down and see
+they just scroll down
+the main page
+the home page here
+yeah
+not
+open the folder
+and put the notice inside there
+no啦
+don't think so
+so
+you didn't
+you didn't
+none
+like
+inbox
+none
+那个storage
+会很大
+storage会很大
+storage会很大
+then
+storage那边也是
+那过了就没有了了啦
+是
+然后要自己
+bring
+自己
+download and save one
+是
+but
+better like that
+叫他们自己download and save
+ok
+叫他们自己download and save
+then
+uh
+yeah
+so
+他们的associate agreement
+sign already
+我们approve了我们
+company都是会有一个
+parts company sign的啦
+then我们也要send给他
+也是一样send
+然后notage他直接开
+对
+so他要keep一个copy
+他自己download
+对
+不会stop在里面
+会
+dance
+会
+yeah
+I mean for like
+the first few ones right
+我们可以inload啦
+因为它storage会很大吧
+then你看
+我们这边有一个my agreement
+so我们自己的associate
+会stop在里面
+可以
+maybe important的啦
+sociate agreement stop在里面
+可以
+reason is in the HR system right
+嗯
+除了
+除了被
+被揉了
+除了被揉了
+不然你倒是你要做被揉
+你等你转大了
+你要做被揉你如何讲
+I think
+被揉 is not on
+ermanent stuff
+没有不止
+commission也是一样
+that means
+因为你现在
+你transfer
+你用
+bang了
+一个一个transfer给他们对不对
+对
+对
+被揉是
+你只要到了时间啦
+你download一个
+一个
+uh
+text file
+那个text file你upload
+去bang就好了
+那什么的
+就全部都要他帮你做
+within the next two days
+他帮你
+bang for the center
+oh
+啊你不懂
+是这样的
+including berm stuff的和com的都可以
+uh
+supplier
+oh supplier
+supplier不一样
+ok supply也是有
+but supplier的那个
+你的bang
+uh
+request会不一样
+嗯
+啊
+so supplier的会比较不同
+有有有
+bang也是有
+but supplier的
+因为也是不一样的系统
+supplier的system通常是 under
+uh
+那个叫什么 log
+uh logistic
+management system
+uh lms
+这个是more like HR system
+HR system只是到被揉
+嗯
+uh
+but we're still for
+um
+vendor payment
+supplier payment
+你的那个
+business account right
+不可以用那个
+一样的方式
+可以用一样的
+的bang去还钱
+but
+the function for upload啊
+那个只是单单
+for salary gyro
+oh
+像你如果你要
+你要做那个
+bump upload的话
+你要select another function
+那个他们有charge
+钱的okay
+ok
+那个meaning for now
+supplier就不需要
+vendor就要select
+这个
+这个也是你
+你到时候
+你先弄这样子
+你到时候你到
+你觉得说真的是
+很太多人
+因为会到一个时间
+你没有办法
+传说的
+对啊
+真的
+你不要长多了
+我跟你讲你只要到了
+差不多40个人
+哪
+你就没办法传说了
+我的
+那时候我公司30个人
+我传说不到了
+sloc
+我是量sloc
+做做做做人
+这样子传说的钱啊
+但还不急着真的
+当当当
+你自己在被偷偷
+跟你讲你这什么
+你也有时候上kms
+uh back to back case啊
+我们四个
+六三k's back to back case
+然后
+你做到完了啊
+你
+掉下来做
+vendor钱的
+所以你要可以
+找早上做选择
+做到完事
+对
+到半年十二点才到
+还在做传说
+对
+especially你的
+你这一行
+因为你太多vendor了
+yeah
+而且你要怕转错啊
+你又不可以
+maybe steady啊
+你找的系统
+是说
+case by case
+一个case
+一个班
+那个case
+一个班
+所以我觉得你的
+你的那个vendor
+uh
+的那个系统
+比比这个barrows
+系统还要
+还要重要
+反正你的vendor
+系统更更更有问题
+but at the moment
+我们kism
+不
+oh
+ok
+嗯
+所以有时候
+那些vendor
+不到三个月之后
+到时候没有给我办
+等到半年之后
+现在都在
+你可以马上到前面
+啊
+你在忙的是吧
+他马上到前面
+我还没有checkmate
+我没有对对不对
+嗯
+有时候
+我每次从早上起来
+excel sheet做好了
+等我去说
+到半年十二点
+我还在传说
+诶传说了
+你还要sponsor给他们看
+是是是
+我如果有那个
+你讲的那个系统的话
+就有有有
+那个系统
+另外一个系统
+我跟你讲
+我们整个
+可以加速
+对
+first
+then
+after that
+when we move in now
+对吗
+嗯
+probably
+到时候
+你们人也多了
+销息开始多了
+我们start off the period system
+shake
+so no one's side
+with the cases increase
+because
+or might actually
+don't have to
+sing them both
+to
+vodify in the world
+是要
+blast
+be quickly
+oh okay
+speak quickly
+catch
+uh
+custom moment
+i'll open it up
+多点
+对吗
+嗯
+那个vendor
+我可以帮
+就可以再帮我做我的vendor
+可以
+那个vendor system
+没有one tape
+然后那个
+那个我会帮你track
+然后到时候我们再discuss
+我会帮你track
+说你用几个vendor
+什么vendor
+什么supplier
+yeah
+那你有什么supplier
+是backup supplier
+那你现在比如说
+你的logistic
+那个人来不及
+不是来不及
+call t一个supplier
+t一个supplier
+没有reresponse
+你直接
+tel另外一个supplier
+然后我也是可以给你
+link to whatsapp
+所以那个人可以直接
+click啊
+直接打
+从电脑直接打给那个supplier
+那全部audit track
+然后到时候
+如果有什么问题的话
+你可以问回你的guide
+你没有打啊
+他可以看
+你没有打这样
+全部audit track到
+that easier
+that means
+your case
+I don't have water
+那个
+that mean
+could actually
+sing
+set the dog order
+对
+那他说
+因为有些supplier
+没有email
+没有supplier
+他直接按whatsapp打了
+then打了callable
+call log
+跟你register
+that跟你save在里面
+到时候vendor
+跟人家
+你都不看啊
+我呢
+都有的啦
+这些
+这个这个是
+pure logistic system
+like that
+oh
+就是
+有有有
+有这种system
+有的啊
+so
+so whatever is required
+可以
+just store在里面
+so
+这个
+like this case
+是一个premium的 case
+so premium package
+是
+so他就会有
+dada的
+也是可以
+然后直接
+比如说你
+比如说你这个
+backage A
+你可以create
+像你的product
+这样你create a product
+变吗
+那你讲这个product啊
+then
+你是some more vendor
+some more vendor
+then which part
+what is the requirement
+for the vendor
+全部你是pre
+pre
+pre-control的
+then你的
+你的admin只是
+click ok
+so
+他要package A
+then就直接给你
+least全部的vendor
+items是什么东西
+just click click click
+then how to
+stay
+see vendor
+对
+then他click啊
+就 either you email
+just send email
+look at me email
+just直接打whatsapp
+我们全部都是whatsapp
+ok
+因为
+对啊
+如果全部是whatsapp
+就是这样打
+直接whatsapp
+then就record了
+如果是
+我们的whatsapp是很简单的
+but we share all
+the American one
+也可以
+我们可以follow你的
+你的
+metamix
+你有一个自己的metatology
+yeah like
+you're caching
+caching
+嗯
+encoffin
+gdn
+funeral
+a
+gdn
+goshia
+什么东西
+then
+your
+vendor
+这个是dampage
+delighter
+嗯
+dampage
+delighter
+so
+呃
+就这样子讲了
+你每一个vendor
+你就有自己的一个
+so called
+dampage
+啊
+then你只要
+你只要
+你只要给我special
+dampage
+then you click
+他就直接whatsapp
+给他
+对啊
+so it's very simple
+就是可能我去collect body的时候
+我就打
+欸呃
+vendor
+欸你
+dampage
+明天可以做吗
+喔不可以啊
+我去打给你
+嗯
+你问他
+我就只需要
+交代我的admin说
+喔啊
+all the dampage
+for me
+then he'll just say
+click to me
+you need a message
+send to him
+明白
+所以你这个你可以set up
+呃
+你可以set up
+给你的admin说
+呃
+比如说啊
+你可以放好几个supplier
+那你放好他们的习惯
+所以如果说他
+他send了过后啊
+dampage
+a
+讲没有空
+他就直接可以select
+你的
+你
+你已经set给他的习惯
+他可以直接
+select
+vendor b
+对啊
+如果没有空就vendor c
+你可以set好给啊
+啊
+那他就不用了
+他就不用问你
+他只要continue
+with你的习惯就好了
+啊
+this is a good system
+yeah
+after the thing
+no after the
+careboard
+you can look with this one
+嗯
+back everything computer
+待会想你到
+呵呵
+对
+ok
+so this
+搞定了
+可以
+好
+我给你看一下
+so
+这个是我自己做的
+uh
+hs system
+嗯
+ok
+so
+这个system是真的是
+purely for
+那些公司的
+嗯
+a bit different from
+你的啦
+but
+mean
+mean reason
+把你的字语很讲
+呵呵
+so
+比如说employees
+right
+全部employees
+就是他们的
+information
+会这样
+then
+如果你要看
+他的
+then
+然后
+你看要打他们的
+detail进去吗
+so it's a direct call
+then they're
+common information
+全部就进去
+其实这个
+这个进去
+对吗
+就是那个
+stills manager
+在submit
+他们recruitment form的
+so it's just
+已经key进去了
+对
+actually这个应该是
+ok在
+大公司里面
+还是normal的公司里面
+是是hr
+hr在做的嘛
+而且比如说你讲
+brot next是hrt
+你们的information的
+so
+会这样给
+so hrt
+请这些information
+create in the profile
+actually
+actually
+I don't know whether
+is it
+hr
+ok for
+brot next
+because
+for
+brot next
+our agreement
+is
+soft to be done
+so
+他们有
+form
+just
+recruitment
+so that
+is a form
+to fill in
+for your recruitment
+then
+这个form
+to fill in
+they are all
+click submit
+then
+how to generate
+each agreement
+to write
+then the agreement
+will e-sign
+嗯
+(笑)
+希望会 unbeaten
+(笑)
+奇怪
+(笑)
+ok
+then
+他就会 generate
+the
+associate agreement
+so
+associate agreement
+was signed
+was submit
+那边 hrt
+approved了
+对吗
+他的全部 details
+就在里面
+他一approved
+我的
+vio office
+就开了
+啊
+actually
+我们可以
+可以跟他
+customs成这样做
+可以吗
+可以
+then means
+ok
+比如说
+bats在这样
+他们不是要
+sign
+associate agreement
+嗯
+他们sign
+associate agreement
+对吗
+then
+是online sign
+嗯
+then直接
+sign
+然后啊
+他们的
+那个account
+就开了
+嗯
+明白吗
+开了
+然后
+ok
+but then
+还有一些
+information
+会有一些information
+你还需要
+你的hrt
+key-in的
+把我这个
+现在暂时
+因为我现在暂时
+想不到
+你的associate agreement
+有没有什么东西
+可能
+可能for
+这个case啊
+for best
+可能没有
+可能finally
+真的没有
+因为真的是
+bully sales
+of that team
+对
+呃
+but for
+but for
+你的
+比如说
+你的full diamond
+这些啊
+他们有多少天
+deep
+啦
+对对
+but safety
+是一家key的
+哦
+ok
+那个没有事情
+真的是
+如果是这样子的话
+好
+sorry啊
+我越加越多东西啊
+没什么
+我想要问你
+呃
+我再给你看
+let go
+我们现在里面啊
+我们有这个form
+嗯哼
+叫
+passed after life
+referred
+partnership
+ok
+registration record
+你知道
+这个东西吗
+不懂
+ok
+这个东西就是
+呃
+我喜欢他没有跟你们讲
+对
+ok
+这个东西就是这样子啊
+啊
+呃
+parts of being you
+一個form
+就是一个referred partnership
+就是
+vendors
+嗯
+ok
+vendors
+嗯
+呃
+因为
+example
+ni
+chi
+approach vendor
+a
+which is
+or a groomer
+then the groomer
+said
+ok
+I'm willing to work with you
+so that is this
+呃
+agreement
+呃
+arguments
+there's this agreement
+call
+呃
+referred marketing
+partnership
+agreement
+嗯
+so you just
+跟这个
+vendor
+欠这个
+agreement
+then
+just
+what I work out with
+there's a form
+there's a form
+for you to submit
+嗯哼
+so once the form
+submit already
+对吗
+嗯哼
+他就会有这个
+在哪里啊
+他就有这个
+correct record
+他就说
+ok
+我还没有
+没有人submit啊
+就会有这个record
+time stamp
+一定要
+因为我要知道谁
+等一下你去签vendor
+他也去签vendor
+哎我先去的
+我先去
+没有我们就
+照着谁的time stamp
+这个是
+something like a
+mou with
+那个
+那个
+呃
+不是vendor
+more like the
+呃
+so-called
+distribution
+center
+啦
+like for example
+我去
+the pet level center
+yeah
+correct
+then imagine
+你去pet level center
+then
+呃
+明白
+sills person
+ah to
+pet level center
+对
+两个都
+可能
+meet的人都不一样
+那两个都签
+所以我们就会
+based on the
+dump stamp
+没有
+这个
+我的那个
+CRM system
+invendor
+ok
+有
+啊
+啊
+不是这个
+ok
+你做的这个
+是more like
+the HHS system
+嗯
+the
+我跟
+呃
+vincen做的
+那个是CRM system
+所以我们那个
+CRS system
+invendor
+ok
+我们的这个
+我们
+convening
+this HHS system
+as a virtual office
+so
+呃
+他们可以
+submit
+就是
+vendor
+他们就有这个
+form
+他们去submit
+the upload
+the agreement
+approve
+了
+他就在这边
+可以
+每个人都会看到
+我不可以edit的
+可以
+每个sills person
+都可以
+进去里面
+就是可能
+刚才我们prognition
+在那边开一个deck
+就是
+他们可以去
+他们可以去view
+说
+欸
+all tech lovers
+and they
+都给 Samuel拿了啊
+那我不用去找了
+我懂
+cris
+这个可以
+这个这个我懂
+这个我懂
+ok
+你现在讲这个
+我就明白了
+这个我懂
+啊
+可以啊
+可以
+因为我已经有
+bill在我们自己的
+就是我们自己的
+那个crm system
+right
+我们有
+所以有
+这个
+东西
+他们submit啊
+automatically
+他就已经
+highlight
+对
+啊
+所以
+呃
+可以加这个在里面
+可以
+对
+可以一个folder
+document
+ok
+呃
+就是
+all the
+required
+agreements
+like
+呃
+这个
+right
+referred partnership agreement
+嗯
+cage storage agreement
+for two beds
+ok
+to pertaining to the
+associate one
+yeah
+啊
+就比如说我
+我的
+我的
+呃
+那个associate agreement
+还是我有什么 agreement
+yeah
+my associate agreement
+can go under recruitment
+啊
+那是
+那是
+你是讲说
+公司有什么 agreement
+that they can download to use the
+yes
+啊
+ok
+是个没问题的
+啊
+for
+因为等一下可能会有
+funeral package
+funeral package可能不会用到啦
+嗯
+example
+funeral package
+不用
+make style
+比如说那些
+packs
+他们也会看到
+funeral
+这些
+they are open to do
+funeral
+ok
+ok
+actually all the
+sales associated
+可以吗
+呃
+虽然我们讲
+我们required
+so it's a main purpose
+pack
+but they are open to do
+funeral
+they are open to do
+the human niche
+uh
+human template
+then
+uh
+temple event
+they are open to all the products
+我明白
+but the
+the thing is that
+uh
+Wattong Vincent
+had me a room
+had me a room
+trained out
+对
+对
+so
+我觉得
+我觉得
+我们把这个东西
+做好了
+做好了对吗
+I don't mind to
+show a training
+uh
+how to
+do for submission
+for submission
+可能你们会
+trained out
+but
+what are the protocols for
+明白
+packs
+死掉要怎么做
+human
+有人死掉要怎么做
+对
+我给你做个信用说
+ok
+哇
+我先跟你讲啊
+好像有点多东西出来啊
+可能不是一块钱啊
+可能快
+快多钱了
+没有不会超过两块了
+快多钱
+we just named it a virtue
+I want it to be
+like a virtue
+it's a virtue
+因为
+全部人都不需要进office
+so it's a virtue
+office for them
+so one click
+they can check everything
+就是我今天我要去这个vendor
+因为我不懂
+rembol paradise
+有没有咧
+哎哦公司自己得了
+你不能动啊
+我去了也没有用
+then
+他们可以moved on to other
+then
+back to the center
+send 没有拿了
+没有拿了
+对
+我先带你到这个时候来
+then
+ok
+so then after that
+well probably
+by tomorrow
+you know later
+by e早上
+give you the rough foot
+then giving you a sample of testing
+大概大概会是怎么样
+then you can
+能够
+里面是mock data
+不是真的
+then over all
+大概是这样ok的话
+就开始做了
+ok
+then we do it
+过后
+这个
+不用
+不用完全不一样
+因为你是
+money payment的
+but
+what's一好了
+一用第一个
+user用的时候
+你就点开始翻
+而且是
+换钱是个money fall的
+他不是
+不是很像
+月底才换钱
+有一点不一样
+是你现在换你才用
+这样子对
+so for now
+他们的email
+是用他们自己
+发送的email
+later on
+没问题
+you remember
+we want to
+我会放两个
+你看在暗洞里的
+这个东西
+拿起来
+咦
+都搞了
+哈哈哈
+bye bye
+if you want to
+come in
+hash up on the keyboard
+啊
+会生气的
+不要生气了
+干吗
+来
+三冷腰了
+so yeah
+I will make it as a
+be it be a virtual office game
+明白
+are they easier for anybody
+so
+so getting the training
+can form one training session
+for the specific situation
+要不然你已经问我们
+pass的要怎么做的
+yeah after that
+uh
+另外一个
+for funerary要怎么做
+我们做一个
+做一个ok的
+好
+so
+没有什么东西
+应该没有什么东西
+没有了
+可以了
+好
+然后呢
+website
+不用了
+不要
+汗了你
+哈哈哈
+这个东西啊
+你记得
+好
+那个时候对吗
+对
+ok
+我要问你
+website的这个字对吗
+啊
+you think of him right
+yeah 还是还没有
+还没有
+还没有吗
+还没有
+那个是
+vizion讲他要做吗
+我那时有跟你讲
+copyright我们不会做
+等一下他讲他要做吗
+你看你这边
+ok的
+你刚来的时候
+那个blue是这样子
+啊
+ok
+然后它是
+那个cloth是整个
+ok
+对吗
+是整个cloth在这边
+是
+所以它这cloth
+它这边是一个different column
+是
+我只是要你把这边的column
+换成这个like column
+哦 会不会contrast很大
+ok
+呃
+yeah
+这个东西我觉得会很难得
+我就是要故意让它contrast很大
+因为
+啊
+嗯
+这个website太过
+无理
+这样子一看太无聊
+ok
+的颜色
+所以it'll feel the world的
+concrete来讲
+嗯
+红刀
+嗯
+它就需要一种很像
+当干净净
+peaceful and smooth的感觉
+So actually it needs to be like that
+ok
+等一下
+你给我一下字啊
+我弄一个很快的
+呃
+我建议做一次
+带一个change
+段经理你回去再装
+哦 ok 那可以
+好
+另外一个就是这个了
+嗯
+drains can't wait to do it
+you can actually take away the color
+ok
+fail on with drains in one line
+ok
+drains can't take away the color in the second line
+可以
+ok
+the same goes for the training so on and on
+that in 以心意送别
+这common art掉
+then 以缝进传带
+在第二个
+ok
+if do straight then you can go like this
+一个这样一个这样
+ok
+呃 我不知道为什么
+你看我马雷尼 印度的
+不知道书冰几书冰几书
+哈哈哈哈
+can we move
+ok
+we didn't turn the ring
+in this mountain care
+ok
+we cannot do modern style
+ok
+we cannot do modern for another
+ok
+because
+common can't create
+啊
+most people can't create
+me too
+so even from that side
+then after that
+我没有什么东西还跟你说
+因为你的copyright都很不做
+还是你要我做copyright
+嗯
+你要你问他一下喽
+他他要他要做还是他不要做
+如果不要做的话
+你弄给我
+我帮你再对
+你给我
+你弄的话
+你你给我我跟他
+我我跟他放进去先喽
+等到时候看他再
+can you just break that
+that's the way
+can you just break that
+有啊
+那不一样吗
+also the base是一个
+ah home page
+home page
+ok ok
+那你按比如说你按啊
+celebrium
+你找不到这个home page来
+你看不一样的
+不一样的团单
+全部是不一样的团单
+其实这不是那个最重要的
+有一些东西
+我不懂你没有发现到
+这个我给你免费了
+你看那个
+这个这个家伙
+你可以跟他讲话了
+ok 会rebuy啊
+这个是免费的
+有一个如果你要还钱的话
+他会他会跟你真的会讲话的
+会rebuy你的
+这个只是很像他只是会
+sauce里面的information
+对
+这个只是很像就是这样子
+你问他就rebuy你这样
+你这个好
+你要不要习惯下来
+可以啊
+primation religious rights
+or never know who is scavenging
+religion sorry for that
+或者是religion
+religious rights
+ok
+home
+home是第一个啦 home
+primation
+religious rights
+primation religious rights
+pollum babyl
+pollum babyl
+inspector babyl
+sensitory pricing
+how you like
+so i'm defining my own feeling my own feeling
+you're buying
+you can't define the pricing
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+you can't define the pricing you're buying
+你明白嗎
+我明白了
+他的idea那是有害迫的
+他講說
+We shouldn't put the pricing here
+Because the pricing is a very big number
+他講說
+This page should be tailored to
+給人家看
+This has different packages
+ Then
+我們會是怎麼樣
+We will tailor it
+How we can get a code
+After that, plan ahead
+然後叫他們來contact us
+他的 pricing是這樣子
+That's why
+那是不是講說
+這種services website
+他講輪步的 pricing there
+太實了
+真的沒有意思
+你明白了嗎
+不明白
+你明白了嗎
+我明白了
+我明白了
+你明白了嗎
+不好意思
+你明白了嗎
+可以
+可以
+就這樣子
+我懂
+我覺得這個
+藍色和美版都會太
+深
+深了
+這個你可以
+OK 我跟你講什麼
+這個很簡單
+這個藍色
+你只要跟我講說
+要錢多少
+我跟你弄
+你隔一天還是你有空
+看一下還是不夠
+這個adjustment很快
+我只是改它
+全部是sysa
+做website的
+我覺得OK啦
+太深了
+沒有給人家那種
+根本是有3個顏色
+連現在是2個啦
+所以我覺得還可以
+放了
+以前那個方式
+沒有放了
+也是可以跟我講
+這個沒問題
+這些全部都是included in your package
+你看你可以改成新卡
+新卡
+新卡會比較咳嗽
+OK
+OK
+OK
+OK
+新卡
+新卡
+新卡
+新卡
+新卡
+新卡
+可以
+新卡
+新卡
+新卡
+看起來很好
+我不只在想這個
+它會不會太重
+還好吧
+我覺得還好吧
+OK
+這個的缺點
+不是我不要adjustment
+因為我不是這個domain的expert
+website我是adjustment
+design of website我是adjustment
+那個
+service這個domain
+你們才是那個真正的專家
+to me我覺得
+這個是一個很好的file
+因為
+it's not a very happy location
+yet it's not something like 哇很gloomy
+很dark很dark
+我覺得the fit is there
+是有一點考量過
+用這種顏色這樣子啦
+我覺得
+加回去那個先
+連那個顏色我換成這個啦
+OK
+這個會沒有顏色只是白色的
+你明白對嗎
+the beat
+之前
+之前這個卡的
+so
+這個卡的會不見掉
+你明白嗎
+因為整個都是
+它只有那個白色的
+不僅我給你講什麼弄出來
+你看你覺得比file不好
+你跟我講怎麼樣改
+我通常改是 within the channel
+是還有一個
+是
+可以嗎
+我給你改回這樣
+should we use
+this is
+all this picture
+是買的你知道嗎
+喔是嗎
+我不懂
+這非常是我在
+shut the
+shut the
+喔
+goo la goo la
+好啦這樣好啦
+at least不會給人家
+想東西
+這種東西有時候會給人家靠
+只有這張
+這些是我們自己的
+明白
+這張要不要換
+你可以啊
+你要換你跟我講喔
+hk upload
+蠻容易改的
+除了你的
+你隨時隨地要換
+picture啦要換字啊這些
+我們會給你換的
+沒有沒有價錢的
+因為我們先講
+calculant的 reasons
+我一直在講說
+不要
+tru up 都太深
+只是
+一個生理學的
+一個角度來講
+在一個review
+都比例的時候
+顏色其實壓迫很重
+為什麼
+我們的
+我今天
+明白
+因為是一個比較給人家
+比較peaceful的感覺
+然後身體這樣會
+調整形成這樣子的感覺
+好
+嗯
+contrast不到
+What you can do is
+you can give me this picture
+then i can help you to do a rotation
+每兩個月換一次
+每兩個月換一次
+So you just go to the website
+他們有update的啊
+不是每次都一樣的啊
+因為這次
+之後這個是
+ start
+oh
+啊
+I see
+所以千萬別這麼
+對
+不是他
+說到自己
+他那個死了
+我把dryfit丟掉了
+所以
+這個就不會變成
+不會變成
+我們在用
+明白
+是啦你們
+做生意會比較注重這些
+我知道這個是滿的
+不過這張看起來很chill
+是真的
+這張會比這張
+是
+你給我
+然後我跟你做一個carousel switch
+所以你不知道你要多久
+每兩個禮拜每兩個月
+然後到時候你第三個部隊
+再給我我再給你放進去
+carousel switch
+any time你覺得說
+maybe這個佛都不要了
+你跟我講的那條
+就可以了
+對
+那個先
+我覺得
+OK
+我覺得這張很chill
+是有點不fit的比起來
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+Profit沒有很美
+可以了
+我等一下叫他們講

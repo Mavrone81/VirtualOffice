@@ -1,0 +1,2003 @@
+ - Is that okay? - No, it's not.
+ I'll do it for a while. It's easier.
+ - I'm sorry, I'll give you this. - Okay, okay.
+ Let's start.
+ Okay, basically, we know the second management system.
+ So, the union will consist of
+ - a recruitment form. - Okay.
+ Okay, so, recruitment form, just whatever,
+ recruit a之後, right?
+ How am I signed that agreement?
+ - Because the management will submit. - Okay.
+ Okay, submit, then it will go to
+ the considered HR system, the associate master.
+ So, we will record all the things.
+ - I'll go through each one. - Okay.
+ Then it will go to the sale submission form.
+ So, once they have a sales transaction,
+ they will submit the details that will be recorded here.
+ - Okay. - Then it will auto-generate
+ - into the commission structure. - Okay.
+ Then, with this auto-generated engine,
+ they will calculate the money paid out.
+ Then, the dashboard, individual manager, director,
+ they can see the tier.
+ - So, once open, they can see the tier. - Okay.
+ Then, as a Vincent, they can see the leader.
+ - Yes. - Then they can see the sales.
+ - Okay. - Okay.
+ So, basically, for this form,
+ the main purpose is to
+ create the associate record,
+ the hierarchy, up lines,
+ the approval status,
+ active and dominated status.
+ - Okay. - Okay.
+ I will use the approval form to do this.
+ One is like this.
+ - Okay. - Okay, so...
+ Okay, it will auto-generate an associate ID.
+ - Okay. - Then there is a timestamp.
+ - So, we know that it will go into the commission structure.
+ - Okay. - Okay.
+ Then, the associate, the full name,
+ his business name is what?
+ The name of the store.
+ - This is the HR, so-called master lease.
+ - Yes, master lease. - Okay.
+ - Okay. - Okay.
+ So, email address.
+ - Okay. - Okay, then we will...
+ - Yes, you can download this.
+ I will go according to this format.
+ - Yes. - Okay.
+ Then, when the data...
+ Actually, the data is email uploaded.
+ - This is uploaded. - There is.
+ Okay, so, you can see that there are these destinations.
+ - Then, the upline is water. - Okay, okay.
+ - All of these will be followed in. - Followed in.
+ - Yes, yes. - Then, there will be...
+ - A better method. - Yes, no problem.
+ - Then, the number will be the same. - Okay.
+ Then, there is a proof active.
+ - Okay, I understand. - Okay.
+ When I do this, I actually put their details
+ in the Google context.
+ - Oh. - So, in any event,
+ we have to blast out email to them or whatever.
+ - Okay. - Then, I will just Google
+ - the context. - I understand.
+ - Okay. - Okay.
+ This person has a banding.
+ Because his banding must be inactive.
+ - Okay. - Okay.
+ Let me see.
+ This is a proof status, is it your approval?
+ Yes, we have looked at the document.
+ After we have looked at the agreement,
+ it will...
+ When we click on the proof, we will know if it is active.
+ - Okay. - Okay.
+ - Then, we can click on the base. - I understand.
+ Okay, so this is...
+ If you look at the document,
+ then the status is...
+ Then, after we say, "Oh, okay."
+ - Then, it will be a proof status. - Yes.
+ Because his banding is completely wrong.
+ So, we have to re-sign it.
+ - So, it will be inactive. - Yes.
+ If he re-signed it, then we will replace it.
+ - We will replace it. - Yes, yes.
+ This is still a proof status. Because the document is inactive.
+ - No, because it is inactive. - Yes.
+ So, we have active, suspended, dominated, or inactive.
+ Okay.
+ I understand.
+ So, these are what is needed over there.
+ - Wow, very detailed, okay. - Very detailed.
+ What you just saw are these things.
+ - Okay. - Okay.
+ The commission structure, right?
+ We need to create a product, a core product.
+ Because we don't have a lot of products.
+ - I understand. - Yes.
+ Because we said, "Oh, external products,
+ like with a memory niche,
+ they will create that kind of...
+ they will take away."
+ We don't need to...
+ The company should hold a little bit.
+ I will discuss with Vincent about what is the commission structure
+ for this category.
+ Because we need to collect a little bit.
+ At the time, building maintenance, admin maintenance is what we still need.
+ - Yes. - Yes.
+ Oh, it's impossible for all of you to go there.
+ We didn't receive it.
+ How can I go to the maintenance?
+ Wait, I have to say that we need to maintain a system for free.
+ - I understand. - Yes.
+ This is what we have company cut.
+ System manager overrides.
+ Sales manager, sales director overrides.
+ Yes, these are the data that you can download.
+ An admin can download that number.
+ Yes, okay.
+ We will have this thing.
+ When you are ready,
+ we will keep those details here.
+ Okay, after that,
+ when you make that system,
+ they will self-submit and not keep those details.
+ They will auto-generate.
+ - Okay. - This is an example.
+ When you sell the submission system,
+ these are the things that they need to be key-in.
+ - I understand. - After they are key-in,
+ our sales transaction record will have these things.
+ They will auto-generate these things.
+ - Okay. - Okay?
+ Let me take a look.
+ I'm going to sign here.
+ Most of them are not calculations.
+ Not calculations.
+ Okay, this is...
+ Are we able to generate invoices from here?
+ - Yes. - You can?
+ - Yes. - So you can help me make an invoice.
+ By right, be the customer of the transaction.
+ I'm not kidding.
+ You know that the system needs money.
+ But I have something for you.
+ Maybe you can tell me how you want to trade invoices.
+ - I can give you a symbol. - You can give me a symbol.
+ It's our invoice right now.
+ You can try some of these insurance packs.
+ - Okay. - You can see it.
+ The difference later, I'll open it for you.
+ What can I say?
+ You decide.
+ Do you want different types of invoices
+ or do you want to consolidate them into invoices?
+ - You can. - I want different types.
+ Because it has different payments to different companies.
+ No problem.
+ If you want different types,
+ you can give me a different sample.
+ Then after that...
+ I'll give you a sample of the invoice.
+ Okay.
+ Okay, this is the insurance service.
+ - The invoice. - Yes.
+ Okay, let me show you.
+ The only difference is only here.
+ Oh, then it's okay.
+ Then there's the other invoices.
+ - The invoice number. - Yes.
+ Okay, then insurance packs.
+ - Then the invoice number is generated. - Yes.
+ Okay, so it's not different invoices.
+ It's just different companies that have invoices.
+ This is a small problem.
+ If it's like this,
+ we don't need the invoices for the company right now.
+ It's all...
+ - Computer generated. - Computer generated, right?
+ I'll think about it.
+ - I've heard a lot. - I think so.
+ It's the idea.
+ This is a computer generated invoice that is known...
+ - What's the name of the invoices? - I think it's that one.
+ Yes, yes.
+ The invoices use a system called Xero.
+ - Xerox. - Xerox.
+ - Xero. - Xerox.
+ I'm just trying to find them.
+ You're trying to find them?
+ They should use this one.
+ You can see that they don't have signature invoices.
+ But of course I need to check with lawyer.
+ If customers sign, it's a security for us.
+ So if they don't pay,
+ it's always bigger bound that we can sue them.
+ If they don't pay me or sign, it's a...
+ Okay, customer signature.
+ There are two things you can do.
+ I can do this for you, Min Fei.
+ We can put this on the system.
+ It's also a function for me.
+ I've learned how to do this.
+ One way is to download PDFs and give them a return beginning.
+ Okay, second method is I'll give them a login link.
+ They'll go to the digital sign.
+ Okay.
+ The lack of digital sign is that if it's an old person,
+ they might not be able to pay.
+ That will be a problem.
+ So you can consider this.
+ - I'll tell you later. - I'm using digital invoices.
+ I'll take my iPad back and give it to them.
+ If that's the case, you can...
+ I'll give you an example.
+ We have some tests.
+ - Yeah. - We have some tests here.
+ What?
+ Okay, tests.
+ Test, because they're paying money in stock.
+ So we actually...
+ After they return, we'll issue an invoice data
+ to keep us from covering it.
+ Okay.
+ I get it.
+ Okay, so we have two invoices.
+ One is to sign the invoices, and the other is to receive them.
+ Because if they sign the invoices, they'll issue them.
+ What do you think of the domain?
+ You don't need them to sign the invoices.
+ Actually, your legal system will give you better advice.
+ They'll give you better advice.
+ They'll give you better advice.
+ If you don't sign the invoices, you'll get a headache.
+ Yeah, you'll lose.
+ I mean, it's a long story.
+ If you're more than 19 years old,
+ if you lose to someone, it's not that easy.
+ It's only $30.
+ Don't be mad at them.
+ Don't be mad.
+ If you don't sign the invoices, you'll get a headache.
+ If you don't sign the invoices, you'll get a headache.
+ - Okay. - Okay.
+ - You can't. - You can't say you can't.
+ - You can't say you can't. - You can't.
+ You can't. I can sign the invoices.
+ You don't get it.
+ This is not a government contract.
+ It's not a state contract.
+ If you don't sign the invoices, you'll get a headache.
+ - You can't say you can't. - You can't sign the invoices.
+ You can't say you can't.
+ If you don't sign the invoices, you'll get a headache.
+ If you don't sign the invoices, you'll get a headache.
+ If you don't sign the invoices, you'll get a headache.
+ If you don't sign the invoices, you'll get a headache.
+ If you don't sign the invoices, you'll get a headache.
+ If you don't sign the invoices, you'll get a headache.
+ That's it.
+ - Okay, it doesn't matter. - Anyway, the make-back to the original thing
+ is that if you want to sign the invoices, you can.
+ If you don't sign the invoices, you'll get a headache.
+ So, what I will do is that I'll do up a system for you
+ that you can use your make-back to sign them.
+ Or, you want to bring them directly to sign them.
+ - Okay. - Then you'll get a headache.
+ We don't have a lot of papers.
+ - We don't have a lot of papers. - Okay.
+ - We don't have a lot of digital screens. - Okay.
+ So, if like at Pat's, the next issue,
+ maybe the signature of that part,
+ you can create one that way.
+ I can take a button and it appears a big "Z" over there.
+ So, instead of signing, it's a stated "K".
+ Oh.
+ - Can you understand? - No, I'm thinking that there will be a problem.
+ So, if you sign the invoices, you'll get a headache.
+ No, I've already paid for it.
+ Okay, I've already paid for it.
+ So, if we want to do a funeral case,
+ they'll give me a few days, I'll give you a few days.
+ - Okay. - I'll ask them to give me a few days.
+ - Okay, okay. - I'll give you a few days.
+ No, okay, I can tell you what.
+ In your invoice tab,
+ there's a tab where you go to invoices.
+ All your outstanding invoices will be there.
+ Then I'll give you a button over there.
+ If it's already offline, you click "Paid".
+ Then your invoices will be reflected as paid.
+ - Oh, okay. - So, no matter what you download,
+ it will be placed as paid.
+ - If I didn't click "Paid", it will be... - It will be shared as paid.
+ Then you download it as a PDF.
+ So, originally, because it's faster,
+ I'll give you a direct download of the PDF.
+ Then you explain normally, you use your iPad to sign it for them.
+ - Because you're the PDF, right? - Yes.
+ I'll sign it for them.
+ At that time, I'll make another one for you.
+ You can sign it directly from the system.
+ You just send a link to them.
+ You don't have to go to them, they can sign it.
+ They don't have to sign it, you just have to find them.
+ - Okay. - Okay, that means I have a question.
+ This is for...
+ I'll be able to track the installer and commission.
+ You have eligibility to be auto.
+ Just because you're called "backmix",
+ they call it "instormers". The third one is "instormers".
+ We'll be able to pay out the commission.
+ I understand.
+ But what's the only drawback?
+ Is it payment, cash, or what?
+ Inferning is transfer.
+ Transfer.
+ Almost all of them are transfer.
+ Transfer is fine, but there will be charges.
+ Because we need to use the transaction gateway.
+ We can't do that.
+ We must use this, for example,
+ you can use the red dot, the heat pay, the strike.
+ - We need to use the exchange gateway. - It's simple.
+ For example, I have an account now.
+ It's for me now, okay.
+ So, when we have an account,
+ whenever customers pay the installment,
+ they just need to generate invoices.
+ Once they generate invoices,
+ they will note that a second installment is paid.
+ - Third installment is paid. - That's the problem.
+ So, we don't have to use the gateway.
+ - Okay, but... - We can't do that, right?
+ - We can't do that. - We can't do that.
+ We can't do that, but the problem is that it's you.
+ Because they have charges.
+ - How much? - I think it's 20% to 30%.
+ It depends.
+ It depends.
+ If you can get rid of your account,
+ then it's a waste of money.
+ Right? It depends.
+ But it depends.
+ It depends on the amount you have.
+ If you say it's 20% every year,
+ then it's also a lot of money.
+ 20% is a lot.
+ It's okay.
+ Actually, honestly, Binsert and Silvia are not so good,
+ but whatever we earn from it,
+ if we pay out everything, we have a balance.
+ - Money, profit, profit... - It's too much.
+ - Okay. - Okay.
+ It goes back to the cost of everything.
+ - Oh, I see. - Yeah.
+ So, it's almost free of charge.
+ So, I have to pay more.
+ They have to sell more to cover.
+ - Yes. - Then they have to maintain the system.
+ - Customers pay 1.4 yuan per year. - Yes.
+ So, I think that 2%...
+ - It's a lot of money. - It's a lot of money.
+ At least, you can put one person to click.
+ When it's really smooth and big,
+ you have to pay more to do it.
+ - Or do it again. - Yes.
+ It's my strength.
+ Connect to Stripes is my strength.
+ But the problem is that I can't do that payment.
+ Because you have to do M.A.S.
+ If I do it big in the future,
+ if I find an investor, I will do Stripes.
+ But I have to pay M.A.S.
+ So, M.A.S. has 1.5% charge.
+ The charge is about the same as 2%.
+ Okay.
+ Since now, our account is still low.
+ It's just under the digital.
+ We can still do manuals.
+ So, 8 customers have to pay more.
+ Then, our accounts have to pay more.
+ Okay, we can generate voice and send to the customer.
+ Then, the system will track the second payment page.
+ - Okay. - The third payment page.
+ Once the third payment page,
+ the commission will be available.
+ Okay, this is okay.
+ Because this is for manual input, there's no problem.
+ Okay.
+ I know that in the nine-part sentimental flow,
+ to indicate some of the options.
+ Then, that means that there are total...
+ I need to know.
+ I will ask more details later.
+ How many instalments are there?
+ For example, there are 3 or 4 or 5 instalments.
+ Then, the instalment you have to select,
+ this is how many instalments are there.
+ So, every time we generate invoices,
+ the instalment will track the second payment page.
+ Okay, look in the event,
+ because we have a manager,
+ now we have 1 or 2 customers.
+ They have no way to negotiate for instalments.
+ So, we need to consider the new instalments, right?
+ Yes.
+ Okay.
+ I will tell you about that part.
+ But the main thing is,
+ this portion, most likely,
+ I will give you an adjustable amount.
+ Okay.
+ Another adjustable amount is like a sub-category.
+ So, a sub-category whereby hard originals took up,
+ then after they became a sub-category,
+ then the instalment will start from here onwards.
+ Then, how much is the new amount?
+ So, that whatever that was being built previously, right?
+ Just an example,
+ we have a thousand.
+ Each month, we have 3.
+ With 1,000, we have to split to 3 months.
+ That is, maybe 300, 300, 300, 100.
+ Okay.
+ Then, the cost of that,
+ he has to fund the existing monthly 300.
+ So, it will be 600, 600, 400,
+ then back to 300, 300, 300, 300.
+ So, this will be manually adjusted.
+ Oh, okay.
+ Actually, this is what I think is quite easy.
+ You just create another product, right?
+ Remember, right?
+ That means, it becomes another product
+ called instalment payment.
+ Then, you just tag with him.
+ 1000, then, this is the instalment payment.
+ Then, that, how lapsed, that,
+ you just click as manually overwrite.
+ He pays.
+ Then, you just turn it off.
+ But, in fact, one more line will come out.
+ Then, it becomes your,
+ you have to pay him twice.
+ Okay.
+ That's it.
+ Then, his, his, this,
+ inverse can be installed in the invoice.
+ Yes.
+ Then, this instalment.
+ Okay, it can be installed.
+ Okay, I'll, I'll, I'll see if I can pay him.
+ Worst case scenario, you pay him twice, right?
+ Okay, I'll see if I can pay him twice.
+ That means, I'll help you see if you can create a function
+ so merge invoices.
+ Then, you can tag,
+ buy a number, buy a number.
+ That will be more troublesome.
+ I'll try, try to make it longer.
+ If it's okay, then you can merge invoices.
+ If it's not okay, then temporarily,
+ you can pay him.
+ Then, instalment, most, most,
+ that is to say, for example,
+ he bought 3,800.
+ Okay, then, how the instalment is,
+ okay, it's auto calculated now.
+ And, yeah, what you mean by auto calculated?
+ Just, once the sales person key in 3,800,
+ 12 months instalment, deposit is how much?
+ Okay.
+ The balance, how do you auto calculate,
+ how do you generate to, right?
+ Yes.
+ Okay.
+ What, do you have any,
+ how do you say percentage,
+ how do you add, what are the things?
+ Example, do you have GSD,
+ what do you want me to say?
+ At the moment, no GSD, no GSD.
+ I'm just saying, if there's anything,
+ add-on, you want me to say,
+ so that I can translate the formula.
+ Blah, formula is very simple.
+ 3,800, subtract, deposit, divide by 12.
+ That's it.
+ At the moment, it's like this.
+ By the time you have GSD,
+ I will need you to help me do that.
+ Adjust, adjust.
+ Adjust, okay.
+ Okay.
+ If you have GSD,
+ you're already over 1 million, right?
+ Yes.
+ That's no problem.
+ Yes.
+ (laughs)
+ Sales figures are over 1 million.
+ Revenue, right?
+ (speaks in foreign language)
+ No, revenue is 1 million.
+ Profit per type.
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (laughs)
+ But revenue up, profit, way up.
+ This one is,
+ we're going to discuss the auto-commissioned engine,
+ just how we closing commission,
+ how we auto-generate through, right?
+ So just say it's,
+ she wants to, so I will start direct applying.
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (laughs)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ (speaks in foreign language)
+ Okay, I tell you what,
+ I will, I will, this is more like a payment structure.
+ So auto-commissioned engine,
+ this is our internal internal.
+ (speaks in foreign language)
+ (speaks in foreign language)
+ So your auto-commissioned engine is,
+ based on the price, this person will get a lot of commissions, right? So this amount whatever changes, right? This person's commission will go down accordingly. Is that how it works? Whichever amount, for example, the direct online ID, direct online copyright.
+ This person will base on the product code. Okay, like Fatmich, how much direct applies, how much does it apply, how much money we did, is zero? Then if this product code is Funeral, Funeral will be different.
+ Every product code, okay, this is a tag to that product code. Now, my question is not, my question is, for example, now we set direct online let's say 2%, then example, then second online let's say 1%, let's say it's like this, then its calculation will be based on here.
+ So if we change this, okay, let's say direct online now, you can change it to 1.5%, instead of 2%, so you can change it to 1.5%. So that commission will calculate the cost, right? So what's the calculation for commission?
+ Okay, you have to know this a little bit, their commission, let's say there is a percentage, that kind of, we are going to talk about Fatmich, that kind of percentage. Because there is a company card, company card is a 10% so direct online and second online, that overriding is from this 10% rate.
+ It's 10% of, let's say, 2%, it's 2% of other commission, but it's from this pool, so it won't affect other commission.
+ No problem, even, okay, so I will give you all the field, but in reality, if you say it's like this example, then you directly put the direct online commission on zero, it won't code, then you just take it from this pool, do you understand?
+ Yeah, but this is commission and it has to calculate, this is for, oh, every product has its own calculation, okay, so it will be a little complicated.
+ I can't be able to customize, but worst case scenario is that you calculate the upline, how many percent, then you put it in, do you understand?
+ There will be a back-end, yes, only admin can see it, like for example, I will give you an admin login, your admin login is product manager, then you can create a product, you can create another similar product,
+ because in the future, they will have Typhoon, space, funeral or something, okay, you create a similar product, then this pool thing will appear, then you take him, for example, for example, for your funeral service,
+ in the future, direct upline from 2 percent to 1.5 percent, then you mass-brief your system, you directly exchange 1.5 percent, from that date onwards, all the commission will be changed to 1.5 percent calculation, so you have an admin control.
+ Okay, so now this admin control has a small problem, funeral here, how the commission calculation will be a little complicated, because, for example, 1.5 percent will be closed.
+ Okay.
+ Someone took a sender package, this package needs a commission from 1.5 percent, but it has an upgrade cascade, so it has an upgrade setup, then it has an upgrade unit, then it has additional source funeral, which means it has an upgrade.
+ Can you do it?
+ Okay, okay, then it's the same in this admin portion, what I do is I create something down here called commission code, com code, so you can create a new com code, then you can put how many percent or absolute amount, for example, 20 yuan or 28 cents,
+ then whenever this com code has been used, it will directly go to the commission, or rather from the overall amount, add it to the commission.
+ Okay, so this com code, what is the additional com that they will need?
+ Right.
+ The sales person has to know very well in their fingertips.
+ Actually, it has nothing to do with the company, when they submit, they have to submit, because when they submit a new case, they have to figure out what is the additional thing that they have.
+ Then after that, they will go through your accounts, your accounts approval, or your HIL approval, either one.
+ So once it's approved, then the commission will be directly launched.
+ So what happens is, when I say okay, you're getting a big picture, for example, when you log in as a product owner, then you create a product, then that product, you receive information,
+ then the new product, you add additional com code.
+ So when I'm the seller, or I'm your sales rep, I don't sell things, I go to submit.
+ I submit, okay, for example, Funeral Service, submit.
+ Then after that, there are a few things below, you can take.
+ All of them are your com code.
+ Additional rights, you will have a click, additional C scattering, you will have a click, additional, maybe, I don't know, like, remembrance, for example, then we'll click.
+ There are these three.
+ It means you will set how much money here.
+ The Q can be percentage of the overall, or the absolute amount of money.
+ Okay.
+ Then after they submit, you have to have someone to verify them.
+ So you have to have someone to verify them.
+ But there was a small issue, it can be your HR, it can be your towns, wherever it is.
+ So once they approve, okay, then your commission will directly go into their dashboard.
+ Then I will see, oh, I've earned money this month, my commission has earned money.
+ Okay.
+ Okay.
+ Then this is the summary, how much each associate should receive every month.
+ So the payout status is either bending, bending may be under installment of customer.
+ It doesn't matter.
+ Approve will be paid out.
+ Pay will be paid out.
+ It's annoying.
+ Payout, maybe there are some issues.
+ It will hold good.
+ Or customer cancer.
+ Okay.
+ Just cancer.
+ Okay.
+ That's it.
+ Yes.
+ It will hold a little, I want to think about it, how will it, oh.
+ I can tell you, it may hold, we can take it.
+ Because it will directly bend.
+ Ah, I was thinking.
+ It will be more troublesome.
+ Yeah.
+ But I see, I see.
+ If I can do it, I will do it for you.
+ Otherwise, I will put it in bending.
+ No, no need.
+ Okay.
+ In short, it means bending.
+ Basically it means bending.
+ Whatever reason is, it means bending.
+ Yes.
+ Okay.
+ Either it's approved, it's paid, or it's cancer.
+ Okay.
+ Just like that.
+ Okay.
+ So it hasn't paid out yet.
+ Approve is here.
+ It will jump.
+ It will jump.
+ Okay.
+ Then the other one is this dashboard thing.
+ Okay.
+ Dashboard basically is just individual.
+ They can see these things.
+ There are individual performance things.
+ This is director dashboard.
+ And manager dashboard.
+ Okay.
+ I understand.
+ You see the team.
+ Yeah.
+ Personal dashboard.
+ Yes.
+ Personal dashboard actually is kind of like that.
+ This is what they will see.
+ This is their dashboard actually.
+ But this will show their performance.
+ No.
+ You have to show them.
+ They only have to see how much money they have.
+ Breaking their individual break.
+ Yeah.
+ You have to show them.
+ I mean up to you.
+ I don't think you need to.
+ After you show them.
+ Wait a minute.
+ I will check.
+ Okay.
+ Okay.
+ You have to show them.
+ You have to show them.
+ You have to show them.
+ Maybe for now we will not show them.
+ Because we are still young.
+ Yes.
+ But later when.
+ Big enough.
+ Then they will come back to the team.
+ You know.
+ Then they will see Charlie.
+ I also want you to be big.
+ One dollar, one dollar.
+ You can get a few hundred.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ I will get a few hundred every month.
+ Payroll is more on permanent staff.
+ No, not only that.
+ The commission is the same.
+ That means,
+ because now you transfer,
+ you use bank accounts,
+ you transfer them one by one, right?
+ Yes.
+ Payroll is,
+ as long as you have time,
+ you download a text file.
+ That text file,
+ you upload it,
+ you go to the bank.
+ That's all you need to do.
+ Within the next two days,
+ you go to the bank for your center.
+ Oh.
+ You don't know.
+ It's like this.
+ You can do permanent staff and common staff.
+ Supplier?
+ Supplier is different.
+ Supplier is also available.
+ But the bank request for supplier is different.
+ So supplier is different.
+ Yes, yes, yes.
+ Bank is also available.
+ But supplier is also different.
+ Supplier system is under,
+ what is it called?
+ Logistic management system.
+ LMS.
+ This is more like HR system.
+ HR system is only for payroll.
+ But we're still for vendor payment,
+ supplier payment,
+ your business account,
+ you can't use the same function.
+ You can use the same bank to pay.
+ But the function for upload,
+ that's just for salary gyro.
+ So if you want to do the bulk upload,
+ you have to select another function.
+ They have charge.
+ OK.
+ OK.
+ You don't need to do the bulk upload.
+ Yes, yes.
+ This is what you do before you do this.
+ You think there are too many people.
+ Because you can't translate until a certain time.
+ Yes.
+ Really, don't talk too much.
+ I'm not telling you.
+ As long as there are about 40 people,
+ you can't translate.
+ I can't translate for 30 people at that time.
+ I have to translate for 30 people.
+ I can't translate for 30 people.
+ Don't talk too much.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
+ You can't translate for 30 people.
