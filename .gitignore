@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Large media — meeting recordings kept local, not in git (use Git LFS if needed)
+*.mp4
+*.mov
+*.wav
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# Node / Next.js (for the upcoming enshrine-portal app)
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+# Prisma / DB
+*.sqlite
+*.db
+
+# Editor
+.vscode/
+.idea/
