@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.github
+HR System for COM service
+*.mp4
+*.mov
+*.wav
+.env
+.env.*
+npm-debug.log*
+.DS_Store
+.vscode
+.idea
+coverage
