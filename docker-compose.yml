@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: virtualoffice_dev
       POSTGRES_DB: virtualoffice
     ports:
-      - "5439:5432"   # host 5439 -> avoid clashing with other local Postgres containers
+      - "10501:5432"  # host 10501 -> project port range 10501-10550 (Postgres)
     volumes:
       - virtualoffice_pgdata:/var/lib/postgresql/data
     healthcheck:
