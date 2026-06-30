@@ -1,0 +1,48 @@
+# Production stack for VirtualOffice on the 165 droplet (shared host).
+# App is proxied by nginx (vo.enshrine.com.sg -> 127.0.0.1:10502).
+# Run migrations + seed once via:  docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: virtualoffice-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: virtualoffice
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: virtualoffice
+    volumes:
+      - vo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U virtualoffice -d virtualoffice"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: virtualoffice-app
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:10502:3000" # nginx proxies here
+
+  # One-off: prisma migrate deploy + seed (uses the full builder image).
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    profiles: ["tools"]
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "pnpm prisma migrate deploy && pnpm prisma db seed"
+
+volumes:
+  vo_pgdata:
