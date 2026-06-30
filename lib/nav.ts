@@ -27,7 +27,7 @@ export const adminNav: NavGroup[] = [
     title: "Finance",
     items: [
       { label: "Products & Com", icon: Tags },
-      { label: "Commission", icon: Calculator },
+      { label: "Commission", href: "/admin/commission", icon: Calculator },
       { label: "Invoices", icon: FileText },
       { label: "Payouts", icon: Banknote },
     ],
