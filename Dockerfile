@@ -10,6 +10,9 @@ RUN pnpm install --frozen-lockfile
 
 # --- build ---
 FROM base AS builder
+# Build-time placeholder so Prisma client init never trips on a missing var
+# (real DATABASE_URL is injected at runtime; authed pages are force-dynamic).
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm prisma generate && pnpm build
