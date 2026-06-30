@@ -1,8 +1,10 @@
 import { Designation, CommissionType, LedgerLineType } from "@prisma/client";
 import { computeLineCommission, type LedgerLineResult } from "@/server/commission/engine";
+import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
+import { StatusPill } from "@/components/ui/status-pill";
 
 export const metadata = { title: "Commission · Enshrine Admin" };
 
@@ -83,7 +85,21 @@ function Preview({
   );
 }
 
-export default function CommissionPage() {
+const LINE_TONE: Record<string, "info" | "success" | "neutral" | "warn"> = {
+  Personal: "success",
+  Override: "info",
+  AddOn: "warn",
+  CompanyRetained: "neutral",
+  ExternalPayable: "neutral",
+};
+
+export default async function CommissionPage() {
+  const ledger = await prisma.commissionLedger.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    include: { transaction: true, lineItem: true },
+  });
+
   const percentage = computeLineCommission({
     lineItemId: "demo-pct", ...rates, ...upline, closer, comCodes: [], isExternal: false,
     commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
@@ -115,13 +131,46 @@ export default function CommissionPage() {
         />
       </div>
 
-      <Card className="mt-6 p-6">
-        <h3 className="font-display text-[17px] text-ink">Commission ledger</h3>
-        <p className="mt-1.5 max-w-2xl text-[13px] text-muted">
-          Both commission types feed the same company-cut pool → ASM/SM/SD override split → company retained,
-          and overrides are paid out of the pool (never reducing the closer). Once sales submission and
-          verification land, the engine writes per-line ledger entries here, gated by installment eligibility.
-        </p>
+      <Card className="mt-6 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h3 className="font-display text-[18px] text-ink">Commission ledger</h3>
+          <span className="text-[12px] text-muted">{ledger.length} lines</span>
+        </div>
+        {ledger.length === 0 ? (
+          <p className="px-5 py-10 text-center text-[13px] text-muted">
+            No commission yet. Submit a sale and verify it — the engine writes per-line entries here.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
+                  <th className="px-5 py-3 font-medium">Txn</th>
+                  <th className="px-5 py-3 font-medium">Associate</th>
+                  <th className="px-5 py-3 font-medium">Line type</th>
+                  <th className="px-5 py-3 font-medium">Basis</th>
+                  <th className="px-5 py-3 font-medium">Amount</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledger.map((l) => (
+                  <tr key={l.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
+                    <td className="px-5 py-3 font-medium text-ink">{l.transaction.transactionCode}</td>
+                    <td className="px-5 py-3 text-muted">{l.associateName ?? "—"}</td>
+                    <td className="px-5 py-3">
+                      <StatusPill status={l.lineType} tone={LINE_TONE[l.lineType] ?? "neutral"} />
+                      {l.comCode ? <span className="ml-1 text-[11px] text-muted-2">{l.comCode}</span> : null}
+                    </td>
+                    <td className="px-5 py-3 text-muted">{formatSGD(l.basisAmount)}</td>
+                    <td className="px-5 py-3 font-medium text-ink">{formatSGD(l.amount)}</td>
+                    <td className="px-5 py-3"><StatusPill status={l.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </>
   );

@@ -19,8 +19,8 @@ export const adminNav: NavGroup[] = [
       { label: "Overview", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Recruitment", icon: UserPlus, badgeKey: "recruit" },
       { label: "Associates", icon: Users },
-      { label: "Sales · Verify", icon: BadgeCheck, badgeKey: "verify" },
-      { label: "Transactions", icon: Receipt },
+      { label: "Sales · Verify", href: "/admin/sales/verify", icon: BadgeCheck, badgeKey: "verify" },
+      { label: "Transactions", href: "/admin/sales/transactions", icon: Receipt },
     ],
   },
   {
@@ -47,7 +47,7 @@ export const portalNav: NavGroup[] = [
     title: "My Office",
     items: [
       { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
-      { label: "My Sales", icon: Receipt },
+      { label: "My Sales", href: "/portal/sales", icon: Receipt },
       { label: "My Commissions", icon: Calculator },
       { label: "My Payouts", icon: Banknote },
     ],

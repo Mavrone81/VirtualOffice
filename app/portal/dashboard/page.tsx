@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { downlineIds } from "@/lib/rbac";
+import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
@@ -30,7 +31,7 @@ export default async function PortalDashboard() {
     <>
       <PageHeader
         title={`Welcome back, ${firstName}`}
-        subtitle={`${me?.designation} · ${me?.associateCode} · ${me?.teamName ?? ""}`}
+        subtitle={`${humanize(me?.designation)} · ${me?.associateCode} · ${me?.teamName ?? ""}`}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -61,7 +62,7 @@ export default async function PortalDashboard() {
                   <tr key={a.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
                     <td className="px-5 py-3 font-medium text-ink">{a.associateCode}</td>
                     <td className="px-5 py-3 text-ink">{a.fullName}</td>
-                    <td className="px-5 py-3 text-muted">{a.designation}</td>
+                    <td className="px-5 py-3 text-muted">{humanize(a.designation)}</td>
                     <td className="px-5 py-3 text-muted">{a.directUpline?.associateCode ?? "—"}</td>
                     <td className="px-5 py-3"><StatusPill status={a.associateStatus} /></td>
                   </tr>
