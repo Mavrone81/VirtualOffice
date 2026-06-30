@@ -1,6 +1,6 @@
 # Environment & Configuration — Enshrine Associate Management Portal
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 (§4, §10, §13) · **Anchors:** `02_Database_Diagram.md`, `05_RBAC.md`
+**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 (§4, §10, §13) · **Anchors:** `02_Database_Diagram.md`, `05_RBAC.md`
 **Region:** Singapore — managed Postgres + object storage in **ap-southeast-1** for data residency.
 
 > Status: spec/PRD stage — to be built by Codex. This document defines the runtime contract (environment variables, secrets, and per-environment differences) the application must read at boot. Implement variable parsing with a single validated config module (e.g. `lib/env.ts` using `zod`) so missing/invalid values fail fast at startup.

@@ -1,6 +1,6 @@
 # Deployment Runbook — Enshrine Associate Management Portal
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 (§4 stack, §10 NFRs) · **References:** `08_Security_and_PDPA.md` (secrets, residency), `02_Database_Diagram.md` (schema/migrations)
+**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 (§4 stack, §10 NFRs) · **References:** `08_Security_and_PDPA.md` (secrets, residency), `02_Database_Diagram.md` (schema/migrations)
 **Stack:** Next.js (App Router, TypeScript) + PostgreSQL + Prisma + NextAuth/Auth.js + S3-compatible storage.
 **Hosting:** Vercel + managed Postgres (Supabase / Neon / RDS), region **ap-southeast-1 (Singapore)**.
 

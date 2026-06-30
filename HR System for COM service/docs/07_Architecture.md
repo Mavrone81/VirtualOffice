@@ -1,6 +1,6 @@
 # Software Architecture Document — Enshrine Associate Management Portal
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 (§4, §8, §10) · **Anchors:** `02_Database_Diagram.md`, `05_RBAC.md`
+**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 (§4, §8, §10) · **Anchors:** `02_Database_Diagram.md`, `05_RBAC.md`
 **Status:** spec/PRD stage — to be built by Codex.
 
 ---

@@ -1,6 +1,6 @@
 # TESTING.md — Enshrine Associate Management Portal (VirtualOffice)
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 · **References:** `docs/04_API_Documentation.md` (endpoints), `docs/05_RBAC.md` (roles/scoping), `docs/02_Database_Diagram.md` (entities), `docs/03_Workflow_Diagrams.md` (workflows), `docs/09_Test_Plan.md` (QA strategy).
+**Version:** 1.1 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 · **References:** `docs/04_API_Documentation.md` (endpoints), `docs/05_RBAC.md` (roles/scoping), `docs/02_Database_Diagram.md` (entities), `docs/03_Workflow_Diagrams.md` (workflows), `docs/09_Test_Plan.md` (QA strategy).
 **Stack under test:** Next.js (App Router, TypeScript) + PostgreSQL + Prisma + NextAuth/Auth.js + S3-compatible storage + SMTP email.
 
 > **Status:** the application is specified but **not yet built**. This document is the executable test plan the implementation must satisfy — every function, endpoint, and workflow below maps to a documented requirement. As Codex builds each module, the corresponding tests are written and turned green. Items marked _(deferred)_ correspond to PRD Won't-have-v1 features (payment gateway, AI festive generator, full vendor LMS).
@@ -30,15 +30,23 @@
 Organised by domain module (suggested `lib/` / `server/domain/`).
 
 ### 2.1 Commission engine — `computeCommission(tx, structure, comCodes, uplineChain)`
+
+The engine runs **per `sale_line_items` row** and sums; each line carries its own `commission_type ∈ {Percentage, Fixed}`. The block below covers single-line and multi-line cases.
+
 | Case | Expectation |
 |---|---|
-| Worked example: sale 10,000, closing 10%, cut 40%, SM 20%, SD 10% | closing **1,000**, pool **400**, net-to-closer **600**, SM override **80**, SD override **40**, retained **280**; sum = 1,000 ✓ |
-| Reconciliation | personal + overrides + retained == closing_commission (zero residual after rounding) |
+| Worked example (Percentage): sale 10,000, closing 10%, cut 40%, SM 20%, SD 10% | `commission_type = Percentage`: closing **1,000**, pool **400**, net-to-closer **600**, SM override **80**, SD override **40**, retained **280**; sum = 1,000 ✓ |
+| **Fixed `commission_type`** (closing_comm_fixed → same pool/override split) | `commission_type = Fixed`, `closing_comm_fixed = 500`, cut 40%, SM 20%, SD 10%: closing = flat **500** (line sale amount ignored), pool **200**, net-to-closer **300**, SM override **40**, SD override **20**, retained **140**; sum = 500 ✓ |
+| Fixed type ignores rate fields | `commission_type = Fixed` uses `closing_comm_fixed`, ignores `closing_comm_pct`; `Percentage` uses `closing_comm_pct`, ignores `closing_comm_fixed` |
+| **Multi-line sale** (commission computed per line, summed) | tx with 2 lines — line A Percentage ($10,000 → 600/80/40/280), line B Fixed ($500 → 300/40/20/140): each line computed independently; **each ledger line tagged with its `line_item_id`**; transaction totals = sum across lines (closer 900, override 140, retained 420) |
+| Multi-line per-line reconciliation | for **each** line independently `net_to_closer + total_override + company_retained == line.closing_commission`; tx total = Σ(line closing_commission), zero residual |
+| Mixed Commission Types in one sale | a sale mixing Percentage and Fixed lines: each line branches on its own `commission_type` while sharing the same pool/override split |
+| Reconciliation | per line: personal + overrides + retained == closing_commission (zero residual after rounding); summed to tx total |
 | Consultant upline (rank 0%) | upline override = 0; retained absorbs it |
 | Only direct upline present (no 2nd) | single override; retained = pool − override |
 | No eligible upline (both Inactive) | overrides = 0; retained = full pool |
 | Override rate by rank | ASM→asm%, SM→sm%, SD→sd% resolved correctly |
-| Add-on com code — Percentage | adds `sale_amount × value%` as Add-on line |
+| Add-on com code — Percentage | adds `line_sale_amount × value%` as Add-on line (tagged to that `line_item_id`) |
 | Add-on com code — Absolute | adds fixed `value` as Add-on line |
 | Multiple add-ons ticked | each produces a discrete Add-on ledger line |
 | Rounding edge (e.g. 33.335) | round-half rule applied; residual pushed to Company Retained |
@@ -68,12 +76,14 @@ Organised by domain module (suggested `lib/` / `server/domain/`).
 | Adjustment (renegotiation) | preserves paid rows; recomputes only remaining; new schedule reconciles to outstanding balance |
 | Invalid (deposit > total, count ≤ 0) | validation error |
 
-### 2.4 Invoice numbering — `allocateInvoiceNumber(companyId)`
+### 2.4 Invoice numbering & grouping — `allocateInvoiceNumber(companyId)` / `groupLinesByCompany(tx)`
 | Case | Expectation |
 |---|---|
 | Sequential per company | `INV-<PREFIX>-YYYY-#####` increments atomically |
 | Concurrency (parallel calls) | no duplicates (atomic `invoice_next_seq`) |
-| Multiple companies | independent sequences (Enshrine vs Trust Pets) |
+| Multiple companies | independent sequences (Enshrine Services vs Enshrine Pets Paradise) |
+| Single-entity sale | all lines under one `company_id` → exactly **one** invoice |
+| **Line spanning a different company entity → separate invoice** | a sale with lines under 2+ `company_id`s groups by entity → **one invoice per company entity**, each numbered from its own sequence + stamped with that company; per-invoice amount = Σ its own lines; invoices reconcile to tx total Sale Amount (consolidated mode = alternative) |
 
 ### 2.5 Hierarchy — `assertNoCycle(associate, newUplineId)` / `getDownlineClosure(id)`
 | Case | Expectation |
@@ -221,6 +231,23 @@ Playwright, seeded app (7 associates, ≥1 company, products incl. external). Wo
 | E11 | **Vendor referral first-claim** | Two associates submit same vendor → earliest timestamp wins; registry view-only |
 | E12 | **Manual override (Admin)** | Admin sets manual commission on a complex/external tx → reflected in ledger + audit log |
 | E13 | **Failure/recovery** | Verify with ineligible closer blocked; double mark-paid idempotent; expired session → re-auth |
+| E14 | **Multi-product sale (per-line commission + per-entity invoicing)** | Consultant submits ONE sale with multiple line items (e.g. a Percentage product under Enshrine Services + a `Fixed` product under Enshrine Pets Paradise) → Accounts verifies → invoices group by Company Entity (one per entity, distinct numbers/stamps) → run engine → ledger shows a commission set **per line** tagged to each `line_item_id` (Fixed line: 300/40/20/140) → transaction total = sum of lines → each line reconciles → payout reflects the summed total |
+
+### 4.1 Responsive / mobile layout (PRD §10.1)
+Run Playwright with viewport projects at **375px (mobile), 768px (tablet), 1280px (desktop)** across all key pages (login, candidate onboarding, dashboards, associate master, sale submission with multiple line items, product creation, invoices/outstanding, payouts, documents, name card).
+
+| # | Check (each page, each breakpoint) | Expectation |
+|---|---|---|
+| R1 | No horizontal overflow at 375px | `document.scrollWidth ≤ viewport width`; no `x` scrollbar |
+| R2 | Navigation | collapses to hamburger/mobile menu below `md`; full nav at 1280px |
+| R3 | Grids/flex rows | stack to single column on mobile; multi-column at `md`/`lg` |
+| R4 | Tap targets | interactive controls ≥ **44×44px** on mobile |
+| R5 | Tables (ledger/payouts/transactions) | contained — scroll within wrapper or reflow to stacked cards; no overflow |
+| R6 | Images | `max-w-full`, never exceed container |
+| R7 | Multi-line sale form | line items stack vertically and remain usable at 375px |
+| R8 | Desktop unchanged | 1280px layout matches the established desktop design (visual regression) |
+
+Tooling: Playwright viewport projects (+ optional `@playwright/test` visual snapshots); an axe-core a11y pass per breakpoint is recommended.
 
 ---
 
@@ -266,7 +293,11 @@ pnpm typecheck && pnpm lint
 | PRD §14 acceptance criterion | Test(s) |
 |---|---|
 | §8.2 example → 600/80/40/280, reconciles | 2.1, E3 |
-| Add-on com codes compute & attribute | 2.1, 3.3, E2 |
+| §8.2 Fixed example: closing_comm_fixed $500 → pool $200, closer $300, SM $40, SD $20, retained $140 | 2.1, E14 |
+| Commission Type {Percentage, Fixed} drives closing-commission basis; both share pool/override split | 2.1, E14 |
+| Multi-product sale → commission per line, summed; per-line reconciliation (tagged `line_item_id`) | 2.1, E14 |
+| Multi-entity sale → one invoice per company entity (lines grouped by `company_id`) | 2.4, 3.5, E14 |
+| Add-on com codes compute & attribute (per-line basis) | 2.1, 3.3, E2 |
 | Pending/Inactive/unverified never a closer/payout/dashboard | 2.2, 3.2, 3.4, E2, E7 |
 | Installment commission only at threshold | 2.2, 2.3, E4 |
 | Per-company unique invoice numbers + no-signature footer | 2.4, 3.5, E3 |

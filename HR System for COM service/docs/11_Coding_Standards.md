@@ -1,6 +1,6 @@
 # Coding Standards & Conventions — Enshrine Associate Management Portal
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 (§4 stack, §9 rules) · **References:** `02_Database_Diagram.md` (naming/enums), `05_RBAC.md` (authorization), `08_Security_and_PDPA.md` (PII/secrets)
+**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 (§4 stack, §9 rules) · **References:** `02_Database_Diagram.md` (naming/enums), `05_RBAC.md` (authorization), `08_Security_and_PDPA.md` (PII/secrets)
 **Stack:** Next.js (App Router, TypeScript) + PostgreSQL + Prisma + NextAuth/Auth.js + Tailwind + shadcn/ui.
 
 These conventions are written so Codex and any engineer produce consistent, auditable, money-safe code.
@@ -105,6 +105,15 @@ Enum string values used in code/UI must match the DB enum values **verbatim** (e
 - Components are presentational; no business logic or direct Prisma calls in components.
 - Sensitive fields are **masked at the serializer**, not in the component (`08_Security_and_PDPA.md` §3) — components never receive unmasked NRIC/bank for non-Admin/Accounts roles.
 - Reusable, accessible form components; consistent loading/empty/error states (PRD §10 usability).
+
+### 8.1 Responsive / mobile-first (PRD §10.1)
+- **Mobile-first Tailwind:** base (unprefixed) classes target **375px** mobile; layer `sm:` / `md:` / `lg:` to scale up. Don't write desktop-first overrides or add another CSS framework.
+- **Verify every page at 375px, 768px, 1280px.** No horizontal scroll/overflow at 375px.
+- **Layout:** multi-column grids/flex rows stack to one column on mobile (`grid-cols-1 md:grid-cols-2 …`, `flex-col md:flex-row`); nav collapses to a hamburger/mobile menu below `md`.
+- **Tap targets ≥ 44×44px** on mobile (`min-h-11 min-w-11` / adequate padding); scale font/padding sensibly.
+- **Tables & images contained:** wrap wide tables in `overflow-x-auto` or reflow to stacked cards on mobile (ledger, payouts, transactions, dashboards); images use `max-w-full h-auto`.
+- **Don't break desktop:** preserve the existing `lg:`/desktop layout; mobile changes go in base + `sm:`/`md:` only.
+- **Per-change deliverable:** when implementing/altering a page, give a per-file summary and describe the 375 / 768 / 1280 layout.
 
 ---
 

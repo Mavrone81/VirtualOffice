@@ -1,6 +1,6 @@
 # Security & PDPA Compliance — Enshrine Associate Management Portal
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 (§4, §9, §10) · **Canonical references:** `05_RBAC.md` (roles, scoping), `02_Database_Diagram.md` (entities, encrypted columns)
+**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 (§4, §9, §10) · **Canonical references:** `05_RBAC.md` (roles, scoping), `02_Database_Diagram.md` (entities, encrypted columns)
 **Scope:** Singapore PDPA compliance + application security for a single-tenant CRM + HRMS handling associate PII and commission/payout finances.
 **Stack context:** Next.js (App Router, TypeScript), PostgreSQL + Prisma, NextAuth/Auth.js, S3-compatible storage, Vercel + managed Postgres in **ap-southeast-1 (Singapore)**.
 
@@ -16,7 +16,7 @@ All data in the portal is classified into four tiers. Handling rules (encryption
 | **C2 — Sensitive PII** | `associates.date_of_birth`, `associates.paynow_number`, `associates.mobile_number`, `associates.email`, `associates.full_name`, `client_name`, `client_contact` | TLS in transit; access scoped per RBAC; not exposed cross-scope. |
 | **C2-F — Financial** | `commission_ledger.amount`, `monthly_payouts.*`, `invoices.amount`, `installment_schedule.due_amount`, override/payout figures, `bank_file_batches` | Scoped per RBAC downline closure; manual-only money movement (§9); audit-logged on status changes. |
 | **C1 — Internal** | products, com codes, commission rates, notices, vendor referrals, documents metadata | RBAC-gated; no special encryption beyond at-rest disk encryption. |
-| **C0 — Public** | brand names (Enshrine, Trust Pets), product category labels | None. |
+| **C0 — Public** | brand names (Enshrine Services / Pets Paradise / Afterlife Planner Pte Ltd), product category labels | None. |
 
 **PII inventory (PDPA "personal data"):** NRIC, full name, business name, DOB, mobile, email, residential/PayNow identifiers, bank name + account number, photo (`photo_file_key`), signed agreement, and customer fields (`client_name`, `client_contact`). NRIC and bank account number are the highest-risk items and are treated as C3 throughout.
 

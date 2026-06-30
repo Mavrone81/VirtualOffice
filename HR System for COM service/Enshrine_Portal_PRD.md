@@ -1,7 +1,7 @@
 # Enshrine Associate Management System — Product Requirements Document (PRD)
 
 **Product:** Enshrine Associate Management Portal — a CRM + HRMS **"virtual office"**
-**Version:** 1.2 (build spec for Codex — now reconciled with the video walkthrough + meeting minutes)
+**Version:** 1.5 (adds mobile-first responsive requirement §10.1; builds on v1.4 Commission Type + multi-product sales)
 **Owner:** Samuel (builder, RMA / Vorkhive) for Enshrine. Vincent owns the related (vendor-side) CRM; Bincer & Silvia handle niche/columbarium economics.
 **Date:** 27 June 2026
 **Target builder:** Codex (autonomous code generation)
@@ -21,6 +21,12 @@ This PRD is written to be handed to Codex to build a working web application. It
 
 > **Change log v1.0 → v1.1:** added §6.1 e-sign onboarding + first-login photo; expanded §6.5 with com-codes/add-ons and product upgrades; added §6.5b Invoicing & Installments; expanded §6.6/§8 commission engine for installment-triggered eligibility and manual payment; added §6.10 Notices, §6.11 Documents & Agreements, §6.12 Festive/DM generator (deferred), §6.13 Vendor Referral Registry; added §6.8 bank bulk-payout file; added multi-company entities; new schema tables (§7); revised phases (§13) and open items (§16).
 >
+> **Change log v1.4 → v1.5:** added a **mobile-first responsive design requirement** (§10.1) — every page usable at **375px / 768px / 1280px**, no horizontal overflow at 375px, hamburger nav, single-column stacking, ≥44px tap targets, contained tables/images; Tailwind `sm:/md:/lg:` mobile-first, desktop layout preserved. Mirrored in `11_Coding_Standards.md` and `TESTING.md`.
+>
+> **Change log v1.3 → v1.4:** (1) **Commission Type** is now a functional product field — `Percentage` (closing commission = sale × closing_comm_%) or **`Fixed`** (a flat `closing_comm_fixed` amount per product); **both types use the same company-cut pool + ASM/SM/SD override split** (§6.5, §8.1). (2) A sale form can now contain **multiple product line items** — each line references its own product, sale amount, com codes, and structure version, and the engine computes commission **per line** (§6.3/§6.4/§8.1). New `sale_line_items` entity; `commission_ledger` lines reference a line item; products gain `commission_type` + `closing_comm_fixed` (§7, DB doc). A multi-product sale may span company entities → one invoice per company by default (§6.5b).
+>
+> **Change log v1.2 → v1.3:** reworked §6.1 into an **admin-initiated candidate onboarding flow** (Invited → Form Submitted → Signed–Pending Approval → Approved/Rejected) with a Candidates page and email-driven onboarding form; added **§6.2.1 P-File** (personnel file) at the **user** level for all users (forward-compatible with future permanent-staff logins); added a per-associate **Sales Agreements download tab** (admin-uploaded vendor MOUs / sales agreements) to §6.11; added **§6.14 Digital Name Card / VCF** (downloadable vCard + rendered card); replaced placeholder brands with the **real three company entities** (Enshrine Services / Pets Paradise / Afterlife Planner Pte Ltd) and added the services taxonomy + shared brand details (§6.5b, §17). New schema entities (candidates, p_files/pfile_documents, assigned documents) — see §7 / DB doc.
+>
 > **Change log v1.1 → v1.2 (from meeting minutes):** added **external-product commission treatment** (niche/columbarium/memorial — company retains only a small maintenance cut, bulk flows to the external provider/"Shifu") to §6.5 and §8.5; added an explicit **manual commission-override** fallback for complex funeral/cascade/upgrade cases (§6.5/§8.6); named **company brands** (Enshrine, Trust Pets) and **product categories** (Cremation, Religious Rites, Columbarium, Sea Scattering, plus funeral, pet aftercare, niche/memorial, temple/festive) (§6.5, §17); noted the **vendor/logistics system is considered higher-priority than the commission engine** (§1.3, §13); added context refs (Xero-type accounting; website enshrinepets.com.sg).
 
 ---
@@ -28,7 +34,7 @@ This PRD is written to be handed to Codex to build a working web application. It
 ## 1. Product overview
 
 ### 1.1 What it is
-Enshrine is a single-tenant **CRM + HRMS "virtual office"** for a Singapore funeral-services and pet-aftercare business (public site: enshrinepets.com.sg). It invoices under **multiple brands/entities (e.g. Enshrine, Trust Pets)**. Associates (commission-based salespeople) sell packages across product lines/categories — **Cremation, Religious Rites, Columbarium (niche), Sea Scattering, funeral services/packages, pet aftercare ("pet afterlife"), niche/memorial, temple/festive events** — and the system runs their full lifecycle and earnings, end-to-end, online, with no need to visit a physical office ("one click, they can check everything"). An accounting tool (Xero-type) is already used for invoices externally; this portal generates its own invoices.
+Enshrine is a single-tenant **CRM + HRMS "virtual office"** for a Singapore funeral-services and pet-aftercare business (public site: enshrinepets.com.sg). It invoices under **three company entities: Enshrine Services Pte Ltd, Enshrine Pets Paradise Pte Ltd, Enshrine Afterlife Planner Pte Ltd**. Associates (commission-based salespeople) sell packages across product lines/categories — **Cremation, Religious Rites, Columbarium (niche), Sea Scattering, funeral services/packages, pet aftercare ("pet afterlife"), niche/memorial, temple/festive events** — and the system runs their full lifecycle and earnings, end-to-end, online, with no need to visit a physical office ("one click, they can check everything"). An accounting tool (Xero-type) is already used for invoices externally; this portal generates its own invoices.
 
 Pipeline (from the deck, now extended):
 **Recruitment + e-sign onboarding → HR master record → Sales submission (with add-on com codes) → Approval/verification → Clean sales transactions + Invoicing → Commission structure (per-product + add-ons) → Auto commission engine (installment-aware) → Monthly payout + bank payout file → Manager/Director/Personal dashboards.** Supporting features: notices, documents/agreements repository, vendor-referral registry, (later) festive marketing generator.
@@ -137,55 +143,88 @@ Organisation hierarchy (by `designation`, lowest → highest rank):
 
 ## 6. Module specifications
 
-### 6.1 Recruitment + e-sign onboarding → Associate Master
-**Purpose:** recruit associates and open their virtual office with minimal friction.
+### 6.1 Candidate onboarding + e-sign → Associate Master
+**Purpose:** recruit associates through an **admin-initiated candidate flow** and open their virtual office with minimal friction. This is the primary intake path (the self-serve recruitment form is an alternative entry point).
 
-**Flow**
-1. Applicant fills the **Recruitment Form** (fields in §7.1). Creates an `associate` with `approval_status = Pending`, `associate_status = Inactive`, auto ID `EN####`.
-2. System **auto-generates the Associate Agreement** from a template populated with the applicant's details.
-3. Applicant **e-signs** the agreement online (in-app signature). Signed PDF stored.
-4. **Admin/HR reviews** the application + signed agreement → sets `approval_status` and `associate_status`. On Approve+Active, the associate's **virtual office account opens** automatically (login provisioned).
-5. HR may key in additional fields not captured by the form (e.g. tier-specific terms).
-6. **First login forces a photo capture** (selfie/profile photo) — used later by the festive/DM generator (§6.12) and profile.
+#### 6.1.1 Candidate lifecycle (admin-initiated)
+A **candidate** is a pre-associate record. There is a dedicated **Candidates page** in the Admin/HR area.
 
-**Status enums (exact, from the spreadsheet validations)**
-- `approval_status ∈ {Pending, Approved, Rejected, Incomplete}`
+1. **Admin enters basic info** for a new candidate — at minimum **full name, mobile number, email** (optionally designation, intended upline/team). This creates a `candidate` with `onboarding_stage = Invited`.
+2. **System emails the candidate** a secure, tokenised link to the **Onboarding Form** (self-service, no login required yet).
+3. **Candidate fills the Onboarding Form** — the full associate detail set (§7.1: NRIC, DOB, address, bank/PayNow, etc.) plus a profile **photo**. On submit → `onboarding_stage = Form Submitted`.
+4. **System auto-generates the Associate Agreement** from a template populated with the candidate's submitted details.
+5. **Candidate e-signs** the agreement online (in-app signature; **PDF-download → sign → re-upload fallback** for those who can't e-sign). On signing → `onboarding_stage = Signed – Pending Approval`. **At this point the candidate is considered "signed, awaiting admin approval."**
+6. **Admin/HR reviews** the submission + signed agreement and **approves or rejects**. On **Approve**: the candidate is **converted to an `associate`** (auto ID `EN####`), `approval_status = Approved`, `associate_status = Active`, the **virtual office login is provisioned**, and the company-counter-signed agreement is filed in the associate's **P-file** (§6.2.1). On **Reject**: `onboarding_stage = Rejected` with a reason.
+7. **First login** confirms/forces the **profile photo** (used by the name card §6.14 and the festive/DM generator §6.12) and prompts a password set.
+
+```
+Invited → Form Submitted → Signed – Pending Approval → (Approve) → Active Associate
+                                                       → (Reject) → Rejected
+```
+
+> **Alternative entry:** a public **Recruitment Form** can create a candidate at `Form Submitted` directly (skipping the admin-invite step); the rest of the flow is identical.
+
+#### 6.1.2 Status enums
+- `onboarding_stage ∈ {Invited, Form Submitted, Signed – Pending Approval, Approved, Rejected}` (candidate lifecycle)
+- `approval_status ∈ {Pending, Approved, Rejected, Incomplete}` (associate, post-conversion)
 - `associate_status ∈ {Active, Suspended, Terminated, Inactive}`
 
-**Gating rule (critical):** only `Approved` + `Active` associates are eligible to be a closer, receive commission/payout, appear in Contacts export, or appear in manager dashboards.
+**Gating rule (critical):** only `Approved` + `Active` associates are eligible to be a closer, receive commission/payout, appear in Contacts export, or appear in manager dashboards. Candidates (not yet approved) cannot log in to the virtual office beyond the onboarding form, and never appear downstream.
 
 **Hierarchy integrity:** set Direct Upline ID, 2nd Upline ID (default **auto-derive** = direct upline's direct upline, with manual override), Recruiting Manager, Team/Division, Designation, payment details. Prevent cycles; uplines must exist (or be null/`-` for division heads).
 
 **Acceptance criteria**
-- Submitting a valid form → Pending/Inactive associate with next `EN####` and an auto-generated agreement awaiting e-sign.
-- E-signing stores a signed PDF; approving+activating opens the login and makes the associate available downstream.
-- First login cannot complete without a photo.
+- Admin can create a candidate with just name + mobile + email → candidate at `Invited`, and an onboarding email is sent.
+- Completing the onboarding form auto-generates an agreement awaiting e-sign; signing moves the candidate to `Signed – Pending Approval`.
+- Approving converts the candidate to an `Active` associate with the next `EN####`, provisions login, and files the signed agreement in the P-file.
+- A candidate cannot be selected as a closer or appear in any payout/dashboard.
+- First login cannot complete without a confirmed photo.
 - Cyclic upline assignment is rejected.
 
 ### 6.2 Associate Master / HR System
 The master people record (see §7.1). Admin maintains hierarchy, approval/active status, payment details, remarks. Status changes have side effects: Terminated/Suspended stop **future** commission eligibility but **retain history**. Provides the **Contacts Export** (§6.9). All edits audit-logged.
 
+#### 6.2.1 P-File (personnel file) — for **all users**
+Every user has a **P-file**: a per-person document store holding their HR/personnel documents — the **signed Associate Agreement** (company-counter-signed copy), onboarding submission, ID/agreement uploads, and any HR documents the Admin files for them.
+
+- The P-file is created at candidate→associate conversion (the signed agreement is filed automatically) and persists for the life of the record.
+- **Forward-compatibility:** the P-file is modelled at the **user** level, not just the associate level, so that **permanent (non-commission) staff** can have logins and P-files in a future phase without rework. (Permanent-staff payroll/roles are out of scope for v1 — see §1.3 — but the data model accommodates them.)
+- Access: the owner can **view/download their own** P-file documents; Admin/Accounts/HR manage all P-files; managers do **not** see downline P-files by default (HR-sensitive). NRIC/bank remain masked per §10.
+- Audit: filing/removing P-file documents is audit-logged.
+
 ### 6.3 Sales Submission (with add-on com codes)
 **Purpose:** let any associate submit a sale from their virtual office.
 
-**Fields:** Sales Date, Client Name, Client Contact, Company Entity (which stamp to invoice under), Product Code (lookup), Product Name (auto), Sale Amount, Payment Type, **Full Payment / Installment** (+ deposit + #installments if installment), Amount Collected, **Add-on com codes ticked** (per product, §6.5), Closing Associate (defaults to self; must be Approved+Active), Invoice/Agreement upload, Remarks.
+**Header fields:** Sales Date, Client Name, Client Contact, Payment Type, **Full Payment / Installment** (+ deposit + #installments if installment), Amount Collected, Closing Associate (defaults to self; must be Approved+Active), Invoice/Agreement upload, Remarks. **Sale Amount (total)** = sum of the line items below.
+
+**Line items (one or more) — a sale can include multiple products:** each line item captures:
+- **Product Code** (lookup of an active product) → Product Name, Commission Type, rates auto-resolved (not free-typed).
+- **Company Entity** for that line (which entity bills it; defaults from the product) — *different products may bill under different entities*.
+- **Line Sale Amount** (and optional quantity).
+- **Add-on com codes ticked** for that product (e.g. scattering, remembrance — §6.5).
+- Optional **upgrade** reference (parent product / cascade).
 
 **Behaviour**
-- Product, base commission, override %, and available **add-on com codes** are looked up from the active Commission Structure — not free-typed.
-- Salesperson **ticks the applicable add-ons** (e.g. scattering, remembrance) at submission; these add to commission once verified.
-- Creates a **pending submission**; it is not yet official. It must pass **Accounts/HR verification** (§6.4) before becoming a transaction and before any commission flows.
+- Each line resolves its own product rates and **commission is computed per line** (§8.1); the sale's commission = sum of all lines.
+- Salesperson **ticks applicable add-ons per line** at submission; these add to commission once verified.
+- Creates a **pending submission**; not yet official. It must pass **Accounts/HR verification** (§6.4) before becoming a transaction and before any commission flows.
 
 **Acceptance criteria**
-- Submission with an ineligible closer or inactive product/add-on is rejected.
-- `Amount Collected ≤ Sale Amount`; installment params validated.
+- A sale with two+ products produces a line item per product, each with its own resolved rates.
+- Submission with an ineligible closer or any inactive product/add-on is rejected.
+- `Amount Collected ≤ total Sale Amount`; installment params validated; total = sum of line amounts.
 
 ### 6.4 Sales Transactions (verified official record) + verification
 **Purpose:** the authoritative, deduplicated record of confirmed sales — created when Accounts/HR **verifies/approves** a submission.
 
-**Fields:** Transaction ID, Sales Date, Client Name, Client Contact, Company Entity, Product Code/Name, Sale Amount, Payment Mode, Full Payment/Installment, Amount Collected, **Add-on com codes (verified)**, Closing Associate ID/Name, **Direct Upline ID + 2nd Upline ID (snapshot at verification)**, Commission Eligibility, Structure Version, Agreement Upload, Invoice Number(s), Remarks.
+**Header fields:** Transaction ID, Sales Date, Client Name, Client Contact, Sale Amount (total), Payment Mode, Full Payment/Installment, Amount Collected, Closing Associate ID/Name, **Direct Upline ID + 2nd Upline ID (snapshot at verification)**, Commission Eligibility, Agreement Upload, Invoice Number(s), Remarks.
+
+**Per line item (carried from submission):** Company Entity, Product Code/Name, **Commission Type**, Line Sale Amount, **Add-on com codes (verified)**, **Structure Version (resolved per line)**.
 
 **Behaviour**
-- On verification: assign unique **Transaction ID**, **snapshot the upline chain** (so later hierarchy/rate edits don't rewrite history), resolve the **structure version** by Sales Date, and compute **Commission Eligibility** (§8.3).
+- On verification: assign unique **Transaction ID**, **snapshot the upline chain** (so later hierarchy/rate edits don't rewrite history), resolve each **line's structure version** by Sales Date, and compute **Commission Eligibility** (§8.3).
+- Commission is computed **per line item** and summed (§8.1).
+- **Invoicing:** lines are grouped **by Company Entity** → one invoice per entity by default (a single-entity sale yields one invoice); consolidated invoicing is the alternative (§6.5b).
 - Commission only flows to dashboards **after** verification/approval.
 - Invoicing (§6.5b) is driven from the transaction.
 
@@ -197,7 +236,12 @@ The master people record (see §7.1). Admin maintains hierarchy, approval/active
 ### 6.5 Commission Structure (products, overrides, add-on com codes, upgrades)
 **Purpose:** per-product commission rules. (Prototype sheet is header-only with a duplicated column — rebuild per below.) Managed by the **Admin/Product Owner** login.
 
-**Per-product fields:** Product Code, Product Name, Product Category (e.g. Funeral, Pet Aftercare, Niche, Temple/Festive), Commission Type, **Closing Comm %**, **Company Cut % ("company card")**, **ASM Override %**, **SM Override %**, **SD Override %**, **Company Retained %** (default derived = `100 − overrides` of the pool), Active Status, **Effective Date**, Remarks.
+**Per-product fields:** Product Code, Product Name, Product Category (e.g. Funeral, Pet Aftercare, Niche, Temple/Festive), **Commission Type**, **Closing Comm %**, **Closing Comm Fixed ($)**, **Company Cut % ("company card")**, **ASM Override %**, **SM Override %**, **SD Override %**, **Company Retained %** (default derived = `100 − overrides` of the pool), Active Status, **Effective Date**, Remarks.
+
+**Commission Type (drives the closing-commission basis):** `commission_type ∈ {Percentage, Fixed}`.
+- **Percentage** — closing commission = `sale_amount × closing_comm_pct` (uses Closing Comm %; Closing Comm Fixed ignored).
+- **Fixed** — closing commission = `closing_comm_fixed` (a flat $ amount for the product, independent of sale amount; Closing Comm % ignored).
+- **Either way, the same downstream split applies:** company-cut pool = `closing_commission × company_cut_pct`, then ASM/SM/SD overrides are drawn from that pool and the remainder is Company Retained (§8.1). A product must define the field matching its type (validate: Percentage needs `closing_comm_pct`; Fixed needs `closing_comm_fixed`).
 
 **Add-on commission codes ("com codes"):** each product can have zero or more add-ons:
 - `com_code`, label, value type (`Percentage of overall` | `Absolute amount`), value (e.g. `2%`, `$20`, `$0.28`), active flag.
@@ -226,7 +270,12 @@ The master people record (see §7.1). Admin maintains hierarchy, approval/active
 ### 6.5b Invoicing & Installments
 **Purpose:** generate invoices from transactions, across multiple company entities, and manage installment plans that gate commission.
 
-**Company entities (multi-company):** maintain N company entities, each with its own name, logo/stamp, address, and **invoice number sequence**. A transaction's invoice is issued under its chosen Company Entity. Invoices differ only by company stamp + number; support **per-type** invoices (default) or **consolidated** (one invoice spanning multiple companies) — **[DECISION NEEDED]**, default = per-company-type, with a consolidate option.
+**Company entities (multi-company):** maintain N company entities, each with its own name, logo/stamp, address, and **invoice number sequence**. The known legal entities are:
+- **Enshrine Services Pte Ltd** (funeral services)
+- **Enshrine Pets Paradise Pte Ltd** (pet funeral & aftercare)
+- **Enshrine Afterlife Planner Pte Ltd** (pre-planning / afterlife planning)
+
+Shared brand details (for invoices/name cards): address **74 Lorong 6 Geylang, Singapore 399226**; web **enshrine.sg**; tagline **"Farewell with Grace, Care with Devotion / 以欣慰送别，以奉敬传爱"**. **Each sale line item carries its own Company Entity**, so a multi-product sale may span entities — invoices are **grouped by Company Entity**: one invoice per entity (a single-entity sale = one invoice) by default, or **consolidated** (one invoice spanning entities) — **[DECISION NEEDED]**, default = per-entity, with a consolidate option.
 
 **Invoice types**
 1. **Computer-generated (no signature):** receipt-style, footer "This is a computer-generated invoice; no signature required." Auto invoice number `INV-<COMPANY>-YYYY-#####`.
@@ -312,15 +361,32 @@ Line-item record of every entitlement. One transaction → closer personal line 
 - Posting a notice notifies the targeted associates in-app and by email and renders in their home feed.
 
 ### 6.11 Documents & Agreements repository
-**Purpose:** central place for agreements/templates and each associate's own signed docs.
+**Purpose:** central place for agreements/templates and each associate's own documents. Surfaced to associates as tabs in their virtual office.
 
-**Contents**
+**Contents / tabs**
 - **Company agreement templates** available to download/use: e.g. Referred (Marketing) Partnership Agreement, Cage Storage Agreement, funeral package agreements, associate agreement template, etc.
-- **"My Agreement":** the associate's own signed Associate Agreement (the company-counter-signed copy is sent to them; they keep a copy). Stored under HR for the associate.
+- **Sales Agreements (admin-uploaded, per-associate) — NEW tab:** a dedicated **"Sales Agreements"** tab where associates **download agreements the Admin has uploaded for them** — e.g. **MOUs for vendors** and **sales agreements with vendors**. Documents can be **assigned to a specific associate**, to a **team**, or to **all** associates. Associates have **read/download only**; Admin/Accounts upload, assign, replace, and revoke. This complements the Vendor Referral Registry (§6.13): the registry records *who claimed which vendor*; this tab distributes the *agreement files* associates need.
+- **"My Agreement" / P-file (§6.2.1):** the associate's own signed Associate Agreement (company-counter-signed copy) and personnel documents, view/download by the owner.
 - Storage discipline: keep essential signed agreements; encourage download-and-save for bulky/transient files to control storage.
 
 **Acceptance criteria**
-- An associate can view/download relevant company agreement templates and their own signed agreement.
+- Admin can upload a document and assign it to an associate/team/all; the targeted associate(s) see it under the **Sales Agreements** tab and can download it; non-targeted associates cannot.
+- An associate can view/download relevant company agreement templates and their own signed agreement (P-file).
+
+### 6.14 Digital Name Card / VCF
+**Purpose:** give every user a downloadable, viewable **digital name card** (virtual contact card) generated from their profile — matching the Enshrine business-card style (gold ENSHRINE logo, light-blue theme, cornflower motif).
+
+**Behaviour**
+- Each user has a **"My Name Card"** tab to **view** their card and **download** it.
+- The card is **auto-populated** from the user's profile: name (English + Chinese name if present), **designation/title** (e.g. *Funeral Director*), **HP** (mobile), **email**, the relevant **company entity** name, company **address** (74 Lorong 6 Geylang, Singapore 399226), **web/Facebook**, logo, and a **QR code** (encoding the vCard / a contact link). Profile photo optional.
+- **Downloads:**
+  - **`.vcf` (vCard 3.0/4.0)** — importable into phone/email contacts (FN, N, TITLE, ORG, TEL, EMAIL, ADR, URL, PHOTO).
+  - **Image/PDF card** — a rendered card (PNG/PDF) in the Enshrine template for sharing.
+- Users view/download **their own** card; Admin can view all. Card data updates automatically when the profile changes.
+
+**Acceptance criteria**
+- A user can view their name card and download both a valid `.vcf` (imports cleanly into a phone contact app) and a rendered image/PDF.
+- The card reflects the user's current name, designation, mobile, email, and company entity; editing the profile updates the card.
 
 ### 6.12 Festive / DM marketing generator — **DEFERRED**
 **Purpose (future):** a "Festive/Events" tab where the media team uploads DM/greeting templates; an associate adds their **name, photo, contact number** and the system **auto-generates a personalised marketing image** (AI-assisted) to download and send to customers.
@@ -346,22 +412,32 @@ All tables: `id uuid pk`, `created_at`, `updated_at`. Money `NUMERIC(14,2)` SGD.
 
 ### 7.1 `associates` (Associate Master)
 associate_code (`EN####`, auto), timestamp, full_name, business_name, mobile_number, email, **nric (encrypted, masked)**, date_of_birth, designation enum {Sales Consultant, Assistant Sales Manager, Sales Manager, Sales Director}, direct_upline_id fk, direct_upline_name, second_upline_id fk, second_upline_name, recruiting_manager, team_name, payment_method enum {PayNow, Bank Transfer}, paynow_number, bank_name, **bank_account_number (encrypted)**, agreement_file_key, signed_agreement_file_key, photo_file_key, join_date, remarks, approval_status enum {Pending, Approved, Rejected, Incomplete}, associate_status enum {Active, Suspended, Terminated, Inactive}, archived_at.
-Linked `users`: credentials, role, optional `associate_id`.
+Linked `users`: credentials, role, optional `associate_id`. **P-file is keyed on `user_id`** (so future permanent staff also get one).
+
+### 7.1a `candidates` (pre-associate onboarding)
+full_name, mobile_number, email, intended_designation (nullable), intended_direct_upline_id (nullable), intended_team (nullable), onboarding_token, onboarding_stage enum {Invited, Form Submitted, Signed – Pending Approval, Approved, Rejected}, submitted_payload (jsonb — full onboarding form), photo_file_key, agreement_file_key, signed_agreement_file_key, invited_by fk→users, reviewed_by fk→users, reject_reason, converted_associate_id fk→associates (nullable). On Approve → creates an `associate` (+ `users` login) and files the signed agreement into the P-file.
+
+### 7.1b `p_files` & `pfile_documents` (personnel file — all users)
+`p_files`: user_id fk→users (unique), associate_id fk (nullable), notes.
+`pfile_documents`: p_file_id fk, doc_type enum {Signed Associate Agreement, Onboarding Submission, ID Document, HR Document, Other}, title, file_key, filed_by fk→users, filed_at. Owner can view/download own; Admin/Accounts/HR manage all.
 
 ### 7.2 `companies` (invoice entities)
 name, legal_name, logo_file_key, stamp_file_key, address, invoice_prefix, invoice_next_seq, gst_registered (bool, default false), gst_rate, active.
 
 ### 7.3 `products` / `commission_structures` (versioned)
-product_code, product_name, product_category, commission_type, closing_comm_pct, company_cut_pct, asm_override_pct, sm_override_pct, sd_override_pct, company_retained_pct (derived), **is_external (bool)**, **external_company_retained_pct** (small cut Enshrine keeps on external products), active_status, effective_date, parent_product_id (for upgrades/cascades, nullable), remarks. Unique (product_code, effective_date).
+product_code, product_name, product_category, **commission_type enum {Percentage, Fixed}**, closing_comm_pct (used when Percentage), **closing_comm_fixed numeric (used when Fixed)**, company_cut_pct, asm_override_pct, sm_override_pct, sd_override_pct, company_retained_pct (derived), **is_external (bool)**, **external_company_retained_pct** (small cut Enshrine keeps on external products), default_company_id fk (nullable — default billing entity), active_status, effective_date, parent_product_id (for upgrades/cascades, nullable), remarks. Unique (product_code, effective_date). Check: Percentage ⇒ closing_comm_pct set; Fixed ⇒ closing_comm_fixed set.
 
 ### 7.4 `com_codes` (product add-ons)
 product_id fk, com_code, label, value_type enum {Percentage, Absolute}, value, active.
 
-### 7.5 `sales_submissions`
-sales_date, client_name, client_contact, company_id fk, product_code, sale_amount, payment_type, payment_plan enum {Full Payment, Installment}, deposit, installment_count, amount_collected, selected_com_codes (jsonb / join table), closing_associate_id fk, invoice_file_key, remarks, status enum {Submitted, Verified, Rejected}.
+### 7.5 `sales_submissions` (header)
+sales_date, client_name, client_contact, sale_amount (total = Σ line items), payment_type, payment_plan enum {Full Payment, Installment}, deposit, installment_count, amount_collected, closing_associate_id fk, invoice_file_key, remarks, status enum {Submitted, Verified, Rejected}. *(Products moved to line items, §7.5a.)*
 
-### 7.6 `sales_transactions`
-transaction_code (unique, auto), sales_date, client_name, client_contact, company_id fk, product_code, product_name, sale_amount, payment_mode, payment_plan, deposit, installment_count, amount_collected, verified_com_codes (join), closing_associate_id fk, closing_associate_name, **direct_upline_id (snapshot)**, **second_upline_id (snapshot)**, commission_eligibility enum {Eligible, Pending Collection, Partially Eligible, Ineligible}, structure_version_id fk, agreement_file_key, verified_by, verified_at, remarks.
+### 7.5a `sale_line_items` (one row per product on a sale)
+submission_id fk (and/or transaction_id fk after promotion), company_id fk (billing entity for this line), product_code, product_name, **commission_type (snapshot)**, line_sale_amount, quantity (default 1), selected_com_codes (jsonb / join), upgrade_parent_product_id (nullable), structure_version_id fk (resolved per line at verification), is_external (snapshot). The engine runs per line item (§8.1).
+
+### 7.6 `sales_transactions` (header)
+transaction_code (unique, auto), sales_date, client_name, client_contact, sale_amount (total), payment_mode, payment_plan, deposit, installment_count, amount_collected, closing_associate_id fk, closing_associate_name, **direct_upline_id (snapshot)**, **second_upline_id (snapshot)**, commission_eligibility enum {Eligible, Pending Collection, Partially Eligible, Ineligible}, agreement_file_key, verified_by, verified_at, remarks. *(Per-product detail lives in `sale_line_items`; invoices group lines by `company_id`.)*
 
 ### 7.7 `invoices`
 transaction_id fk, company_id fk, invoice_number (unique per company), invoice_type enum {Computer-Generated, Signature}, installment_index (null for full), amount, status enum {Outstanding, Paid, Cancelled}, paid_date, paid_marked_by, pdf_file_key, signed_pdf_file_key, remarks.
@@ -370,7 +446,7 @@ transaction_id fk, company_id fk, invoice_number (unique per company), invoice_t
 plan: transaction_id fk, total_amount, deposit, installment_count, adjustable_amount, status. schedule: plan_id fk, sequence, due_amount, due_date, invoice_id fk, paid (bool), paid_date. Drives eligibility recomputation.
 
 ### 7.9 `commission_ledger`
-transaction_id fk, payout_month (YYYY-MM), associate_id fk (nullable for External Payable/Company Retained), associate_name, designation, line_type enum {Personal, Override, Add-on, Company Retained, External Payable}, com_code (nullable), basis_amount, rate_or_value, amount, **is_manual_override (bool)**, **override_reason**, eligibility, status enum {Pending, Eligible, Paid, Cancelled}, remarks.
+transaction_id fk, **line_item_id fk (which product line this commission came from)**, payout_month (YYYY-MM), associate_id fk (nullable for External Payable/Company Retained), associate_name, designation, line_type enum {Personal, Override, Add-on, Company Retained, External Payable}, com_code (nullable), basis_amount, rate_or_value, amount, **is_manual_override (bool)**, **override_reason**, eligibility, status enum {Pending, Eligible, Paid, Cancelled}, remarks.
 
 ### 7.10 `monthly_payouts`
 payout_month, associate_id fk, associate_name, designation, personal_commission, override_commission, addon_commission, total_payable, payment_method, paynow_number, bank_name, bank_account_number, payout_status enum {Pending, Approved, Paid, Cancelled}, paid_date, statement_file_key, bank_file_batch_id, remarks. Unique (associate_id, payout_month).
@@ -378,8 +454,11 @@ payout_month, associate_id fk, associate_name, designation, personal_commission,
 ### 7.11 `notices`
 title, body, attachment_file_key, audience (all | team | role), posted_by, published_at. `notice_reads` (notice_id, user_id, read_at) optional.
 
-### 7.12 `documents`
-type enum {Company Template, Associate Agreement, Vendor Agreement, Other}, title, file_key, owner_associate_id (nullable for company templates), visibility, uploaded_by.
+### 7.12 `documents` (templates + admin-assigned sales agreements)
+type enum {Company Template, Associate Agreement, Vendor Agreement, **Vendor MOU**, **Sales Agreement**, Other}, title, file_key, owner_associate_id (nullable for company templates), **assignment enum {All, Team, Associate}**, **assigned_team** (nullable), **assigned_associate_id fk (nullable)**, visibility, uploaded_by, active. The **Sales Agreements** tab (§6.11) lists `Vendor MOU` / `Sales Agreement` docs targeted to the viewing associate (by All / their Team / themselves); associates have download-only.
+
+### 7.12a `name_cards` (digital name card / VCF) — mostly derived
+Primarily **derived from the user/associate profile + company entity** at render time (name, designation, mobile, email, company, address, web, photo). Optional persisted columns if customisation is needed: user_id fk, company_id fk, custom_title, qr_payload, last_rendered_vcf_key, last_rendered_image_key. Endpoints generate `.vcf` (vCard) and a rendered image/PDF on demand.
 
 ### 7.13 `vendor_referrals`
 vendor_name, vendor_type, contact, agreement_file_key, submitted_by_associate_id fk, **submitted_at (first-claim timestamp)**, status, remarks. View-only to associates.
@@ -388,19 +467,27 @@ vendor_name, vendor_type, contact, agreement_file_key, submitted_by_associate_id
 actor_user_id, action, entity_type, entity_id, before_json, after_json, created_at.
 
 ### 7.15 Relationships (summary)
-`associates` self-reference hierarchy → `sales_submissions` → (verify) `sales_transactions` (+ upline snapshot, structure version) → `invoices` + `installment_plans/schedule` → `commission_ledger` (incl. add-ons) → `monthly_payouts` (→ bank file batch). `products` versioned + `com_codes` + upgrade parent. `companies` issue invoices. `notices`, `documents`, `vendor_referrals` are virtual-office features.
+`associates` self-reference hierarchy → `sales_submissions` (header) → `sale_line_items` (one per product) → (verify) `sales_transactions` (+ upline snapshot; per-line structure version) → `invoices` (grouped by line `company_id`) + `installment_plans/schedule` → `commission_ledger` (per line item, incl. add-ons) → `monthly_payouts` (→ bank file batch). `products` versioned + `commission_type` + `com_codes` + upgrade parent. `companies` issue invoices. `notices`, `documents`, `vendor_referrals` are virtual-office features.
 
 ---
 
 ## 8. Commission engine — detailed logic
 
 ### 8.1 Algorithm (per verified, eligible transaction)
-```
-Given: sale_amount, structure (closing_comm_pct, company_cut_pct,
-       asm/sm/sd override_pct), ticked com_codes, closer, upline snapshot.
+A transaction has **one or more line items**. The engine runs the per-line block below **for each line item** and sums the results; the transaction's commission = Σ(line commissions). Each line uses **its own product, structure version, commission type, line sale amount, and com codes**.
 
-1. closing_commission = round2(sale_amount * closing_comm_pct/100)
-2. company_cut_pool   = round2(closing_commission * company_cut_pct/100)
+```
+For EACH line_item in transaction:
+Given: line.sale_amount, line.structure (commission_type, closing_comm_pct,
+       closing_comm_fixed, company_cut_pct, asm/sm/sd override_pct),
+       line.com_codes, closer, upline snapshot.
+
+0. closing_commission =                                  // Commission Type branch
+      commission_type == "Fixed"
+        ? closing_comm_fixed                             // flat $ for the product
+        : round2(line.sale_amount * closing_comm_pct/100)
+1. (closing_commission as above)
+2. company_cut_pool   = round2(closing_commission * company_cut_pct/100)   // SAME split for both types
 3. net_to_closer      = closing_commission - company_cut_pool   // "Net Closing Commission Payable"
 
 4. overrides = []
@@ -414,21 +501,24 @@ Given: sale_amount, structure (closing_comm_pct, company_cut_pct,
 6. company_retained = company_cut_pool - total_override
 
 7. addons = []
-   for code in ticked_com_codes (verified):
+   for code in line.com_codes (verified):
        amt = code.value_type=="Percentage"
-             ? round2(sale_amount * code.value/100)     // % of overall  [DECISION: of sale vs of commission; default = of sale]
-             : code.value                                // absolute $
+             ? round2(line.sale_amount * code.value/100)   // % of line sale  [DECISION: of sale vs of commission; default = of line sale]
+             : code.value                                  // absolute $
        addons.push({code, amt})        // attribution [DECISION]: default to closer
 
-8. Ledger lines:
+8. Ledger lines (each tagged with line_item_id + transaction_id):
      Personal:  closer,  basis=closing_commission, amount=net_to_closer
      Override:  each upline, basis=company_cut_pool, amount=amt
      Add-on:    closer (default), per code, amount=amt
      Company Retained: amount=company_retained
-9. Assert: net_to_closer + total_override + company_retained == closing_commission
+9. Assert (per line): net_to_closer + total_override + company_retained == closing_commission
+
+After all lines: transaction totals = Σ over lines of each ledger line type.
 ```
 `override_pct_for_rank`: ASM→asm%, SM→sm%, SD→sd%, Consultant→0.
-**Rounding:** round each money value to 2 dp; push residual into Company Retained so the core split always reconciles to `closing_commission`. Add-ons are additive on top (extra payable), tracked separately.
+**Per-line, then sum:** each line item runs the block independently (its own product/type/rates/com codes) and writes its own ledger lines tagged with `line_item_id`; the transaction's figures are the sum across lines. **External products** (§8.5) follow their branch per line.
+**Rounding:** round each money value to 2 dp; push residual into Company Retained so each line's core split reconciles to that line's `closing_commission`. Add-ons are additive on top (extra payable), tracked separately.
 **Depth [DECISION NEEDED]:** deck lists only direct + 2nd upline → default depth **2**; generalise step 4 for deeper chains if needed.
 
 ### 8.2 Worked example (must pass as a test)
@@ -442,6 +532,9 @@ SD Override (10% of 400)  = $40       (2nd upline = SD)
 Company Retained          = $280
 Check: 600 + 80 + 40 + 280 = 1000 ✓
 ```
+*(This is a single-line, Percentage-type example. A `Fixed`-type product would start at step 0 with `closing_commission = closing_comm_fixed` and then apply the identical 40% pool / 20% / 10% split. A multi-product sale runs this block per line and sums.)*
+
+**Fixed-type example (single line):** product `closing_comm_fixed = $500`, company_cut 40%, SM 20%, SD 10% → pool $200, net-to-closer $300, SM $40, SD $20, retained $140 (300+40+20+140 = 500 ✓).
 
 ### 8.3 Eligibility & installment trigger
 - `Ineligible` — closer not Approved+Active at sale time, or sale not verified.
@@ -491,7 +584,31 @@ On any transaction, an Admin may set a **manual commission/override amount** tha
 - **Auditability:** immutable audit log; reproducible commission runs.
 - **Performance:** dashboards < 2s at 1,000 associates; engine handles thousands of transactions per batch; bank-file generation handles full roster.
 - **Reliability:** engine idempotent; DB transactions around multi-row writes.
-- **Usability (virtual office):** one-login self-service; responsive; clear empty states; bulk Admin actions (approve, verify, run payouts, generate bank file).
+- **Usability (virtual office):** one-login self-service; clear empty states; bulk Admin actions (approve, verify, run payouts, generate bank file).
+- **Responsive / mobile-first (§10.1):** the entire portal must be usable on mobile — see the dedicated requirement below.
+
+### 10.1 Responsive design requirement (mobile-first)
+The portal is a virtual office associates use on their phones, so **every page must be fully responsive**, built **mobile-first**, without breaking the desktop layout.
+
+**Target breakpoints (verify each page at all three):**
+- **375px** — mobile (minimum supported width)
+- **768px** — tablet
+- **1280px** — desktop
+
+**Implementation rules**
+- Use **Tailwind responsive utilities mobile-first**: base (unprefixed) classes target mobile; `sm:` / `md:` / `lg:` scale up. Do not add another CSS framework or restructure components unless necessary.
+- **No horizontal scroll / overflow at 375px** on any page.
+- **Navigation collapses** to a hamburger / mobile menu below the desktop breakpoint.
+- **Multi-column grids / flex rows stack to a single column** on mobile.
+- **Font sizes, padding, and tap targets scale down sensibly**; interactive tap targets are **≥ 44×44px** on mobile.
+- **Images and tables never overflow their container** — tables scroll within a wrapper or reflow to stacked cards on mobile (commission ledger, payouts, transactions, dashboards).
+- Forms (onboarding, sale submission with **multiple line items**, product creation) remain usable on a single mobile column; the multi-line sale form stacks each line item vertically.
+
+**Acceptance criteria (per page):** describe/verify the layout at **375px, 768px, 1280px**; no overflow at 375px; nav collapses; grids stack; tap targets ≥ 44px; tables/images contained; desktop (1280px) layout unchanged from its current design.
+
+**Scope:** all authenticated portal pages (Admin, Accounts, SalesDirector, SalesManager, Consultant areas) and the public/pre-login pages (login, candidate onboarding form, e-sign). See screen inventory §12.
+
+> **Status note:** the app is not yet built; this is a build-time requirement. When implementing, keep changes minimal, prefer Tailwind `sm:/md:/lg:` prefixes, and provide a per-file summary of changes plus the 375/768/1280 layout description for each page (per `09_Test_Plan.md` / `TESTING.md` responsive checks).
 - **Observability:** structured logs + error tracking.
 
 ---
@@ -553,8 +670,10 @@ On any transaction, an Admin may set a **manual commission/override amount** tha
 ---
 
 ## 16. Open items / decisions to confirm
+**Resolved in v1.4:** Commission Type = **Percentage | Fixed** with the **same company-cut/override split** (§6.5, §8.1); a sale form supports **multiple product line items**, commission computed **per line** (§6.3/§8.1); add-on percentage is of the **line** sale amount.
+
 Most prior unknowns are resolved by the walkthrough. Remaining confirmations:
-1. **Add-on com code basis** — percentage of **sale** vs of **commission**; default = of sale. (§8.1)
+1. **Add-on com code basis** — percentage of line **sale** vs of line **commission**; default = of line sale. (§8.1)
 2. **Add-on attribution** — to closer only vs split with upline; default = closer.
 3. **Installment recognition** — all-or-nothing at 3rd installment (default) vs pro-rata; and whether the threshold is global or per-product.
 4. **Override chain depth** — 2 levels (default) vs deeper.
@@ -566,7 +685,7 @@ Most prior unknowns are resolved by the walkthrough. Remaining confirmations:
 10. **Multiple companies** — confirm the list of company entities and their invoice prefixes.
 11. **Dashboard visibility** — reveal team-member-level detail to consultants now or later.
 12. **External-product economics** — exact Enshrine retained cut % on columbarium/niche/memorial, and whether any associate commission is paid on them (§8.5).
-13. **Company brands** — confirm the full list of invoice entities (Enshrine, Trust Pets, …) and their invoice prefixes.
+13. **Company brands** — entities confirmed (Enshrine Services / Pets Paradise / Afterlife Planner Pte Ltd); still confirm each one's **invoice prefix** and which products bill under which entity.
 
 ---
 
@@ -578,7 +697,8 @@ Most prior unknowns are resolved by the walkthrough. Remaining confirmations:
 - Sales Transactions / Commission Ledger / Monthly Payout / Archive: empty scaffolding.
 - Enums to preserve: Approval {Pending, Approved, Rejected, Incomplete}; Status {Active, Suspended, Terminated, Inactive}; Payout {Pending, Approved, Paid, Cancelled}.
 - **Product lines / categories (from walkthrough + minutes):** Cremation, Religious Rites, Columbarium (niche), Sea Scattering, funeral services/packages, pet aftercare ("pet afterlife"), niche/memorial, temple/festive events — each with its own commission structure, add-on com codes, and possible upgrades. Columbarium/niche/memorial are typically **external** products (§8.5).
-- **Company brands / invoice entities:** Enshrine, Trust Pets (confirm full list, §16).
+- **Company brands / invoice entities (confirmed):** Enshrine Services Pte Ltd, Enshrine Pets Paradise Pte Ltd, Enshrine Afterlife Planner Pte Ltd. Shared address 74 Lorong 6 Geylang, Singapore 399226; web enshrine.sg; tagline "Farewell with Grace, Care with Devotion / 以欣慰送别，以奉敬传爱".
+- **Services taxonomy (from collateral):** Funeral Services; Post-Funeral Services; Pre-Funeral Planning; Pets Funeral Services; Pets Afterlife Services (incl. Columbarium); Additional Services — Exhumation, Relocation, Repatriation, Religious Ceremonies. Map these to product categories in the Commission Structure (§6.5); Columbarium is typically an **external** product (§8.5).
 
 ---
 

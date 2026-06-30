@@ -1,6 +1,6 @@
 # Test Plan & QA Strategy — Enshrine Associate Management Portal
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 (§8 engine, §14 acceptance, §15 test plan) · **Canonical references:** `05_RBAC.md` (§6 test cases), `02_Database_Diagram.md` (enums, constraints)
+**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 (§8 engine, §14 acceptance, §15 test plan) · **Canonical references:** `05_RBAC.md` (§6 test cases), `02_Database_Diagram.md` (enums, constraints)
 **Stack:** Next.js (App Router, TypeScript), PostgreSQL + Prisma, NextAuth/Auth.js.
 
 ---

@@ -1,6 +1,6 @@
 # API Documentation — Enshrine Associate Management Portal
 
-**Version:** 1.0 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.2 · **Anchors:** `02_Database_Diagram.md` (entities/enums), `05_RBAC.md` (roles, scoping, route map)
+**Version:** 1.1 · **Source of truth:** `Enshrine_Portal_PRD.md` v1.5 · **Anchors:** `02_Database_Diagram.md` (entities/enums), `05_RBAC.md` (roles, scoping, route map)
 **Stack:** Next.js (App Router) · PostgreSQL + Prisma · NextAuth/Auth.js (HTTP-only cookie sessions)
 
 > This document specifies the **logical REST API** for the portal. In the Next.js App Router build, many of these operations are implemented as **server actions** rather than literal HTTP route handlers (see §10). The contract below — methods, paths, roles, scoping, request/response shapes, status codes — holds regardless of transport. Where a server action is the practical implementation, the equivalent REST endpoint is documented anyway so the system has a single authoritative surface map.
@@ -214,6 +214,90 @@ Re-approving an already-Approved associate → **409**.
 
 **`GET /associates/contacts.csv`** (Contacts Export, PRD §6.9) — returns `text/csv`, Google-Contacts-compatible. Filter is fixed: `approval_status = Approved` AND `associate_status ∈ {Active, Terminated}`. Columns: `Associate ID, Full Name, Designation, Email, Mobile, DOB, Status`.
 
+### 3.1a Candidates / Admin-initiated Onboarding
+
+> Admin-initiated candidate flow (PRD §6.1, schema §7.1a). Lifecycle: `Invited → Form Submitted → Signed – Pending Approval → Approved/Rejected`. The onboarding form + e-sign endpoints are **public** (tokenised, no login). Approval converts the candidate into an `associate` and provisions the login.
+
+| Method | Path | Role | Scope |
+|---|---|---|---|
+| `POST` | `/candidates` | Admin, Accounts | global (create + email onboarding link) |
+| `GET` | `/candidates` | Admin, Accounts | global |
+| `GET` | `/candidates/{id}` | Admin, Accounts | global |
+| `GET` | `/onboarding/{token}` | public (token) | — (fetch onboarding form) |
+| `POST` | `/onboarding/{token}` | public (token) | — (submit form → generates agreement) |
+| `POST` | `/onboarding/{token}/sign` | public (token) | — (e-sign agreement) |
+| `POST` | `/candidates/{id}/approve` | Admin, Accounts | global (converts to associate) |
+| `POST` | `/candidates/{id}/reject` | Admin, Accounts | global |
+
+**`POST /candidates`** (PRD §6.1.1) — create a candidate with minimal info; system emails a tokenised onboarding link. Request:
+```json
+{ "full_name": "Lim Jia Hui", "mobile_number": "91234567", "email": "jiahui@example.com", "intended_designation": "Sales Consultant", "intended_direct_upline_id": "a_01HVINCENT", "intended_team": "Vincent Lim Division", "csrfToken": "..." }
+```
+Only `full_name`, `mobile_number`, `email` are required. Response `201`:
+```json
+{ "id": "cand_01H...", "onboarding_stage": "Invited", "invited_by": "u_01HADMIN", "onboarding_email_sent": true }
+```
+
+**`GET /candidates`** — paginated list. Filter via `?onboarding_stage=Signed – Pending Approval`. Each row returns `id`, `full_name`, `mobile_number`, `email`, `onboarding_stage`, `invited_by`, `created_at`.
+
+**`GET /onboarding/{token}`** (public) — returns the onboarding-form schema + any pre-filled candidate basics. Invalid/expired token → **404**. Response `200`:
+```json
+{ "candidate_id": "cand_01H...", "onboarding_stage": "Invited", "prefill": { "full_name": "Lim Jia Hui", "mobile_number": "91234567", "email": "jiahui@example.com" } }
+```
+
+**`POST /onboarding/{token}`** (public) — submit the full associate detail set (§7.1) + profile photo. On submit → `onboarding_stage = Form Submitted` and the system **auto-generates the Associate Agreement**. `multipart/form-data` (`photo` file) plus JSON payload:
+```json
+{ "nric": "S9012345A", "date_of_birth": "1990-04-12", "address": "...", "payment_method": "PayNow", "paynow_number": "91234567", "bank_name": "DBS", "bank_account_number": "1234567890" }
+```
+Response `200`:
+```json
+{ "candidate_id": "cand_01H...", "onboarding_stage": "Form Submitted", "agreement_file_key": "agreements/cand_01H.../associate-agreement.pdf" }
+```
+
+**`POST /onboarding/{token}/sign`** (public e-sign, PDF-download-and-reupload fallback supported) — `multipart/form-data` with `signature_png` (canvas) or signed PDF blob. On signing → `onboarding_stage = Signed – Pending Approval`. Response `200`:
+```json
+{ "candidate_id": "cand_01H...", "onboarding_stage": "Signed – Pending Approval", "signed_agreement_file_key": "agreements/cand_01H.../signed.pdf" }
+```
+
+**`POST /candidates/{id}/approve`** (PRD §6.1.1) — converts the candidate to an `Active` associate (next `EN####`), provisions the virtual-office login, and files the company-counter-signed agreement into the new associate's P-file (§3.1b). Request: `{ "remarks": "Reviewed; agreement signed.", "csrfToken": "..." }`. Approving a candidate not in `Signed – Pending Approval` → **409**. Response `200`:
+```json
+{ "candidate_id": "cand_01H...", "onboarding_stage": "Approved", "converted_associate_id": "a_01HNEW", "associate_code": "EN0008", "approval_status": "Approved", "associate_status": "Active", "user_provisioned": true, "pfile_agreement_filed": true }
+```
+
+**`POST /candidates/{id}/reject`** — request: `{ "reject_reason": "Incomplete documents.", "csrfToken": "..." }`. Sets `onboarding_stage = Rejected`. Response `200`:
+```json
+{ "candidate_id": "cand_01H...", "onboarding_stage": "Rejected", "reject_reason": "Incomplete documents.", "reviewed_by": "u_01HADMIN" }
+```
+
+### 3.1b P-File (personnel file)
+
+> Per-user document store (PRD §6.2.1, schema §7.1b). Owner can view/download their **own** P-file; Admin/Accounts/HR manage all. Managers do **not** see downline P-files (HR-sensitive). NRIC/bank remain masked per RBAC §4.5.
+
+| Method | Path | Role | Scope |
+|---|---|---|---|
+| `GET` | `/associates/{id}/pfile` | owner (self); Admin, Accounts (global) | self / global |
+| `POST` | `/associates/{id}/pfile` | Admin, Accounts | global (upload a P-file document) |
+| `GET` | `/pfile-documents/{id}/download` | owner (own); Admin, Accounts | scoped |
+
+**`GET /associates/{id}/pfile`** — response `200`:
+```json
+{
+  "associate_id": "a_01HSELF",
+  "p_file_id": "pf_01H...",
+  "documents": [
+    { "id": "pfd_01H...", "doc_type": "Signed Associate Agreement", "title": "Counter-signed Associate Agreement", "filed_by": "u_01HADMIN", "filed_at": "2026-06-28T09:30:00Z" }
+  ]
+}
+```
+A Consultant requesting another associate's P-file → **403** `code: OUT_OF_SCOPE`.
+
+**`POST /associates/{id}/pfile`** (Admin/Accounts upload) — `multipart/form-data`: `file`, `doc_type`, `title`. `doc_type ∈ {Signed Associate Agreement, Onboarding Submission, ID Document, HR Document, Other}`. Filing is audit-logged. Response `201`:
+```json
+{ "id": "pfd_01H...", "p_file_id": "pf_01H...", "doc_type": "ID Document", "title": "NRIC scan", "filed_by": "u_01HADMIN", "filed_at": "2026-06-28T09:35:00Z" }
+```
+
+**`GET /pfile-documents/{id}/download`** — returns the file via short-lived signed URL; owner may download own documents, Admin/Accounts any. Out-of-scope → **403**.
+
 ### 3.2 Companies (invoice entities)
 
 | Method | Path | Role | Scope |
@@ -226,10 +310,10 @@ Re-approving an already-Approved associate → **409**.
 **`POST /companies`** (PRD §6.5b/§7.2) — request:
 ```json
 {
-  "name": "Trust Pets",
-  "legal_name": "Trust Pets Pte Ltd",
-  "address": "10 Sin Ming Dr, Singapore",
-  "invoice_prefix": "TP",
+  "name": "Enshrine Pets Paradise",
+  "legal_name": "Enshrine Pets Paradise Pte Ltd",
+  "address": "74 Lorong 6 Geylang, Singapore 399226",
+  "invoice_prefix": "EPP",
   "invoice_next_seq": 1,
   "gst_registered": false,
   "gst_rate": 0,
@@ -239,7 +323,7 @@ Re-approving an already-Approved associate → **409**.
 ```
 Response `201`:
 ```json
-{ "id": "co_01H...", "name": "Trust Pets", "invoice_prefix": "TP", "invoice_next_seq": 1, "active": true }
+{ "id": "co_01H...", "name": "Enshrine Pets Paradise", "invoice_prefix": "EPP", "invoice_next_seq": 1, "active": true }
 ```
 Duplicate `invoice_prefix` → **409**.
 
@@ -257,20 +341,46 @@ Duplicate `invoice_prefix` → **409**.
 | `POST` | `/products/{id}/com-codes` | Admin | global |
 | `PATCH` | `/com-codes/{id}` | Admin | global |
 
-**`POST /products`** (PRD §6.5/§7.3) — request:
+**`POST /products`** (PRD §6.5/§7.3) — `commission_type ∈ {"Percentage", "Fixed"}` drives the closing-commission basis; both types feed the **same** company-cut pool + ASM/SM/SD override split (§3.8). A **Percentage** product uses `closing_comm_pct` (closing commission = `sale × closing_comm_pct`); a **Fixed** product uses `closing_comm_fixed` (a flat $ per product, independent of sale amount). Validation: Percentage requires `closing_comm_pct`; Fixed requires `closing_comm_fixed` (else **422**).
+
+*Percentage example* — request:
 ```json
 {
   "product_code": "FUN-BASE",
   "product_name": "Funeral System (Base)",
   "product_category": "Funeral",
-  "commission_type": "Standard",
+  "commission_type": "Percentage",
   "closing_comm_pct": 10,
+  "closing_comm_fixed": null,
   "company_cut_pct": 40,
   "asm_override_pct": 0,
   "sm_override_pct": 20,
   "sd_override_pct": 10,
   "is_external": false,
   "external_company_retained_pct": 0,
+  "default_company_id": "co_01HENSHRINE",
+  "parent_product_id": null,
+  "active_status": "Active",
+  "effective_date": "2026-01-01",
+  "csrfToken": "..."
+}
+```
+*Fixed example* — request:
+```json
+{
+  "product_code": "PET-CREMATE",
+  "product_name": "Pet Cremation Package",
+  "product_category": "Pet Aftercare",
+  "commission_type": "Fixed",
+  "closing_comm_pct": null,
+  "closing_comm_fixed": 500.00,
+  "company_cut_pct": 40,
+  "asm_override_pct": 0,
+  "sm_override_pct": 20,
+  "sd_override_pct": 10,
+  "is_external": false,
+  "external_company_retained_pct": 0,
+  "default_company_id": "co_01HPETS",
   "parent_product_id": null,
   "active_status": "Active",
   "effective_date": "2026-01-01",
@@ -278,22 +388,26 @@ Duplicate `invoice_prefix` → **409**.
 }
 ```
 - `company_retained_pct` is **derived** by default (`100 − (asm+sm+sd)` of the pool). Validation: `asm_override_pct + sm_override_pct + sd_override_pct + company_retained_pct = 100` (% of pool). Overrides exceeding 100% → **422** `code: VALIDATION_FAILED`.
-- For external products (columbarium/niche/memorial, PRD §8.5) set `is_external: true` and `external_company_retained_pct` (small cut Enshrine keeps).
+- `default_company_id` is the product's default billing entity (copied onto each sale line item; PRD §7.3). For external products (columbarium/niche/memorial, PRD §8.5) set `is_external: true` and `external_company_retained_pct` (small cut Enshrine keeps).
+- `PATCH /products/{id}` accepts the same fields (incl. `commission_type`, `closing_comm_fixed`, `default_company_id`); material rate changes should go through `POST /products/{id}/rate-change` for effective-dated versioning.
 
-Response `201`:
+Response `201` (Fixed example):
 ```json
 {
   "id": "p_01H...",
-  "product_code": "FUN-BASE",
-  "product_name": "Funeral System (Base)",
-  "product_category": "Funeral",
-  "closing_comm_pct": 10,
+  "product_code": "PET-CREMATE",
+  "product_name": "Pet Cremation Package",
+  "product_category": "Pet Aftercare",
+  "commission_type": "Fixed",
+  "closing_comm_pct": null,
+  "closing_comm_fixed": 500.00,
   "company_cut_pct": 40,
   "asm_override_pct": 0,
   "sm_override_pct": 20,
   "sd_override_pct": 10,
   "company_retained_pct": 70,
   "is_external": false,
+  "default_company_id": "co_01HPETS",
   "active_status": "Active",
   "effective_date": "2026-01-01"
 }
@@ -336,39 +450,57 @@ Creates a **new version** effective from the date; transactions use the version 
 | `GET` | `/sales/submissions` | Admin, Accounts (global); SD/SM (downline); Consultant (self) | scoped |
 | `GET` | `/sales/submissions/{id}` | as above | scoped |
 
-**`POST /sales/submissions`** (PRD §6.3/§7.5) — request:
+**`POST /sales/submissions`** (PRD §6.3/§7.5/§7.5a) — the body is a **header plus a `line_items[]` array**: one or more products per sale, each line carrying its own product, billing entity, line amount, com codes, and optional upgrade reference. `sale_amount` is the **total** and is **server-computed/validated** as the sum of `line_items[].line_sale_amount × quantity`. Request:
 ```json
 {
   "sales_date": "2026-06-25",
   "client_name": "Mdm Goh",
   "client_contact": "90011223",
-  "company_id": "co_01HENSHRINE",
-  "product_code": "FUN-BASE",
-  "sale_amount": 10000.00,
+  "sale_amount": 10500.00,
   "payment_type": "Installment",
   "payment_plan": "Installment",
   "deposit": 1000.00,
   "installment_count": 9,
   "amount_collected": 1000.00,
-  "selected_com_codes": ["SCATTER"],
   "closing_associate_id": "a_01HSELF",
   "invoice_file_key": "uploads/tmp/agreement-scan.pdf",
-  "remarks": "Walk-in referral.",
+  "remarks": "Walk-in referral; funeral + pet cremation.",
+  "line_items": [
+    {
+      "product_code": "FUN-BASE",
+      "company_id": "co_01HENSHRINE",
+      "line_sale_amount": 10000.00,
+      "quantity": 1,
+      "selected_com_codes": ["SCATTER"],
+      "upgrade_parent_product_id": null
+    },
+    {
+      "product_code": "PET-CREMATE",
+      "company_id": "co_01HPETS",
+      "line_sale_amount": 500.00,
+      "quantity": 1,
+      "selected_com_codes": [],
+      "upgrade_parent_product_id": null
+    }
+  ],
   "csrfToken": "..."
 }
 ```
-- Validations: closer must be **Approved+Active** (else **422**); product/add-ons must be `Active`; `amount_collected ≤ sale_amount` (else **422**); installment params valid when `payment_plan = Installment`.
+- Validations: closer must be **Approved+Active** (else **422**); every line's product/add-ons must be `Active`; **`sale_amount` must equal Σ line amounts** (server recomputes; mismatch → **422**); `amount_collected ≤ sale_amount` (else **422**); installment params valid when `payment_plan = Installment`. `company_id` defaults from each product's `default_company_id` if omitted.
+- Each line resolves its own product/rates and **commission is computed per line** (§3.8). A multi-product sale may span company entities (here Enshrine Services + Enshrine Pets Paradise).
+
 Response `201`:
 ```json
 {
   "id": "sub_01H...",
   "status": "Submitted",
-  "product_code": "FUN-BASE",
-  "product_name": "Funeral System (Base)",
-  "sale_amount": 10000.00,
+  "sale_amount": 10500.00,
   "payment_plan": "Installment",
-  "selected_com_codes": ["SCATTER"],
-  "closing_associate_id": "a_01HSELF"
+  "closing_associate_id": "a_01HSELF",
+  "line_items": [
+    { "id": "li_01H...", "product_code": "FUN-BASE", "product_name": "Funeral System (Base)", "commission_type": "Percentage", "company_id": "co_01HENSHRINE", "line_sale_amount": 10000.00, "quantity": 1, "selected_com_codes": ["SCATTER"] },
+    { "id": "li_02H...", "product_code": "PET-CREMATE", "product_name": "Pet Cremation Package", "commission_type": "Fixed", "company_id": "co_01HPETS", "line_sale_amount": 500.00, "quantity": 1, "selected_com_codes": [] }
+  ]
 }
 ```
 
@@ -385,26 +517,27 @@ Response `201`:
 ```json
 { "verified_com_codes": ["SCATTER"], "remarks": "Agreement + deposit confirmed.", "csrfToken": "..." }
 ```
-On verify: assigns `transaction_code`, **snapshots the upline chain** (`direct_upline_id`, `second_upline_id`), resolves `structure_version_id` by `sales_date`, computes `commission_eligibility`. Verifying an already-verified submission → **409**. Response `201`:
+On verify: assigns `transaction_code`, **snapshots the upline chain** (`direct_upline_id`, `second_upline_id`), resolves the **structure version per line item** by `sales_date`, computes `commission_eligibility`, and carries the submission's `line_items` onto the transaction (each line now has a `transaction_id` + resolved `structure_version_id`). Verifying an already-verified submission → **409**. Response `201`:
 ```json
 {
   "id": "txn_01H...",
   "transaction_code": "TXN-2026-000142",
   "sales_date": "2026-06-25",
-  "product_code": "FUN-BASE",
-  "product_name": "Funeral System (Base)",
-  "sale_amount": 10000.00,
+  "sale_amount": 10500.00,
   "payment_plan": "Installment",
   "closing_associate_id": "a_01HSELF",
   "direct_upline_id": "a_01HKOO",
   "second_upline_id": "a_01HSYLVIA",
   "commission_eligibility": "Pending Collection",
-  "structure_version_id": "csv_01H...",
   "verified_by": "u_01HACCT",
-  "verified_at": "2026-06-28T03:20:00Z"
+  "verified_at": "2026-06-28T03:20:00Z",
+  "line_items": [
+    { "id": "li_01H...", "product_code": "FUN-BASE", "commission_type": "Percentage", "company_id": "co_01HENSHRINE", "line_sale_amount": 10000.00, "structure_version_id": "csv_01HFUN", "selected_com_codes": ["SCATTER"] },
+    { "id": "li_02H...", "product_code": "PET-CREMATE", "commission_type": "Fixed", "company_id": "co_01HPETS", "line_sale_amount": 500.00, "structure_version_id": "csv_01HPET", "selected_com_codes": [] }
+  ]
 }
 ```
-`commission_eligibility ∈ {Eligible, Pending Collection, Partially Eligible, Ineligible}`.
+`commission_eligibility ∈ {Eligible, Pending Collection, Partially Eligible, Ineligible}`. **Invoicing:** transaction lines are grouped **by `company_id`** → one invoice per entity by default (here two invoices: Enshrine Services + Enshrine Pets Paradise), or one consolidated invoice (§3.6).
 
 ### 3.6 Invoices
 
@@ -418,7 +551,7 @@ On verify: assigns `transaction_code`, **snapshots the upline chain** (`direct_u
 | `GET` | `/invoices/{id}/pdf` | Admin, Accounts (global); owner (own) | scoped |
 | `POST` | `/invoices/{id}/signature` | Admin, Accounts; owner (own) | scoped (upload signed PDF) |
 
-**`POST /invoices`** (generate, PRD §6.5b/§7.7) — request:
+**`POST /invoices`** (generate, PRD §6.5b/§7.7) — invoice generation **groups the transaction's line items by `company_id`** → **one invoice per entity by default** (a single-entity sale = one invoice), or a single **consolidated** invoice spanning entities (PRD §6.5b, default = per-entity). Each per-entity invoice's `amount` is the sum of that entity's line amounts. Request (one entity):
 ```json
 {
   "transaction_id": "txn_01H...",
@@ -426,10 +559,11 @@ On verify: assigns `transaction_code`, **snapshots the upline chain** (`direct_u
   "invoice_type": "Computer-Generated",
   "installment_index": null,
   "amount": 10000.00,
+  "consolidated": false,
   "csrfToken": "..."
 }
 ```
-- `invoice_type ∈ {Computer-Generated, Signature}`. Computer-Generated carries the footer "This is a computer-generated invoice; no signature required." Invoice number is allocated **atomically** from the company sequence: `INV-<PREFIX>-YYYY-#####`.
+- `invoice_type ∈ {Computer-Generated, Signature}`. Computer-Generated carries the footer "This is a computer-generated invoice; no signature required." Invoice number is allocated **atomically** from the company sequence: `INV-<PREFIX>-YYYY-#####`. For the multi-entity sale above, generation yields one `INV-EN-...` (Enshrine Services, $10,000) and one `INV-EPP-...` (Enshrine Pets Paradise, $500); set `consolidated: true` to instead bill all lines on a single invoice.
 Response `201`:
 ```json
 {
@@ -529,22 +663,26 @@ or batch:
 ```json
 { "scope": "month", "payout_month": "2026-09", "csrfToken": "..." }
 ```
-Deletes + re-inserts ledger lines per affected transaction (no duplicates). Response `200`:
+Deletes + re-inserts ledger lines per affected transaction (no duplicates). The engine runs **per line item** and sums: each ledger line carries a `line_item_id` (which product line it came from), so a **multi-line sale yields ledger lines per item**. A `Fixed`-type line starts from `closing_comm_fixed` (not sale × pct) and then applies the identical pool/override split. Response `200`:
 ```json
 {
   "run_id": "run_01H...",
   "transactions_processed": 1,
-  "ledger_lines_written": 4,
+  "ledger_lines_written": 8,
   "reconciled": true,
   "lines": [
-    { "line_type": "Personal", "associate_id": "a_01HSELF", "basis_amount": 1000.00, "amount": 600.00 },
-    { "line_type": "Override", "associate_id": "a_01HKOO", "rate_or_value": 20, "basis_amount": 400.00, "amount": 80.00 },
-    { "line_type": "Override", "associate_id": "a_01HSYLVIA", "rate_or_value": 10, "basis_amount": 400.00, "amount": 40.00 },
-    { "line_type": "Company Retained", "associate_id": null, "amount": 280.00 }
+    { "line_item_id": "li_01H...", "line_type": "Personal", "associate_id": "a_01HSELF", "basis_amount": 1000.00, "amount": 600.00 },
+    { "line_item_id": "li_01H...", "line_type": "Override", "associate_id": "a_01HKOO", "rate_or_value": 20, "basis_amount": 400.00, "amount": 80.00 },
+    { "line_item_id": "li_01H...", "line_type": "Override", "associate_id": "a_01HSYLVIA", "rate_or_value": 10, "basis_amount": 400.00, "amount": 40.00 },
+    { "line_item_id": "li_01H...", "line_type": "Company Retained", "associate_id": null, "amount": 280.00 },
+    { "line_item_id": "li_02H...", "line_type": "Personal", "associate_id": "a_01HSELF", "basis_amount": 500.00, "amount": 300.00 },
+    { "line_item_id": "li_02H...", "line_type": "Override", "associate_id": "a_01HKOO", "rate_or_value": 20, "basis_amount": 200.00, "amount": 40.00 },
+    { "line_item_id": "li_02H...", "line_type": "Override", "associate_id": "a_01HSYLVIA", "rate_or_value": 10, "basis_amount": 200.00, "amount": 20.00 },
+    { "line_item_id": "li_02H...", "line_type": "Company Retained", "associate_id": null, "amount": 140.00 }
   ]
 }
 ```
-This is the §8.2 worked example: closer $600, SM override $80, SD override $40, retained $280 → ties to $1,000. Add-on lines (`line_type: "Add-on"`) and `External Payable` lines append where applicable. Lines stay `Pending` until the eligibility milestone (default 3rd installment paid) is met.
+Line `li_01H` is the §8.2 **Percentage** worked example (closer $600, SM $80, SD $40, retained $280 → ties to $1,000); line `li_02H` is the **Fixed**-type example (`closing_comm_fixed = $500` → pool $200, closer $300, SM $40, SD $20, retained $140 → ties to $500). Add-on lines (`line_type: "Add-on"`) and `External Payable` lines append per line where applicable. Lines stay `Pending` until the eligibility milestone (default 3rd installment paid) is met.
 
 **`POST /transactions/{id}/commission/override`** (manual override, PRD §6.5/§8.6 — Admin only, RBAC) — request:
 ```json
@@ -575,6 +713,7 @@ Supersedes the computed value; flagged `is_manual_override: true`, audit-logged,
     {
       "id": "led_01H...",
       "transaction_id": "txn_01H...",
+      "line_item_id": "li_01H...",
       "payout_month": "2026-09",
       "associate_id": "a_01HSELF",
       "associate_name": "Tan Wei Ming",
@@ -744,8 +883,9 @@ Optional `attachment` file field. `audience ∈ {All, Team, Role}`. Delivered in
 | Method | Path | Role | Scope |
 |---|---|---|---|
 | `GET` | `/documents` | all authenticated | visibility-scoped |
-| `POST` | `/documents` | Admin, Accounts (templates); self (own signed docs) | scoped |
-| `GET` | `/documents/{id}/download` | per `visibility` | scoped |
+| `POST` | `/documents` | Admin, Accounts (templates + assigned agreements); self (own signed docs) | scoped |
+| `GET` | `/documents/sales-agreements` | all authenticated associates | self (targeted to caller) |
+| `GET` | `/documents/{id}/download` | per `visibility` / `assignment` | scoped |
 
 **`GET /documents?type=Company Template`** (PRD §6.11/§7.12) — response `200`:
 ```json
@@ -757,9 +897,66 @@ Optional `attachment` file field. `audience ∈ {All, Team, Role}`. Delivered in
   "meta": { "page": 1, "pageSize": 20, "totalItems": 2, "totalPages": 1 }
 }
 ```
-`type ∈ {Company Template, Associate Agreement, Vendor Agreement, Other}`; `visibility ∈ {All, Owner, Admin}`.
+`type ∈ {Company Template, Associate Agreement, Vendor Agreement, Vendor MOU, Sales Agreement, Other}`; `assignment ∈ {All, Team, Associate}`; `visibility ∈ {All, Owner, Admin}`.
 
-**`POST /documents`** — `multipart/form-data`: `file`, plus `type`, `title`, `visibility`, optional `owner_associate_id`. Response `201` returns the document record. **`GET /documents/{id}/download`** returns the file via signed URL / streamed download; an associate may download `All`-visibility templates and their own `Owner` docs. Out-of-scope → **403**.
+**`POST /documents`** (upload + assignment, PRD §6.11/§7.12) — `multipart/form-data`: `file`, plus `type`, `title`, `assignment`, `visibility`, optional `assigned_team`, `assigned_associate_id`, `owner_associate_id`. For Sales Agreements, set `type` to `Vendor MOU` or `Sales Agreement` and `assignment` to `All` / `Team` (with `assigned_team`) / `Associate` (with `assigned_associate_id`). Only Admin/Accounts may upload/assign vendor MOUs / sales agreements. Request:
+```json
+{ "type": "Vendor MOU", "title": "Happy Paws Grooming MOU", "assignment": "Associate", "assigned_associate_id": "a_01HSELF", "visibility": "Owner", "csrfToken": "..." }
+```
+Response `201` returns the document record:
+```json
+{ "id": "doc_03H...", "type": "Vendor MOU", "title": "Happy Paws Grooming MOU", "assignment": "Associate", "assigned_associate_id": "a_01HSELF", "file_key": "documents/vendor-mou/doc_03H.pdf" }
+```
+
+**`GET /documents/sales-agreements`** (PRD §6.11 — the Sales Agreements tab) — returns `Vendor MOU` / `Sales Agreement` documents **targeted to the caller** (by `assignment = All`, their `Team`, or themselves). Associates have **download-only**. Response `200`:
+```json
+{
+  "data": [
+    { "id": "doc_03H...", "type": "Vendor MOU", "title": "Happy Paws Grooming MOU", "assignment": "Associate", "assigned_associate_id": "a_01HSELF" },
+    { "id": "doc_04H...", "type": "Sales Agreement", "title": "Q3 Vendor Sales Agreement", "assignment": "Team", "assigned_team": "Vincent Lim Division" }
+  ],
+  "meta": { "page": 1, "pageSize": 20, "totalItems": 2, "totalPages": 1 }
+}
+```
+Non-targeted associates do not see the document; requesting a non-targeted doc → **403**.
+
+**`GET /documents/{id}/download`** returns the file via signed URL / streamed download; an associate may download `All`-visibility templates, their own `Owner` docs, and sales agreements targeted to them. Out-of-scope → **403**.
+
+### 3.14a Name Card / VCF
+
+> Digital name card auto-populated from the user/associate profile + company entity (PRD §6.14, schema §7.12a). Users view/download **their own** card; Admin can view all. Card data is mostly **derived** and updates automatically when the profile changes.
+
+| Method | Path | Role | Scope |
+|---|---|---|---|
+| `GET` | `/me/name-card` | all authenticated | self (view data) |
+| `GET` | `/me/name-card.vcf` | all authenticated | self (download vCard) |
+| `GET` | `/me/name-card.png` | all authenticated | self (rendered card) |
+| `GET` | `/me/name-card.pdf` | all authenticated | self (rendered card) |
+| `GET` | `/associates/{id}/name-card` | Admin | global (view any) |
+| `GET` | `/associates/{id}/name-card.vcf` | Admin | global |
+| `GET` | `/associates/{id}/name-card.png` · `.pdf` | Admin | global |
+
+**`GET /me/name-card`** — response `200` (card data, derived from current profile):
+```json
+{
+  "full_name": "Tan Wei Ming",
+  "chinese_name": "陈伟明",
+  "title": "Funeral Director",
+  "mobile_number": "98765432",
+  "email": "tan@example.com",
+  "company": "Enshrine Services Pte Ltd",
+  "address": "74 Lorong 6 Geylang, Singapore 399226",
+  "web": "enshrine.sg",
+  "qr_payload": "BEGIN:VCARD...",
+  "photo_url": "https://files.../signed-url?..."
+}
+```
+
+**`GET /me/name-card.vcf`** — returns `text/vcard` (`Content-Disposition: attachment`); a valid vCard 3.0/4.0 with `FN, N, TITLE, ORG, TEL, EMAIL, ADR, URL, PHOTO` that imports cleanly into a phone contact app.
+
+**`GET /me/name-card.png`** / **`.pdf`** — returns the rendered card (`image/png` / `application/pdf`) in the Enshrine business-card template.
+
+**`GET /associates/{id}/name-card.*`** — Admin-only equivalents to view/download any user's card; non-Admin → **403**.
 
 ### 3.15 Vendor Referrals
 
@@ -830,6 +1027,15 @@ Legend: ✅ allowed (global) · 🔵 scoped to downline · 🟡 own/self only ·
 |---|---|---|---|---|---|
 | `POST /recruitment/applications` | ✅ | ✅ | public | public | public |
 | `GET /recruitment/applications` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `POST /candidates` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /candidates` · `/candidates/{id}` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET`/`POST /onboarding/{token}` · `/sign` | public | public | public | public | public |
+| `POST /candidates/{id}/approve` · `/reject` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /associates/{id}/pfile` | ✅ | ✅ | 🟡 own | 🟡 own | 🟡 own |
+| `POST /associates/{id}/pfile` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /pfile-documents/{id}/download` | ✅ | ✅ | 🟡 own | 🟡 own | 🟡 own |
+| `GET /me/name-card`, `.vcf`, `.png`, `.pdf` | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 |
+| `GET /associates/{id}/name-card.*` | ✅ | ❌ | ❌ | ❌ | ❌ |
 | `GET /associates` | ✅ | ✅ | 🔵 | 🔵 | 🟡 |
 | `PATCH /associates/{id}` | ✅ | ✅ | ❌ | ❌ | ❌ |
 | `POST /associates/{id}/approve` · `/reject` · `/status` | ✅ | ✅ | ❌ | ❌ | ❌ |
@@ -861,6 +1067,7 @@ Legend: ✅ allowed (global) · 🔵 scoped to downline · 🟡 own/self only ·
 | `POST /notices` | ✅ | ✅ | ❌ | ❌ | ❌ |
 | `GET /notices`, `POST /notices/{id}/read` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `GET /documents`, `/download` | ✅ | ✅ | 🔵 | 🔵 | 🟡 |
+| `GET /documents/sales-agreements` | ✅ | ✅ | 🟡 | 🟡 | 🟡 |
 | `POST /documents` | ✅ | ✅ | 🟡 own | 🟡 own | 🟡 own |
 | `POST /vendor-referrals` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `GET /vendor-referrals` | ✅ | ✅ | view | view | view |

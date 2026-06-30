@@ -2,7 +2,7 @@
 
 > **Status: spec/PRD stage — to be built by Codex.** This repository currently holds the product spec and design documents (PRD + `docs/`). The application has not been implemented yet; the sections below describe the intended build so Codex can generate it.
 
-A single-tenant **CRM + HRMS "virtual office"** for a Singapore funeral-services and pet-aftercare business (public site: enshrinepets.com.sg). Commission-based **associates** sell packages across product lines — Cremation, Religious Rites, Columbarium (niche), Sea Scattering, funeral services/packages, pet aftercare, niche/memorial, and temple/festive events — and the portal runs their full lifecycle and earnings end-to-end, online, with no need to visit a physical office. Invoices are issued under **multiple brands/entities** (e.g. Enshrine, Trust Pets).
+A single-tenant **CRM + HRMS "virtual office"** for a Singapore funeral-services and pet-aftercare business (public site: enshrinepets.com.sg). Commission-based **associates** sell packages across product lines — Cremation, Religious Rites, Columbarium (niche), Sea Scattering, funeral services/packages, pet aftercare, niche/memorial, and temple/festive events — and the portal runs their full lifecycle and earnings end-to-end, online, with no need to visit a physical office. Invoices are issued under **three company entities** (Enshrine Services Pte Ltd, Enshrine Pets Paradise Pte Ltd, Enshrine Afterlife Planner Pte Ltd).
 
 ---
 

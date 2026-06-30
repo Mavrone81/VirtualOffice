@@ -1,10 +1,15 @@
 # Documentation Index — Enshrine Associate Management Portal
 
-**Product:** Enshrine Associate Management Portal — a CRM + HRMS "virtual office" for a Singapore funeral-services and pet-aftercare business.
+**Product:** Enshrine Associate Management Portal — a CRM + HRMS "virtual office" for a Singapore funeral-services and pet-aftercare business. Invoicing runs under the three company entities — **Enshrine Services Pte Ltd**, **Enshrine Pets Paradise Pte Ltd**, and **Enshrine Afterlife Planner Pte Ltd**.
 **Stack:** Next.js (App Router, TypeScript) + PostgreSQL + Prisma + NextAuth/Auth.js + S3-compatible storage; Vercel + managed Postgres in ap-southeast-1 (Singapore).
 **Target builder:** Codex (autonomous code generation).
 
-> **Source of truth:** `Enshrine_Portal_PRD.md` (v1.2) is the **master specification** — when any doc disagrees, the PRD wins. `docs/05_RBAC.md` is the **canonical reference for roles, permissions, and data scoping**, and `docs/02_Database_Diagram.md` is the **canonical reference for entities, columns, and enums**. All other docs reference these.
+> **Recent PRD increments (v1.3 → v1.5):**
+> - **v1.3** — admin-initiated **candidate onboarding** (Invited → Form Submitted → Signed – Pending Approval → Approved/Rejected, via a tokenised email onboarding form); a **P-file** (personnel file) for every user; a **Sales Agreements** download tab (admin-uploaded vendor MOUs / sales agreements); a **digital name card / VCF** for every user; and the three confirmed company entities above replacing earlier placeholder brands.
+> - **v1.4** — product **Commission Type {Percentage, Fixed}** (both feed the same company-cut/override split); **multi-product sales** (a sale = header + line items, with **per-line commission** and **per-company-entity invoicing** for multi-entity sales).
+> - **v1.5** — **mobile-first responsive** requirement across every page (375/768/1280, ≥44px tap targets), with desktop layouts preserved.
+
+> **Source of truth:** `Enshrine_Portal_PRD.md` (v1.5) is the **master specification** — when any doc disagrees, the PRD wins. `docs/05_RBAC.md` is the **canonical reference for roles, permissions, and data scoping**, and `docs/02_Database_Diagram.md` is the **canonical reference for entities, columns, and enums**. All other docs reference these.
 
 ---
 
@@ -12,7 +17,7 @@
 
 | # | Document | One-line description | Intended reader |
 |---|---|---|---|
-| — | `Enshrine_Portal_PRD.md` (root) | **Master PRD v1.2** — tech stack, full data model, commission engine logic (§8), RBAC, screen-by-screen requirements, acceptance criteria (§14), phased plan. | Everyone; Codex (primary build spec) |
+| — | `Enshrine_Portal_PRD.md` (root) | **Master PRD v1.5** — tech stack, full data model, commission engine logic (§8, incl. Commission Type {Percentage\|Fixed} & per-line multi-product), RBAC, screen-by-screen requirements (incl. candidate onboarding §6.1, P-files §6.2.1, Sales Agreements §6.11, name card §6.14, multi-product line items §6.3, mobile-first §10.1), acceptance criteria (§14), phased plan. | Everyone; Codex (primary build spec) |
 | — | `README.md` (root) | Project overview, purpose, feature summary, current status (spec stage). | New contributors; orientation |
 | — | `TESTING.md` (root) | **Comprehensive test suite (Phase 3)** — unit/integration/E2E strategy, full test inventory, run commands, coverage, acceptance traceability. | QA, builder, Codex |
 | 00 | `docs/00_INDEX.md` | This index — document map, reading order, source-of-truth note. | Everyone starting out |
@@ -61,4 +66,4 @@ These are the raw inputs behind the spec (PRD §0). They are background/evidence
 
 ---
 
-*Master spec: `Enshrine_Portal_PRD.md` v1.2. Canonical role/scope authority: `docs/05_RBAC.md`. Canonical entity/enum authority: `docs/02_Database_Diagram.md`.*
+*Master spec: `Enshrine_Portal_PRD.md` v1.5. Canonical role/scope authority: `docs/05_RBAC.md`. Canonical entity/enum authority: `docs/02_Database_Diagram.md`.*

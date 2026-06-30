@@ -2,8 +2,8 @@
 
 **Product:** Enshrine Associate Management Portal — a CRM + HRMS "virtual office"
 **Document:** User Requirements Document (URD)
-**Version:** 1.0
-**Source of truth:** `Enshrine_Portal_PRD.md` v1.2 (PRD); aligned with `02_Database_Diagram.md` v1.0 (entities/enums) and `05_RBAC.md` v1.0 (roles/scoping)
+**Version:** 1.2
+**Source of truth:** `Enshrine_Portal_PRD.md` v1.5 (PRD); aligned with `02_Database_Diagram.md` (entities/enums) and `05_RBAC.md` (roles/scoping)
 **Owner:** Samuel (builder / Product Owner) for Enshrine
 **Region context:** Singapore (NRIC, PayNow, PDPA, GIRO, GST when applicable)
 **Date:** 28 June 2026
@@ -23,7 +23,7 @@ Concretely it provides:
 - A **use-case summary table** and a **traceability map** back to PRD sections.
 
 ### 1.2 Scope (v1)
-In scope: the eight-module pipeline of the "virtual office" — recruitment & e-sign onboarding, Associate Master / HR, sales submission (with add-on com codes), sales verification & transactions, commission structure, invoicing & installments, the auto commission engine, monthly payout + bank GIRO file, dashboards, notices, documents/agreements repository, and a view-only vendor referral registry.
+In scope: the "virtual office" pipeline — **admin-initiated candidate onboarding** & e-sign, Associate Master / HR (with a **P-file** for every user), sales submission (with add-on com codes), sales verification & transactions, commission structure, invoicing & installments, the auto commission engine, monthly payout + bank GIRO file, dashboards, notices, a documents/agreements repository (including a **Sales Agreements** download tab for admin-uploaded vendor MOUs / sales agreements), a view-only vendor referral registry, and a **digital name card / VCF** for every user.
 
 Out of scope for v1 (reflected as **Won't-have-v1** stories where user-relevant): payment-gateway integration, the AI festive/DM marketing generator (static templates only in v1), and the full Vendor/Supplier/Logistics Management System (LMS). GST is built **GST-ready but default off** (revenue < S$1M). The public marketing website is a separate deliverable.
 
@@ -53,7 +53,7 @@ Application roles use the canonical `app_role` names from `05_RBAC.md`: **Admin*
 
 | Actor | Role in the process | How they appear in the system |
 |---|---|---|
-| **Applicant** | A prospective associate completing recruitment. | Fills the Recruitment Form; e-signs the Associate Agreement; becomes an `associate` (Pending/Inactive) pending approval. |
+| **Candidate / Applicant** | A prospective associate, normally created by Admin (name + mobile + email) or self-served via the public Recruitment Form. | Held as a `candidates` record through `onboarding_stage` {Invited → Form Submitted → Signed – Pending Approval → Approved/Rejected}; completes the tokenised Onboarding Form (no login), e-signs the auto-generated Associate Agreement, and on Approve is **converted** to an `associate` with a provisioned login. |
 | **Customer / Client** | The buyer of a funeral / pet-aftercare package. | Named on submissions, transactions and invoices; may sign a Signature-type invoice (PDF download or, later, remote e-sign). No login in v1. |
 | **External provider / "Shifu"** | Third party who supplies external products (columbarium niche, memorial placements). | Represented by **External Payable** ledger lines; receives the bulk of external-product value while Enshrine retains only a small maintenance cut. No login in v1. |
 | **Vendor / referral partner** | A business an associate signs as a referral tie-up (e.g. groomer, distribution centre). | Recorded in the **Vendor Referral Registry** with a first-claim timestamp; visible view-only to all associates. |
@@ -77,24 +77,30 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 
 ---
 
-### EPIC A — Recruitment & E-Sign Onboarding
-*(PRD §6.1; entities `associates`, `users`, `documents`)*
+### EPIC A — Candidate Onboarding & E-Sign (admin-initiated)
+*(PRD §6.1, §6.1.2; entities `candidates`, `associates`, `users`, `p_files`/`pfile_documents`, `documents`)*
 
-#### A-1 — Apply and become a pending associate · **Must**
-**As an** applicant, **I want** to complete a recruitment form online, **so that** I can join as an associate without visiting an office.
-- **Given** a valid Recruitment Form, **when** I submit it, **then** an `associate` is created with `approval_status = Pending`, `associate_status = Inactive`, and the next sequential `associate_code` (`EN####`).
-- **Given** an incomplete or invalid form, **when** I submit, **then** submission is rejected with field-level errors and no associate is created.
+#### A-1 — Admin creates a candidate and the system emails an onboarding form · **Must**
+**As an** Admin (or Accounts), **I want** to create a candidate with just basic info so the system emails them an onboarding form, **so that** I can start an associate's onboarding without collecting paperwork myself.
+- **Given** the Candidates page, **when** an `Admin`/`Accounts` user enters at least full name, mobile number and email (optionally intended designation/upline/team), **then** a `candidates` row is created with `onboarding_stage = Invited` and a secure `onboarding_token`.
+- **Given** a candidate at `Invited`, **when** the record is created, **then** the system emails the candidate a tokenised link to the Onboarding Form that requires **no login**.
+- **Given** a missing name, mobile or email, **when** the Admin submits, **then** creation is rejected with field-level errors and no candidate is created.
+- **Given** any candidate creation, **when** saved, **then** an `audit_log` entry records the actor (`invited_by`).
 
-#### A-2 — Auto-generate and e-sign the Associate Agreement · **Must**
-**As an** applicant, **I want** the Associate Agreement auto-filled from my details and signed online, **so that** onboarding is paperless.
-- **Given** a Pending associate, **when** the record is created, **then** an Associate Agreement PDF is generated from a template populated with the applicant's details and stored (`agreement_file_key`).
-- **Given** the generated agreement, **when** I e-sign it in-app, **then** a signed PDF is stored (`signed_agreement_file_key`) and the application is ready for review.
+#### A-2 — Candidate completes the onboarding form and e-signs the auto-generated agreement · **Must**
+**As a** Candidate, **I want** to complete the onboarding form via my emailed link and e-sign the auto-generated agreement, **so that** onboarding is paperless and I don't need to visit an office.
+- **Given** a valid `onboarding_token`, **when** the candidate opens the link and completes the Onboarding Form (full associate detail set per §7.1 — NRIC, DOB, address, bank/PayNow — plus a profile photo), **then** the submission is stored (`submitted_payload`, `photo_file_key`) and `onboarding_stage = Form Submitted`.
+- **Given** a `Form Submitted` candidate, **when** the form is submitted, **then** the Associate Agreement PDF is auto-generated from a template populated with the submitted details and stored (`agreement_file_key`).
+- **Given** the generated agreement, **when** the candidate e-signs it in-app, **then** a signed PDF is stored (`signed_agreement_file_key`) and `onboarding_stage = Signed – Pending Approval`.
+- **Given** a candidate who cannot sign on-screen, **when** they use the fallback, **then** a download-to-sign PDF path is always available and the signed copy can be re-uploaded.
+- **Given** an expired or invalid token, **when** the link is opened, **then** access is denied (no associate data is exposed).
 
-#### A-3 — Review, approve and open the virtual office · **Must**
-**As an** Accounts/HR user (or Admin), **I want** to review the application and signed agreement and set status, **so that** only vetted associates get access.
-- **Given** a Pending associate with a signed agreement, **when** an `Admin`/`Accounts` user sets `approval_status = Approved` and `associate_status = Active`, **then** a login is provisioned and the associate becomes available downstream (closer, dashboards, payouts).
-- **Given** a `Rejected` or `Incomplete` status, **when** set, **then** no login is provisioned and the associate cannot act as a closer.
-- **Given** any approval/status change, **when** it is saved, **then** an `audit_log` entry records actor and before/after.
+#### A-3 — Admin approves a signed candidate → Active associate with login · **Must**
+**As an** Admin (or Accounts), **I want** to review and approve a signed candidate, **so that** they are converted into an Active associate with a virtual-office login.
+- **Given** a candidate at `Signed – Pending Approval`, **when** an `Admin`/`Accounts` user **approves**, **then** the candidate is **converted** to an `associate` with the next sequential `associate_code` (`EN####`), `approval_status = Approved`, `associate_status = Active`, a login is provisioned, and the company-counter-signed agreement is filed into the associate's P-file (`pfile_documents.doc_type = Signed Associate Agreement`).
+- **Given** a candidate at `Signed – Pending Approval`, **when** an `Admin`/`Accounts` user **rejects**, **then** `onboarding_stage = Rejected` with a `reject_reason`, no login is provisioned, and the candidate never appears downstream.
+- **Given** a candidate (any stage before approval), **when** any module lists selectable closers, payout recipients or dashboard members, **then** the candidate is excluded (cannot log in beyond the onboarding form).
+- **Given** any approve/reject, **when** saved, **then** an `audit_log` entry records the actor (`reviewed_by`) and before/after.
 
 #### A-4 — Force a profile photo on first login · **Must**
 **As an** Admin, **I want** the associate's first login to require a photo capture, **so that** profiles are complete and the (future) festive generator has an image.
@@ -107,7 +113,7 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 ---
 
 ### EPIC B — Associate Master / HR System
-*(PRD §6.2; entity `associates`; RBAC scoping)*
+*(PRD §6.2, §6.2.1; entities `associates`, `p_files`, `pfile_documents`; RBAC scoping)*
 
 #### B-1 — Maintain the associate master & hierarchy · **Must**
 **As an** Accounts/HR user, **I want** to maintain each associate's details and upline hierarchy, **so that** commission and scoping are correct.
@@ -131,16 +137,30 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 **As a** SalesDirector/SalesManager/Consultant, **I want** NRIC and bank account masked, **so that** PDPA-sensitive data is protected.
 - **Given** a non-Admin/non-Accounts viewer, **when** they view an associate, **then** `nric` and `bank_account_number` are masked (e.g. `S****892A`); full values are served only to `Admin`/`Accounts`.
 
+#### B-6 — Every user has a P-file holding their signed agreement & HR docs · **Must**
+**As any** user (associate), **I want** a personnel file (P-file) that holds my signed agreement and HR documents and that I can view, **so that** I always have my own counter-signed copy and personnel records in one place.
+- **Given** a candidate is approved and converted to an associate, **when** conversion occurs, **then** a `p_files` record is created (keyed on `user_id` so future permanent staff also get one) and the company-counter-signed agreement is filed automatically as a `pfile_documents` row (`doc_type = Signed Associate Agreement`).
+- **Given** my own P-file, **when** I open it, **then** I can view/download my own documents (signed agreement, onboarding submission, ID/HR documents), with `nric`/`bank_account_number` masked per B-5.
+- **Given** an `Admin`/`Accounts`/HR user, **when** they manage P-files, **then** they can file/remove documents for any user, and every filing/removal is `audit_log`ged.
+- **Given** a `SalesDirector`/`SalesManager`, **when** they attempt to view a downline associate's P-file, **then** access is denied by default (P-files are HR-sensitive; managers do **not** see downline P-files).
+
 ---
 
-### EPIC C — Sales Submission (with add-on com codes)
-*(PRD §6.3; entities `sales_submissions`, `products`, `com_codes`, `companies`)*
+### EPIC C — Sales Submission (multi-product line items, with add-on com codes)
+*(PRD §6.3; entities `sales_submissions`, `sale_line_items`, `products`, `com_codes`, `companies`)*
 
 #### C-1 — Submit a sale from the virtual office · **Must**
 **As a** Consultant (or any role permitted to sell), **I want** to submit a sale with all details, **so that** it can be verified and earn commission.
-- **Given** the submission form, **when** I submit with Sales Date, Client Name/Contact, Company Entity, Product Code, Sale Amount, Payment Type, payment plan, Amount Collected and Closing Associate, **then** a `sales_submission` is created with `status = Submitted` (pending, not yet official).
-- **Given** `amount_collected > sale_amount`, **when** I submit, **then** it is rejected.
-- **Given** a closer who is not Approved+Active, or an inactive product/add-on, **when** I submit, **then** it is rejected.
+- **Given** the submission form, **when** I submit with header fields (Sales Date, Client Name/Contact, Payment Type, payment plan, Amount Collected, Closing Associate) and at least one line item (Company Entity, Product Code, Line Sale Amount), **then** a `sales_submission` header plus its `sale_line_items` are created with `status = Submitted` (pending, not yet official), and total Sale Amount = sum of line amounts.
+- **Given** `amount_collected > total sale_amount`, **when** I submit, **then** it is rejected.
+- **Given** a closer who is not Approved+Active, or any line with an inactive product/add-on, **when** I submit, **then** it is rejected.
+
+#### C-1b — Submit ONE sale containing MULTIPLE products, each computing its own commission · **Must**
+**As a** Consultant (or any role permitted to sell), **I want** to add multiple products as separate line items on a single sale, **so that** a bundled deal is captured once and each product earns its own commission.
+- **Given** the submission form, **when** I add two or more line items, **then** each line captures its own Product Code (resolving Product Name, Commission Type and rates — not free-typed), Company Entity, Line Sale Amount, optional quantity, and its own ticked add-on com codes.
+- **Given** a multi-product submission, **when** it is verified and the engine runs, **then** commission is computed **per line item** (each using its own product, Commission Type, rates and com codes) and the transaction's commission = the **sum** of all line commissions, with each ledger line tagged to its `line_item_id` (PRD §8.1).
+- **Given** a sale whose lines mix `commission_type = Percentage` and `commission_type = Fixed`, **when** the engine runs, **then** each line uses its own Commission Type basis while sharing the same company-cut/override split.
+- **Given** any single line, **when** the engine completes it, **then** that line reconciles independently (`net_to_closer + total_override + company_retained == line closing_commission`).
 
 #### C-2 — Tick applicable add-on com codes · **Must**
 **As a** Consultant, **I want** to tick the add-on com codes that apply to the product, **so that** extra commission is captured at source.
@@ -170,13 +190,20 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 
 ---
 
-### EPIC E — Commission Structure (products, com codes, upgrades, internal vs external)
-*(PRD §6.5, §8.4, §8.5; entities `products`, `com_codes`, `commission_structure_versions`)*
+### EPIC E — Commission Structure (products, Commission Type, com codes, upgrades, internal vs external)
+*(PRD §6.5, §8.1, §8.4, §8.5; entities `products`, `com_codes`, `commission_structure_versions`)*
 
 #### E-1 — Manage per-product commission rules · **Must**
 **As an** Admin / Product Owner, **I want** to define each product's commission rules, **so that** the engine computes correctly.
 - **Given** a product, **when** I set Closing Comm %, Company Cut %, ASM/SM/SD Override % and category, **then** the structure is saved with Company Retained % derived by default (`100% − overrides` of the pool).
 - **Given** overrides + Company Retained that exceed 100% of the pool, **when** I save, **then** it is rejected.
+
+#### E-1b — Choose a product's Commission Type (Percentage or Fixed) · **Must**
+**As an** Admin / Product Owner, **I want** to create a product choosing its Commission Type — `Percentage` or `Fixed` — and supply the matching rate field, **so that** flat-fee products and percentage products both compute correctly while sharing the same override structure.
+- **Given** the product form, **when** I create a product, **then** I must choose `commission_type ∈ {Percentage, Fixed}` and supply the matching rate field: `Percentage` requires `closing_comm_pct` (and ignores `closing_comm_fixed`); `Fixed` requires `closing_comm_fixed` (and ignores `closing_comm_pct`).
+- **Given** `commission_type = Percentage` with no `closing_comm_pct`, **or** `commission_type = Fixed` with no `closing_comm_fixed`, **when** I save, **then** it is rejected with a field-level error.
+- **Given** either Commission Type, **when** the structure is saved, **then** the **same** company-cut pool + ASM/SM/SD override + Company Retained split applies downstream (the type only changes how the closing commission is derived) (PRD §6.5/§8.1).
+- **Given** a `Fixed` product with `closing_comm_fixed = $500`, company cut 40%, SM 20%, SD 10%, **when** the engine later runs a line for it, **then** it yields pool $200, closer $300, SM $40, SD $20, retained $140 (reconciles to $500).
 
 #### E-2 — Manage add-on com codes per product · **Must**
 **As an** Admin / Product Owner, **I want** to attach add-on com codes to a product, **so that** salespeople can tick valid add-ons.
@@ -201,7 +228,13 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 
 #### F-1 — Issue multi-company invoices · **Must**
 **As an** Accounts/HR user (or the owning salesperson for own sales), **I want** invoices issued under the chosen company entity, **so that** each brand bills correctly.
-- **Given** a transaction with a Company Entity, **when** I issue an invoice, **then** it receives a unique number from that company's sequence (`INV-<COMPANY>-YYYY-#####`) and a PDF carrying that company's stamp.
+- **Given** a transaction line with a Company Entity, **when** I issue an invoice, **then** it receives a unique number from that company's sequence (`INV-<COMPANY>-YYYY-#####`) and a PDF carrying that company's stamp.
+
+#### F-1b — A multi-entity sale produces an invoice per company entity · **Must**
+**As an** Accounts/HR user, **I want** a sale whose line items span different Company Entities to produce one invoice per entity, **so that** each legal entity bills only its own products correctly.
+- **Given** a verified transaction whose `sale_line_items` reference more than one `company_id`, **when** invoices are issued, **then** lines are **grouped by Company Entity** and **one invoice is generated per entity** (by default), each numbered from its own company's sequence and stamped with that company.
+- **Given** a sale whose lines all reference a single Company Entity, **when** invoices are issued, **then** exactly one invoice is generated for that entity.
+- **Given** the per-entity grouping, **when** the invoices are produced, **then** each invoice's amount equals the sum of its own entity's line amounts, and the invoices together reconcile to the transaction's total Sale Amount (consolidated single-invoice is the alternative mode — PRD §6.5b).
 
 #### F-2 — Support both invoice types · **Must**
 **As an** Accounts/HR user, **I want** computer-generated and signature invoices, **so that** I can issue the right document.
@@ -230,14 +263,16 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 ### EPIC G — Auto Commission Engine (installment-aware)
 *(PRD §6.6, §8.1–§8.6; entity `commission_ledger`)*
 
-#### G-1 — Compute commission correctly (worked example) · **Must**
-**As an** Admin, **I want** the engine to compute closer, overrides, retained and add-ons exactly, **so that** payouts are trustworthy.
-- **Given** a $10,000 sale at 10% closing, 40% company cut, SM direct upline (20%), SD 2nd upline (10%), **when** the engine runs, **then** it yields closer $600, SM override $80, SD override $40, company retained $280, reconciling to $1,000.
-- **Given** any transaction, **when** computed, **then** `net_to_closer + total_override + company_retained == closing_commission` (residual pushed into Company Retained; zero rounding leakage).
+#### G-1 — Compute commission correctly per line (worked examples) · **Must**
+**As an** Admin, **I want** the engine to compute closer, overrides, retained and add-ons exactly for each line item, **so that** payouts are trustworthy.
+- **Given** a single Percentage-type line of $10,000 at 10% closing, 40% company cut, SM direct upline (20%), SD 2nd upline (10%), **when** the engine runs, **then** it yields closer $600, SM override $80, SD override $40, company retained $280, reconciling to $1,000.
+- **Given** a single `Fixed`-type line with `closing_comm_fixed = $500`, 40% company cut, SM 20%, SD 10%, **when** the engine runs, **then** the Commission Type branch sets closing commission to the flat $500 and the same split yields pool $200, closer $300, SM override $40, SD override $20, retained $140, reconciling to $500.
+- **Given** a multi-product transaction, **when** the engine runs, **then** it computes each line independently and the transaction totals = the sum across lines.
+- **Given** any line, **when** computed, **then** `net_to_closer + total_override + company_retained == closing_commission` for that line (residual pushed into Company Retained; zero rounding leakage).
 
 #### G-2 — Apply add-on com codes · **Must**
 **As an** Admin, **I want** verified add-ons added on top, **so that** extra commission is paid.
-- **Given** verified add-ons, **when** computed, **then** Percentage codes = % of sale (default basis) and Absolute codes = fixed $, each added as an Add-on ledger line attributed to the closer (default).
+- **Given** verified add-ons on a line, **when** computed, **then** Percentage codes = % of that line's sale amount (default basis) and Absolute codes = fixed $, each added as an Add-on ledger line (tagged to the `line_item_id`) attributed to the closer (default).
 
 #### G-3 — Gate payable on installment milestone · **Must**
 **As an** Admin, **I want** installment commission to become payable only at the configured milestone, **so that** we don't pay before collecting.
@@ -322,15 +357,22 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 ---
 
 ### EPIC K — Documents & Agreements Repository
-*(PRD §6.11; entity `documents`)*
+*(PRD §6.11; entities `documents`, `p_files`/`pfile_documents`)*
 
 #### K-1 — Access company agreement templates · **Must**
 **As a** Consultant, **I want** to view/download company agreement templates, **so that** I can use the right document with vendors/customers.
 - **Given** the repository, **when** I open it, **then** I see company templates (e.g. Referred Partnership Agreement, Cage Storage Agreement, funeral package agreements, associate agreement template) per visibility rules.
 
-#### K-2 — Access "My Agreement" · **Must**
-**As a** Consultant, **I want** to view/download my own signed Associate Agreement, **so that** I keep my counter-signed copy.
-- **Given** my signed agreement (`type = Associate Agreement`, `owner_associate_id = me`), **when** I open "My Agreement", **then** I can view/download it; others cannot see it.
+#### K-2 — Access "My Agreement" / P-file · **Must**
+**As a** Consultant, **I want** to view/download my own signed Associate Agreement and personnel documents, **so that** I keep my counter-signed copy.
+- **Given** my P-file (§6.2.1) holding my signed agreement (`pfile_documents.doc_type = Signed Associate Agreement`) and HR documents, **when** I open "My Agreement" / P-file, **then** I can view/download my own documents; others cannot see them (managers do not see downline P-files — see B-6).
+
+#### K-3 — Admin uploads vendor MOUs / sales agreements; associates download from a Sales Agreements tab · **Must**
+**As an** Admin (or Accounts), **I want** to upload vendor MOUs / sales agreements and assign them to a specific associate, a team, or all associates, **so that** associates can self-serve the agreement files they need.
+- **Given** a `Vendor MOU` or `Sales Agreement` document, **when** an `Admin`/`Accounts` user uploads it and sets `assignment ∈ {All, Team, Associate}` (with `assigned_team`/`assigned_associate_id` as applicable), **then** it is stored and targeted accordingly.
+- **Given** a targeted associate, **when** they open the **Sales Agreements** tab, **then** they see and can **download** documents assigned to them (by All / their Team / themselves), with **download-only** access (no edit/replace/revoke).
+- **Given** a non-targeted associate, **when** they open the Sales Agreements tab, **then** the document is not visible to them.
+- **Given** an `Admin`/`Accounts` user, **when** they manage these documents, **then** they can upload, assign, replace and revoke.
 
 ---
 
@@ -364,6 +406,22 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 
 ---
 
+### EPIC O — Digital Name Card / VCF
+*(PRD §6.14; entity `name_cards` — mostly derived from profile + company entity)*
+
+#### O-1 — View and download my own digital name card · **Must**
+**As any** user, **I want** to view my digital name card and download it as a `.vcf` and a rendered image/PDF, **so that** I can share my contact details in the Enshrine business-card style.
+- **Given** the "My Name Card" tab, **when** I open it, **then** the card is auto-populated from my profile (name incl. Chinese name if present, designation/title, mobile, email, my company entity, company address `74 Lorong 6 Geylang, Singapore 399226`, web/Facebook, logo and a QR code) and rendered in the Enshrine template.
+- **Given** my name card, **when** I download the `.vcf`, **then** a valid vCard (3.0/4.0 with FN, N, TITLE, ORG, TEL, EMAIL, ADR, URL, PHOTO) is produced that imports cleanly into a phone/email contact app.
+- **Given** my name card, **when** I download the image/PDF, **then** a rendered card (PNG/PDF) in the Enshrine template is produced.
+- **Given** I edit my profile, **when** the card is next viewed/downloaded, **then** it reflects my current name, designation, mobile, email and company entity.
+
+#### O-2 — Admin can view any user's name card · **Should**
+**As an** Admin, **I want** to view any user's name card, **so that** I can verify or share contact details on their behalf.
+- **Given** an `Admin`, **when** they open a user's name card, **then** it renders the same as the owner's; non-owners other than `Admin` cannot view another user's card.
+
+---
+
 ### EPIC N — Cross-cutting: Payments, Security, Audit
 
 #### N-1 — Payment-gateway integration · **Won't-have-v1**
@@ -388,15 +446,16 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 
 | UC ID | Use case | Primary actor | Precondition | Main flow (summary) |
 |---|---|---|---|---|
-| UC-01 | Apply & e-sign onboarding | Applicant | Recruitment form available | Fill form → associate created (Pending/Inactive, `EN####`) → agreement auto-generated → applicant e-signs → signed PDF stored. |
-| UC-02 | Approve associate & open office | Accounts / Admin | Pending associate with signed agreement | Review application + agreement → set Approved + Active → login provisioned → available downstream. |
+| UC-01 | Create candidate & email onboarding form | Admin / Accounts | Candidates page available | Enter name + mobile + email → `candidates` row at `onboarding_stage = Invited` → system emails tokenised Onboarding Form link (no login). |
+| UC-01b | Complete onboarding form & e-sign | Candidate | Valid `onboarding_token` | Open link → fill form + photo (`Form Submitted`) → agreement auto-generated → e-sign (PDF fallback) → `Signed – Pending Approval`. |
+| UC-02 | Approve candidate → Active associate | Accounts / Admin | Candidate `Signed – Pending Approval` | Review submission + signed agreement → Approve → convert to associate (`EN####`, Approved+Active) → login provisioned → signed agreement filed into P-file; or Reject (`onboarding_stage = Rejected`). |
 | UC-03 | First-login photo capture | Consultant (new associate) | Associate Approved+Active | Log in first time → forced photo capture → `photo_file_key` stored → access granted. |
 | UC-04 | Maintain associate master & hierarchy | Accounts / Admin | Associate exists | Edit details → set uplines (2nd auto-derived) → cycle/missing-upline rejected → audit-logged. |
 | UC-05 | Export contacts | Admin | Associates exist | Run export → CSV of Approved + Active/Terminated associates. |
-| UC-06 | Submit a sale with add-ons | Consultant / SM / SD | Closer Approved+Active; product active | Enter sale + company + product → tick add-ons → choose plan → submission `Submitted`. |
+| UC-06 | Submit a sale with multiple products + add-ons | Consultant / SM / SD | Closer Approved+Active; products active | Enter header → add one or more line items (company + product + line amount) → tick per-line add-ons → choose plan → submission `Submitted` (commission later computed per line). |
 | UC-07 | Verify sale → transaction | Accounts / Admin | Submission `Submitted` | Verify → `transaction_code` assigned → upline snapshot + structure version resolved → eligibility computed. |
-| UC-08 | Configure commission structure | Admin (Product Owner) | — | Add/edit product rates, com codes, upgrades, internal/external flag → versioned by effective date. |
-| UC-09 | Issue invoice (multi-company, 2 types) | Accounts / owning salesperson | Verified transaction | Choose company + type → unique number allocated → branded PDF (computer-generated footer or signature path). |
+| UC-08 | Configure commission structure (incl. Commission Type) | Admin (Product Owner) | — | Add/edit product: choose `commission_type ∈ {Percentage, Fixed}` + matching rate field, set Company Cut/overrides, com codes, upgrades, internal/external flag → versioned by effective date. |
+| UC-09 | Issue invoice (multi-company, 2 types) | Accounts / owning salesperson | Verified transaction | Group line items by Company Entity → one invoice per entity (single-entity = one invoice) → unique number per company + type → branded PDF (computer-generated footer or signature path). |
 | UC-10 | Auto-generate installment schedule | Consultant / Accounts | Installment plan keyed | Enter total + deposit + count → schedule + per-installment invoices auto-generated, summing to total. |
 | UC-11 | Mark invoice/installment paid | Accounts / Admin | Outstanding invoice exists | Open Outstanding tab → Mark as Paid → status Paid + paid_date → eligibility recomputed. |
 | UC-12 | Adjust installment plan | Accounts / Admin | Plan active, some paid | Edit remaining terms → paid history preserved → remaining schedule recomputed. |
@@ -406,8 +465,10 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 | UC-16 | Payout status workflow | Accounts / Admin | Payout built | Pending → Approved → Paid (locks row, stamps date); Cancelled terminal. |
 | UC-17 | View scoped dashboard | Consultant / SM / SD / Admin | Logged in | Open dashboard → data scoped to self/downline/global → tiles reconcile with ledger. |
 | UC-18 | Post & read notices | Accounts/Admin; all associates | — | Admin posts notice → in-app + email → renders in home feed for targeted associates. |
-| UC-19 | Access documents & My Agreement | All associates | Documents exist | Open repository → view/download templates and own signed agreement per visibility. |
+| UC-19 | Access documents & P-file (My Agreement) | All associates | Documents exist | Open repository → view/download templates and own P-file (signed agreement + HR docs); managers do not see downline P-files. |
 | UC-20 | Register & browse vendor referrals | All associates (submit); all (view) | — | Submit registration + agreement → timestamped first-claim → all browse view-only. |
+| UC-21 | Upload & download sales agreements | Admin/Accounts (upload); targeted associates (download) | Document assignable | Admin uploads Vendor MOU / Sales Agreement → assign to All/Team/Associate → targeted associates download from Sales Agreements tab (download-only). |
+| UC-22 | View & download digital name card / VCF | All users (own); Admin (any) | Profile exists | Open My Name Card → card auto-populated from profile + company entity → download `.vcf` and rendered image/PDF; updates when profile changes. |
 
 ---
 
@@ -421,7 +482,7 @@ Stories are grouped by module (epic). Each carries acceptance criteria in **Give
 - **GST:** not active (revenue < S$1M). Math is **GST-ready** (toggle + rate) but **default off**.
 
 ### 6.2 Product / business
-- **Multi-brand invoicing:** invoices are issued under multiple company entities (e.g. **Enshrine**, **Trust Pets**); the full list and invoice prefixes are to be confirmed (PRD §16.10/§16.13).
+- **Multi-brand invoicing:** invoices are issued under the three company entities — **Enshrine Services Pte Ltd**, **Enshrine Pets Paradise Pte Ltd**, **Enshrine Afterlife Planner Pte Ltd**; the per-entity invoice prefixes are to be confirmed (PRD §16.10/§16.13).
 - **No payment gateway in v1:** all payments recorded manually via Mark-as-Paid.
 - **Installment commission gating:** default milestone is the **3rd installment paid** (configurable; recognition default = all-or-nothing at threshold) (PRD §16.3).
 - **External products** (columbarium/niche/memorial): exact Enshrine retained-cut % and whether any associate commission applies are to be confirmed (PRD §16.12).
@@ -445,23 +506,24 @@ Payment-gateway integration (N-1); AI festive/DM image generator (M-2, static te
 
 | Epic | Theme | PRD section(s) | Key entities |
 |---|---|---|---|
-| A | Recruitment & E-Sign Onboarding | §6.1 | `associates`, `users`, `documents` |
-| B | Associate Master / HR | §6.2, §6.9 (Contacts), §10 | `associates` |
-| C | Sales Submission (add-on com codes) | §6.3 | `sales_submissions`, `products`, `com_codes` |
-| D | Sales Verification & Transactions | §6.4, §8.3 | `sales_transactions` |
-| E | Commission Structure | §6.5, §8.4, §8.5 | `products`, `com_codes`, `commission_structure_versions` |
-| F | Invoicing & Installments | §6.5b | `companies`, `invoices`, `installment_plans`, `installment_schedule` |
-| G | Auto Commission Engine | §6.6, §8.1–§8.6 | `commission_ledger` |
+| A | Candidate Onboarding & E-Sign (admin-initiated) | §6.1, §6.1.2 | `candidates`, `associates`, `users`, `p_files`/`pfile_documents`, `documents` |
+| B | Associate Master / HR (incl. P-files) | §6.2, §6.2.1, §6.9 (Contacts), §10 | `associates`, `p_files`, `pfile_documents` |
+| C | Sales Submission (multi-product line items, add-on com codes) | §6.3 | `sales_submissions`, `sale_line_items`, `products`, `com_codes` |
+| D | Sales Verification & Transactions | §6.4, §8.3 | `sales_transactions`, `sale_line_items` |
+| E | Commission Structure (incl. Commission Type {Percentage, Fixed}) | §6.5, §8.1, §8.4, §8.5 | `products` (`commission_type`, `closing_comm_fixed`), `com_codes`, `commission_structure_versions` |
+| F | Invoicing & Installments (per-entity grouping) | §6.5b | `companies`, `invoices`, `installment_plans`, `installment_schedule` |
+| G | Auto Commission Engine (per-line, Fixed branch) | §6.6, §8.1–§8.6 | `commission_ledger` (per `line_item_id`) |
 | H | Monthly Payout + Bank GIRO File | §6.8 | `monthly_payouts`, `bank_file_batches` |
 | I | Dashboards | §6.9, §10 (scoping) | dashboards over `commission_ledger`, `sales_transactions` |
 | J | Notices | §6.10 | `notices`, `notice_reads` |
-| K | Documents & Agreements | §6.11 | `documents` |
+| K | Documents & Agreements (incl. Sales Agreements tab) | §6.11 | `documents`, `p_files`/`pfile_documents` |
 | L | Vendor Referral Registry | §6.13 | `vendor_referrals` |
 | M | Festive / DM Generator | §6.12 | (templates; `photo_file_key`) |
 | N | Cross-cutting (payments, security, audit, GST) | §1.3, §4, §5, §6.5/§6.5b (GST), §9, §10 | `audit_log` |
+| O | Digital Name Card / VCF | §6.14 | `name_cards` (derived from `associates`/`users` + `companies`) |
 
 **RBAC traceability:** all role names, the permission matrix, and the downline-closure scoping in §2/§4 of this URD map directly to `05_RBAC.md` §1–§3; the gating overlay (Approved+Active) maps to `05_RBAC.md` §2 and PRD §6.1.
 
 ---
 
-*End of URD v1.0 (source: PRD v1.2).*
+*End of URD v1.2 (source: PRD v1.5 — adds product Commission Type {Percentage, Fixed} with the shared override split, multi-product sales with per-line commission, and per-company-entity invoicing for multi-entity sales).*
