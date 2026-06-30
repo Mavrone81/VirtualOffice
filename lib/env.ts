@@ -1,0 +1,35 @@
+import { z } from "zod";
+
+// Server-side environment contract (see docs/06_Environment_Configuration.md).
+// Only import this from server code. Fails fast on misconfiguration.
+const bool = z.preprocess((v) => v === "true" || v === true, z.boolean());
+
+const schema = z.object({
+  DATABASE_URL: z.string().min(1),
+  DIRECT_URL: z.string().min(1).optional(),
+  AUTH_SECRET: z.string().min(1),
+  AUTH_URL: z.string().optional(),
+  // 32-byte key as 64 hex chars for AES-256-GCM PII encryption.
+  PII_ENCRYPTION_KEY: z.string().min(64),
+  PII_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
+
+  INVOICE_NUMBER_FORMAT: z.string().default("INV-{COMPANY}-{YYYY}-{SEQ}"),
+  INVOICE_MODE: z.enum(["per-company", "consolidated"]).default("per-company"),
+  COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD: z.coerce.number().int().default(3),
+  OVERRIDE_CHAIN_DEPTH: z.coerce.number().int().default(2),
+
+  PAYMENT_GATEWAY_ENABLED: bool.default(false),
+  FESTIVE_AI_ENABLED: bool.default(false),
+  GST_ENABLED: bool.default(false),
+  GST_RATE: z.coerce.number().default(9),
+
+  TZ: z.string().default("Asia/Singapore"),
+});
+
+const parsed = schema.safeParse(process.env);
+if (!parsed.success) {
+  console.error("❌ Invalid environment variables:", z.treeifyError(parsed.error));
+  throw new Error("Invalid environment configuration");
+}
+
+export const env = parsed.data;

@@ -1,0 +1,24 @@
+# Local development services for the VirtualOffice portal.
+# Postgres only for now (the app runs via `pnpm dev` on the host during dev).
+# Production self-hosting on 165 is documented in docs/10_Deployment_Runbook.md §11-14.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: virtualoffice-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: virtualoffice
+      POSTGRES_PASSWORD: virtualoffice_dev
+      POSTGRES_DB: virtualoffice
+    ports:
+      - "5439:5432"   # host 5439 -> avoid clashing with other local Postgres containers
+    volumes:
+      - virtualoffice_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U virtualoffice -d virtualoffice"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  virtualoffice_pgdata:

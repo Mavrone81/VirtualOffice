@@ -1,0 +1,732 @@
+// Enshrine Associate Management Portal (VirtualOffice)
+// Canonical schema — mirrors docs/02_Database_Diagram.md (PRD v1.5).
+// Conventions: models PascalCase @@map -> snake_case tables; fields camelCase
+// @map -> snake_case columns; money = Decimal(14,2) SGD; soft-delete via
+// archivedAt; UUID v4 PKs. Enum values @map to the exact DB strings.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums (values @map to the exact strings in docs/02 §3)
+// ---------------------------------------------------------------------------
+enum AppRole {
+  Admin
+  Accounts
+  SalesDirector
+  SalesManager
+  Consultant
+}
+
+enum Designation {
+  SalesConsultant       @map("Sales Consultant")
+  AssistantSalesManager @map("Assistant Sales Manager")
+  SalesManager          @map("Sales Manager")
+  SalesDirector         @map("Sales Director")
+}
+
+enum ApprovalStatus {
+  Pending
+  Approved
+  Rejected
+  Incomplete
+}
+
+enum OnboardingStage {
+  Invited
+  FormSubmitted         @map("Form Submitted")
+  SignedPendingApproval @map("Signed – Pending Approval")
+  Approved
+  Rejected
+}
+
+enum PFileDocType {
+  SignedAssociateAgreement @map("Signed Associate Agreement")
+  OnboardingSubmission     @map("Onboarding Submission")
+  IDDocument               @map("ID Document")
+  HRDocument               @map("HR Document")
+  Other
+}
+
+enum AssociateStatus {
+  Active
+  Suspended
+  Terminated
+  Inactive
+}
+
+enum PaymentMethod {
+  PayNow
+  BankTransfer @map("Bank Transfer")
+}
+
+enum PaymentPlan {
+  FullPayment @map("Full Payment")
+  Installment
+}
+
+enum ProductActiveStatus {
+  Active
+  Inactive
+}
+
+enum CommissionType {
+  Percentage
+  Fixed
+}
+
+enum ComValueType {
+  Percentage
+  Absolute
+}
+
+enum SubmissionStatus {
+  Submitted
+  Verified
+  Rejected
+}
+
+enum CommissionEligibility {
+  Eligible
+  PendingCollection @map("Pending Collection")
+  PartiallyEligible @map("Partially Eligible")
+  Ineligible
+}
+
+enum InvoiceType {
+  ComputerGenerated @map("Computer-Generated")
+  Signature
+}
+
+enum InvoiceStatus {
+  Outstanding
+  Paid
+  Cancelled
+}
+
+enum LedgerLineType {
+  Personal
+  Override
+  AddOn           @map("Add-on")
+  CompanyRetained @map("Company Retained")
+  ExternalPayable @map("External Payable")
+}
+
+enum LedgerStatus {
+  Pending
+  Eligible
+  Paid
+  Cancelled
+}
+
+enum PayoutStatus {
+  Pending
+  Approved
+  Paid
+  Cancelled
+}
+
+enum NoticeAudience {
+  All
+  Team
+  Role
+}
+
+enum DocumentType {
+  CompanyTemplate    @map("Company Template")
+  AssociateAgreement @map("Associate Agreement")
+  VendorAgreement    @map("Vendor Agreement")
+  VendorMOU          @map("Vendor MOU")
+  SalesAgreement     @map("Sales Agreement")
+  Other
+}
+
+enum DocumentAssignment {
+  All
+  Team
+  Associate
+}
+
+enum DocumentVisibility {
+  All
+  Owner
+  Admin
+}
+
+enum InstallmentPlanStatus {
+  Active
+  Completed
+  Cancelled
+}
+
+enum BankFileStatus {
+  Generated
+  Uploaded
+  Reconciled
+}
+
+enum VendorStatus {
+  Active
+  Lapsed
+}
+
+// ---------------------------------------------------------------------------
+// Identity / HR
+// ---------------------------------------------------------------------------
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         AppRole
+  associateId  String?    @unique @map("associate_id") @db.Uuid
+  associate    Associate? @relation("AssociateUser", fields: [associateId], references: [id])
+  isActive     Boolean    @default(true) @map("is_active")
+
+  pFile              PFile?
+  nameCards          NameCard[]
+  noticeReads        NoticeRead[]
+  invitedCandidates  Candidate[]  @relation("CandidateInvitedBy")
+  reviewedCandidates Candidate[]  @relation("CandidateReviewedBy")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Candidate {
+  id                     String          @id @default(uuid()) @db.Uuid
+  fullName               String          @map("full_name")
+  mobileNumber           String          @map("mobile_number")
+  email                  String
+  intendedDesignation    Designation?    @map("intended_designation")
+  intendedDirectUplineId String?         @map("intended_direct_upline_id") @db.Uuid
+  intendedDirectUpline   Associate?      @relation("CandidateIntendedUpline", fields: [intendedDirectUplineId], references: [id])
+  intendedTeam           String?         @map("intended_team")
+  onboardingToken        String          @unique @map("onboarding_token")
+  onboardingStage        OnboardingStage @default(Invited) @map("onboarding_stage")
+  submittedPayload       Json?           @map("submitted_payload")
+  photoFileKey           String?         @map("photo_file_key")
+  agreementFileKey       String?         @map("agreement_file_key")
+  signedAgreementFileKey String?         @map("signed_agreement_file_key")
+  invitedById            String?         @map("invited_by") @db.Uuid
+  invitedBy              User?           @relation("CandidateInvitedBy", fields: [invitedById], references: [id])
+  reviewedById           String?         @map("reviewed_by") @db.Uuid
+  reviewedBy             User?           @relation("CandidateReviewedBy", fields: [reviewedById], references: [id])
+  rejectReason           String?         @map("reject_reason")
+  convertedAssociateId   String?         @map("converted_associate_id") @db.Uuid
+  convertedAssociate     Associate?      @relation("CandidateConverted", fields: [convertedAssociateId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("candidates")
+}
+
+model Associate {
+  id                     String          @id @default(uuid()) @db.Uuid
+  associateCode          String          @unique @map("associate_code")
+  fullName               String          @map("full_name")
+  businessName           String?         @map("business_name")
+  mobileNumber           String?         @map("mobile_number")
+  email                  String?
+  nric                   String? // encrypted at rest, masked in UI
+  dateOfBirth            DateTime?       @map("date_of_birth") @db.Date
+  designation            Designation
+  directUplineId         String?         @map("direct_upline_id") @db.Uuid
+  directUpline           Associate?      @relation("DirectUpline", fields: [directUplineId], references: [id])
+  directDownline         Associate[]     @relation("DirectUpline")
+  secondUplineId         String?         @map("second_upline_id") @db.Uuid
+  secondUpline           Associate?      @relation("SecondUpline", fields: [secondUplineId], references: [id])
+  secondDownline         Associate[]     @relation("SecondUpline")
+  recruitingManager      String?         @map("recruiting_manager")
+  teamName               String?         @map("team_name")
+  paymentMethod          PaymentMethod?  @map("payment_method")
+  paynowNumber           String?         @map("paynow_number")
+  bankName               String?         @map("bank_name")
+  bankAccountNumber      String?         @map("bank_account_number") // encrypted
+  agreementFileKey       String?         @map("agreement_file_key")
+  signedAgreementFileKey String?         @map("signed_agreement_file_key")
+  photoFileKey           String?         @map("photo_file_key")
+  joinDate               DateTime?       @map("join_date") @db.Date
+  approvalStatus         ApprovalStatus  @default(Pending) @map("approval_status")
+  associateStatus        AssociateStatus @default(Inactive) @map("associate_status")
+
+  user                    User?              @relation("AssociateUser")
+  pFile                   PFile?
+  closedSubmissions       SalesSubmission[]  @relation("SubmissionCloser")
+  closedTransactions      SalesTransaction[] @relation("TransactionCloser")
+  ledgerLines             CommissionLedger[]
+  payouts                 MonthlyPayout[]
+  vendorReferrals         VendorReferral[]
+  assignedDocuments       Document[]         @relation("DocAssignedAssociate")
+  ownedDocuments          Document[]         @relation("DocOwner")
+  candidateIntendedUpline Candidate[]        @relation("CandidateIntendedUpline")
+  convertedFromCandidate  Candidate[]        @relation("CandidateConverted")
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  archivedAt DateTime? @map("archived_at")
+
+  @@index([directUplineId])
+  @@index([approvalStatus, associateStatus])
+  @@map("associates")
+}
+
+model PFile {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String          @unique @map("user_id") @db.Uuid
+  user        User            @relation(fields: [userId], references: [id])
+  associateId String?         @unique @map("associate_id") @db.Uuid
+  associate   Associate?      @relation(fields: [associateId], references: [id])
+  notes       String?
+  documents   PFileDocument[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("p_files")
+}
+
+model PFileDocument {
+  id        String       @id @default(uuid()) @db.Uuid
+  pFileId   String       @map("p_file_id") @db.Uuid
+  pFile     PFile        @relation(fields: [pFileId], references: [id])
+  docType   PFileDocType @map("doc_type")
+  title     String
+  fileKey   String       @map("file_key")
+  filedById String?      @map("filed_by") @db.Uuid
+  filedAt   DateTime     @map("filed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("pfile_documents")
+}
+
+model NameCard {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  user                 User     @relation(fields: [userId], references: [id])
+  companyId            String?  @map("company_id") @db.Uuid
+  company              Company? @relation(fields: [companyId], references: [id])
+  customTitle          String?  @map("custom_title")
+  qrPayload            String?  @map("qr_payload")
+  lastRenderedVcfKey   String?  @map("last_rendered_vcf_key")
+  lastRenderedImageKey String?  @map("last_rendered_image_key")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("name_cards")
+}
+
+// ---------------------------------------------------------------------------
+// Companies / Products / Commission structure
+// ---------------------------------------------------------------------------
+model Company {
+  id             String  @id @default(uuid()) @db.Uuid
+  name           String
+  legalName      String? @map("legal_name")
+  logoFileKey    String? @map("logo_file_key")
+  stampFileKey   String? @map("stamp_file_key")
+  address        String?
+  invoicePrefix  String  @unique @map("invoice_prefix")
+  invoiceNextSeq Int     @default(1) @map("invoice_next_seq")
+  gstRegistered  Boolean @default(false) @map("gst_registered")
+  gstRate        Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  active         Boolean @default(true)
+
+  products  Product[]
+  lineItems SaleLineItem[]
+  invoices  Invoice[]
+  nameCards NameCard[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("companies")
+}
+
+model Product {
+  id                         String              @id @default(uuid()) @db.Uuid
+  productCode                String              @map("product_code")
+  productName                String              @map("product_name")
+  productCategory            String?             @map("product_category")
+  commissionType             CommissionType      @default(Percentage) @map("commission_type")
+  closingCommPct             Decimal?            @map("closing_comm_pct") @db.Decimal(7, 4)
+  closingCommFixed           Decimal?            @map("closing_comm_fixed") @db.Decimal(14, 2)
+  companyCutPct              Decimal             @default(0) @map("company_cut_pct") @db.Decimal(7, 4)
+  asmOverridePct             Decimal             @default(0) @map("asm_override_pct") @db.Decimal(7, 4)
+  smOverridePct              Decimal             @default(0) @map("sm_override_pct") @db.Decimal(7, 4)
+  sdOverridePct              Decimal             @default(0) @map("sd_override_pct") @db.Decimal(7, 4)
+  companyRetainedPct         Decimal?            @map("company_retained_pct") @db.Decimal(7, 4)
+  isExternal                 Boolean             @default(false) @map("is_external")
+  externalCompanyRetainedPct Decimal?            @map("external_company_retained_pct") @db.Decimal(7, 4)
+  defaultCompanyId           String?             @map("default_company_id") @db.Uuid
+  defaultCompany             Company?            @relation(fields: [defaultCompanyId], references: [id])
+  parentProductId            String?             @map("parent_product_id") @db.Uuid
+  parentProduct              Product?            @relation("ProductUpgrade", fields: [parentProductId], references: [id])
+  upgrades                   Product[]           @relation("ProductUpgrade")
+  activeStatus               ProductActiveStatus @default(Active) @map("active_status")
+  effectiveDate              DateTime            @map("effective_date") @db.Date
+  remarks                    String?
+
+  comCodes Comcode[]
+  versions CommissionStructureVersion[]
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  archivedAt DateTime? @map("archived_at")
+
+  @@unique([productCode, effectiveDate])
+  @@map("products")
+}
+
+model Comcode {
+  id        String       @id @default(uuid()) @db.Uuid
+  productId String       @map("product_id") @db.Uuid
+  product   Product      @relation(fields: [productId], references: [id])
+  comCode   String       @map("com_code")
+  label     String
+  valueType ComValueType @map("value_type")
+  value     Decimal      @db.Decimal(14, 4)
+  active    Boolean      @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("com_codes")
+}
+
+model CommissionStructureVersion {
+  id            String         @id @default(uuid()) @db.Uuid
+  productCode   String         @map("product_code")
+  productId     String?        @map("product_id") @db.Uuid
+  product       Product?       @relation(fields: [productId], references: [id])
+  effectiveDate DateTime       @map("effective_date") @db.Date
+  rateSnapshot  Json           @map("rate_snapshot")
+  lineItems     SaleLineItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([productCode, effectiveDate])
+  @@map("commission_structure_versions")
+}
+
+// ---------------------------------------------------------------------------
+// Sales: submission (header) -> line items -> transaction
+// ---------------------------------------------------------------------------
+model SalesSubmission {
+  id                 String           @id @default(uuid()) @db.Uuid
+  salesDate          DateTime         @map("sales_date") @db.Date
+  clientName         String           @map("client_name")
+  clientContact      String?          @map("client_contact")
+  saleAmount         Decimal          @map("sale_amount") @db.Decimal(14, 2)
+  paymentPlan        PaymentPlan      @map("payment_plan")
+  deposit            Decimal?         @db.Decimal(14, 2)
+  installmentCount   Int?             @map("installment_count")
+  amountCollected    Decimal          @default(0) @map("amount_collected") @db.Decimal(14, 2)
+  closingAssociateId String           @map("closing_associate_id") @db.Uuid
+  closingAssociate   Associate        @relation("SubmissionCloser", fields: [closingAssociateId], references: [id])
+  invoiceFileKey     String?          @map("invoice_file_key")
+  remarks            String?
+  status             SubmissionStatus @default(Submitted)
+
+  lineItems   SaleLineItem[]
+  transaction SalesTransaction?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sales_submissions")
+}
+
+model SaleLineItem {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  submissionId           String                      @map("submission_id") @db.Uuid
+  submission             SalesSubmission             @relation(fields: [submissionId], references: [id])
+  transactionId          String?                     @map("transaction_id") @db.Uuid
+  transaction            SalesTransaction?           @relation(fields: [transactionId], references: [id])
+  companyId              String                      @map("company_id") @db.Uuid
+  company                Company                     @relation(fields: [companyId], references: [id])
+  productCode            String                      @map("product_code")
+  productName            String                      @map("product_name")
+  commissionType         CommissionType              @map("commission_type")
+  lineSaleAmount         Decimal                     @map("line_sale_amount") @db.Decimal(14, 2)
+  quantity               Int                         @default(1)
+  selectedComCodes       Json?                       @map("selected_com_codes")
+  upgradeParentProductId String?                     @map("upgrade_parent_product_id") @db.Uuid
+  structureVersionId     String?                     @map("structure_version_id") @db.Uuid
+  structureVersion       CommissionStructureVersion? @relation(fields: [structureVersionId], references: [id])
+  isExternal             Boolean                     @default(false) @map("is_external")
+
+  ledgerLines CommissionLedger[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([submissionId])
+  @@index([transactionId])
+  @@map("sale_line_items")
+}
+
+model SalesTransaction {
+  id                    String                @id @default(uuid()) @db.Uuid
+  transactionCode       String                @unique @map("transaction_code")
+  submissionId          String                @unique @map("submission_id") @db.Uuid
+  submission            SalesSubmission       @relation(fields: [submissionId], references: [id])
+  salesDate             DateTime              @map("sales_date") @db.Date
+  clientName            String                @map("client_name")
+  clientContact         String?               @map("client_contact")
+  saleAmount            Decimal               @map("sale_amount") @db.Decimal(14, 2)
+  paymentPlan           PaymentPlan           @map("payment_plan")
+  deposit               Decimal?              @db.Decimal(14, 2)
+  installmentCount      Int?                  @map("installment_count")
+  amountCollected       Decimal               @default(0) @map("amount_collected") @db.Decimal(14, 2)
+  closingAssociateId    String                @map("closing_associate_id") @db.Uuid
+  closingAssociate      Associate             @relation("TransactionCloser", fields: [closingAssociateId], references: [id])
+  directUplineId        String?               @map("direct_upline_id") @db.Uuid
+  secondUplineId        String?               @map("second_upline_id") @db.Uuid
+  commissionEligibility CommissionEligibility @default(Ineligible) @map("commission_eligibility")
+  agreementFileKey      String?               @map("agreement_file_key")
+  verifiedById          String?               @map("verified_by") @db.Uuid
+  verifiedAt            DateTime?             @map("verified_at")
+  remarks               String?
+
+  lineItems       SaleLineItem[]
+  invoices        Invoice[]
+  installmentPlan InstallmentPlan?
+  ledgerLines     CommissionLedger[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([closingAssociateId])
+  @@index([commissionEligibility])
+  @@map("sales_transactions")
+}
+
+// ---------------------------------------------------------------------------
+// Invoicing / installments
+// ---------------------------------------------------------------------------
+model Invoice {
+  id               String               @id @default(uuid()) @db.Uuid
+  transactionId    String               @map("transaction_id") @db.Uuid
+  transaction      SalesTransaction     @relation(fields: [transactionId], references: [id])
+  companyId        String               @map("company_id") @db.Uuid
+  company          Company              @relation(fields: [companyId], references: [id])
+  invoiceNumber    String               @map("invoice_number")
+  invoiceType      InvoiceType          @default(ComputerGenerated) @map("invoice_type")
+  installmentIndex Int?                 @map("installment_index")
+  amount           Decimal              @db.Decimal(14, 2)
+  status           InvoiceStatus        @default(Outstanding)
+  paidDate         DateTime?            @map("paid_date")
+  paidMarkedById   String?              @map("paid_marked_by") @db.Uuid
+  pdfFileKey       String?              @map("pdf_file_key")
+  signedPdfFileKey String?              @map("signed_pdf_file_key")
+  remarks          String?
+  scheduleEntry    InstallmentSchedule?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, invoiceNumber])
+  @@map("invoices")
+}
+
+model InstallmentPlan {
+  id               String                @id @default(uuid()) @db.Uuid
+  transactionId    String                @unique @map("transaction_id") @db.Uuid
+  transaction      SalesTransaction      @relation(fields: [transactionId], references: [id])
+  totalAmount      Decimal               @map("total_amount") @db.Decimal(14, 2)
+  deposit          Decimal               @default(0) @db.Decimal(14, 2)
+  installmentCount Int                   @map("installment_count")
+  adjustableAmount Decimal?              @map("adjustable_amount") @db.Decimal(14, 2)
+  status           InstallmentPlanStatus @default(Active)
+  schedule         InstallmentSchedule[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("installment_plans")
+}
+
+model InstallmentSchedule {
+  id        String          @id @default(uuid()) @db.Uuid
+  planId    String          @map("plan_id") @db.Uuid
+  plan      InstallmentPlan @relation(fields: [planId], references: [id])
+  sequence  Int
+  dueAmount Decimal         @map("due_amount") @db.Decimal(14, 2)
+  dueDate   DateTime?       @map("due_date") @db.Date
+  invoiceId String?         @unique @map("invoice_id") @db.Uuid
+  invoice   Invoice?        @relation(fields: [invoiceId], references: [id])
+  paid      Boolean         @default(false)
+  paidDate  DateTime?       @map("paid_date")
+
+  @@unique([planId, sequence])
+  @@map("installment_schedule")
+}
+
+// ---------------------------------------------------------------------------
+// Commission ledger / payouts
+// ---------------------------------------------------------------------------
+model CommissionLedger {
+  id               String                @id @default(uuid()) @db.Uuid
+  transactionId    String                @map("transaction_id") @db.Uuid
+  transaction      SalesTransaction      @relation(fields: [transactionId], references: [id])
+  lineItemId       String?               @map("line_item_id") @db.Uuid
+  lineItem         SaleLineItem?         @relation(fields: [lineItemId], references: [id])
+  payoutMonth      String                @map("payout_month") // YYYY-MM
+  associateId      String?               @map("associate_id") @db.Uuid
+  associate        Associate?            @relation(fields: [associateId], references: [id])
+  associateName    String?               @map("associate_name")
+  designation      Designation?
+  lineType         LedgerLineType        @map("line_type")
+  comCode          String?               @map("com_code")
+  basisAmount      Decimal               @map("basis_amount") @db.Decimal(14, 2)
+  rateOrValue      Decimal?              @map("rate_or_value") @db.Decimal(14, 4)
+  amount           Decimal               @db.Decimal(14, 2)
+  isManualOverride Boolean               @default(false) @map("is_manual_override")
+  overrideReason   String?               @map("override_reason")
+  eligibility      CommissionEligibility @default(Ineligible)
+  status           LedgerStatus          @default(Pending)
+  remarks          String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([associateId, payoutMonth])
+  @@index([transactionId])
+  @@map("commission_ledger")
+}
+
+model MonthlyPayout {
+  id                 String         @id @default(uuid()) @db.Uuid
+  payoutMonth        String         @map("payout_month")
+  associateId        String         @map("associate_id") @db.Uuid
+  associate          Associate      @relation(fields: [associateId], references: [id])
+  associateName      String         @map("associate_name")
+  designation        Designation
+  personalCommission Decimal        @default(0) @map("personal_commission") @db.Decimal(14, 2)
+  overrideCommission Decimal        @default(0) @map("override_commission") @db.Decimal(14, 2)
+  addonCommission    Decimal        @default(0) @map("addon_commission") @db.Decimal(14, 2)
+  totalPayable       Decimal        @default(0) @map("total_payable") @db.Decimal(14, 2)
+  paymentMethod      PaymentMethod? @map("payment_method")
+  paynowNumber       String?        @map("paynow_number")
+  bankName           String?        @map("bank_name")
+  bankAccountNumber  String?        @map("bank_account_number") // encrypted
+  payoutStatus       PayoutStatus   @default(Pending) @map("payout_status")
+  paidDate           DateTime?      @map("paid_date")
+  statementFileKey   String?        @map("statement_file_key")
+  bankFileBatchId    String?        @map("bank_file_batch_id") @db.Uuid
+  bankFileBatch      BankFileBatch? @relation(fields: [bankFileBatchId], references: [id])
+  remarks            String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([associateId, payoutMonth])
+  @@map("monthly_payouts")
+}
+
+model BankFileBatch {
+  id            String          @id @default(uuid()) @db.Uuid
+  payoutMonth   String          @map("payout_month")
+  fileKey       String?         @map("file_key")
+  status        BankFileStatus  @default(Generated)
+  generatedAt   DateTime        @default(now()) @map("generated_at")
+  generatedById String?         @map("generated_by") @db.Uuid
+  payouts       MonthlyPayout[]
+
+  @@map("bank_file_batches")
+}
+
+// ---------------------------------------------------------------------------
+// Virtual-office features
+// ---------------------------------------------------------------------------
+model Notice {
+  id                String         @id @default(uuid()) @db.Uuid
+  title             String
+  body              String
+  attachmentFileKey String?        @map("attachment_file_key")
+  audience          NoticeAudience @default(All)
+  audienceTeam      String?        @map("audience_team")
+  audienceRole      AppRole?       @map("audience_role")
+  postedById        String?        @map("posted_by") @db.Uuid
+  publishedAt       DateTime       @default(now()) @map("published_at")
+  reads             NoticeRead[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notices")
+}
+
+model NoticeRead {
+  id       String   @id @default(uuid()) @db.Uuid
+  noticeId String   @map("notice_id") @db.Uuid
+  notice   Notice   @relation(fields: [noticeId], references: [id])
+  userId   String   @map("user_id") @db.Uuid
+  user     User     @relation(fields: [userId], references: [id])
+  readAt   DateTime @default(now()) @map("read_at")
+
+  @@unique([noticeId, userId])
+  @@map("notice_reads")
+}
+
+model Document {
+  id                  String             @id @default(uuid()) @db.Uuid
+  type                DocumentType
+  title               String
+  fileKey             String             @map("file_key")
+  ownerAssociateId    String?            @map("owner_associate_id") @db.Uuid
+  ownerAssociate      Associate?         @relation("DocOwner", fields: [ownerAssociateId], references: [id])
+  assignment          DocumentAssignment @default(All)
+  assignedTeam        String?            @map("assigned_team")
+  assignedAssociateId String?            @map("assigned_associate_id") @db.Uuid
+  assignedAssociate   Associate?         @relation("DocAssignedAssociate", fields: [assignedAssociateId], references: [id])
+  visibility          DocumentVisibility @default(All)
+  uploadedById        String?            @map("uploaded_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("documents")
+}
+
+model VendorReferral {
+  id                     String       @id @default(uuid()) @db.Uuid
+  vendorName             String       @map("vendor_name")
+  vendorType             String?      @map("vendor_type")
+  contact                String?
+  agreementFileKey       String?      @map("agreement_file_key")
+  submittedByAssociateId String?      @map("submitted_by_associate_id") @db.Uuid
+  submittedByAssociate   Associate?   @relation(fields: [submittedByAssociateId], references: [id])
+  submittedAt            DateTime     @default(now()) @map("submitted_at")
+  status                 VendorStatus @default(Active)
+  remarks                String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("vendor_referrals")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  beforeJson  Json?    @map("before_json")
+  afterJson   Json?    @map("after_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("audit_log")
+}
