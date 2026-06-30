@@ -1,6 +1,7 @@
 import { ApprovalStatus, AssociateStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { roleLabel } from "@/lib/rbac";
+import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
@@ -55,7 +56,7 @@ export default async function AdminDashboard() {
                     {a.businessName && <div className="text-[11px] text-muted-2">{a.businessName}</div>}
                   </td>
                   <td className="px-5 py-3 text-muted">{a.teamName ?? "—"}</td>
-                  <td className="px-5 py-3 text-muted">{a.designation}</td>
+                  <td className="px-5 py-3 text-muted">{humanize(a.designation)}</td>
                   <td className="px-5 py-3 text-muted">{a.directUpline?.associateCode ?? "—"}</td>
                   <td className="px-5 py-3"><StatusPill status={a.approvalStatus} /></td>
                   <td className="px-5 py-3"><StatusPill status={a.associateStatus} /></td>
