@@ -6,6 +6,9 @@ import { isAdminRole, roleLabel } from "@/lib/rbac";
 import { initialsOf } from "@/lib/utils";
 import { AppShell } from "@/components/shell/app-shell";
 
+// Authed, per-request data — never prerender at build.
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
