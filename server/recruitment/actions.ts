@@ -2,6 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import {
   ApprovalStatus, AssociateStatus, Designation, OnboardingStage,
   PaymentMethod, AppRole, PFileDocType,
@@ -9,13 +10,24 @@ import {
 import { hash } from "@node-rs/argon2";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
+import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 
 async function requireAdmin() {
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return null;
   return session;
+}
+
+// Absolute base URL for links in emails: prefer AUTH_URL, else the request host.
+async function baseUrl(): Promise<string> {
+  if (env.AUTH_URL) return env.AUTH_URL.replace(/\/$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : "";
 }
 
 // app_role provisioned from org designation (ASM has no dedicated role → Consultant scope)
@@ -46,7 +58,7 @@ export type InviteInput = {
   intendedTeam?: string;
 };
 
-export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean; error?: string; token?: string }> {
+export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean; error?: string; token?: string; emailed?: boolean }> {
   const session = await requireAdmin();
   if (!session) return { ok: false, error: "Forbidden" };
   if (!input.fullName?.trim()) return { ok: false, error: "Full name is required." };
@@ -58,11 +70,12 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   if (input.intendedDirectUplineCode && !upline) return { ok: false, error: "Upline code not found." };
 
   const token = randomBytes(24).toString("base64url");
-  await prisma.candidate.create({
+  const email = input.email.trim().toLowerCase();
+  const candidate = await prisma.candidate.create({
     data: {
       fullName: input.fullName.trim(),
       mobileNumber: input.mobileNumber.trim(),
-      email: input.email.trim().toLowerCase(),
+      email,
       intendedDesignation: input.intendedDesignation,
       intendedDirectUplineId: upline?.id ?? null,
       intendedTeam: input.intendedTeam?.trim() || null,
@@ -71,8 +84,13 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
       invitedById: session.user.id,
     },
   });
+
+  // Best-effort email of the onboarding link (no-op if SMTP unconfigured).
+  const link = `${await baseUrl()}/onboard/${token}`;
+  const { sent } = await sendMail({ ...onboardingInviteEmail(candidate.fullName, link), to: email });
+
   revalidatePath("/admin/recruitment");
-  return { ok: true, token };
+  return { ok: true, token, emailed: sent };
 }
 
 // ---------------------------------------------------------------------------
@@ -165,6 +183,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     : p.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null;
 
   const result = await prisma.$transaction(async (tx) => {
+    let provisioned = false;
     const associate = await tx.associate.create({
       data: {
         associateCode: code,
@@ -191,6 +210,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     // provision a login if the candidate email is not already taken
     const existing = await tx.user.findUnique({ where: { email: c.email } });
     if (!existing) {
+      provisioned = true;
       const pwHash = await hash(TEMP_PASSWORD);
       const user = await tx.user.create({
         data: {
@@ -223,13 +243,21 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
         convertedAssociateId: associate.id,
       },
     });
-    return associate.associateCode;
+    return { code: associate.associateCode, provisioned };
   });
+
+  // Email the new associate their login credentials (best-effort, post-commit).
+  if (result.provisioned) {
+    await sendMail({
+      ...approvalEmail(c.fullName, `${await baseUrl()}/login`, c.email, TEMP_PASSWORD),
+      to: c.email,
+    });
+  }
 
   revalidatePath("/admin/recruitment");
   revalidatePath("/admin/associates");
   revalidatePath("/admin/dashboard");
-  return { ok: true, code: result };
+  return { ok: true, code: result.code };
 }
 
 export async function rejectCandidate(id: string, reason: string): Promise<{ ok: boolean; error?: string }> {
