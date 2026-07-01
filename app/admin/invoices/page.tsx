@@ -103,7 +103,10 @@ export default async function InvoicesPage() {
                     <td className="px-5 py-3 text-ink">{formatSGD(inv.amount)}</td>
                     <td className="px-5 py-3"><StatusPill status={inv.status} /></td>
                     <td className="px-5 py-3">
-                      {inv.status === InvoiceStatus.Outstanding && <MarkPaidButton id={inv.id} kind="invoice" />}
+                      <div className="flex items-center justify-end gap-3">
+                        <a href={`/admin/invoices/${inv.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">PDF ↗</a>
+                        {inv.status === InvoiceStatus.Outstanding && <MarkPaidButton id={inv.id} kind="invoice" />}
+                      </div>
                     </td>
                   </tr>
                 ))}
