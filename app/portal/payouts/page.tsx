@@ -32,6 +32,7 @@ export default async function MyPayoutsPage() {
                   <th className="px-5 py-3 font-medium">Add-on</th>
                   <th className="px-5 py-3 font-medium">Total</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
@@ -43,6 +44,9 @@ export default async function MyPayoutsPage() {
                     <td className="px-5 py-3 text-muted">{formatSGD(p.addonCommission)}</td>
                     <td className="px-5 py-3 font-medium text-ink">{formatSGD(p.totalPayable)}</td>
                     <td className="px-5 py-3"><StatusPill status={p.payoutStatus} /></td>
+                    <td className="px-5 py-3 text-right">
+                      <a href={`/payouts/${p.id}/statement`} target="_blank" rel="noopener" className="whitespace-nowrap text-[12px] text-action hover:underline">Statement ↗</a>
+                    </td>
                   </tr>
                 ))}
               </tbody>

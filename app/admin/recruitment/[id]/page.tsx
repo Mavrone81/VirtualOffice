@@ -80,7 +80,13 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
 
           {submitted ? (
             <Card className="p-5">
-              <h2 className="mb-4 font-display text-[16px] text-ink">Submitted details</h2>
+              <div className="mb-4 flex items-center gap-4">
+                {c.photoFileKey ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={`/api/files/${c.photoFileKey}`} alt={c.fullName} className="h-16 w-16 rounded-full object-cover" />
+                ) : null}
+                <h2 className="font-display text-[16px] text-ink">Submitted details</h2>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Business name" value={p.businessName} />
                 <Field label="NRIC / FIN" value={maskNric(safeDecrypt(p.nric))} />

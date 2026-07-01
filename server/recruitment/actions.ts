@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
+import { putObject, getObject, imageExt } from "@/lib/storage";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 
 async function requireAdmin() {
@@ -108,6 +109,7 @@ export type OnboardingSubmission = {
   bankName?: string;
   bankAccountNumber?: string;
   agreementAccepted: boolean;
+  photo?: File | null;
 };
 
 export async function submitOnboarding(
@@ -120,6 +122,16 @@ export async function submitOnboarding(
   if (c.onboardingStage === OnboardingStage.Rejected) return { ok: false, error: "This application is closed." };
   if (!s.nric?.trim()) return { ok: false, error: "NRIC/FIN is required." };
   if (!s.agreementAccepted) return { ok: false, error: "You must accept the Associate Agreement to continue." };
+
+  // Optional profile photo → object storage.
+  let photoFileKey = c.photoFileKey ?? undefined;
+  if (s.photo && s.photo.size > 0) {
+    const ext = imageExt(s.photo.type);
+    if (!ext) return { ok: false, error: "Photo must be a JPG, PNG, or WebP image." };
+    if (s.photo.size > 5_000_000) return { ok: false, error: "Photo must be under 5 MB." };
+    photoFileKey = `candidates/${c.id}/photo.${ext}`;
+    await putObject(photoFileKey, Buffer.from(await s.photo.arrayBuffer()));
+  }
 
   // Sensitive fields are encrypted at rest inside the JSON payload; the same
   // ciphertext is copied verbatim onto the Associate record on approval.
@@ -141,6 +153,7 @@ export async function submitOnboarding(
     where: { id: c.id },
     data: {
       submittedPayload: payload,
+      photoFileKey,
       onboardingStage: OnboardingStage.SignedPendingApproval,
     },
   });
@@ -206,6 +219,18 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
         associateStatus: AssociateStatus.Active,
       },
     });
+
+    // Copy the onboarding photo into the associate's own namespace so they can
+    // view it in the portal (serving route scopes non-admins to associates/<id>/).
+    if (c.photoFileKey) {
+      const buf = await getObject(c.photoFileKey);
+      if (buf) {
+        const ext = c.photoFileKey.split(".").pop() ?? "jpg";
+        const key = `associates/${associate.id}/photo.${ext}`;
+        await putObject(key, buf);
+        await tx.associate.update({ where: { id: associate.id }, data: { photoFileKey: key } });
+      }
+    }
 
     // provision a login if the candidate email is not already taken
     const existing = await tx.user.findUnique({ where: { email: c.email } });
