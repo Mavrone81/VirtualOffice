@@ -13,6 +13,16 @@ const schema = z.object({
   PII_ENCRYPTION_KEY: z.string().min(64),
   PII_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
 
+  // Transactional email (SMTP). All optional — when unset, mail is logged
+  // instead of sent so dev/build/CI work without a relay (see lib/mail.ts).
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_SECURE: bool.default(false),
+  EMAIL_FROM: z.string().default("Enshrine Virtual Office <no-reply@enshrine.com.sg>"),
+  EMAIL_REPLY_TO: z.string().optional(),
+
   INVOICE_NUMBER_FORMAT: z.string().default("INV-{COMPANY}-{YYYY}-{SEQ}"),
   INVOICE_MODE: z.enum(["per-company", "consolidated"]).default("per-company"),
   COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD: z.coerce.number().int().default(3),
