@@ -10,9 +10,12 @@ RUN pnpm install --frozen-lockfile
 
 # --- build ---
 FROM base AS builder
-# Build-time placeholder so Prisma client init never trips on a missing var
-# (real DATABASE_URL is injected at runtime; authed pages are force-dynamic).
+# Build-time placeholders so eager module init (Prisma client, env/crypto
+# validation) never trips during `next build`. Real values are injected at
+# runtime via .env; authed pages are force-dynamic so nothing DB-hits at build.
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+ENV AUTH_SECRET="build-time-placeholder-not-used-at-runtime"
+ENV PII_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm prisma generate && pnpm build
