@@ -28,8 +28,8 @@ export const adminNav: NavGroup[] = [
     items: [
       { label: "Products & Com", icon: Tags },
       { label: "Commission", href: "/admin/commission", icon: Calculator },
-      { label: "Invoices", icon: FileText },
-      { label: "Payouts", icon: Banknote },
+      { label: "Invoices", href: "/admin/invoices", icon: FileText },
+      { label: "Payouts", href: "/admin/payouts", icon: Banknote },
     ],
   },
   {
@@ -48,8 +48,8 @@ export const portalNav: NavGroup[] = [
     items: [
       { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
       { label: "My Sales", href: "/portal/sales", icon: Receipt },
-      { label: "My Commissions", icon: Calculator },
-      { label: "My Payouts", icon: Banknote },
+      { label: "My Commissions", href: "/portal/commissions", icon: Calculator },
+      { label: "My Payouts", href: "/portal/payouts", icon: Banknote },
     ],
   },
   {
