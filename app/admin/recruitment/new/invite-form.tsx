@@ -21,6 +21,7 @@ export function InviteForm({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   const [link, setLink] = useState<string>();
+  const [emailed, setEmailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [f, setF] = useState<InviteInput>({
     fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesConsultant",
@@ -31,7 +32,7 @@ export function InviteForm({
     setError(undefined);
     start(async () => {
       const r = await inviteCandidate(f);
-      if (r.ok && r.token) setLink(`${baseUrl}/onboard/${r.token}`);
+      if (r.ok && r.token) { setLink(`${baseUrl}/onboard/${r.token}`); setEmailed(!!r.emailed); }
       else setError(r.error ?? "Could not create invite.");
     });
   }
@@ -53,8 +54,9 @@ export function InviteForm({
         <Card className="p-6">
           <div className="mb-1 text-[13px] font-medium text-success">✓ Invite created for {f.fullName}</div>
           <p className="text-[13px] text-muted">
-            Send this private onboarding link to the candidate. It works once and lets them complete their own details and
-            sign the Associate Agreement — no login required.
+            {emailed
+              ? `We've emailed this onboarding link to ${f.email}. You can also copy it below to share directly.`
+              : "Send this private onboarding link to the candidate. It works once and lets them complete their own details and sign the Associate Agreement — no login required."}
           </p>
           <div className="mt-4 flex items-center gap-2">
             <input readOnly value={link} className={`${selectCls} font-mono text-[12px] text-body`} onFocus={(e) => e.target.select()} />
