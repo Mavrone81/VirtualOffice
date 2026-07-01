@@ -12,8 +12,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
-import { encryptPII } from "@/lib/crypto";
+import { encryptPII, maskNric } from "@/lib/crypto";
 import { putObject, getObject, imageExt } from "@/lib/storage";
+import { humanize } from "@/lib/labels";
+import { renderAgreementPdf } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 
 async function requireAdmin() {
@@ -110,6 +112,7 @@ export type OnboardingSubmission = {
   bankAccountNumber?: string;
   agreementAccepted: boolean;
   photo?: File | null;
+  signature?: string; // PNG data URL from the signature pad
 };
 
 export async function submitOnboarding(
@@ -122,6 +125,7 @@ export async function submitOnboarding(
   if (c.onboardingStage === OnboardingStage.Rejected) return { ok: false, error: "This application is closed." };
   if (!s.nric?.trim()) return { ok: false, error: "NRIC/FIN is required." };
   if (!s.agreementAccepted) return { ok: false, error: "You must accept the Associate Agreement to continue." };
+  if (!s.signature) return { ok: false, error: "A signature is required to complete your agreement." };
 
   // Optional profile photo → object storage.
   let photoFileKey = c.photoFileKey ?? undefined;
@@ -149,11 +153,36 @@ export async function submitOnboarding(
     agreementAcceptedAt: new Date().toISOString(),
   };
 
+  // E-signature → store the raw signature image, then render and store a signed
+  // Associate Agreement PDF embedding it.
+  let signedAgreementFileKey = c.signedAgreementFileKey ?? undefined;
+  const sigMatch = s.signature.match(/^data:image\/png;base64,(.+)$/);
+  if (!sigMatch) return { ok: false, error: "Invalid signature image." };
+  await putObject(`candidates/${c.id}/signature.png`, Buffer.from(sigMatch[1], "base64"));
+
+  const upline = c.intendedDirectUplineId
+    ? await prisma.associate.findUnique({ where: { id: c.intendedDirectUplineId }, select: { fullName: true, associateCode: true } })
+    : null;
+  const agreementPdf = await renderAgreementPdf({
+    fullName: c.fullName,
+    designation: humanize(c.intendedDesignation ?? "Sales Consultant"),
+    email: c.email,
+    mobile: c.mobileNumber,
+    nricMasked: maskNric(s.nric.trim()),
+    teamName: c.intendedTeam,
+    uplineName: upline ? `${upline.fullName} (${upline.associateCode})` : null,
+    signedDate: new Date(),
+    signatureDataUrl: s.signature,
+  });
+  signedAgreementFileKey = `candidates/${c.id}/signed-agreement.pdf`;
+  await putObject(signedAgreementFileKey, agreementPdf);
+
   await prisma.candidate.update({
     where: { id: c.id },
     data: {
       submittedPayload: payload,
       photoFileKey,
+      signedAgreementFileKey,
       onboardingStage: OnboardingStage.SignedPendingApproval,
     },
   });
@@ -220,8 +249,9 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
       },
     });
 
-    // Copy the onboarding photo into the associate's own namespace so they can
-    // view it in the portal (serving route scopes non-admins to associates/<id>/).
+    // Copy onboarding artifacts (photo, signed agreement) into the associate's
+    // own namespace so they're viewable in the portal (serving route scopes
+    // non-admins to associates/<id>/).
     if (c.photoFileKey) {
       const buf = await getObject(c.photoFileKey);
       if (buf) {
@@ -229,6 +259,15 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
         const key = `associates/${associate.id}/photo.${ext}`;
         await putObject(key, buf);
         await tx.associate.update({ where: { id: associate.id }, data: { photoFileKey: key } });
+      }
+    }
+    let associateAgreementKey: string | null = null;
+    if (c.signedAgreementFileKey) {
+      const buf = await getObject(c.signedAgreementFileKey);
+      if (buf) {
+        associateAgreementKey = `associates/${associate.id}/signed-agreement.pdf`;
+        await putObject(associateAgreementKey, buf);
+        await tx.associate.update({ where: { id: associate.id }, data: { signedAgreementFileKey: associateAgreementKey } });
       }
     }
 
@@ -246,13 +285,13 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
         },
       });
       const pFile = await tx.pFile.create({ data: { userId: user.id, associateId: associate.id } });
-      if (c.signedAgreementFileKey) {
+      if (associateAgreementKey) {
         await tx.pFileDocument.create({
           data: {
             pFileId: pFile.id,
             docType: PFileDocType.SignedAssociateAgreement,
             title: "Signed Associate Agreement",
-            fileKey: c.signedAgreementFileKey,
+            fileKey: associateAgreementKey,
             filedById: session.user.id,
             filedAt: new Date(),
           },

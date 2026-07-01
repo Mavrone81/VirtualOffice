@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitOnboarding, type OnboardingSubmission } from "@/server/recruitment/actions";
+import { SignaturePad } from "./signature-pad";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -21,6 +22,7 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
   function submit() {
     setError(undefined);
     if (!f.agreementAccepted) { setError("Please accept the Associate Agreement to continue."); return; }
+    if (!f.signature) { setError("Please sign in the box to complete your agreement."); return; }
     start(async () => {
       const r = await submitOnboarding(token, f);
       if (r.ok) setDone(true);
@@ -138,10 +140,16 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
           <input type="checkbox" className="mt-0.5" checked={f.agreementAccepted} onChange={(e) => set({ agreementAccepted: e.target.checked })} />
           <span>I have read and accept the Associate Agreement, and confirm the details above are accurate.</span>
         </label>
+
+        <div className="mt-4">
+          <Label>Signature *</Label>
+          <SignaturePad onChange={(dataUrl) => set({ signature: dataUrl ?? undefined })} />
+          <p className="mt-1 text-[12px] text-muted-2">Draw your signature above using your mouse, finger, or stylus. This becomes your signed agreement.</p>
+        </div>
       </div>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
-      <Button onClick={submit} disabled={pending || !f.nric || !f.agreementAccepted} className="w-full sm:w-auto">
+      <Button onClick={submit} disabled={pending || !f.nric || !f.agreementAccepted || !f.signature} className="w-full sm:w-auto">
         {pending ? "Submitting…" : "Submit & sign"}
       </Button>
     </div>
