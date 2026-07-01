@@ -99,6 +99,16 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
                   : <Field label="Bank account" value={p.bankName ? `${p.bankName} · ${maskAccount(safeDecrypt(p.bankAccountNumber))}` : null} />}
                 <Field label="Agreement signed" value={p.agreementAcceptedAt ? format(new Date(p.agreementAcceptedAt), "dd MMM yyyy, HH:mm") : null} />
               </div>
+              {c.signedAgreementFileKey && (
+                <a
+                  href={`/api/files/${c.signedAgreementFileKey}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-line bg-paper-100 px-3 py-2 text-[13px] text-action hover:bg-paper-200"
+                >
+                  📄 View signed Associate Agreement ↗
+                </a>
+              )}
             </Card>
           ) : (
             <Card className="p-5 text-[13px] text-muted">
