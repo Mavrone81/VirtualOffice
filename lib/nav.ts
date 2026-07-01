@@ -18,7 +18,7 @@ export const adminNav: NavGroup[] = [
     items: [
       { label: "Overview", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Recruitment", icon: UserPlus, badgeKey: "recruit" },
-      { label: "Associates", icon: Users },
+      { label: "Associates", href: "/admin/associates", icon: Users },
       { label: "Sales · Verify", href: "/admin/sales/verify", icon: BadgeCheck, badgeKey: "verify" },
       { label: "Transactions", href: "/admin/sales/transactions", icon: Receipt },
     ],
