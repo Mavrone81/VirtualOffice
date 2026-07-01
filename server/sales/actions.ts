@@ -127,25 +127,28 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
       byCompany.set(li.companyId, (byCompany.get(li.companyId) ?? D(0)).add(D(li.lineSaleAmount)));
     }
 
-    // one invoice per company entity (PRD §6.5b)
-    for (const [companyId, amount] of byCompany) {
-      const company = await db.company.update({
-        where: { id: companyId },
-        data: { invoiceNextSeq: { increment: 1 } },
-      });
-      const seq = company.invoiceNextSeq - 1;
-      const invoiceNumber = `INV-${company.invoicePrefix}-${format(sub.salesDate, "yyyy")}-${String(seq).padStart(5, "0")}`;
-      await db.invoice.create({
-        data: {
-          transactionId: transaction.id,
-          companyId,
-          invoiceNumber,
-          invoiceType: InvoiceType.ComputerGenerated,
-          amount,
-          status: fullPayment ? InvoiceStatus.Paid : InvoiceStatus.Outstanding,
-          paidDate: fullPayment ? new Date() : null,
-        },
-      });
+    // Full Payment → one invoice per company entity, marked Paid (collected on
+    // verify). Installments are represented by the schedule below instead.
+    if (fullPayment) {
+      for (const [companyId, amount] of byCompany) {
+        const company = await db.company.update({
+          where: { id: companyId },
+          data: { invoiceNextSeq: { increment: 1 } },
+        });
+        const seq = company.invoiceNextSeq - 1;
+        const invoiceNumber = `INV-${company.invoicePrefix}-${format(sub.salesDate, "yyyy")}-${String(seq).padStart(5, "0")}`;
+        await db.invoice.create({
+          data: {
+            transactionId: transaction.id,
+            companyId,
+            invoiceNumber,
+            invoiceType: InvoiceType.ComputerGenerated,
+            amount,
+            status: InvoiceStatus.Paid,
+            paidDate: new Date(),
+          },
+        });
+      }
     }
 
     // installment plan + schedule

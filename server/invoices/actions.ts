@@ -1,0 +1,55 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { InvoiceStatus } from "@prisma/client";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
+import { isAdminRole } from "@/lib/rbac";
+import { recomputeEligibility } from "@/server/commission/eligibility";
+
+async function requireAdmin() {
+  const session = await auth();
+  if (!session || !isAdminRole(session.user.role)) return null;
+  return session;
+}
+
+export async function markInvoicePaid(invoiceId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await requireAdmin();
+  if (!session) return { ok: false, error: "Forbidden" };
+
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) return { ok: false, error: "Not found" };
+
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: { status: InvoiceStatus.Paid, paidDate: new Date(), paidMarkedById: session.user.id },
+  });
+  await recomputeEligibility(invoice.transactionId);
+
+  revalidatePath("/admin/invoices");
+  revalidatePath("/admin/commission");
+  revalidatePath("/admin/payouts");
+  return { ok: true };
+}
+
+export async function markInstallmentPaid(scheduleId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await requireAdmin();
+  if (!session) return { ok: false, error: "Forbidden" };
+
+  const entry = await prisma.installmentSchedule.findUnique({
+    where: { id: scheduleId },
+    include: { plan: true },
+  });
+  if (!entry) return { ok: false, error: "Not found" };
+
+  await prisma.installmentSchedule.update({
+    where: { id: scheduleId },
+    data: { paid: true, paidDate: new Date() },
+  });
+  await recomputeEligibility(entry.plan.transactionId);
+
+  revalidatePath("/admin/invoices");
+  revalidatePath("/admin/commission");
+  revalidatePath("/admin/payouts");
+  return { ok: true };
+}
