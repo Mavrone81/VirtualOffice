@@ -25,11 +25,15 @@ services:
     container_name: virtualoffice-app
     restart: unless-stopped
     env_file: .env
+    environment:
+      STORAGE_DIR: /data/uploads
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "127.0.0.1:10502:3000" # nginx proxies here
+    volumes:
+      - vo_uploads:/data/uploads # persisted associate photos / documents
 
   # One-off: prisma migrate deploy + seed (uses the full builder image).
   migrate:
@@ -46,3 +50,4 @@ services:
 
 volumes:
   vo_pgdata:
+  vo_uploads:

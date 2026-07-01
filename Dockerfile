@@ -27,6 +27,9 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+# Uploads root — chown so a fresh named volume mounted here inherits nextjs
+# ownership (the container runs as the non-root nextjs user).
+RUN mkdir -p /data/uploads && chown -R nextjs:nodejs /data
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static

@@ -13,6 +13,10 @@ const schema = z.object({
   PII_ENCRYPTION_KEY: z.string().min(64),
   PII_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
 
+  // Local-filesystem object storage root. In prod this is a mounted Docker
+  // volume (/data/uploads); in dev it defaults to a repo-relative folder.
+  STORAGE_DIR: z.string().default(".uploads"),
+
   // Transactional email (SMTP). All optional — when unset, mail is logged
   // instead of sent so dev/build/CI work without a relay (see lib/mail.ts).
   SMTP_HOST: z.string().optional(),

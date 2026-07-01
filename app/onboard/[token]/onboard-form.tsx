@@ -76,6 +76,17 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
             <Label htmlFor="ecp">Emergency contact number</Label>
             <Input id="ecp" value={f.emergencyContactNumber ?? ""} onChange={(e) => set({ emergencyContactNumber: e.target.value })} />
           </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="photo">Profile photo</Label>
+            <input
+              id="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => set({ photo: e.target.files?.[0] ?? null })}
+              className="block w-full text-[13px] text-body file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[13px] file:text-white hover:file:bg-ink-700"
+            />
+            <p className="mt-1 text-[12px] text-muted-2">Used on your name card and staff record. JPG, PNG or WebP, up to 5&nbsp;MB. Optional.</p>
+          </div>
         </div>
       </div>
 

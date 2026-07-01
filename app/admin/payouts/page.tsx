@@ -82,7 +82,12 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Prom
                     <td className="px-5 py-3 font-medium text-ink">{formatSGD(p.totalPayable)}</td>
                     <td className="px-5 py-3 text-muted">{humanize(p.paymentMethod) || "—"}</td>
                     <td className="px-5 py-3"><StatusPill status={p.payoutStatus} /></td>
-                    <td className="px-5 py-3"><PayoutRowActions id={p.id} status={p.payoutStatus} /></td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-3">
+                        <a href={`/payouts/${p.id}/statement`} target="_blank" rel="noopener" className="whitespace-nowrap text-[12px] text-action hover:underline">Statement ↗</a>
+                        <PayoutRowActions id={p.id} status={p.payoutStatus} />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
