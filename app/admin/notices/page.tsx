@@ -1,7 +1,6 @@
 import { format } from "date-fns";
 import { NoticeAudience } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { humanize } from "@/lib/labels";
 import { roleLabel } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";

@@ -1,0 +1,123 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/mavrone81/virtualoffice
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # CI — typecheck, lint, unit tests. Runs on every push and PR.
+  # Grows as the codebase grows: add test files under server/**/*.test.ts or
+  # lib/**/*.test.ts and they are picked up automatically by `pnpm test`.
+  # ---------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Build-time placeholders so eager env/prisma init never trips in CI
+      # (real values are only needed at runtime in production).
+      DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+      AUTH_SECRET: "ci-placeholder-not-used-at-runtime"
+      PII_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prisma generate
+        run: pnpm prisma generate
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+      - name: Lint
+        run: pnpm lint
+      - name: Unit tests
+        run: pnpm test
+
+  # ---------------------------------------------------------------------------
+  # Build the production image and push to GHCR. Only on push to main.
+  # ---------------------------------------------------------------------------
+  build-push:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Deploy — 165 pulls the freshly built image and restarts the app.
+  # Requires repo secrets: SSH_HOST, SSH_USER, SSH_KEY.
+  # NB: database migrations are NOT auto-applied here. When prisma/schema.prisma
+  # changes, run the migrate profile once manually:
+  #   docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
+  # ---------------------------------------------------------------------------
+  deploy:
+    needs: build-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check deploy secrets are configured
+        id: check
+        run: |
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            echo "::warning::SSH secrets not set (SSH_HOST/SSH_USER/SSH_KEY) — skipping deploy. Image is built & pushed to GHCR."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Deploy over SSH
+        if: steps.check.outputs.ready == 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE
+          script: |
+            set -e
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            cd /root/VirtualOffice
+            git pull --ff-only origin main
+            docker compose -f docker-compose.prod.yml pull app
+            docker compose -f docker-compose.prod.yml up -d app
+            docker image prune -f
+            docker logout ghcr.io
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE: ${{ env.IMAGE }}
