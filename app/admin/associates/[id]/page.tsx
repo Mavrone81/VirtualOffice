@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { ResetPasswordButton } from "./reset-password";
 
 export const metadata = { title: "Associate · Enshrine Admin" };
 
@@ -78,7 +79,15 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
           </Card>
         </div>
 
-        <div>
+        <div className="space-y-4">
+          {a.user && (
+            <Card className="p-5">
+              <h2 className="mb-1 font-display text-[16px] text-ink">Login</h2>
+              <p className="mb-3 text-[12px] text-muted">{a.user.email}</p>
+              <ResetPasswordButton associateId={a.id} />
+            </Card>
+          )}
+
           <Card className="p-5">
             <h2 className="mb-3 font-display text-[16px] text-ink">P-file documents</h2>
             {!a.pFile || a.pFile.documents.length === 0 ? (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, KeyRound } from "lucide-react";
 import type { AppRole } from "@prisma/client";
 import { navByArea, type ShellArea } from "@/lib/nav";
 import { doSignOut } from "@/lib/auth-actions";
@@ -99,6 +99,10 @@ export function Sidebar({
               <div className="truncate text-[13px] font-medium">{user.name}</div>
               <div className="truncate text-[11px] text-white/40">{user.roleLabel}</div>
             </div>
+            <Link href={`/${area}/account`} aria-label="Account & password" onClick={onClose}
+              className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white">
+              <KeyRound className="h-4 w-4" strokeWidth={1.75} />
+            </Link>
             <form action={doSignOut}>
               <button type="submit" aria-label="Sign out" className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white">
                 <LogOut className="h-4 w-4" strokeWidth={1.75} />
