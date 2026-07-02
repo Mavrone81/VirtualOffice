@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, UserPlus, Users, BadgeCheck, Receipt, Tags, Calculator,
   FileText, Banknote, Megaphone, FolderOpen, Handshake, FileSignature,
-  IdCard, FolderLock, Network, type LucideIcon,
+  IdCard, FolderLock, Network, ScrollText, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
 
@@ -40,6 +40,7 @@ export const adminNav: NavGroup[] = [
       { label: "Notices", href: "/admin/notices", icon: Megaphone },
       { label: "Documents", href: "/admin/documents", icon: FolderOpen },
       { label: "Vendors", href: "/admin/vendors", icon: Handshake },
+      { label: "Audit Log", href: "/admin/audit", icon: ScrollText },
     ],
   },
 ];
@@ -70,7 +71,7 @@ export const portalNav: NavGroup[] = [
       { label: "Notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
       { label: "Documents", href: "/portal/documents", icon: FolderOpen },
       { label: "Vendor Registry", href: "/portal/vendors", icon: Handshake },
-      { label: "Sales Agreements", icon: FileSignature },
+      { label: "Sales Agreements", href: "/portal/sales-agreements", icon: FileSignature },
     ],
   },
   {

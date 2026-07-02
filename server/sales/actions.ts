@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { D, round2, sum } from "@/lib/money";
+import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
 
 
@@ -173,6 +174,7 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
 
   await runCommission(txId);
 
+  await logAudit({ action: "sale.verified", entityType: "SalesTransaction", entityId: txId, after: { submissionId } });
   revalidatePath("/admin/sales/verify");
   revalidatePath("/admin/sales/transactions");
   revalidatePath("/admin/commission");

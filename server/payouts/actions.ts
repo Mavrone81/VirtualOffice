@@ -5,6 +5,7 @@ import { Prisma, LedgerStatus, LedgerLineType, PayoutStatus } from "@prisma/clie
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const session = await auth();
@@ -50,6 +51,7 @@ export async function runPayouts(month: string): Promise<{ ok: boolean; count?: 
     });
     count++;
   }
+  await logAudit({ action: "payouts.run", entityType: "MonthlyPayout", entityId: month, after: { month, count } });
   revalidatePath("/admin/payouts");
   return { ok: true, count };
 }
@@ -63,6 +65,7 @@ export async function setPayoutStatus(payoutId: string, status: "Approved" | "Pa
       paidDate: status === "Paid" ? new Date() : undefined,
     },
   });
+  await logAudit({ action: `payout.${status}`, entityType: "MonthlyPayout", entityId: payoutId });
   revalidatePath("/admin/payouts");
   return { ok: true };
 }
@@ -73,6 +76,7 @@ export async function approveAllPayouts(month: string): Promise<{ ok: boolean; e
     where: { payoutMonth: month, payoutStatus: PayoutStatus.Pending },
     data: { payoutStatus: PayoutStatus.Approved },
   });
+  await logAudit({ action: "payouts.approve_all", entityType: "MonthlyPayout", entityId: month, after: { month } });
   revalidatePath("/admin/payouts");
   return { ok: true };
 }
