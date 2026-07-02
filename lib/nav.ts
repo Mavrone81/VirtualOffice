@@ -37,9 +37,9 @@ export const adminNav: NavGroup[] = [
   {
     title: "Workspace",
     items: [
-      { label: "Notices", icon: Megaphone },
-      { label: "Documents", icon: FolderOpen },
-      { label: "Vendor Approvals", icon: Handshake, badgeKey: "vendor" },
+      { label: "Notices", href: "/admin/notices", icon: Megaphone },
+      { label: "Documents", href: "/admin/documents", icon: FolderOpen },
+      { label: "Vendors", href: "/admin/vendors", icon: Handshake },
     ],
   },
 ];
@@ -67,9 +67,9 @@ export const portalNav: NavGroup[] = [
   {
     title: "Resources",
     items: [
-      { label: "Notices", icon: Megaphone },
-      { label: "Documents", icon: FolderOpen },
-      { label: "Vendor Registry", icon: Handshake },
+      { label: "Notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
+      { label: "Documents", href: "/portal/documents", icon: FolderOpen },
+      { label: "Vendor Registry", href: "/portal/vendors", icon: Handshake },
       { label: "Sales Agreements", icon: FileSignature },
     ],
   },
