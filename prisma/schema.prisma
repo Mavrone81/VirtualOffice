@@ -315,6 +315,7 @@ model NameCard {
   user                 User     @relation(fields: [userId], references: [id])
   companyId            String?  @map("company_id") @db.Uuid
   company              Company? @relation(fields: [companyId], references: [id])
+  chineseName          String?  @map("chinese_name")
   customTitle          String?  @map("custom_title")
   qrPayload            String?  @map("qr_payload")
   lastRenderedVcfKey   String?  @map("last_rendered_vcf_key")

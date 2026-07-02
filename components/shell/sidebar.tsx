@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { LogOut, KeyRound } from "lucide-react";
 import type { AppRole } from "@prisma/client";
 import { navByArea, type ShellArea } from "@/lib/nav";
@@ -23,6 +24,8 @@ export function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+  const tc = useTranslations("common");
   const groups = navByArea[area]
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.roles || (user.role != null && i.roles.includes(user.role))) }))
     .filter((g) => g.items.length > 0);
@@ -47,9 +50,9 @@ export function Sidebar({
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 pb-4">
           {groups.map((group) => (
-            <div key={group.title} className="mb-5">
+            <div key={group.titleKey} className="mb-5">
               <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/30">
-                {group.title}
+                {t(group.titleKey)}
               </div>
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
@@ -59,13 +62,13 @@ export function Sidebar({
                   const inner = (
                     <>
                       <Icon className="h-[18px] w-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
-                      <span className="flex-1">{item.label}</span>
+                      <span className="flex-1">{t(item.labelKey)}</span>
                       {badge ? (
                         <span className="rounded-full bg-action px-1.5 py-0.5 text-[10px] font-semibold text-white">
                           {badge}
                         </span>
                       ) : !item.href ? (
-                        <span className="text-[9px] uppercase tracking-wide text-white/25">soon</span>
+                        <span className="text-[9px] uppercase tracking-wide text-white/25">{t("soon")}</span>
                       ) : null}
                     </>
                   );
@@ -73,7 +76,7 @@ export function Sidebar({
                     active ? "bg-white/10 font-medium text-white" : "text-white/60 hover:bg-white/5 hover:text-white/90"
                   } ${!item.href ? "cursor-default text-white/35 hover:bg-transparent hover:text-white/35" : ""}`;
                   return (
-                    <li key={item.label}>
+                    <li key={item.labelKey}>
                       {item.href ? (
                         <Link href={item.href} className={cls} onClick={onClose}>
                           {inner}
@@ -99,12 +102,12 @@ export function Sidebar({
               <div className="truncate text-[13px] font-medium">{user.name}</div>
               <div className="truncate text-[11px] text-white/40">{user.roleLabel}</div>
             </div>
-            <Link href={`/${area}/account`} aria-label="Account & password" onClick={onClose}
+            <Link href={`/${area}/account`} aria-label={tc("account")} onClick={onClose}
               className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white">
               <KeyRound className="h-4 w-4" strokeWidth={1.75} />
             </Link>
             <form action={doSignOut}>
-              <button type="submit" aria-label="Sign out" className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white">
+              <button type="submit" aria-label={tc("signOut")} className="rounded-md p-1.5 text-white/45 hover:bg-white/10 hover:text-white">
                 <LogOut className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </form>
