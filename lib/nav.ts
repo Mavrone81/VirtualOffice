@@ -76,8 +76,8 @@ export const portalNav: NavGroup[] = [
   {
     title: "My Records",
     items: [
-      { label: "Name Card", icon: IdCard },
-      { label: "My P-File", icon: FolderLock },
+      { label: "Name Card", href: "/portal/name-card", icon: IdCard },
+      { label: "My P-File", href: "/portal/pfile", icon: FolderLock },
     ],
   },
 ];
