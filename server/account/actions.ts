@@ -5,6 +5,7 @@ import { hash, verify } from "@node-rs/argon2";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 
 const MIN_LEN = 8;
 
@@ -25,6 +26,7 @@ export async function changePassword(
   if (!ok) return { ok: false, error: "Current password is incorrect." };
 
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hash(newPassword) } });
+  await logAudit({ action: "password.changed", entityType: "User", entityId: user.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -39,5 +41,6 @@ export async function resetAssociatePassword(associateId: string): Promise<{ ok:
 
   const tempPassword = `En-${randomBytes(4).toString("hex")}`; // e.g. En-9f3a2b7c
   await prisma.user.update({ where: { id: assoc.user.id }, data: { passwordHash: await hash(tempPassword) } });
+  await logAudit({ action: "password.reset_by_admin", entityType: "User", entityId: assoc.user.id, actorUserId: session.user.id, after: { associateId } });
   return { ok: true, tempPassword };
 }

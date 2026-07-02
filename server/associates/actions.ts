@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const session = await auth();
@@ -110,6 +111,7 @@ export async function setApprovalStatus(
     await prisma.pFile.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, associateId: a.id } });
   }
 
+  await logAudit({ action: `associate.approval.${approvalStatus}`, entityType: "Associate", entityId: id, before: { approvalStatus: a.approvalStatus }, after: { approvalStatus } });
   revalidatePath("/admin/associates");
   revalidatePath("/admin/dashboard");
   return { ok: true };
@@ -126,6 +128,7 @@ export async function setAssociateStatus(
   if (a?.user) {
     await prisma.user.update({ where: { id: a.user.id }, data: { isActive: status === "Active" } });
   }
+  await logAudit({ action: `associate.status.${status}`, entityType: "Associate", entityId: id });
   revalidatePath("/admin/associates");
   return { ok: true };
 }

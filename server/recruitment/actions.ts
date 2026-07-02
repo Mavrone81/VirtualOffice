@@ -17,6 +17,7 @@ import { putObject, getObject, imageExt } from "@/lib/storage";
 import { humanize } from "@/lib/labels";
 import { renderAgreementPdf } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const session = await auth();
@@ -318,6 +319,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     });
   }
 
+  await logAudit({ action: "candidate.approved", entityType: "Candidate", entityId: c.id, after: { associateCode: result.code } });
   revalidatePath("/admin/recruitment");
   revalidatePath("/admin/associates");
   revalidatePath("/admin/dashboard");
@@ -337,6 +339,7 @@ export async function rejectCandidate(id: string, reason: string): Promise<{ ok:
       reviewedById: session.user.id,
     },
   });
+  await logAudit({ action: "candidate.rejected", entityType: "Candidate", entityId: id, actorUserId: session.user.id, after: { reason: reason?.trim() || null } });
   revalidatePath("/admin/recruitment");
   revalidatePath(`/admin/recruitment/${id}`);
   return { ok: true };
