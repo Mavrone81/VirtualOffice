@@ -19,6 +19,10 @@ services:
       retries: 12
 
   app:
+    # CI builds & pushes this image to GHCR; prod `pull`s it (see
+    # .github/workflows/ci-cd.yml). `build:` is kept as a manual fallback so
+    # `docker compose build app` still works on the server if ever needed.
+    image: ${APP_IMAGE:-ghcr.io/mavrone81/virtualoffice:latest}
     build:
       context: .
       dockerfile: Dockerfile
