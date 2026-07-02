@@ -6,42 +6,42 @@ import {
 import type { AppRole } from "@prisma/client";
 
 export type NavItem = {
-  label: string;
+  labelKey: string; // key into the `nav` message namespace
   href?: string; // omitted => not yet built (rendered disabled)
   icon: LucideIcon;
   badgeKey?: string; // dynamic count key resolved by the shell
   roles?: AppRole[]; // when set, item shows only for these roles
 };
-export type NavGroup = { title: string; items: NavItem[] };
+export type NavGroup = { titleKey: string; items: NavItem[] };
 
 export const adminNav: NavGroup[] = [
   {
-    title: "Operations",
+    titleKey: "groupOperations",
     items: [
-      { label: "Overview", href: "/admin/dashboard", icon: LayoutDashboard },
-      { label: "Recruitment", href: "/admin/recruitment", icon: UserPlus, badgeKey: "recruit" },
-      { label: "Associates", href: "/admin/associates", icon: Users },
-      { label: "Sales · Verify", href: "/admin/sales/verify", icon: BadgeCheck, badgeKey: "verify" },
-      { label: "Transactions", href: "/admin/sales/transactions", icon: Receipt },
+      { labelKey: "overview", href: "/admin/dashboard", icon: LayoutDashboard },
+      { labelKey: "recruitment", href: "/admin/recruitment", icon: UserPlus, badgeKey: "recruit" },
+      { labelKey: "associates", href: "/admin/associates", icon: Users },
+      { labelKey: "salesVerify", href: "/admin/sales/verify", icon: BadgeCheck, badgeKey: "verify" },
+      { labelKey: "transactions", href: "/admin/sales/transactions", icon: Receipt },
     ],
   },
   {
-    title: "Finance",
+    titleKey: "groupFinance",
     items: [
-      { label: "Products & Com", href: "/admin/products", icon: Tags },
-      { label: "Commission", href: "/admin/commission", icon: Calculator },
-      { label: "Invoices", href: "/admin/invoices", icon: FileText },
-      { label: "Payouts", href: "/admin/payouts", icon: Banknote },
+      { labelKey: "products", href: "/admin/products", icon: Tags },
+      { labelKey: "commission", href: "/admin/commission", icon: Calculator },
+      { labelKey: "invoices", href: "/admin/invoices", icon: FileText },
+      { labelKey: "payouts", href: "/admin/payouts", icon: Banknote },
     ],
   },
   {
-    title: "Workspace",
+    titleKey: "groupWorkspace",
     items: [
-      { label: "Notices", href: "/admin/notices", icon: Megaphone },
-      { label: "Documents", href: "/admin/documents", icon: FolderOpen },
-      { label: "Vendors", href: "/admin/vendors", icon: Handshake },
-      { label: "Name Card", href: "/admin/name-card", icon: IdCard },
-      { label: "Audit Log", href: "/admin/audit", icon: ScrollText },
+      { labelKey: "notices", href: "/admin/notices", icon: Megaphone },
+      { labelKey: "documents", href: "/admin/documents", icon: FolderOpen },
+      { labelKey: "vendors", href: "/admin/vendors", icon: Handshake },
+      { labelKey: "nameCard", href: "/admin/name-card", icon: IdCard },
+      { labelKey: "auditLog", href: "/admin/audit", icon: ScrollText },
     ],
   },
 ];
@@ -50,36 +50,36 @@ const MANAGER_ROLES: AppRole[] = ["SalesManager", "SalesDirector"];
 
 export const portalNav: NavGroup[] = [
   {
-    title: "My Office",
+    titleKey: "groupMyOffice",
     items: [
-      { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
-      { label: "My Sales", href: "/portal/sales", icon: Receipt },
-      { label: "My Commissions", href: "/portal/commissions", icon: Calculator },
-      { label: "My Payouts", href: "/portal/payouts", icon: Banknote },
+      { labelKey: "dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
+      { labelKey: "mySales", href: "/portal/sales", icon: Receipt },
+      { labelKey: "myCommissions", href: "/portal/commissions", icon: Calculator },
+      { labelKey: "myPayouts", href: "/portal/payouts", icon: Banknote },
     ],
   },
   {
-    title: "My Team",
+    titleKey: "groupMyTeam",
     items: [
-      { label: "Team Overview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
-      { label: "Team Sales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
-      { label: "Team Commissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
+      { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
+      { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
+      { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
     ],
   },
   {
-    title: "Resources",
+    titleKey: "groupResources",
     items: [
-      { label: "Notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
-      { label: "Documents", href: "/portal/documents", icon: FolderOpen },
-      { label: "Vendor Registry", href: "/portal/vendors", icon: Handshake },
-      { label: "Sales Agreements", href: "/portal/sales-agreements", icon: FileSignature },
+      { labelKey: "notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
+      { labelKey: "documents", href: "/portal/documents", icon: FolderOpen },
+      { labelKey: "vendorRegistry", href: "/portal/vendors", icon: Handshake },
+      { labelKey: "salesAgreements", href: "/portal/sales-agreements", icon: FileSignature },
     ],
   },
   {
-    title: "My Records",
+    titleKey: "groupMyRecords",
     items: [
-      { label: "Name Card", href: "/portal/name-card", icon: IdCard },
-      { label: "My P-File", href: "/portal/pfile", icon: FolderLock },
+      { labelKey: "nameCard", href: "/portal/name-card", icon: IdCard },
+      { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
     ],
   },
 ];
