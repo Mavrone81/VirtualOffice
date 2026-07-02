@@ -19,6 +19,8 @@ export default async function AssociatesPage() {
     <>
       <PageHeader title="Associate Master" subtitle="The HR system of record — hierarchy, approval, status.">
         <Button asChild variant="secondary">
+          {/* download route handler (CSV), not a page — a real <a> is correct here */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/admin/associates/export">⤓ Export contacts</a>
         </Button>
         <Button asChild>
@@ -45,9 +47,11 @@ export default async function AssociatesPage() {
             <tbody>
               {associates.map((a) => (
                 <tr key={a.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
-                  <td className="px-5 py-3 font-medium text-ink">{a.associateCode}</td>
+                  <td className="px-5 py-3 font-medium">
+                    <Link href={`/admin/associates/${a.id}`} className="text-action hover:underline">{a.associateCode}</Link>
+                  </td>
                   <td className="px-5 py-3">
-                    <div className="text-ink">{a.fullName}</div>
+                    <Link href={`/admin/associates/${a.id}`} className="text-ink hover:underline">{a.fullName}</Link>
                     {a.businessName && <div className="text-[11px] text-muted-2">{a.businessName}</div>}
                   </td>
                   <td className="px-5 py-3 text-muted">{a.teamName ?? "—"}</td>
