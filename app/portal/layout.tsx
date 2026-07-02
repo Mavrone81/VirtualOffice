@@ -23,6 +23,7 @@ export default async function PortalLayout({ children }: { children: React.React
     roleLabel: roleLabel[session.user.role],
     initials: initialsOf(name),
     subtitle: assoc?.associateCode,
+    role: session.user.role,
   };
 
   return (

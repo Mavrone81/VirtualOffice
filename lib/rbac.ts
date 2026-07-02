@@ -13,6 +13,10 @@ export const ROLE_HOME: Record<AppRole, string> = {
 export const ADMIN_ROLES: AppRole[] = ["Admin", "Accounts"];
 export const isAdminRole = (r: AppRole): boolean => ADMIN_ROLES.includes(r);
 
+// Roles with a downline they manage (team dashboards).
+export const MANAGER_ROLES: AppRole[] = ["SalesManager", "SalesDirector"];
+export const isManagerRole = (r: AppRole): boolean => MANAGER_ROLES.includes(r);
+
 export const roleLabel: Record<AppRole, string> = {
   Admin: "Product Owner",
   Accounts: "Accounts",

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
+import type { AppRole } from "@prisma/client";
 import { navByArea, type ShellArea } from "@/lib/nav";
 import { doSignOut } from "@/lib/auth-actions";
 
-export type ShellUser = { name: string; roleLabel: string; initials: string; subtitle?: string };
+export type ShellUser = { name: string; roleLabel: string; initials: string; subtitle?: string; role?: AppRole };
 
 export function Sidebar({
   area,
@@ -22,7 +23,9 @@ export function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const groups = navByArea[area];
+  const groups = navByArea[area]
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.roles || (user.role != null && i.roles.includes(user.role))) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <>

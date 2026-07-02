@@ -1,14 +1,16 @@
 import {
   LayoutDashboard, UserPlus, Users, BadgeCheck, Receipt, Tags, Calculator,
   FileText, Banknote, Megaphone, FolderOpen, Handshake, FileSignature,
-  IdCard, FolderLock, type LucideIcon,
+  IdCard, FolderLock, Network, type LucideIcon,
 } from "lucide-react";
+import type { AppRole } from "@prisma/client";
 
 export type NavItem = {
   label: string;
   href?: string; // omitted => not yet built (rendered disabled)
   icon: LucideIcon;
   badgeKey?: string; // dynamic count key resolved by the shell
+  roles?: AppRole[]; // when set, item shows only for these roles
 };
 export type NavGroup = { title: string; items: NavItem[] };
 
@@ -42,6 +44,8 @@ export const adminNav: NavGroup[] = [
   },
 ];
 
+const MANAGER_ROLES: AppRole[] = ["SalesManager", "SalesDirector"];
+
 export const portalNav: NavGroup[] = [
   {
     title: "My Office",
@@ -50,6 +54,14 @@ export const portalNav: NavGroup[] = [
       { label: "My Sales", href: "/portal/sales", icon: Receipt },
       { label: "My Commissions", href: "/portal/commissions", icon: Calculator },
       { label: "My Payouts", href: "/portal/payouts", icon: Banknote },
+    ],
+  },
+  {
+    title: "My Team",
+    items: [
+      { label: "Team Overview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
+      { label: "Team Sales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
+      { label: "Team Commissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
     ],
   },
   {
