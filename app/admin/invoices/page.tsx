@@ -1,4 +1,5 @@
 import { InvoiceStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { formatSGD } from "@/lib/money";
@@ -10,6 +11,8 @@ import { MarkPaidButton } from "./mark-paid-button";
 export const metadata = { title: "Invoices & installments · Enshrine Admin" };
 
 export default async function InvoicesPage() {
+  const t = await getTranslations("invoices");
+  const tc = await getTranslations("common");
   const threshold = env.COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD;
   const [plans, invoices] = await Promise.all([
     prisma.installmentPlan.findMany({
@@ -22,16 +25,16 @@ export default async function InvoicesPage() {
   return (
     <>
       <PageHeader
-        title="Invoices & installments"
-        subtitle={`Record collections — commission becomes payable at the ${ordinal(threshold)} installment.`}
+        title={t("title")}
+        subtitle={t("subtitle", { threshold: ordinal(threshold) })}
       />
 
       <Card className="overflow-hidden">
         <div className="border-b border-line px-5 py-4">
-          <h2 className="font-display text-[18px] text-ink">Installment plans</h2>
+          <h2 className="font-display text-[18px] text-ink">{t("installmentPlans")}</h2>
         </div>
         {plans.length === 0 ? (
-          <p className="px-5 py-10 text-center text-[13px] text-muted">No installment plans yet.</p>
+          <p className="px-5 py-10 text-center text-[13px] text-muted">{t("noInstallmentPlans")}</p>
         ) : (
           <div className="divide-y divide-line-200">
             {plans.map((p) => {
@@ -46,7 +49,7 @@ export default async function InvoicesPage() {
                       <span className="text-muted">{p.transaction.closingAssociate.fullName}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[12px]">
-                      <span className="text-muted">Total {formatSGD(p.totalAmount)} · {paid}/{threshold} paid</span>
+                      <span className="text-muted">{t("installmentProgress", { total: formatSGD(p.totalAmount), paid, threshold })}</span>
                       <StatusPill status={eligible ? "Eligible" : "PendingCollection"} />
                     </div>
                   </div>
@@ -61,7 +64,7 @@ export default async function InvoicesPage() {
                         <span className="text-muted">#{s.sequence}</span>
                         <span className="font-medium text-ink">{formatSGD(s.dueAmount)}</span>
                         {s.paid ? (
-                          <span className="text-[11px] font-medium text-success">✓ Paid</span>
+                          <span className="text-[11px] font-medium text-success">{t("paidMark")}</span>
                         ) : (
                           <MarkPaidButton id={s.id} kind="installment" />
                         )}
@@ -77,20 +80,20 @@ export default async function InvoicesPage() {
 
       <Card className="mt-6 overflow-hidden">
         <div className="border-b border-line px-5 py-4">
-          <h2 className="font-display text-[18px] text-ink">Issued invoices</h2>
+          <h2 className="font-display text-[18px] text-ink">{t("issuedInvoices")}</h2>
         </div>
         {invoices.length === 0 ? (
-          <p className="px-5 py-10 text-center text-[13px] text-muted">No invoices yet.</p>
+          <p className="px-5 py-10 text-center text-[13px] text-muted">{t("noInvoices")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Invoice</th>
-                  <th className="px-5 py-3 font-medium">Client</th>
-                  <th className="px-5 py-3 font-medium">Company</th>
-                  <th className="px-5 py-3 font-medium">Amount</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("colInvoice")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colClient")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colCompany")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colAmount")}</th>
+                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
                   <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
@@ -104,7 +107,7 @@ export default async function InvoicesPage() {
                     <td className="px-5 py-3"><StatusPill status={inv.status} /></td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-3">
-                        <a href={`/admin/invoices/${inv.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">PDF ↗</a>
+                        <a href={`/admin/invoices/${inv.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">{t("pdfLink")}</a>
                         {inv.status === InvoiceStatus.Outstanding && <MarkPaidButton id={inv.id} kind="invoice" />}
                       </div>
                     </td>

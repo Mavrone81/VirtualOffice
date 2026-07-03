@@ -8,12 +8,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { humanize } from "@/lib/labels";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "My sales · Enshrine Portal" };
 
 export default async function MySalesPage() {
   const session = await auth();
   const associateId = session?.user.associateId ?? null;
+
+  const t = await getTranslations("portal");
+  const tc = await getTranslations("common");
 
   const submissions = associateId
     ? await prisma.salesSubmission.findMany({
@@ -25,28 +29,28 @@ export default async function MySalesPage() {
 
   return (
     <>
-      <PageHeader title="My sales" subtitle="Sales you have submitted.">
+      <PageHeader title={t("sales.pageTitle")} subtitle={t("sales.pageSubtitle")}>
         <Button asChild>
-          <Link href="/portal/sales/new">Submit a sale</Link>
+          <Link href="/portal/sales/new">{t("sales.submitSale")}</Link>
         </Button>
       </PageHeader>
 
       <Card className="overflow-hidden">
         {submissions.length === 0 ? (
           <div className="px-5 py-12 text-center text-[13px] text-muted">
-            No sales yet. <Link href="/portal/sales/new" className="text-action">Submit your first sale →</Link>
+            {t("sales.noSales")} <Link href="/portal/sales/new" className="text-action">{t("sales.submitFirst")}</Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-5 py-3 font-medium">Client</th>
-                  <th className="px-5 py-3 font-medium">Products</th>
-                  <th className="px-5 py-3 font-medium">Amount</th>
-                  <th className="px-5 py-3 font-medium">Plan</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colDate")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colClient")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colProducts")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colAmount")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colPlan")}</th>
+                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>

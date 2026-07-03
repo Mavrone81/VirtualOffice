@@ -5,12 +5,15 @@ import { noticeAudienceWhere } from "@/lib/notices";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { MarkReadButton } from "./mark-read-button";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Notices · Enshrine Portal" };
 
 export default async function PortalNoticesPage() {
   const session = await auth();
-  if (!session?.user) return <PageHeader title="Notices" />;
+  const t = await getTranslations("portal");
+
+  if (!session?.user) return <PageHeader title={t("notices.pageTitle")} />;
 
   const assoc = session.user.associateId
     ? await prisma.associate.findUnique({ where: { id: session.user.associateId }, select: { teamName: true } })
@@ -24,10 +27,10 @@ export default async function PortalNoticesPage() {
 
   return (
     <>
-      <PageHeader title="Notices" subtitle="Announcements from Enshrine." />
+      <PageHeader title={t("notices.pageTitle")} subtitle={t("notices.pageSubtitle")} />
 
       {notices.length === 0 ? (
-        <Card className="px-5 py-12 text-center text-[13px] text-muted">No notices right now.</Card>
+        <Card className="px-5 py-12 text-center text-[13px] text-muted">{t("notices.noNotices")}</Card>
       ) : (
         <div className="space-y-3">
           {notices.map((n) => {

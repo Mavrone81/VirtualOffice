@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { markInvoicePaid, markInstallmentPaid } from "@/server/invoices/actions";
 
 export function MarkPaidButton({ id, kind }: { id: string; kind: "invoice" | "installment" }) {
+  const t = useTranslations("invoices");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string>();
   return (
@@ -16,11 +18,11 @@ export function MarkPaidButton({ id, kind }: { id: string; kind: "invoice" | "in
         onClick={() =>
           start(async () => {
             const r = kind === "invoice" ? await markInvoicePaid(id) : await markInstallmentPaid(id);
-            if (!r.ok) setErr(r.error ?? "Failed");
+            if (!r.ok) setErr(r.error ?? t("failed"));
           })
         }
       >
-        {pending ? "…" : "Mark paid"}
+        {pending ? "…" : t("markPaid")}
       </Button>
       {err && <span className="text-[11px] text-danger">{err}</span>}
     </span>

@@ -1,12 +1,14 @@
 import { OnboardingStage } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
+import { getTranslations } from "next-intl/server";
 import { OnboardForm } from "./onboard-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Welcome to Enshrine · Onboarding" };
 
-function Shell({ children }: { children: React.ReactNode }) {
+async function Shell({ children }: { children: React.ReactNode }) {
+  const t = await getTranslations("onboarding");
   return (
     <main className="min-h-screen bg-paper">
       <div className="border-b border-line bg-ink text-white">
@@ -14,7 +16,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 font-display text-lg">E</div>
           <div className="leading-tight">
             <div className="font-display text-[16px]">Enshrine</div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-white/40">Associate Onboarding</div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-white/40">{t("header.subtitle")}</div>
           </div>
         </div>
       </div>
@@ -34,6 +36,7 @@ function Notice({ title, body }: { title: string; body: string }) {
 
 export default async function OnboardPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  const t = await getTranslations("onboarding");
   const c = await prisma.candidate.findUnique({
     where: { onboardingToken: token },
     select: { fullName: true, intendedDesignation: true, onboardingStage: true },
@@ -42,7 +45,7 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
   if (!c) {
     return (
       <Shell>
-        <Notice title="Link not found" body="This onboarding link is invalid or has expired. Please contact your Enshrine recruiter for a new link." />
+        <Notice title={t("linkNotFound.title")} body={t("linkNotFound.body")} />
       </Shell>
     );
   }
@@ -50,7 +53,7 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
   if (c.onboardingStage === OnboardingStage.Approved) {
     return (
       <Shell>
-        <Notice title="You're already onboarded" body="Your application has been approved. Please check your email for your virtual-office login details." />
+        <Notice title={t("alreadyOnboarded.title")} body={t("alreadyOnboarded.body")} />
       </Shell>
     );
   }
@@ -58,7 +61,7 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
   if (c.onboardingStage === OnboardingStage.Rejected) {
     return (
       <Shell>
-        <Notice title="Application closed" body="This onboarding application is no longer active. Please contact your Enshrine recruiter if you believe this is a mistake." />
+        <Notice title={t("applicationClosed.title")} body={t("applicationClosed.body")} />
       </Shell>
     );
   }
@@ -68,10 +71,11 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
   return (
     <Shell>
       <div className="mb-6">
-        <h1 className="font-display text-[26px] leading-tight text-ink">Welcome, {c.fullName.split(" ")[0]}</h1>
+        <h1 className="font-display text-[26px] leading-tight text-ink">
+          {t("welcome", { name: c.fullName.split(" ")[0] })}
+        </h1>
         <p className="mt-1 text-[14px] text-muted">
-          You&rsquo;ve been invited to join Enshrine as a {humanize(c.intendedDesignation ?? "Sales Consultant")}. Complete
-          your details below and sign the Associate Agreement — it takes about 3 minutes.
+          {t("intro", { designation: humanize(c.intendedDesignation ?? "Sales Consultant") })}
         </p>
       </div>
       <OnboardForm token={token} alreadySubmitted={alreadySubmitted} />

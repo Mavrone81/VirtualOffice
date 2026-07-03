@@ -7,12 +7,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill } from "@/components/ui/status-pill";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "My commissions · Enshrine Portal" };
 
 export default async function MyCommissionsPage() {
   const session = await auth();
   const associateId = session?.user.associateId ?? null;
+
+  const t = await getTranslations("portal");
+  const tc = await getTranslations("common");
 
   const ledger = associateId
     ? await prisma.commissionLedger.findMany({
@@ -29,27 +33,27 @@ export default async function MyCommissionsPage() {
 
   return (
     <>
-      <PageHeader title="My commissions" subtitle="Every commission line you've earned — personal + overrides + add-ons." />
+      <PageHeader title={t("commissions.pageTitle")} subtitle={t("commissions.pageSubtitle")} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <StatTile label="Eligible" value={formatSGD(eligible)} sub="Ready for payout" />
-        <StatTile label="Pending" value={formatSGD(pending)} sub="Awaiting collection" />
-        <StatTile label="Paid" value={formatSGD(paid)} sub="Received" />
+        <StatTile label={t("commissions.eligible")} value={formatSGD(eligible)} sub={t("commissions.readyForPayout")} />
+        <StatTile label={t("commissions.pending")} value={formatSGD(pending)} sub={t("commissions.awaitingCollection")} />
+        <StatTile label={t("commissions.paid")} value={formatSGD(paid)} sub={t("commissions.received")} />
       </div>
 
       <Card className="mt-6 overflow-hidden">
         {ledger.length === 0 ? (
-          <p className="px-5 py-12 text-center text-[13px] text-muted">No commission yet — it appears here once your sales are verified.</p>
+          <p className="px-5 py-12 text-center text-[13px] text-muted">{t("commissions.noCommission")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Txn</th>
-                  <th className="px-5 py-3 font-medium">Type</th>
-                  <th className="px-5 py-3 font-medium">Month</th>
-                  <th className="px-5 py-3 font-medium">Amount</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("commissions.colTxn")}</th>
+                  <th className="px-5 py-3 font-medium">{t("commissions.colType")}</th>
+                  <th className="px-5 py-3 font-medium">{t("commissions.colMonth")}</th>
+                  <th className="px-5 py-3 font-medium">{t("commissions.colAmount")}</th>
+                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { humanize } from "@/lib/labels";
 
 type Tone = "success" | "warn" | "danger" | "info" | "neutral";
@@ -20,10 +23,13 @@ const STATUS_TONE: Record<string, Tone> = {
 };
 
 export function StatusPill({ status, tone }: { status: string; tone?: Tone }) {
-  const t = tone ?? STATUS_TONE[status] ?? "neutral";
+  const tr = useTranslations("status");
+  const toneCls = tone ?? STATUS_TONE[status] ?? "neutral";
+  // Translate the enum member; fall back to the humanized English label.
+  const label = tr.has(status) ? tr(status) : humanize(status);
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tones[t]}`}>
-      {humanize(status)}
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tones[toneCls]}`}>
+      {label}
     </span>
   );
 }

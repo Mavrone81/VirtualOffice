@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { submitSale } from "@/server/sales/actions";
+import { useTranslations } from "next-intl";
 
 export type FormProduct = {
   id: string;
@@ -21,6 +22,7 @@ type Line = { productId: string; amount: string; comCodeIds: string[] };
 
 export function SaleForm({ products, today }: { products: FormProduct[]; today: string }) {
   const router = useRouter();
+  const t = useTranslations("portal");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
 
@@ -54,29 +56,29 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
           .map((l) => ({ productId: l.productId, lineSaleAmount: parseFloat(l.amount), comCodeIds: l.comCodeIds })),
       });
       if (res.ok) router.push("/portal/sales");
-      else setError(res.error ?? "Could not submit.");
+      else setError(res.error ?? t("saleForm.couldNotSubmit"));
     });
   }
 
   return (
     <div className="max-w-3xl space-y-5">
       <Card className="p-5">
-        <h2 className="mb-4 font-display text-[17px] text-ink">Client & payment</h2>
+        <h2 className="mb-4 font-display text-[17px] text-ink">{t("saleForm.clientPayment")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="cn">Client name</Label>
+            <Label htmlFor="cn">{t("saleForm.clientName")}</Label>
             <Input id="cn" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Jane Tan" />
           </div>
           <div>
-            <Label htmlFor="cc">Client contact</Label>
+            <Label htmlFor="cc">{t("saleForm.clientContact")}</Label>
             <Input id="cc" value={clientContact} onChange={(e) => setClientContact(e.target.value)} placeholder="9xxx xxxx" />
           </div>
           <div>
-            <Label htmlFor="sd">Sales date</Label>
+            <Label htmlFor="sd">{t("saleForm.salesDate")}</Label>
             <Input id="sd" type="date" value={salesDate} onChange={(e) => setSalesDate(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="pp">Payment plan</Label>
+            <Label htmlFor="pp">{t("saleForm.paymentPlan")}</Label>
             <select
               id="pp"
               value={plan}
@@ -90,11 +92,11 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
           {plan === "Installment" && (
             <>
               <div>
-                <Label htmlFor="dep">Deposit (S$)</Label>
+                <Label htmlFor="dep">{t("saleForm.deposit")}</Label>
                 <Input id="dep" value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder="0" inputMode="decimal" />
               </div>
               <div>
-                <Label htmlFor="ic"># Installments</Label>
+                <Label htmlFor="ic">{t("saleForm.numInstallments")}</Label>
                 <Input id="ic" value={installmentCount} onChange={(e) => setInstallmentCount(e.target.value)} inputMode="numeric" />
               </div>
             </>
@@ -104,14 +106,14 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
 
       <Card className="p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-[17px] text-ink">Products</h2>
+          <h2 className="font-display text-[17px] text-ink">{t("saleForm.products")}</h2>
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={() => setLines((ls) => [...ls, { productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }])}
           >
-            <Plus className="h-4 w-4" /> Add line
+            <Plus className="h-4 w-4" /> {t("saleForm.addLine")}
           </Button>
         </div>
 
@@ -122,7 +124,7 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
               <div key={i} className="rounded-lg border border-line-200 bg-paper-100 p-3">
                 <div className="grid gap-3 sm:grid-cols-[1fr_140px_auto]">
                   <div>
-                    <Label htmlFor={`p${i}`}>Product</Label>
+                    <Label htmlFor={`p${i}`}>{t("saleForm.product")}</Label>
                     <select
                       id={`p${i}`}
                       value={line.productId}
@@ -137,12 +139,12 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
                     </select>
                   </div>
                   <div>
-                    <Label htmlFor={`a${i}`}>Amount (S$)</Label>
+                    <Label htmlFor={`a${i}`}>{t("saleForm.amount")}</Label>
                     <Input id={`a${i}`} value={line.amount} onChange={(e) => setLine(i, { amount: e.target.value })} placeholder="0" inputMode="decimal" />
                   </div>
                   <div className="flex items-end">
                     {lines.length > 1 && (
-                      <button type="button" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))} className="mb-1 rounded-md p-2 text-muted hover:bg-danger-50 hover:text-danger" aria-label="Remove line">
+                      <button type="button" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))} className="mb-1 rounded-md p-2 text-muted hover:bg-danger-50 hover:text-danger" aria-label={t("saleForm.removeLine")}>
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -174,7 +176,7 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
-          <span className="text-[13px] text-muted">Sale total</span>
+          <span className="text-[13px] text-muted">{t("saleForm.saleTotal")}</span>
           <span className="font-display text-[20px] text-ink">
             S${total.toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
@@ -185,9 +187,9 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
 
       <div className="flex items-center gap-3">
         <Button onClick={submit} disabled={pending || !clientName || total <= 0}>
-          {pending ? "Submitting…" : "Submit sale"}
+          {pending ? t("saleForm.submitting") : t("saleForm.submitSale")}
         </Button>
-        <span className="text-[12px] text-muted-2">Becomes official after Accounts/HR verification.</span>
+        <span className="text-[12px] text-muted-2">{t("saleForm.verificationNote")}</span>
       </div>
     </div>
   );
