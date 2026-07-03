@@ -871,5 +871,20 @@
     "currentPasswordIncorrect": "Current password is incorrect.",
     "associateNotFound": "Associate not found.",
     "noLoginToReset": "This associate has no login to reset."
+  },
+  "nameCard": {
+    "front": "Front",
+    "back": "Back",
+    "downloadPdf": "Download PDF",
+    "downloadImage": "Download image",
+    "preparing": "Preparing…",
+    "editTitle": "Personalise your card",
+    "chineseName": "Chinese name",
+    "cardTitle": "Title on card",
+    "cardTitleHint": "Shown under your name — e.g. Funeral Director. Defaults to your designation.",
+    "saving": "Saving…",
+    "save": "Save",
+    "saved": "✓ Saved",
+    "subtitle": "Your Enshrine digital name card. Personalise it, then share the QR or download it."
   }
 }

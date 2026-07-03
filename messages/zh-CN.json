@@ -871,5 +871,20 @@
     "currentPasswordIncorrect": "当前密码不正确。",
     "associateNotFound": "伙伴未找到。",
     "noLoginToReset": "该伙伴没有可重置的登录账户。"
+  },
+  "nameCard": {
+    "front": "正面",
+    "back": "背面",
+    "downloadPdf": "下载 PDF",
+    "downloadImage": "下载图片",
+    "preparing": "生成中…",
+    "editTitle": "个性化您的名片",
+    "chineseName": "中文姓名",
+    "cardTitle": "名片职称",
+    "cardTitleHint": "显示在姓名下方 —— 例如：礼仪师。默认为您的职级。",
+    "saving": "保存中…",
+    "save": "保存",
+    "saved": "✓ 已保存",
+    "subtitle": "您的 Enshrine 电子名片。个性化后即可分享二维码或下载。"
   }
 }

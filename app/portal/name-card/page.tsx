@@ -1,46 +1,39 @@
 import QRCode from "qrcode";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { humanize } from "@/lib/labels";
 import { buildVCard } from "@/lib/vcard";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { NameCardView } from "@/components/name-card/card-view";
+import { NameCardStudio } from "@/components/name-card/studio";
 
 export const metadata = { title: "Name Card · Enshrine Portal" };
 
 export default async function NameCardPage() {
   const session = await auth();
+  const tNav = await getTranslations("nav");
+  const tCard = await getTranslations("nameCard");
+  const tStatus = await getTranslations("status");
+
   const associateId = session?.user.associateId ?? null;
-  if (!associateId) return <PageHeader title="Name Card" subtitle="No associate profile is linked to this account." />;
+  if (!associateId) return <PageHeader title={tNav("nameCard")} />;
 
-  const a = await prisma.associate.findUnique({ where: { id: associateId } });
-  if (!a) return <PageHeader title="Name Card" subtitle="Profile not found." />;
+  const [me, card] = await Promise.all([
+    prisma.associate.findUnique({ where: { id: associateId } }),
+    prisma.nameCard.findFirst({ where: { userId: session!.user.id } }),
+  ]);
+  if (!me) return <PageHeader title={tNav("nameCard")} />;
 
-  const title = humanize(a.designation);
-  const vcf = buildVCard({ fullName: a.fullName, businessName: a.businessName, title, mobile: a.mobileNumber, email: a.email, associateCode: a.associateCode });
-  const qr = await QRCode.toDataURL(vcf, { margin: 1, width: 260, color: { dark: "#1a1f2b", light: "#ffffff" } });
+  const title = card?.customTitle || tStatus(me.designation);
+  const vcf = buildVCard({ fullName: me.fullName, businessName: me.businessName, title, mobile: me.mobileNumber, email: me.email, associateCode: me.associateCode });
+  const qr = await QRCode.toDataURL(vcf, { margin: 1, width: 240, color: { dark: "#1a1f2b", light: "#ffffff" } });
 
   return (
     <>
-      <PageHeader title="Name Card" subtitle="Your digital business card. Share the QR or save it to contacts.">
-        <Button asChild variant="secondary"><a href="/portal/name-card/vcf">Save to contacts (.vcf)</a></Button>
-      </PageHeader>
-
-      <div className="mx-auto max-w-xl">
-        <NameCardView
-          name={a.fullName}
-          title={title}
-          business={a.businessName}
-          mobile={a.mobileNumber}
-          email={a.email}
-          qrDataUrl={qr}
-          footer={`${a.associateCode} · Enshrine Services · Pets Paradise · Afterlife Planner`}
-        />
-        <p className="mt-4 text-center text-[12px] text-muted-2">
-          Scanning the QR code adds your details straight to a phone&rsquo;s contacts.
-        </p>
-      </div>
+      <PageHeader title={tNav("nameCard")} subtitle={tCard("subtitle")} />
+      <NameCardStudio
+        editable
+        data={{ chineseName: card?.chineseName ?? "", englishName: me.fullName, title, hp: me.mobileNumber, email: me.email, qrDataUrl: qr }}
+      />
     </>
   );
 }
