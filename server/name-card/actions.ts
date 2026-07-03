@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 
@@ -8,8 +9,9 @@ export async function updateNameCard(input: {
   chineseName?: string;
   customTitle?: string;
 }): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await auth();
-  if (!session?.user) return { ok: false, error: "Not signed in." };
+  if (!session?.user) return { ok: false, error: t("notSignedIn") };
 
   const chineseName = input.chineseName?.trim() || null;
   const customTitle = input.customTitle?.trim() || null;

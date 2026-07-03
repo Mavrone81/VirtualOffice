@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { CommissionType, ComValueType, ProductActiveStatus, Prisma } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
@@ -44,18 +45,19 @@ function rateSnapshot(i: ProductInput) {
 }
 
 function validate(i: ProductInput): string | null {
-  if (!i.productCode?.trim() || !i.productName?.trim()) return "Code and name are required.";
-  if (i.commissionType === "Percentage" && !i.closingCommPct) return "Percentage products need a closing %.";
-  if (i.commissionType === "Fixed" && !i.closingCommFixed) return "Fixed products need a flat closing amount.";
+  if (!i.productCode?.trim() || !i.productName?.trim()) return "codeAndNameRequired";
+  if (i.commissionType === "Percentage" && !i.closingCommPct) return "closingPctRequired";
+  if (i.commissionType === "Fixed" && !i.closingCommFixed) return "closingFixedRequired";
   return null;
 }
 
 export async function createProduct(input: ProductInput): Promise<{ ok: boolean; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
   const err = validate(input);
-  if (err) return { ok: false, error: err };
+  if (err) return { ok: false, error: t(err) };
   if (await prisma.product.findFirst({ where: { productCode: input.productCode.trim() } })) {
-    return { ok: false, error: "Product code already exists." };
+    return { ok: false, error: t("productCodeExists") };
   }
   const eff = new Date(input.effectiveDate);
   const product = await prisma.product.create({
@@ -86,11 +88,12 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
 
 /** New effective-dated rate version (history preserved for the engine). */
 export async function changeRates(productId: string, input: ProductInput): Promise<{ ok: boolean; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
   const err = validate(input);
-  if (err) return { ok: false, error: err };
+  if (err) return { ok: false, error: t(err) };
   const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!product) return { ok: false, error: "Not found" };
+  if (!product) return { ok: false, error: t("notFound") };
   const eff = new Date(input.effectiveDate);
   await prisma.product.update({
     where: { id: productId },
@@ -128,8 +131,9 @@ export async function addComCode(
   productId: string,
   input: { comCode: string; label: string; valueType: "Percentage" | "Absolute"; value: string },
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
-  if (!input.comCode?.trim() || !input.label?.trim() || !input.value) return { ok: false, error: "All fields required." };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  if (!input.comCode?.trim() || !input.label?.trim() || !input.value) return { ok: false, error: t("allFieldsRequired") };
   await prisma.comcode.create({
     data: {
       productId,
