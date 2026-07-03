@@ -21,6 +21,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  // Run on everything except API routes, Next internals, and static assets.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Run on everything except API routes, Next internals, static assets, and the
+  // public name-card brand art (logo/flowers/back — needed by the card export).
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|namecard).*)"],
 };
