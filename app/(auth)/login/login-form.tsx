@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ export function LoginForm() {
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <Label htmlFor="password" className="mb-0">{t("password")}</Label>
-          <span className="text-[12px] text-muted">{t("forgot")}</span>
+          <Link href="/forgot-password" className="text-[12px] text-muted hover:text-action">{t("forgot")}</Link>
         </div>
         <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="••••••••" required />
       </div>

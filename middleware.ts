@@ -8,7 +8,11 @@ export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   const isLogin = nextUrl.pathname === "/login";
-  const isPublic = isLogin || nextUrl.pathname.startsWith("/onboard");
+  const isPublic =
+    isLogin ||
+    nextUrl.pathname.startsWith("/onboard") ||
+    nextUrl.pathname === "/forgot-password" ||
+    nextUrl.pathname.startsWith("/reset-password");
 
   if (!isLoggedIn && !isPublic) {
     const url = new URL("/login", nextUrl);
