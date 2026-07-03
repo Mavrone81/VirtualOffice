@@ -124,6 +124,24 @@ export function approvalEmail(name: string, loginUrl: string, email: string, tem
   };
 }
 
+export function resetPasswordEmail(link: string): Mail {
+  return {
+    to: "", // set by caller
+    subject: "Reset your Enshrine password · 重置您的 Enshrine 密码",
+    html: layout(
+      "Reset your password · 重置密码",
+      `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#5a564e">
+        We received a request to reset your Enshrine Virtual Office password. Click below to choose a new one — this
+        link expires in 1 hour.</p>
+       <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#5a564e">
+        我们收到了重置您 Enshrine 虚拟办公室密码的请求。请点击下方按钮设置新密码 —— 此链接将在 1 小时后失效。</p>
+       <p style="margin:0 0 22px">${button(link, "Reset password · 重置密码")}</p>
+       <p style="margin:0;font-size:12px;color:#9a968d">If you didn't request this, you can safely ignore this email.
+        如果这不是您本人的操作，请忽略此邮件。<br><span style="color:#5a564e;word-break:break-all">${escapeHtml(link)}</span></p>`,
+    ),
+  };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
