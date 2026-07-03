@@ -27,7 +27,8 @@
     "account": "Account & password",
     "yes": "Yes",
     "no": "No",
-    "dash": "—"
+    "dash": "—",
+    "allCaughtUp": "You're all caught up."
   },
   "nav": {
     "groupOperations": "Operations",
@@ -907,5 +908,16 @@
     "successBody": "Your password has been reset. You can now sign in with your new password.",
     "signIn": "Sign in",
     "mismatch": "Passwords do not match."
+  },
+  "search": {
+    "title": "Search",
+    "resultsFor": "Results for “{q}”",
+    "noResults": "No matches found.",
+    "typeQuery": "Type a search term to begin.",
+    "secAssociates": "Associates",
+    "secCandidates": "Candidates",
+    "secTransactions": "Transactions",
+    "secInvoices": "Invoices",
+    "secSales": "My sales"
   }
 }
