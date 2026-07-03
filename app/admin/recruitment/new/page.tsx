@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
 import { env } from "@/lib/env";
@@ -8,6 +9,8 @@ import { InviteForm } from "./invite-form";
 export const metadata = { title: "Invite candidate · Enshrine Admin" };
 
 export default async function InviteCandidatePage() {
+  const t = await getTranslations("recruitment");
+
   const [uplines, h] = await Promise.all([
     prisma.associate.findMany({
       where: { archivedAt: null, associateStatus: "Active" },
@@ -21,7 +24,7 @@ export default async function InviteCandidatePage() {
   const baseUrl = env.AUTH_URL ?? (host ? `${proto}://${host}` : "");
   return (
     <>
-      <PageHeader title="Invite candidate" subtitle="Create a private onboarding link. The candidate fills in their own details and signs — you approve at the end." />
+      <PageHeader title={t("new.title")} subtitle={t("new.subtitle")} />
       <InviteForm
         baseUrl={baseUrl}
         uplines={uplines.map((u) => ({ code: u.associateCode, label: `${u.associateCode} · ${u.fullName} (${humanize(u.designation)})` }))}

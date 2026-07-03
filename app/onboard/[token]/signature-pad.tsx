@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * Lightweight canvas signature pad (no deps). Emits a PNG data URL on every
@@ -8,6 +9,7 @@ import { useRef, useEffect, useCallback } from "react";
  * pointer events; hi-dpi aware.
  */
 export function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void }) {
+  const t = useTranslations("onboarding");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const inked = useRef(false);
@@ -84,10 +86,10 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) 
           className="h-40 w-full touch-none rounded-lg"
           style={{ touchAction: "none" }}
         />
-        <span className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-muted-2">Sign above</span>
+        <span className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-muted-2">{t("signAbove")}</span>
       </div>
       <button type="button" onClick={clear} className="mt-2 text-[12px] text-action hover:underline">
-        Clear signature
+        {t("clearSignature")}
       </button>
     </div>
   );

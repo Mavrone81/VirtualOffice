@@ -3,8 +3,10 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocument } from "@/server/documents/actions";
+import { useTranslations } from "next-intl";
 
 export function DeleteDocumentButton({ id }: { id: string }) {
+  const t = useTranslations("common");
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
@@ -14,7 +16,7 @@ export function DeleteDocumentButton({ id }: { id: string }) {
       onClick={() => start(async () => { await deleteDocument(id); router.refresh(); })}
       className="text-[12px] text-danger hover:underline disabled:opacity-50"
     >
-      {pending ? "Removing…" : "Delete"}
+      {pending ? t("removing") : t("delete")}
     </button>
   );
 }

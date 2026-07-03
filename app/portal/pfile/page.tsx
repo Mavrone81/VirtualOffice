@@ -6,6 +6,7 @@ import { humanize } from "@/lib/labels";
 import { decryptPII, maskNric, maskAccount } from "@/lib/crypto";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "My P-File · Enshrine Portal" };
 
@@ -25,14 +26,16 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 
 export default async function MyPFilePage() {
   const session = await auth();
+  const t = await getTranslations("portal");
+
   const associateId = session?.user.associateId ?? null;
-  if (!associateId) return <PageHeader title="My P-File" subtitle="No associate profile is linked to this account." />;
+  if (!associateId) return <PageHeader title={t("pfile.pageTitle")} subtitle={t("pfile.noProfile")} />;
 
   const [me, pfile] = await Promise.all([
     prisma.associate.findUnique({ where: { id: associateId }, include: { directUpline: { select: { associateCode: true, fullName: true } } } }),
     prisma.pFile.findUnique({ where: { associateId }, include: { documents: { orderBy: { filedAt: "desc" } } } }),
   ]);
-  if (!me) return <PageHeader title="My P-File" subtitle="Profile not found." />;
+  if (!me) return <PageHeader title={t("pfile.pageTitle")} subtitle={t("pfile.notFound")} />;
 
   const payTo = me.paymentMethod === "PayNow"
     ? me.paynowNumber
@@ -40,7 +43,7 @@ export default async function MyPFilePage() {
 
   return (
     <>
-      <PageHeader title="My P-File" subtitle="Your personnel record and filed documents." />
+      <PageHeader title={t("pfile.pageTitle")} subtitle={t("pfile.pageSubtitle")} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -60,24 +63,24 @@ export default async function MyPFilePage() {
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Business name" value={me.businessName} />
-              <Field label="Team" value={me.teamName} />
-              <Field label="Mobile" value={me.mobileNumber} />
-              <Field label="Email" value={me.email} />
-              <Field label="NRIC / FIN" value={maskNric(safeDecrypt(me.nric))} />
-              <Field label="Date of birth" value={me.dateOfBirth ? format(me.dateOfBirth, "dd MMM yyyy") : null} />
-              <Field label="Join date" value={me.joinDate ? format(me.joinDate, "dd MMM yyyy") : null} />
-              <Field label="Direct upline" value={me.directUpline ? `${me.directUpline.associateCode} · ${me.directUpline.fullName}` : null} />
-              <Field label="Payout" value={me.paymentMethod ? `${humanize(me.paymentMethod)}${payTo ? ` · ${payTo}` : ""}` : null} />
+              <Field label={t("pfile.fieldBusinessName")} value={me.businessName} />
+              <Field label={t("pfile.fieldTeam")} value={me.teamName} />
+              <Field label={t("pfile.fieldMobile")} value={me.mobileNumber} />
+              <Field label={t("pfile.fieldEmail")} value={me.email} />
+              <Field label={t("pfile.fieldNric")} value={maskNric(safeDecrypt(me.nric))} />
+              <Field label={t("pfile.fieldDob")} value={me.dateOfBirth ? format(me.dateOfBirth, "dd MMM yyyy") : null} />
+              <Field label={t("pfile.fieldJoinDate")} value={me.joinDate ? format(me.joinDate, "dd MMM yyyy") : null} />
+              <Field label={t("pfile.fieldDirectUpline")} value={me.directUpline ? `${me.directUpline.associateCode} · ${me.directUpline.fullName}` : null} />
+              <Field label={t("pfile.fieldPayout")} value={me.paymentMethod ? `${humanize(me.paymentMethod)}${payTo ? ` · ${payTo}` : ""}` : null} />
             </div>
           </Card>
         </div>
 
         <div>
           <Card className="p-5">
-            <h2 className="mb-3 font-display text-[16px] text-ink">Documents</h2>
+            <h2 className="mb-3 font-display text-[16px] text-ink">{t("pfile.docsHeading")}</h2>
             {!pfile || pfile.documents.length === 0 ? (
-              <p className="text-[13px] text-muted">No documents filed yet.</p>
+              <p className="text-[13px] text-muted">{t("pfile.noDocs")}</p>
             ) : (
               <div className="space-y-2">
                 {pfile.documents.map((d) => (

@@ -1,4 +1,5 @@
 import { Designation, CommissionType, LedgerLineType } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { computeLineCommission, type LedgerLineResult } from "@/server/commission/engine";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
@@ -19,7 +20,7 @@ function row(lines: LedgerLineResult[], type: LedgerLineType, id?: string) {
   return lines.find((l) => l.lineType === type && (id === undefined || l.associateId === id));
 }
 
-function Preview({
+async function Preview({
   title,
   subtitle,
   sale,
@@ -30,6 +31,7 @@ function Preview({
   sale: string;
   result: ReturnType<typeof computeLineCommission>;
 }) {
+  const t = await getTranslations("commission");
   const { lines, reconciles } = result;
   const personal = row(lines, LedgerLineType.Personal)!;
   const sm = row(lines, LedgerLineType.Override, "sm")!;
@@ -39,13 +41,13 @@ function Preview({
   const pool = retained.basisAmount;
 
   const items = [
-    { label: "Sale amount", value: formatSGD(sale), muted: true },
-    { label: "Closing commission", value: formatSGD(closing), strong: true },
-    { label: "Company cut pool (40%)", value: formatSGD(pool), muted: true },
-    { label: "Net to closer", value: formatSGD(personal.amount), accent: "ink" },
-    { label: "SM override (20% of pool)", value: formatSGD(sm.amount), accent: "action" },
-    { label: "SD override (10% of pool)", value: formatSGD(sd.amount), accent: "action" },
-    { label: "Company retained", value: formatSGD(retained.amount), muted: true },
+    { label: t("saleAmount"), value: formatSGD(sale), muted: true },
+    { label: t("closingCommission"), value: formatSGD(closing), strong: true },
+    { label: t("companyCutPool"), value: formatSGD(pool), muted: true },
+    { label: t("netToCloser"), value: formatSGD(personal.amount), accent: "ink" },
+    { label: t("smOverride"), value: formatSGD(sm.amount), accent: "action" },
+    { label: t("sdOverride"), value: formatSGD(sd.amount), accent: "action" },
+    { label: t("companyRetained"), value: formatSGD(retained.amount), muted: true },
   ];
 
   return (
@@ -57,7 +59,7 @@ function Preview({
         </div>
         {reconciles && (
           <span className="rounded-full bg-success-50 px-2.5 py-1 text-[11px] font-medium text-success">
-            ✓ Reconciles
+            {t("reconciles")}
           </span>
         )}
       </div>
@@ -94,6 +96,9 @@ const LINE_TONE: Record<string, "info" | "success" | "neutral" | "warn"> = {
 };
 
 export default async function CommissionPage() {
+  const t = await getTranslations("commission");
+  const tc = await getTranslations("common");
+
   const ledger = await prisma.commissionLedger.findMany({
     orderBy: { createdAt: "desc" },
     take: 50,
@@ -112,20 +117,20 @@ export default async function CommissionPage() {
   return (
     <>
       <PageHeader
-        title="Commission engine"
-        subtitle="Pool-based overrides · installment-aware · idempotent · zero rounding leakage."
+        title={t("title")}
+        subtitle={t("subtitle")}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Preview
-          title="Percentage product"
-          subtitle="Funeral System · 10% closing"
+          title={t("percentageProduct")}
+          subtitle={t("percentageProductSubtitle")}
           sale="10000"
           result={percentage}
         />
         <Preview
-          title="Fixed product"
-          subtitle="Pet Cremation · S$500 flat (sale-amount independent)"
+          title={t("fixedProduct")}
+          subtitle={t("fixedProductSubtitle")}
           sale="3800"
           result={fixed}
         />
@@ -133,24 +138,24 @@ export default async function CommissionPage() {
 
       <Card className="mt-6 overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h3 className="font-display text-[18px] text-ink">Commission ledger</h3>
-          <span className="text-[12px] text-muted">{ledger.length} lines</span>
+          <h3 className="font-display text-[18px] text-ink">{t("ledgerTitle")}</h3>
+          <span className="text-[12px] text-muted">{t("ledgerLines", { count: ledger.length })}</span>
         </div>
         {ledger.length === 0 ? (
           <p className="px-5 py-10 text-center text-[13px] text-muted">
-            No commission yet. Submit a sale and verify it — the engine writes per-line entries here.
+            {t("ledgerEmpty")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Txn</th>
-                  <th className="px-5 py-3 font-medium">Associate</th>
-                  <th className="px-5 py-3 font-medium">Line type</th>
-                  <th className="px-5 py-3 font-medium">Basis</th>
-                  <th className="px-5 py-3 font-medium">Amount</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("colTxn")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colAssociate")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colLineType")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colBasis")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colAmount")}</th>
+                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>

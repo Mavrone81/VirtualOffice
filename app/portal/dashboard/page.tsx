@@ -10,6 +10,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Dashboard · Enshrine Portal" };
 
@@ -18,8 +19,11 @@ export default async function PortalDashboard() {
   const associateId = session?.user.associateId ?? null;
   const isManager = session ? isManagerRole(session.user.role) : false;
 
+  const t = await getTranslations("portal");
+  const tc = await getTranslations("common");
+
   if (!associateId) {
-    return <PageHeader title="Dashboard" subtitle="No associate profile is linked to this account." />;
+    return <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.noProfile")} />;
   }
 
   const dlIds = await downlineIds(associateId);
@@ -43,37 +47,37 @@ export default async function PortalDashboard() {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${firstName}`}
+        title={t("dashboard.welcomeBack", { name: firstName })}
         subtitle={`${humanize(me?.designation)} · ${me?.associateCode} · ${me?.teamName ?? ""}`}
       >
         {isManager && downline.length > 0 && (
           <Button asChild variant="secondary">
-            <Link href="/portal/team">View team →</Link>
+            <Link href="/portal/team">{t("dashboard.viewTeam")}</Link>
           </Button>
         )}
       </PageHeader>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="My sales" value={formatSGD(mySales)} sub="All submitted" />
-        <StatTile label="Eligible commission" value={formatSGD(myEligible)} sub="Ready for payout" />
-        <StatTile label="Pending" value={formatSGD(myPending)} sub="Awaiting collection" />
-        <StatTile label="My downline" value={downline.length} sub="Associates in your team" />
+        <StatTile label={t("dashboard.mySales")} value={formatSGD(mySales)} sub={t("dashboard.allSubmitted")} />
+        <StatTile label={t("dashboard.eligibleCommission")} value={formatSGD(myEligible)} sub={t("dashboard.readyForPayout")} />
+        <StatTile label={t("dashboard.pending")} value={formatSGD(myPending)} sub={t("dashboard.awaitingCollection")} />
+        <StatTile label={t("dashboard.myDownline")} value={downline.length} sub={t("dashboard.associatesInYourTeam")} />
       </div>
 
       {downline.length > 0 && (
         <Card className="mt-6 overflow-hidden">
           <div className="border-b border-line px-5 py-4">
-            <h2 className="font-display text-[18px] text-ink">My team</h2>
+            <h2 className="font-display text-[18px] text-ink">{t("dashboard.myTeamHeading")}</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">ID</th>
-                  <th className="px-5 py-3 font-medium">Associate</th>
-                  <th className="px-5 py-3 font-medium">Designation</th>
-                  <th className="px-5 py-3 font-medium">Upline</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("dashboard.colId")}</th>
+                  <th className="px-5 py-3 font-medium">{t("dashboard.colAssociate")}</th>
+                  <th className="px-5 py-3 font-medium">{t("dashboard.colDesignation")}</th>
+                  <th className="px-5 py-3 font-medium">{t("dashboard.colUpline")}</th>
+                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,10 +97,9 @@ export default async function PortalDashboard() {
       )}
 
       <Card className="mt-6 p-6">
-        <h3 className="font-display text-[17px] text-ink">Your virtual office is taking shape</h3>
+        <h3 className="font-display text-[17px] text-ink">{t("dashboard.virtualOfficeTitle")}</h3>
         <p className="mt-1.5 max-w-xl text-[13px] text-muted">
-          Submitting sales, viewing commissions and payouts, your name card and P-file are coming in the next
-          build. For now you can see your profile and team here.
+          {t("dashboard.virtualOfficeBody")}
         </p>
       </Card>
     </>

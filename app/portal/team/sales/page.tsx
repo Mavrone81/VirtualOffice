@@ -8,13 +8,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Team sales · Enshrine Portal" };
 
 export default async function TeamSalesPage() {
   const session = await auth();
+  const t = await getTranslations("team");
+  const tc = await getTranslations("common");
+
   const associateId = session?.user.associateId ?? null;
-  if (!associateId) return <PageHeader title="Team sales" subtitle="No associate profile is linked to this account." />;
+  if (!associateId) return <PageHeader title={t("sales.pageTitle")} subtitle={t("sales.noProfile")} />;
 
   const dlIds = await downlineIds(associateId);
   const teamIds = dlIds.filter((id) => id !== associateId);
@@ -34,29 +38,29 @@ export default async function TeamSalesPage() {
 
   return (
     <>
-      <PageHeader title="Team sales" subtitle="Sales submitted across your downline." />
+      <PageHeader title={t("sales.pageTitle")} subtitle={t("sales.pageSubtitle")} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <StatTile label="Submissions" value={submissions.length} sub="From your downline" />
-        <StatTile label="Total submitted" value={formatSGD(total)} sub="All statuses" />
-        <StatTile label="Verified" value={formatSGD(verifiedTotal)} sub={`${verified.length} verified`} />
+        <StatTile label={t("sales.submissions")} value={submissions.length} sub={t("sales.fromDownline")} />
+        <StatTile label={t("sales.totalSubmitted")} value={formatSGD(total)} sub={t("sales.allStatuses")} />
+        <StatTile label={t("sales.verified")} value={formatSGD(verifiedTotal)} sub={t("sales.verifiedCount", { count: verified.length })} />
       </div>
 
       <Card className="mt-6 overflow-hidden">
         {submissions.length === 0 ? (
-          <p className="px-5 py-12 text-center text-[13px] text-muted">No team sales yet.</p>
+          <p className="px-5 py-12 text-center text-[13px] text-muted">{t("sales.noSales")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-5 py-3 font-medium">Associate</th>
-                  <th className="px-5 py-3 font-medium">Client</th>
-                  <th className="px-5 py-3 font-medium">Products</th>
-                  <th className="px-5 py-3 font-medium text-right">Amount</th>
-                  <th className="px-5 py-3 font-medium">Plan</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colDate")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colAssociate")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colClient")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colProducts")}</th>
+                  <th className="px-5 py-3 font-medium text-right">{t("sales.colAmount")}</th>
+                  <th className="px-5 py-3 font-medium">{t("sales.colPlan")}</th>
+                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -9,13 +9,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Team overview · Enshrine Portal" };
 
 export default async function TeamOverviewPage() {
   const session = await auth();
+  const t = await getTranslations("team");
+  const tc = await getTranslations("common");
+
   const associateId = session?.user.associateId ?? null;
-  if (!associateId) return <PageHeader title="Team" subtitle="No associate profile is linked to this account." />;
+  if (!associateId) return <PageHeader title={t("overview.noProfileTitle")} subtitle={t("overview.noProfile")} />;
 
   const dlIds = await downlineIds(associateId);
   const teamIds = dlIds.filter((id) => id !== associateId); // downline excluding self
@@ -35,36 +39,36 @@ export default async function TeamOverviewPage() {
   return (
     <>
       <PageHeader
-        title="Team overview"
-        subtitle={`Your downline — ${humanize(me?.designation)} · ${me?.associateCode}${me?.teamName ? ` · ${me.teamName}` : ""}`}
+        title={t("overview.pageTitle")}
+        subtitle={`${t("overview.yourDownline")} — ${humanize(me?.designation)} · ${me?.associateCode}${me?.teamName ? ` · ${me.teamName}` : ""}`}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Team size" value={members.length} sub="Associates in your downline" />
-        <StatTile label="Team sales" value={formatSGD(teamSales)} sub="All submitted, downline" />
-        <StatTile label="Team commission" value={formatSGD(teamCommission)} sub="Earned by your team" />
-        <StatTile label="My overrides" value={formatSGD(myOverride)} sub="Your override earnings" />
+        <StatTile label={t("overview.teamSize")} value={members.length} sub={t("overview.associatesInDownline")} />
+        <StatTile label={t("overview.teamSales")} value={formatSGD(teamSales)} sub={t("overview.allSubmittedDownline")} />
+        <StatTile label={t("overview.teamCommission")} value={formatSGD(teamCommission)} sub={t("overview.earnedByYourTeam")} />
+        <StatTile label={t("overview.myOverrides")} value={formatSGD(myOverride)} sub={t("overview.yourOverrideEarnings")} />
       </div>
 
       <Card className="mt-6 overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="font-display text-[18px] text-ink">Downline</h2>
-          <Link href="/portal/team/sales" className="text-[12px] text-action hover:underline">Team sales →</Link>
+          <h2 className="font-display text-[18px] text-ink">{t("overview.downlineHeading")}</h2>
+          <Link href="/portal/team/sales" className="text-[12px] text-action hover:underline">{t("overview.teamSalesLink")}</Link>
         </div>
         {members.length === 0 ? (
-          <p className="px-5 py-12 text-center text-[13px] text-muted">You have no downline associates yet.</p>
+          <p className="px-5 py-12 text-center text-[13px] text-muted">{t("overview.noDownline")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">ID</th>
-                  <th className="px-5 py-3 font-medium">Associate</th>
-                  <th className="px-5 py-3 font-medium">Designation</th>
-                  <th className="px-5 py-3 font-medium">Upline</th>
-                  <th className="px-5 py-3 font-medium text-right">Sales</th>
-                  <th className="px-5 py-3 font-medium text-right">Commission</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("overview.colId")}</th>
+                  <th className="px-5 py-3 font-medium">{t("overview.colAssociate")}</th>
+                  <th className="px-5 py-3 font-medium">{t("overview.colDesignation")}</th>
+                  <th className="px-5 py-3 font-medium">{t("overview.colUpline")}</th>
+                  <th className="px-5 py-3 font-medium text-right">{t("overview.colSales")}</th>
+                  <th className="px-5 py-3 font-medium text-right">{t("overview.colCommission")}</th>
+                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>
