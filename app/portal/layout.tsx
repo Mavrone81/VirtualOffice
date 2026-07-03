@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { noticeAudienceWhere } from "@/lib/notices";
-import { initialsOf } from "@/lib/utils";
+import { initialsOf, currentPeriod } from "@/lib/utils";
 import { AppShell } from "@/components/shell/app-shell";
 
 // Authed, per-request data — never prerender at build.
@@ -39,8 +39,11 @@ export default async function PortalLayout({ children }: { children: React.React
     role: session.user.role,
   };
 
+  const locale = await getLocale();
+  const alerts = [{ labelKey: "notices", count: unreadNotices, href: "/portal/notices" }];
+
   return (
-    <AppShell area="portal" user={user} badges={{ notices: unreadNotices }}>
+    <AppShell area="portal" user={user} badges={{ notices: unreadNotices }} alerts={alerts} period={currentPeriod(locale)}>
       {children}
     </AppShell>
   );

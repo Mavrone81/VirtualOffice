@@ -27,7 +27,8 @@
     "account": "账户与密码",
     "yes": "是",
     "no": "否",
-    "dash": "—"
+    "dash": "—",
+    "allCaughtUp": "暂无待处理事项。"
   },
   "nav": {
     "groupOperations": "运营",
@@ -907,5 +908,16 @@
     "successBody": "您的密码已重置。现在可以使用新密码登录。",
     "signIn": "登录",
     "mismatch": "两次输入的密码不一致。"
+  },
+  "search": {
+    "title": "搜索",
+    "resultsFor": "“{q}” 的搜索结果",
+    "noResults": "未找到匹配结果。",
+    "typeQuery": "输入关键词以开始搜索。",
+    "secAssociates": "伙伴",
+    "secCandidates": "候选人",
+    "secTransactions": "交易",
+    "secInvoices": "发票",
+    "secSales": "我的销售"
   }
 }
