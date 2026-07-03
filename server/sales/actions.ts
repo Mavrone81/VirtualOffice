@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import {
   PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus,
 } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
@@ -24,10 +25,11 @@ export type SubmitSaleInput = {
 };
 
 export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await auth();
-  if (!session?.user.associateId) return { ok: false, error: "No associate profile linked." };
-  if (!input.clientName?.trim()) return { ok: false, error: "Client name is required." };
-  if (!input.lines.length) return { ok: false, error: "Add at least one product line." };
+  if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
+  if (!input.clientName?.trim()) return { ok: false, error: t("clientNameRequired") };
+  if (!input.lines.length) return { ok: false, error: t("addProductLine") };
 
   const products = await prisma.product.findMany({
     where: { id: { in: input.lines.map((l) => l.productId) } },
@@ -76,15 +78,16 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 }
 
 export async function verifySubmission(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await auth();
-  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: "Forbidden" };
+  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
 
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
     include: { lineItems: true, closingAssociate: true },
   });
-  if (!sub) return { ok: false, error: "Not found" };
-  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: "Already processed" };
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
   const closer = sub.closingAssociate;
   const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;

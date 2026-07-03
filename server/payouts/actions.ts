@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { Prisma, LedgerStatus, LedgerLineType, PayoutStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
@@ -15,8 +16,9 @@ async function requireAdmin() {
 
 /** Aggregate this month's Eligible ledger lines into monthly_payouts per associate. */
 export async function runPayouts(month: string): Promise<{ ok: boolean; count?: number; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
-  if (!/^\d{4}-\d{2}$/.test(month)) return { ok: false, error: "Bad month" };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  if (!/^\d{4}-\d{2}$/.test(month)) return { ok: false, error: t("badMonth") };
 
   const lines = await prisma.commissionLedger.findMany({
     where: { payoutMonth: month, status: LedgerStatus.Eligible, associateId: { not: null } },
@@ -57,7 +59,8 @@ export async function runPayouts(month: string): Promise<{ ok: boolean; count?: 
 }
 
 export async function setPayoutStatus(payoutId: string, status: "Approved" | "Paid"): Promise<{ ok: boolean; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
   await prisma.monthlyPayout.update({
     where: { id: payoutId },
     data: {
@@ -71,7 +74,8 @@ export async function setPayoutStatus(payoutId: string, status: "Approved" | "Pa
 }
 
 export async function approveAllPayouts(month: string): Promise<{ ok: boolean; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
   await prisma.monthlyPayout.updateMany({
     where: { payoutMonth: month, payoutStatus: PayoutStatus.Pending },
     data: { payoutStatus: PayoutStatus.Approved },

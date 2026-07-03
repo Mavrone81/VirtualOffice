@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { DocumentType, DocumentAssignment } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
@@ -26,20 +27,21 @@ export type DocumentUpload = {
 const MAX_BYTES = 15_000_000;
 
 export async function uploadDocument(input: DocumentUpload): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await requireAdmin();
-  if (!session) return { ok: false, error: "Forbidden" };
-  if (!input.title?.trim()) return { ok: false, error: "Title is required." };
-  if (!input.file || input.file.size === 0) return { ok: false, error: "Please choose a file." };
-  if (input.file.size > MAX_BYTES) return { ok: false, error: "File must be under 15 MB." };
+  if (!session) return { ok: false, error: t("forbidden") };
+  if (!input.title?.trim()) return { ok: false, error: t("titleRequired") };
+  if (!input.file || input.file.size === 0) return { ok: false, error: t("fileRequired") };
+  if (input.file.size > MAX_BYTES) return { ok: false, error: t("fileTooLarge") };
 
   let assignedAssociateId: string | null = null;
   if (input.assignment === "Associate") {
-    if (!input.assignedAssociateCode?.trim()) return { ok: false, error: "Associate code is required." };
+    if (!input.assignedAssociateCode?.trim()) return { ok: false, error: t("associateCodeRequired") };
     const a = await prisma.associate.findUnique({ where: { associateCode: input.assignedAssociateCode.trim() }, select: { id: true } });
-    if (!a) return { ok: false, error: "Associate code not found." };
+    if (!a) return { ok: false, error: t("associateCodeNotFound") };
     assignedAssociateId = a.id;
   }
-  if (input.assignment === "Team" && !input.assignedTeam?.trim()) return { ok: false, error: "Team name is required." };
+  if (input.assignment === "Team" && !input.assignedTeam?.trim()) return { ok: false, error: t("teamNameRequired") };
 
   const safeName = input.file.name.replace(/[^\w.\-]/g, "_").slice(-80) || "document";
   const key = `documents/${randomUUID()}/${safeName}`;
@@ -62,8 +64,9 @@ export async function uploadDocument(input: DocumentUpload): Promise<{ ok: boole
 }
 
 export async function deleteDocument(id: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await requireAdmin();
-  if (!session) return { ok: false, error: "Forbidden" };
+  if (!session) return { ok: false, error: t("forbidden") };
   const doc = await prisma.document.findUnique({ where: { id }, select: { fileKey: true } });
   if (doc?.fileKey) await deleteObject(doc.fileKey);
   await prisma.document.delete({ where: { id } });

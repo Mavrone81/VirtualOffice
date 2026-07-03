@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { NoticeAudience, AppRole } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
@@ -21,12 +22,13 @@ export type NoticeInput = {
 };
 
 export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await requireAdmin();
-  if (!session) return { ok: false, error: "Forbidden" };
-  if (!input.title?.trim()) return { ok: false, error: "Title is required." };
-  if (!input.body?.trim()) return { ok: false, error: "Message body is required." };
-  if (input.audience === "Team" && !input.audienceTeam?.trim()) return { ok: false, error: "Team name is required for a team notice." };
-  if (input.audience === "Role" && !input.audienceRole) return { ok: false, error: "Role is required for a role notice." };
+  if (!session) return { ok: false, error: t("forbidden") };
+  if (!input.title?.trim()) return { ok: false, error: t("titleRequired") };
+  if (!input.body?.trim()) return { ok: false, error: t("messageBodyRequired") };
+  if (input.audience === "Team" && !input.audienceTeam?.trim()) return { ok: false, error: t("teamNameRequiredForTeam") };
+  if (input.audience === "Role" && !input.audienceRole) return { ok: false, error: t("roleRequiredForRole") };
 
   await prisma.notice.create({
     data: {
@@ -44,8 +46,9 @@ export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; e
 }
 
 export async function deleteNotice(id: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await requireAdmin();
-  if (!session) return { ok: false, error: "Forbidden" };
+  if (!session) return { ok: false, error: t("forbidden") };
   await prisma.noticeRead.deleteMany({ where: { noticeId: id } });
   await prisma.notice.delete({ where: { id } });
   revalidatePath("/admin/notices");
