@@ -1,44 +1,38 @@
 import QRCode from "qrcode";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { roleLabel } from "@/lib/rbac";
 import { buildVCard } from "@/lib/vcard";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { NameCardView } from "@/components/name-card/card-view";
+import { NameCardStudio } from "@/components/name-card/studio";
 
 export const metadata = { title: "Name Card · Enshrine Admin" };
 
 export default async function AdminNameCardPage() {
   const session = await auth();
-  if (!session?.user) return <PageHeader title="Name Card" />;
+  const tNav = await getTranslations("nav");
+  const tCard = await getTranslations("nameCard");
+  const tRoles = await getTranslations("roles");
+  if (!session?.user) return <PageHeader title={tNav("nameCard")} />;
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true } });
+  const [user, card] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true } }),
+    prisma.nameCard.findFirst({ where: { userId: session.user.id } }),
+  ]);
   const name = session.user.name ?? "Enshrine";
-  const title = roleLabel[session.user.role];
+  const title = card?.customTitle || tRoles(session.user.role);
   const email = user?.email ?? session.user.email ?? null;
 
   const vcf = buildVCard({ fullName: name, title, email });
-  const qr = await QRCode.toDataURL(vcf, { margin: 1, width: 260, color: { dark: "#1a1f2b", light: "#ffffff" } });
+  const qr = await QRCode.toDataURL(vcf, { margin: 1, width: 240, color: { dark: "#1a1f2b", light: "#ffffff" } });
 
   return (
     <>
-      <PageHeader title="Name Card" subtitle="Your Enshrine digital business card.">
-        <Button asChild variant="secondary"><a href="/admin/name-card/vcf">Save to contacts (.vcf)</a></Button>
-      </PageHeader>
-
-      <div className="mx-auto max-w-xl">
-        <NameCardView
-          name={name}
-          title={title}
-          email={email}
-          qrDataUrl={qr}
-          footer="Enshrine Services · Pets Paradise · Afterlife Planner"
-        />
-        <p className="mt-4 text-center text-[12px] text-muted-2">
-          Scanning the QR code adds your details straight to a phone&rsquo;s contacts.
-        </p>
-      </div>
+      <PageHeader title={tNav("nameCard")} subtitle={tCard("subtitle")} />
+      <NameCardStudio
+        editable
+        data={{ chineseName: card?.chineseName ?? "", englishName: name, title, hp: null, email, qrDataUrl: qr }}
+      />
     </>
   );
 }
