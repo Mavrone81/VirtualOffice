@@ -188,6 +188,9 @@ model User {
   associate    Associate? @relation("AssociateUser", fields: [associateId], references: [id])
   isActive     Boolean    @default(true) @map("is_active")
 
+  resetTokenHash      String?   @map("reset_token_hash")
+  resetTokenExpiresAt DateTime? @map("reset_token_expires_at")
+
   pFile              PFile?
   nameCards          NameCard[]
   noticeReads        NoticeRead[]

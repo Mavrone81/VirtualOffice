@@ -870,7 +870,8 @@
     "accountNotFound": "账户未找到。",
     "currentPasswordIncorrect": "当前密码不正确。",
     "associateNotFound": "伙伴未找到。",
-    "noLoginToReset": "该伙伴没有可重置的登录账户。"
+    "noLoginToReset": "该伙伴没有可重置的登录账户。",
+    "resetLinkInvalid": "此重置链接无效或已过期。"
   },
   "nameCard": {
     "front": "正面",
@@ -886,5 +887,25 @@
     "save": "保存",
     "saved": "✓ 已保存",
     "subtitle": "您的 Enshrine 电子名片。个性化后即可分享二维码或下载。"
+  },
+  "reset": {
+    "forgotTitle": "重置密码",
+    "forgotSubtitle": "输入您的邮箱，我们将向您发送重置链接。",
+    "emailLabel": "邮箱",
+    "sendLink": "发送重置链接",
+    "sending": "发送中…",
+    "sentTitle": "请查收邮件",
+    "sentBody": "如果该邮箱存在对应账户，我们已发送密码重置链接。链接将在 1 小时后失效。",
+    "backToLogin": "返回登录",
+    "resetTitle": "设置新密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认密码",
+    "newPasswordHint": "至少 8 个字符。",
+    "updateButton": "更新密码",
+    "updating": "更新中…",
+    "successTitle": "密码已更新",
+    "successBody": "您的密码已重置。现在可以使用新密码登录。",
+    "signIn": "登录",
+    "mismatch": "两次输入的密码不一致。"
   }
 }

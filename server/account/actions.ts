@@ -1,14 +1,65 @@
 "use server";
 
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { hash, verify } from "@node-rs/argon2";
+import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
+import { sendMail, resetPasswordEmail } from "@/lib/mail";
 
 const MIN_LEN = 8;
+
+async function baseUrl(): Promise<string> {
+  if (env.AUTH_URL) return env.AUTH_URL.replace(/\/$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : "";
+}
+
+function sha256(v: string): string {
+  return createHash("sha256").update(v).digest("hex");
+}
+
+/**
+ * Public: request a password reset. Always returns ok (no account enumeration).
+ * When the email matches an active user, a one-hour reset link is emailed.
+ */
+export async function requestPasswordReset(email: string): Promise<{ ok: boolean }> {
+  const e = email?.trim().toLowerCase();
+  if (e) {
+    const user = await prisma.user.findUnique({ where: { email: e } });
+    if (user?.isActive) {
+      const token = randomBytes(32).toString("base64url");
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetTokenHash: sha256(token), resetTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+      });
+      await sendMail({ ...resetPasswordEmail(`${await baseUrl()}/reset-password/${token}`), to: user.email });
+    }
+  }
+  return { ok: true };
+}
+
+/** Public: complete a password reset with a valid, unexpired token. */
+export async function resetPassword(token: string, newPassword: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  if (!newPassword || newPassword.length < MIN_LEN) return { ok: false, error: t("newPasswordTooShort", { min: MIN_LEN }) };
+  const user = await prisma.user.findFirst({
+    where: { resetTokenHash: sha256(token), resetTokenExpiresAt: { gt: new Date() } },
+  });
+  if (!user) return { ok: false, error: t("resetLinkInvalid") };
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await hash(newPassword), resetTokenHash: null, resetTokenExpiresAt: null },
+  });
+  await logAudit({ action: "password.reset_self", entityType: "User", entityId: user.id, actorUserId: user.id });
+  return { ok: true };
+}
 
 /** Self-service password change for the signed-in user. */
 export async function changePassword(
