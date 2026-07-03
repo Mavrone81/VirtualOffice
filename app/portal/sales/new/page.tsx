@@ -3,10 +3,13 @@ import { ProductActiveStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { SaleForm, type FormProduct } from "./sale-form";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Submit a sale · Enshrine Portal" };
 
 export default async function NewSalePage() {
+  const t = await getTranslations("portal");
+
   const products = await prisma.product.findMany({
     where: { activeStatus: ProductActiveStatus.Active, archivedAt: null },
     include: { comCodes: { where: { active: true } }, defaultCompany: true },
@@ -23,7 +26,7 @@ export default async function NewSalePage() {
 
   return (
     <>
-      <PageHeader title="Submit a sale" subtitle="Record a new sale — it becomes official after verification." />
+      <PageHeader title={t("newSale.pageTitle")} subtitle={t("newSale.pageSubtitle")} />
       <SaleForm products={formProducts} today={format(new Date(), "yyyy-MM-dd")} />
     </>
   );

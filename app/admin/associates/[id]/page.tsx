@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { FileText } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
 import { decryptPII, maskNric, maskAccount } from "@/lib/crypto";
@@ -28,6 +29,7 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default async function AdminAssociateDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("associates");
   const { id } = await params;
   const a = await prisma.associate.findUnique({
     where: { id },
@@ -46,7 +48,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
   return (
     <>
       <PageHeader title={a.fullName} subtitle={`${humanize(a.designation)} · ${a.associateCode}`}>
-        <Button asChild variant="secondary"><Link href="/admin/associates">← All associates</Link></Button>
+        <Button asChild variant="secondary"><Link href="/admin/associates">{t("detail.allAssociates")}</Link></Button>
       </PageHeader>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -65,16 +67,19 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Business name" value={a.businessName} />
-              <Field label="Team" value={a.teamName} />
-              <Field label="Mobile" value={a.mobileNumber} />
-              <Field label="Email" value={a.email} />
-              <Field label="NRIC / FIN" value={maskNric(safeDecrypt(a.nric))} />
-              <Field label="Date of birth" value={a.dateOfBirth ? format(a.dateOfBirth, "dd MMM yyyy") : null} />
-              <Field label="Join date" value={a.joinDate ? format(a.joinDate, "dd MMM yyyy") : null} />
-              <Field label="Direct upline" value={a.directUpline ? `${a.directUpline.associateCode} · ${a.directUpline.fullName}` : null} />
-              <Field label="Login" value={a.user ? `${a.user.email}${a.user.isActive ? "" : " (disabled)"}` : "Not provisioned"} />
-              <Field label="Payout" value={a.paymentMethod ? `${humanize(a.paymentMethod)}${payTo ? ` · ${payTo}` : ""}` : null} />
+              <Field label={t("detail.businessName")} value={a.businessName} />
+              <Field label={t("detail.team")} value={a.teamName} />
+              <Field label={t("detail.mobile")} value={a.mobileNumber} />
+              <Field label={t("detail.email")} value={a.email} />
+              <Field label={t("detail.nric")} value={maskNric(safeDecrypt(a.nric))} />
+              <Field label={t("detail.dob")} value={a.dateOfBirth ? format(a.dateOfBirth, "dd MMM yyyy") : null} />
+              <Field label={t("detail.joinDate")} value={a.joinDate ? format(a.joinDate, "dd MMM yyyy") : null} />
+              <Field label={t("detail.directUpline")} value={a.directUpline ? `${a.directUpline.associateCode} · ${a.directUpline.fullName}` : null} />
+              <Field
+                label={t("detail.login")}
+                value={a.user ? `${a.user.email}${a.user.isActive ? "" : ` ${t("detail.loginDisabled")}`}` : t("detail.loginNotProvisioned")}
+              />
+              <Field label={t("detail.payout")} value={a.paymentMethod ? `${humanize(a.paymentMethod)}${payTo ? ` · ${payTo}` : ""}` : null} />
             </div>
           </Card>
         </div>
@@ -82,16 +87,16 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
         <div className="space-y-4">
           {a.user && (
             <Card className="p-5">
-              <h2 className="mb-1 font-display text-[16px] text-ink">Login</h2>
+              <h2 className="mb-1 font-display text-[16px] text-ink">{t("detail.loginSection")}</h2>
               <p className="mb-3 text-[12px] text-muted">{a.user.email}</p>
               <ResetPasswordButton associateId={a.id} />
             </Card>
           )}
 
           <Card className="p-5">
-            <h2 className="mb-3 font-display text-[16px] text-ink">P-file documents</h2>
+            <h2 className="mb-3 font-display text-[16px] text-ink">{t("detail.pfileSection")}</h2>
             {!a.pFile || a.pFile.documents.length === 0 ? (
-              <p className="text-[13px] text-muted">No documents filed.</p>
+              <p className="text-[13px] text-muted">{t("detail.noDocuments")}</p>
             ) : (
               <div className="space-y-2">
                 {a.pFile.documents.map((d) => (

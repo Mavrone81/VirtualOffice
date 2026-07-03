@@ -1,4 +1,5 @@
 import { ApprovalStatus, AssociateStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { roleLabel } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
@@ -10,6 +11,9 @@ import { StatusPill } from "@/components/ui/status-pill";
 export const metadata = { title: "Overview · Enshrine Admin" };
 
 export default async function AdminDashboard() {
+  const t = await getTranslations("adminDashboard");
+  const tc = await getTranslations("common");
+
   const [activeCount, pendingCount, companies, products, associates] = await Promise.all([
     prisma.associate.count({ where: { associateStatus: AssociateStatus.Active } }),
     prisma.associate.count({ where: { approvalStatus: ApprovalStatus.Pending } }),
@@ -20,31 +24,31 @@ export default async function AdminDashboard() {
 
   return (
     <>
-      <PageHeader title="Overview" subtitle="Product Owner workspace — the HR & commission system of record." />
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Active associates" value={activeCount} sub="Approved & active" />
-        <StatTile label="Pending approval" value={pendingCount} sub="Awaiting review" />
-        <StatTile label="Company entities" value={companies} sub="Invoice brands" />
-        <StatTile label="Products" value={products} sub="Commission structures" />
+        <StatTile label={t("statActiveAssociates")} value={activeCount} sub={t("statApprovedActive")} />
+        <StatTile label={t("statPendingApproval")} value={pendingCount} sub={t("statAwaitingReview")} />
+        <StatTile label={t("statCompanyEntities")} value={companies} sub={t("statInvoiceBrands")} />
+        <StatTile label={t("statProducts")} value={products} sub={t("statCommissionStructures")} />
       </div>
 
       <Card className="mt-6 overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="font-display text-[18px] text-ink">Associate master</h2>
-          <span className="text-[12px] text-muted">{associates.length} associates</span>
+          <h2 className="font-display text-[18px] text-ink">{t("associateMaster")}</h2>
+          <span className="text-[12px] text-muted">{t("associatesCount", { count: associates.length })}</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">ID</th>
-                <th className="px-5 py-3 font-medium">Associate</th>
-                <th className="px-5 py-3 font-medium">Division</th>
-                <th className="px-5 py-3 font-medium">Designation</th>
-                <th className="px-5 py-3 font-medium">Upline</th>
-                <th className="px-5 py-3 font-medium">Approval</th>
-                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">{t("colId")}</th>
+                <th className="px-5 py-3 font-medium">{t("colAssociate")}</th>
+                <th className="px-5 py-3 font-medium">{t("colDivision")}</th>
+                <th className="px-5 py-3 font-medium">{t("colDesignation")}</th>
+                <th className="px-5 py-3 font-medium">{t("colUpline")}</th>
+                <th className="px-5 py-3 font-medium">{t("colApproval")}</th>
+                <th className="px-5 py-3 font-medium">{tc("status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -68,8 +72,7 @@ export default async function AdminDashboard() {
       </Card>
 
       <p className="mt-4 text-[12px] text-muted-2">
-        Foundation build · roles seeded: {Object.values(roleLabel).join(" · ")}. Sales, commission and payout
-        modules are next.
+        {t("footerNote", { roles: Object.values(roleLabel).join(" · ") })}
       </p>
     </>
   );

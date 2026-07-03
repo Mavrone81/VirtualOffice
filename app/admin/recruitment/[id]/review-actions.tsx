@@ -2,10 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { approveCandidate, rejectCandidate } from "@/server/recruitment/actions";
 
 export function ReviewActions({ id }: { id: string }) {
+  const t = useTranslations("recruitment");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
@@ -17,7 +20,7 @@ export function ReviewActions({ id }: { id: string }) {
     start(async () => {
       const r = await approveCandidate(id);
       if (r.ok) router.push("/admin/associates");
-      else setError(r.error ?? "Could not approve.");
+      else setError(r.error ?? t("review.couldNotApprove"));
     });
   }
 
@@ -26,7 +29,7 @@ export function ReviewActions({ id }: { id: string }) {
     start(async () => {
       const r = await rejectCandidate(id, reason);
       if (r.ok) { setRejecting(false); router.refresh(); }
-      else setError(r.error ?? "Could not reject.");
+      else setError(r.error ?? t("review.couldNotReject"));
     });
   }
 
@@ -38,19 +41,19 @@ export function ReviewActions({ id }: { id: string }) {
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Reason for rejection (optional)"
+            placeholder={t("review.reasonPlaceholder")}
             rows={3}
             className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-action focus:outline-none"
           />
           <div className="flex gap-2">
-            <Button variant="danger" onClick={reject} disabled={pending}>{pending ? "Rejecting…" : "Confirm reject"}</Button>
-            <Button variant="secondary" onClick={() => setRejecting(false)} disabled={pending}>Cancel</Button>
+            <Button variant="danger" onClick={reject} disabled={pending}>{pending ? t("review.rejecting") : t("review.confirmReject")}</Button>
+            <Button variant="secondary" onClick={() => setRejecting(false)} disabled={pending}>{tc("cancel")}</Button>
           </div>
         </div>
       ) : (
         <div className="flex gap-2">
-          <Button onClick={approve} disabled={pending}>{pending ? "Approving…" : "Approve → create associate"}</Button>
-          <Button variant="secondary" onClick={() => setRejecting(true)} disabled={pending}>Reject</Button>
+          <Button onClick={approve} disabled={pending}>{pending ? t("review.approving") : t("review.approveCreate")}</Button>
+          <Button variant="secondary" onClick={() => setRejecting(true)} disabled={pending}>{t("review.reject")}</Button>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { OnboardingStage } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,16 +11,19 @@ import { StatusPill } from "@/components/ui/status-pill";
 
 export const metadata = { title: "Recruitment · Enshrine Admin" };
 
-// Pipeline columns, in flow order. FormSubmitted + SignedPendingApproval both
-// land in the "Pending review" bucket the admin acts on.
-const COLUMNS: { title: string; stages: OnboardingStage[]; tone: "info" | "warn" | "success" | "neutral" }[] = [
-  { title: "Invited", stages: [OnboardingStage.Invited], tone: "info" },
-  { title: "Pending review", stages: [OnboardingStage.FormSubmitted, OnboardingStage.SignedPendingApproval], tone: "warn" },
-  { title: "Approved", stages: [OnboardingStage.Approved], tone: "success" },
-  { title: "Rejected", stages: [OnboardingStage.Rejected], tone: "neutral" },
-];
-
 export default async function RecruitmentPage() {
+  const t = await getTranslations("recruitment");
+  const tc = await getTranslations("common");
+
+  // Pipeline columns, in flow order. FormSubmitted + SignedPendingApproval both
+  // land in the "Pending review" bucket the admin acts on.
+  const COLUMNS: { title: string; stages: OnboardingStage[]; tone: "info" | "warn" | "success" | "neutral" }[] = [
+    { title: t("col.invited"), stages: [OnboardingStage.Invited], tone: "info" },
+    { title: t("col.pendingReview"), stages: [OnboardingStage.FormSubmitted, OnboardingStage.SignedPendingApproval], tone: "warn" },
+    { title: t("col.approved"), stages: [OnboardingStage.Approved], tone: "success" },
+    { title: t("col.rejected"), stages: [OnboardingStage.Rejected], tone: "neutral" },
+  ];
+
   const candidates = await prisma.candidate.findMany({
     orderBy: { createdAt: "desc" },
     include: { intendedDirectUpline: { select: { associateCode: true, fullName: true } } },
@@ -27,9 +31,9 @@ export default async function RecruitmentPage() {
 
   return (
     <>
-      <PageHeader title="Recruitment" subtitle="Invite candidates, track onboarding, and approve to convert them into associates.">
+      <PageHeader title={t("title")} subtitle={t("subtitle")}>
         <Button asChild>
-          <Link href="/admin/recruitment/new">+ Invite candidate</Link>
+          <Link href="/admin/recruitment/new">{t("inviteCandidate")}</Link>
         </Button>
       </PageHeader>
 
@@ -44,7 +48,7 @@ export default async function RecruitmentPage() {
               </div>
               {items.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-[12px] text-muted-2">
-                  None
+                  {tc("none")}
                 </div>
               ) : (
                 items.map((c) => (
@@ -62,7 +66,7 @@ export default async function RecruitmentPage() {
                         {c.intendedDirectUpline && <span>↑ {c.intendedDirectUpline.associateCode}</span>}
                         {c.intendedTeam && <span>{c.intendedTeam}</span>}
                       </div>
-                      <div className="mt-2 text-[11px] text-muted-2">Invited {format(c.createdAt, "dd MMM")}</div>
+                      <div className="mt-2 text-[11px] text-muted-2">{t("invitedOn", { date: format(c.createdAt, "dd MMM") })}</div>
                     </Card>
                   </Link>
                 ))

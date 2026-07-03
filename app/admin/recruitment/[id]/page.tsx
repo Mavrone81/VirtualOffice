@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { OnboardingStage } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
 import { decryptPII, maskNric, maskAccount } from "@/lib/crypto";
@@ -42,6 +43,7 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default async function CandidatePage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("recruitment");
   const { id } = await params;
   const c = await prisma.candidate.findUnique({
     where: { id },
@@ -60,21 +62,24 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
 
   return (
     <>
-      <PageHeader title={c.fullName} subtitle={`${humanize(c.intendedDesignation ?? "")} · invited ${format(c.createdAt, "dd MMM yyyy")}`}>
+      <PageHeader
+        title={c.fullName}
+        subtitle={t("detail.headerSubtitle", { designation: humanize(c.intendedDesignation ?? ""), date: format(c.createdAt, "dd MMM yyyy") })}
+      >
         <StatusPill status={c.onboardingStage} />
       </PageHeader>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card className="p-5">
-            <h2 className="mb-4 font-display text-[16px] text-ink">Intended placement</h2>
+            <h2 className="mb-4 font-display text-[16px] text-ink">{t("detail.intendedPlacement")}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Email" value={c.email} />
-              <Field label="Mobile" value={c.mobileNumber} />
-              <Field label="Designation" value={humanize(c.intendedDesignation ?? "")} />
-              <Field label="Direct upline" value={c.intendedDirectUpline ? `${c.intendedDirectUpline.associateCode} · ${c.intendedDirectUpline.fullName}` : null} />
-              <Field label="Team" value={c.intendedTeam} />
-              <Field label="Invited by" value={c.invitedBy?.email} />
+              <Field label={t("detail.email")} value={c.email} />
+              <Field label={t("detail.mobile")} value={c.mobileNumber} />
+              <Field label={t("detail.designation")} value={humanize(c.intendedDesignation ?? "")} />
+              <Field label={t("detail.directUpline")} value={c.intendedDirectUpline ? `${c.intendedDirectUpline.associateCode} · ${c.intendedDirectUpline.fullName}` : null} />
+              <Field label={t("detail.team")} value={c.intendedTeam} />
+              <Field label={t("detail.invitedBy")} value={c.invitedBy?.email} />
             </div>
           </Card>
 
@@ -85,19 +90,19 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={`/api/files/${c.photoFileKey}`} alt={c.fullName} className="h-16 w-16 rounded-full object-cover" />
                 ) : null}
-                <h2 className="font-display text-[16px] text-ink">Submitted details</h2>
+                <h2 className="font-display text-[16px] text-ink">{t("detail.submittedDetails")}</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Business name" value={p.businessName} />
-                <Field label="NRIC / FIN" value={maskNric(safeDecrypt(p.nric))} />
-                <Field label="Date of birth" value={p.dateOfBirth ? format(new Date(p.dateOfBirth), "dd MMM yyyy") : null} />
-                <Field label="Residential address" value={p.residentialAddress} />
-                <Field label="Emergency contact" value={p.emergencyContactName ? `${p.emergencyContactName} · ${p.emergencyContactNumber ?? ""}` : null} />
-                <Field label="Payment method" value={p.paymentMethod} />
+                <Field label={t("detail.businessName")} value={p.businessName} />
+                <Field label={t("detail.nric")} value={maskNric(safeDecrypt(p.nric))} />
+                <Field label={t("detail.dob")} value={p.dateOfBirth ? format(new Date(p.dateOfBirth), "dd MMM yyyy") : null} />
+                <Field label={t("detail.residentialAddress")} value={p.residentialAddress} />
+                <Field label={t("detail.emergencyContact")} value={p.emergencyContactName ? `${p.emergencyContactName} · ${p.emergencyContactNumber ?? ""}` : null} />
+                <Field label={t("detail.paymentMethod")} value={p.paymentMethod} />
                 {p.paymentMethod === "PayNow"
-                  ? <Field label="PayNow" value={p.paynowNumber} />
-                  : <Field label="Bank account" value={p.bankName ? `${p.bankName} · ${maskAccount(safeDecrypt(p.bankAccountNumber))}` : null} />}
-                <Field label="Agreement signed" value={p.agreementAcceptedAt ? format(new Date(p.agreementAcceptedAt), "dd MMM yyyy, HH:mm") : null} />
+                  ? <Field label={t("detail.paynow")} value={p.paynowNumber} />
+                  : <Field label={t("detail.bankAccount")} value={p.bankName ? `${p.bankName} · ${maskAccount(safeDecrypt(p.bankAccountNumber))}` : null} />}
+                <Field label={t("detail.agreementSigned")} value={p.agreementAcceptedAt ? format(new Date(p.agreementAcceptedAt), "dd MMM yyyy, HH:mm") : null} />
               </div>
               {c.signedAgreementFileKey && (
                 <a
@@ -106,14 +111,13 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
                   rel="noopener"
                   className="mt-4 inline-flex items-center gap-2 rounded-lg border border-line bg-paper-100 px-3 py-2 text-[13px] text-action hover:bg-paper-200"
                 >
-                  📄 View signed Associate Agreement ↗
+                  {t("detail.viewAgreement")}
                 </a>
               )}
             </Card>
           ) : (
             <Card className="p-5 text-[13px] text-muted">
-              The candidate has not opened their onboarding link yet. Once they submit their details and sign the
-              Associate Agreement, their information will appear here for review.
+              {t("detail.pendingSubmission")}
             </Card>
           )}
         </div>
@@ -121,10 +125,9 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
         <div className="space-y-4">
           {reviewable && (
             <Card className="p-5">
-              <h2 className="mb-3 font-display text-[16px] text-ink">Review</h2>
+              <h2 className="mb-3 font-display text-[16px] text-ink">{t("detail.reviewSection")}</h2>
               <p className="mb-4 text-[12px] text-muted">
-                Approving creates the associate record, provisions their portal login, and files the signed agreement in
-                their P-file.
+                {t("detail.reviewDesc")}
               </p>
               <ReviewActions id={c.id} />
             </Card>
@@ -132,24 +135,24 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
 
           {c.onboardingStage === OnboardingStage.Approved && c.convertedAssociate && (
             <Card className="p-5">
-              <div className="text-[13px] text-success">✓ Converted to associate</div>
+              <div className="text-[13px] text-success">{t("detail.convertedToAssociate")}</div>
               <Button asChild variant="secondary" className="mt-3 w-full">
-                <Link href="/admin/associates">View {c.convertedAssociate.associateCode}</Link>
+                <Link href="/admin/associates">{t("detail.viewAssociate", { code: c.convertedAssociate.associateCode })}</Link>
               </Button>
             </Card>
           )}
 
           {c.onboardingStage === OnboardingStage.Rejected && (
             <Card className="p-5">
-              <div className="text-[13px] font-medium text-danger">Rejected</div>
+              <div className="text-[13px] font-medium text-danger">{t("detail.rejectedTitle")}</div>
               {c.rejectReason && <p className="mt-2 text-[12px] text-muted">{c.rejectReason}</p>}
             </Card>
           )}
 
           <Card className="p-5">
-            <div className="text-[11px] uppercase tracking-wide text-muted-2">Onboarding link</div>
+            <div className="text-[11px] uppercase tracking-wide text-muted-2">{t("detail.onboardingLink")}</div>
             <p className="mt-2 break-all font-mono text-[11px] text-body">/onboard/{c.onboardingToken}</p>
-            <p className="mt-2 text-[11px] text-muted-2">Share this private path with the candidate to (re)open their form.</p>
+            <p className="mt-2 text-[11px] text-muted-2">{t("detail.onboardingLinkNote")}</p>
           </Card>
         </div>
       </div>

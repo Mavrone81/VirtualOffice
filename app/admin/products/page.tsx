@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { CommissionType } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { ActiveToggle, ComCodeManager } from "./product-controls";
 export const metadata = { title: "Products & commission · Enshrine Admin" };
 
 export default async function ProductsPage() {
+  const t = await getTranslations("products");
   const products = await prisma.product.findMany({
     where: { archivedAt: null },
     include: { comCodes: true, defaultCompany: true },
@@ -18,9 +20,9 @@ export default async function ProductsPage() {
 
   return (
     <>
-      <PageHeader title="Products & commission" subtitle="Product catalogue, commission rates (versioned), and add-on com codes.">
+      <PageHeader title={t("title")} subtitle={t("subtitle")}>
         <Button asChild>
-          <Link href="/admin/products/new">+ New product</Link>
+          <Link href="/admin/products/new">{t("newProduct")}</Link>
         </Button>
       </PageHeader>
 
@@ -33,14 +35,14 @@ export default async function ProductsPage() {
                   <span className="font-medium text-ink">{p.productCode}</span>
                   <span className="text-ink">· {p.productName}</span>
                   <ActiveToggle id={p.id} active={p.activeStatus === "Active"} />
-                  {p.isExternal && <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] text-gold">External</span>}
+                  {p.isExternal && <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] text-gold">{t("external")}</span>}
                 </div>
                 <div className="mt-0.5 text-[12px] text-muted">
-                  {p.productCategory ?? "—"} · {p.defaultCompany?.name ?? "no default entity"} · eff. {format(p.effectiveDate, "dd MMM yyyy")}
+                  {p.productCategory ?? "—"} · {p.defaultCompany?.name ?? t("noDefaultEntity")} · eff. {format(p.effectiveDate, "dd MMM yyyy")}
                 </div>
               </div>
               <div className="text-right text-[12px]">
-                <div className="text-muted">Closing</div>
+                <div className="text-muted">{t("closing")}</div>
                 <div className="font-display text-[18px] text-ink">
                   {p.commissionType === CommissionType.Fixed ? `S$${p.closingCommFixed ?? 0}` : `${p.closingCommPct ?? 0}%`}
                 </div>
@@ -49,14 +51,14 @@ export default async function ProductsPage() {
 
             {!p.isExternal ? (
               <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-muted">
-                <span>Company cut <b className="text-ink">{String(p.companyCutPct)}%</b></span>
-                <span>ASM <b className="text-ink">{String(p.asmOverridePct)}%</b></span>
-                <span>SM <b className="text-ink">{String(p.smOverridePct)}%</b></span>
-                <span>SD <b className="text-ink">{String(p.sdOverridePct)}%</b></span>
+                <span>{t("companyCutLabel")} <b className="text-ink">{String(p.companyCutPct)}%</b></span>
+                <span>{t("asmLabel")} <b className="text-ink">{String(p.asmOverridePct)}%</b></span>
+                <span>{t("smLabel")} <b className="text-ink">{String(p.smOverridePct)}%</b></span>
+                <span>{t("sdLabel")} <b className="text-ink">{String(p.sdOverridePct)}%</b></span>
               </div>
             ) : (
               <div className="mt-3 text-[12px] text-muted">
-                External — Enshrine retains <b className="text-ink">{String(p.externalCompanyRetainedPct ?? 0)}%</b>, bulk to provider
+                {t("externalRetains")} <b className="text-ink">{String(p.externalCompanyRetainedPct ?? 0)}%</b>, {t("bulkToProvider")}
               </div>
             )}
 

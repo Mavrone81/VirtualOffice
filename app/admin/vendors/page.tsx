@@ -4,10 +4,12 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { VendorStatusToggle } from "./status-toggle";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Vendors · Enshrine Admin" };
 
 export default async function AdminVendorsPage() {
+  const t = await getTranslations("vendors");
   const vendors = await prisma.vendorReferral.findMany({
     orderBy: [{ status: "asc" }, { submittedAt: "desc" }],
     include: { submittedByAssociate: { select: { fullName: true, associateCode: true } } },
@@ -15,21 +17,21 @@ export default async function AdminVendorsPage() {
 
   return (
     <>
-      <PageHeader title="Vendors" subtitle="Vendor referrals submitted by associates. Keep the registry current — mark lapsed vendors inactive." />
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <Card className="overflow-hidden">
         {vendors.length === 0 ? (
-          <p className="px-5 py-12 text-center text-[13px] text-muted">No vendor referrals yet.</p>
+          <p className="px-5 py-12 text-center text-[13px] text-muted">{t("empty")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Vendor</th>
-                  <th className="px-5 py-3 font-medium">Type</th>
-                  <th className="px-5 py-3 font-medium">Contact</th>
-                  <th className="px-5 py-3 font-medium">Submitted by</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t("col.vendor")}</th>
+                  <th className="px-5 py-3 font-medium">{t("col.type")}</th>
+                  <th className="px-5 py-3 font-medium">{t("col.contact")}</th>
+                  <th className="px-5 py-3 font-medium">{t("col.submittedBy")}</th>
+                  <th className="px-5 py-3 font-medium">{t("col.status")}</th>
                   <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>

@@ -6,12 +6,15 @@ import { humanize } from "@/lib/labels";
 import { documentVisibilityWhere } from "@/lib/documents";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Documents · Enshrine Portal" };
 
 export default async function PortalDocumentsPage() {
   const session = await auth();
-  if (!session?.user) return <PageHeader title="Documents" />;
+  const t = await getTranslations("portal");
+
+  if (!session?.user) return <PageHeader title={t("documents.pageTitle")} />;
 
   const assoc = session.user.associateId
     ? await prisma.associate.findUnique({ where: { id: session.user.associateId }, select: { teamName: true } })
@@ -24,10 +27,10 @@ export default async function PortalDocumentsPage() {
 
   return (
     <>
-      <PageHeader title="Documents" subtitle="Templates and files shared with you." />
+      <PageHeader title={t("documents.pageTitle")} subtitle={t("documents.pageSubtitle")} />
 
       {docs.length === 0 ? (
-        <Card className="px-5 py-12 text-center text-[13px] text-muted">No documents shared with you yet.</Card>
+        <Card className="px-5 py-12 text-center text-[13px] text-muted">{t("documents.noDocs")}</Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {docs.map((d) => (

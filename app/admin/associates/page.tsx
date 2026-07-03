@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,6 +11,8 @@ import { AssociateRowActions } from "./row-actions";
 export const metadata = { title: "Associate Master · Enshrine Admin" };
 
 export default async function AssociatesPage() {
+  const t = await getTranslations("associates");
+
   const associates = await prisma.associate.findMany({
     orderBy: { associateCode: "asc" },
     include: { directUpline: true, user: true },
@@ -17,14 +20,14 @@ export default async function AssociatesPage() {
 
   return (
     <>
-      <PageHeader title="Associate Master" subtitle="The HR system of record — hierarchy, approval, status.">
+      <PageHeader title={t("title")} subtitle={t("subtitle")}>
         <Button asChild variant="secondary">
           {/* download route handler (CSV), not a page — a real <a> is correct here */}
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/admin/associates/export">⤓ Export contacts</a>
+          <a href="/admin/associates/export">{t("exportContacts")}</a>
         </Button>
         <Button asChild>
-          <Link href="/admin/associates/new">+ New associate</Link>
+          <Link href="/admin/associates/new">{t("newAssociate")}</Link>
         </Button>
       </PageHeader>
 
@@ -33,14 +36,14 @@ export default async function AssociatesPage() {
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">ID</th>
-                <th className="px-5 py-3 font-medium">Associate</th>
-                <th className="px-5 py-3 font-medium">Division</th>
-                <th className="px-5 py-3 font-medium">Designation</th>
-                <th className="px-5 py-3 font-medium">Upline</th>
-                <th className="px-5 py-3 font-medium">Login</th>
-                <th className="px-5 py-3 font-medium">Approval</th>
-                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">{t("col.id")}</th>
+                <th className="px-5 py-3 font-medium">{t("col.associate")}</th>
+                <th className="px-5 py-3 font-medium">{t("col.division")}</th>
+                <th className="px-5 py-3 font-medium">{t("col.designation")}</th>
+                <th className="px-5 py-3 font-medium">{t("col.upline")}</th>
+                <th className="px-5 py-3 font-medium">{t("col.login")}</th>
+                <th className="px-5 py-3 font-medium">{t("col.approval")}</th>
+                <th className="px-5 py-3 font-medium">{t("col.status")}</th>
                 <th className="px-5 py-3 font-medium"></th>
               </tr>
             </thead>

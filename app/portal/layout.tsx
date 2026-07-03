@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole, roleLabel } from "@/lib/rbac";
+import { isAdminRole } from "@/lib/rbac";
 import { noticeAudienceWhere } from "@/lib/notices";
 import { initialsOf } from "@/lib/utils";
 import { AppShell } from "@/components/shell/app-shell";
@@ -14,10 +15,11 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!session?.user) redirect("/login");
   if (isAdminRole(session.user.role)) redirect("/admin/dashboard");
 
+  const tRoles = await getTranslations("roles");
   const assoc = session.user.associateId
     ? await prisma.associate.findUnique({ where: { id: session.user.associateId } })
     : null;
-  const name = assoc?.fullName ?? session.user.name ?? "Associate";
+  const name = assoc?.fullName ?? session.user.name ?? tRoles(session.user.role);
 
   // Unread notices count for the sidebar badge.
   const relevant = await prisma.notice.findMany({
@@ -31,7 +33,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const user = {
     name,
-    roleLabel: roleLabel[session.user.role],
+    roleLabel: tRoles(session.user.role),
     initials: initialsOf(name),
     subtitle: assoc?.associateCode,
     role: session.user.role,

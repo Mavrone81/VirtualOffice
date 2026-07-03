@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { SubmissionStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,6 +11,8 @@ import { VerifyButton } from "./verify-button";
 export const metadata = { title: "Verify sales · Enshrine Admin" };
 
 export default async function VerifyQueuePage() {
+  const t = await getTranslations("sales");
+
   const submissions = await prisma.salesSubmission.findMany({
     where: { status: SubmissionStatus.Submitted },
     orderBy: { createdAt: "asc" },
@@ -18,22 +21,22 @@ export default async function VerifyQueuePage() {
 
   return (
     <>
-      <PageHeader title="Verify sales" subtitle="Accounts/HR verification — commission flows only after approval." />
+      <PageHeader title={t("verify.title")} subtitle={t("verify.subtitle")} />
 
       <Card className="overflow-hidden">
         {submissions.length === 0 ? (
-          <div className="px-5 py-12 text-center text-[13px] text-muted">Nothing awaiting verification.</div>
+          <div className="px-5 py-12 text-center text-[13px] text-muted">{t("verify.empty")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-5 py-3 font-medium">Client</th>
-                  <th className="px-5 py-3 font-medium">Products</th>
-                  <th className="px-5 py-3 font-medium">Amount</th>
-                  <th className="px-5 py-3 font-medium">Plan</th>
-                  <th className="px-5 py-3 font-medium">Closer</th>
+                  <th className="px-5 py-3 font-medium">{t("verify.col.date")}</th>
+                  <th className="px-5 py-3 font-medium">{t("verify.col.client")}</th>
+                  <th className="px-5 py-3 font-medium">{t("verify.col.products")}</th>
+                  <th className="px-5 py-3 font-medium">{t("verify.col.amount")}</th>
+                  <th className="px-5 py-3 font-medium">{t("verify.col.plan")}</th>
+                  <th className="px-5 py-3 font-medium">{t("verify.col.closer")}</th>
                   <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
