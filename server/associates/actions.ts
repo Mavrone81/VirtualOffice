@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ApprovalStatus, AssociateStatus, Designation, PaymentMethod, AppRole } from "@prisma/client";
 import { hash } from "@node-rs/argon2";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
@@ -49,13 +50,14 @@ async function nextAssociateCode(): Promise<string> {
 }
 
 export async function createAssociate(input: NewAssociateInput): Promise<{ ok: boolean; error?: string; code?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
-  if (!input.fullName?.trim()) return { ok: false, error: "Full name is required." };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  if (!input.fullName?.trim()) return { ok: false, error: t("fullNameRequired") };
 
   const directUpline = input.directUplineCode
     ? await prisma.associate.findUnique({ where: { associateCode: input.directUplineCode } })
     : null;
-  if (input.directUplineCode && !directUpline) return { ok: false, error: "Direct upline code not found." };
+  if (input.directUplineCode && !directUpline) return { ok: false, error: t("directUplineNotFound") };
 
   const code = await nextAssociateCode();
   await prisma.associate.create({
@@ -89,9 +91,10 @@ export async function setApprovalStatus(
   id: string,
   status: "Approved" | "Rejected" | "Incomplete",
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
   const a = await prisma.associate.findUnique({ where: { id }, include: { user: true } });
-  if (!a) return { ok: false, error: "Not found" };
+  if (!a) return { ok: false, error: t("notFound") };
 
   const approvalStatus = ApprovalStatus[status];
   await prisma.associate.update({
@@ -121,7 +124,8 @@ export async function setAssociateStatus(
   id: string,
   status: "Active" | "Suspended" | "Terminated" | "Inactive",
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!(await requireAdmin())) return { ok: false, error: "Forbidden" };
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
   await prisma.associate.update({ where: { id }, data: { associateStatus: AssociateStatus[status] } });
   // reflect login enablement
   const a = await prisma.associate.findUnique({ where: { id }, include: { user: true } });

@@ -8,6 +8,7 @@ import {
   PaymentMethod, AppRole, PFileDocType,
 } from "@prisma/client";
 import { hash } from "@node-rs/argon2";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -63,15 +64,16 @@ export type InviteInput = {
 };
 
 export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean; error?: string; token?: string; emailed?: boolean }> {
+  const t = await getTranslations("errors");
   const session = await requireAdmin();
-  if (!session) return { ok: false, error: "Forbidden" };
-  if (!input.fullName?.trim()) return { ok: false, error: "Full name is required." };
-  if (!input.email?.trim()) return { ok: false, error: "Email is required." };
+  if (!session) return { ok: false, error: t("forbidden") };
+  if (!input.fullName?.trim()) return { ok: false, error: t("fullNameRequired") };
+  if (!input.email?.trim()) return { ok: false, error: t("emailRequired") };
 
   const upline = input.intendedDirectUplineCode
     ? await prisma.associate.findUnique({ where: { associateCode: input.intendedDirectUplineCode } })
     : null;
-  if (input.intendedDirectUplineCode && !upline) return { ok: false, error: "Upline code not found." };
+  if (input.intendedDirectUplineCode && !upline) return { ok: false, error: t("uplineCodeNotFound") };
 
   const token = randomBytes(24).toString("base64url");
   const email = input.email.trim().toLowerCase();
@@ -120,20 +122,21 @@ export async function submitOnboarding(
   token: string,
   s: OnboardingSubmission,
 ): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const c = await prisma.candidate.findUnique({ where: { onboardingToken: token } });
-  if (!c) return { ok: false, error: "Invalid or expired link." };
-  if (c.onboardingStage === OnboardingStage.Approved) return { ok: false, error: "Your application is already approved." };
-  if (c.onboardingStage === OnboardingStage.Rejected) return { ok: false, error: "This application is closed." };
-  if (!s.nric?.trim()) return { ok: false, error: "NRIC/FIN is required." };
-  if (!s.agreementAccepted) return { ok: false, error: "You must accept the Associate Agreement to continue." };
-  if (!s.signature) return { ok: false, error: "A signature is required to complete your agreement." };
+  if (!c) return { ok: false, error: t("invalidOrExpiredLink") };
+  if (c.onboardingStage === OnboardingStage.Approved) return { ok: false, error: t("applicationAlreadyApproved") };
+  if (c.onboardingStage === OnboardingStage.Rejected) return { ok: false, error: t("applicationClosed") };
+  if (!s.nric?.trim()) return { ok: false, error: t("nricRequired") };
+  if (!s.agreementAccepted) return { ok: false, error: t("agreementRequired") };
+  if (!s.signature) return { ok: false, error: t("signatureRequired") };
 
   // Optional profile photo → object storage.
   let photoFileKey = c.photoFileKey ?? undefined;
   if (s.photo && s.photo.size > 0) {
     const ext = imageExt(s.photo.type);
-    if (!ext) return { ok: false, error: "Photo must be a JPG, PNG, or WebP image." };
-    if (s.photo.size > 5_000_000) return { ok: false, error: "Photo must be under 5 MB." };
+    if (!ext) return { ok: false, error: t("photoInvalidFormat") };
+    if (s.photo.size > 5_000_000) return { ok: false, error: t("photoTooLarge") };
     photoFileKey = `candidates/${c.id}/photo.${ext}`;
     await putObject(photoFileKey, Buffer.from(await s.photo.arrayBuffer()));
   }
@@ -158,7 +161,7 @@ export async function submitOnboarding(
   // Associate Agreement PDF embedding it.
   let signedAgreementFileKey = c.signedAgreementFileKey ?? undefined;
   const sigMatch = s.signature.match(/^data:image\/png;base64,(.+)$/);
-  if (!sigMatch) return { ok: false, error: "Invalid signature image." };
+  if (!sigMatch) return { ok: false, error: t("signatureInvalid") };
   await putObject(`candidates/${c.id}/signature.png`, Buffer.from(sigMatch[1], "base64"));
 
   const upline = c.intendedDirectUplineId
@@ -206,15 +209,16 @@ type StoredPayload = {
 };
 
 export async function approveCandidate(id: string): Promise<{ ok: boolean; error?: string; code?: string }> {
+  const t = await getTranslations("errors");
   const session = await requireAdmin();
-  if (!session) return { ok: false, error: "Forbidden" };
+  if (!session) return { ok: false, error: t("forbidden") };
 
   const c = await prisma.candidate.findUnique({ where: { id } });
-  if (!c) return { ok: false, error: "Not found" };
-  if (c.convertedAssociateId) return { ok: false, error: "Already converted." };
+  if (!c) return { ok: false, error: t("notFound") };
+  if (c.convertedAssociateId) return { ok: false, error: t("alreadyConverted") };
   if (c.onboardingStage !== OnboardingStage.SignedPendingApproval && c.onboardingStage !== OnboardingStage.FormSubmitted)
-    return { ok: false, error: "Candidate has not completed onboarding yet." };
-  if (!c.intendedDesignation) return { ok: false, error: "No intended designation set." };
+    return { ok: false, error: t("onboardingIncomplete") };
+  if (!c.intendedDesignation) return { ok: false, error: t("noDesignationSet") };
 
   const p = (c.submittedPayload as StoredPayload | null) ?? {};
   const upline = c.intendedDirectUplineId
@@ -327,10 +331,11 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
 }
 
 export async function rejectCandidate(id: string, reason: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
   const session = await requireAdmin();
-  if (!session) return { ok: false, error: "Forbidden" };
+  if (!session) return { ok: false, error: t("forbidden") };
   const c = await prisma.candidate.findUnique({ where: { id } });
-  if (!c) return { ok: false, error: "Not found" };
+  if (!c) return { ok: false, error: t("notFound") };
   await prisma.candidate.update({
     where: { id },
     data: {

@@ -87,15 +87,17 @@ export function onboardingInviteEmail(name: string, link: string): Mail {
   const first = name.split(" ")[0] || name;
   return {
     to: "", // set by caller
-    subject: "Complete your Enshrine associate onboarding",
+    subject: "Complete your Enshrine associate onboarding · 完成您的 Enshrine 伙伴入职",
     html: layout(
-      `Welcome, ${escapeHtml(first)}`,
-      `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#5a564e">
+      `Welcome, ${escapeHtml(first)} · 欢迎，${escapeHtml(first)}`,
+      `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#5a564e">
         You've been invited to join Enshrine as an associate. Use the secure link below to complete your details and
         sign your Associate Agreement — it takes about 3 minutes and requires no login.</p>
-       <p style="margin:0 0 22px">${button(link, "Start onboarding")}</p>
-       <p style="margin:0;font-size:12px;color:#9a968d">This link is personal to you — please don't share it. If the
-        button doesn't work, copy this URL into your browser:<br><span style="color:#5a564e;word-break:break-all">${escapeHtml(link)}</span></p>`,
+       <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#5a564e">
+        诚邀您加入 Enshrine 成为业务伙伴。请使用下方的专属链接填写您的资料并签署《伙伴协议》—— 全程约需 3 分钟，无需登录。</p>
+       <p style="margin:0 0 22px">${button(link, "Start onboarding · 开始入职")}</p>
+       <p style="margin:0;font-size:12px;color:#9a968d">This link is personal to you — please don't share it. 此链接为您专属，请勿转发。<br>
+        <span style="color:#5a564e;word-break:break-all">${escapeHtml(link)}</span></p>`,
     ),
   };
 }
@@ -104,18 +106,20 @@ export function approvalEmail(name: string, loginUrl: string, email: string, tem
   const first = name.split(" ")[0] || name;
   return {
     to: "", // set by caller
-    subject: "Your Enshrine Virtual Office account is ready",
+    subject: "Your Enshrine Virtual Office account is ready · 您的 Enshrine 虚拟办公室账户已就绪",
     html: layout(
-      `You're approved, ${escapeHtml(first)}`,
-      `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#5a564e">
+      `You're approved, ${escapeHtml(first)} · ${escapeHtml(first)}，您已获批准`,
+      `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#5a564e">
         Your application has been approved and your virtual-office account is now active. Sign in with the temporary
         credentials below and change your password after your first login.</p>
+       <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#5a564e">
+        您的申请已获批准，虚拟办公室账户现已激活。请使用下方的临时凭据登录，并在首次登录后修改密码。</p>
        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;font-size:14px">
-         <tr><td style="padding:4px 16px 4px 0;color:#9a968d">Email</td><td style="color:#1a1f2b;font-weight:600">${escapeHtml(email)}</td></tr>
-         <tr><td style="padding:4px 16px 4px 0;color:#9a968d">Temporary password</td><td style="color:#1a1f2b;font-weight:600;font-family:monospace">${escapeHtml(tempPassword)}</td></tr>
+         <tr><td style="padding:4px 16px 4px 0;color:#9a968d">Email · 邮箱</td><td style="color:#1a1f2b;font-weight:600">${escapeHtml(email)}</td></tr>
+         <tr><td style="padding:4px 16px 4px 0;color:#9a968d">Temporary password · 临时密码</td><td style="color:#1a1f2b;font-weight:600;font-family:monospace">${escapeHtml(tempPassword)}</td></tr>
        </table>
-       <p style="margin:0 0 22px">${button(loginUrl, "Sign in")}</p>
-       <p style="margin:0;font-size:12px;color:#9a968d">For your security, please change your password immediately after signing in.</p>`,
+       <p style="margin:0 0 22px">${button(loginUrl, "Sign in · 登录")}</p>
+       <p style="margin:0;font-size:12px;color:#9a968d">For your security, please change your password immediately after signing in. 为保障安全，请在登录后立即修改密码。</p>`,
     ),
   };
 }
