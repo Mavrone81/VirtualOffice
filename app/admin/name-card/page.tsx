@@ -31,6 +31,7 @@ export default async function AdminNameCardPage() {
       <PageHeader title={tNav("nameCard")} subtitle={tCard("subtitle")} />
       <NameCardStudio
         editable
+        canEditTitle
         data={{ chineseName: card?.chineseName ?? "", englishName: name, title, hp: null, email, qrDataUrl: qr }}
       />
     </>
