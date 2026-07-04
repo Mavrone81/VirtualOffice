@@ -872,7 +872,8 @@
     "currentPasswordIncorrect": "当前密码不正确。",
     "associateNotFound": "伙伴未找到。",
     "noLoginToReset": "该伙伴没有可重置的登录账户。",
-    "resetLinkInvalid": "此重置链接无效或已过期。"
+    "resetLinkInvalid": "此重置链接无效或已过期。",
+    "associateNoLogin": "该伙伴尚未开通登录。"
   },
   "nameCard": {
     "front": "正面",
@@ -887,7 +888,8 @@
     "saving": "保存中…",
     "save": "保存",
     "saved": "✓ 已保存",
-    "subtitle": "您的 Enshrine 电子名片。个性化后即可分享二维码或下载。"
+    "subtitle": "您的 Enshrine 电子名片。个性化后即可分享二维码或下载。",
+    "adminSection": "名片职称"
   },
   "reset": {
     "forgotTitle": "重置密码",

@@ -31,7 +31,7 @@ const socialCircle: React.CSSProperties = {
   width: 22, height: 22, borderRadius: "50%", background: "#2e5aa0",
 };
 
-export function NameCardStudio({ data, editable }: { data: CardData; editable: boolean }) {
+export function NameCardStudio({ data, editable, canEditTitle = false }: { data: CardData; editable: boolean; canEditTitle?: boolean }) {
   const t = useTranslations("nameCard");
   const frontRef = useRef<HTMLDivElement>(null);
   const [side, setSide] = useState<"front" | "back">("front");
@@ -79,7 +79,10 @@ export function NameCardStudio({ data, editable }: { data: CardData; editable: b
   function save() {
     setSaved(false);
     start(async () => {
-      await updateNameCard({ chineseName, customTitle });
+      await updateNameCard({
+        chineseName: editable ? chineseName : undefined,
+        customTitle: canEditTitle ? customTitle : undefined,
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     });
@@ -147,19 +150,23 @@ export function NameCardStudio({ data, editable }: { data: CardData; editable: b
       </div>
 
       {/* Editor */}
-      {editable && (
+      {(editable || canEditTitle) && (
         <Card className="h-fit max-w-sm p-5">
           <h2 className="mb-4 font-display text-[16px] text-ink">{t("editTitle")}</h2>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="cn">{t("chineseName")}</Label>
-              <Input id="cn" value={chineseName} onChange={(e) => setChineseName(e.target.value)} placeholder="张三" />
-            </div>
-            <div>
-              <Label htmlFor="ct">{t("cardTitle")}</Label>
-              <Input id="ct" value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} />
-              <p className="mt-1 text-[12px] text-muted-2">{t("cardTitleHint")}</p>
-            </div>
+            {editable && (
+              <div>
+                <Label htmlFor="cn">{t("chineseName")}</Label>
+                <Input id="cn" value={chineseName} onChange={(e) => setChineseName(e.target.value)} placeholder="张三" />
+              </div>
+            )}
+            {canEditTitle && (
+              <div>
+                <Label htmlFor="ct">{t("cardTitle")}</Label>
+                <Input id="ct" value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} />
+                <p className="mt-1 text-[12px] text-muted-2">{t("cardTitleHint")}</p>
+              </div>
+            )}
             <Button onClick={save} disabled={pending}>{pending ? t("saving") : t("save")}</Button>
             {saved && <p className="text-[13px] text-success">{t("saved")}</p>}
           </div>
