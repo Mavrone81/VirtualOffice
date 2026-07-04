@@ -68,6 +68,12 @@ export function NoticeForm() {
             </div>
           )}
         </div>
+        <div>
+          <Label htmlFor="att">{t("form.attachmentLabel")}</Label>
+          <input id="att" type="file" onChange={(e) => set({ attachment: e.target.files?.[0] ?? null })}
+            className="block w-full text-[13px] text-body file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[13px] file:text-white hover:file:bg-ink-700" />
+          <p className="mt-1 text-[12px] text-muted-2">{t("form.attachmentHint")}</p>
+        </div>
         {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
         <Button onClick={submit} disabled={pending || !f.title || !f.body}>{pending ? t("form.submitting") : t("form.submit")}</Button>
       </div>

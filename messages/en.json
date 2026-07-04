@@ -307,8 +307,11 @@
       "roleSalesDirector": "Sales Director",
       "errorDefault": "Could not publish.",
       "submit": "Publish notice",
-      "submitting": "Publishing…"
-    }
+      "submitting": "Publishing…",
+      "attachmentLabel": "Attachment",
+      "attachmentHint": "Optional — PDF or image, up to 15 MB."
+    },
+    "attachment": "Attachment"
   },
   "onboarding": {
     "header": {
@@ -488,7 +491,8 @@
       "pageTitle": "Notices",
       "pageSubtitle": "Announcements from Enshrine.",
       "noNotices": "No notices right now.",
-      "markAsRead": "Mark as read"
+      "markAsRead": "Mark as read",
+      "attachment": "Attachment"
     },
     "documents": {
       "pageTitle": "Documents",
@@ -510,7 +514,9 @@
       "submitting": "Submitting…",
       "submitReferral": "Submit referral",
       "activeVendors": "Active vendors ({count})",
-      "noVendors": "No vendors in the registry yet."
+      "noVendors": "No vendors in the registry yet.",
+      "agreementLabel": "Agreement / MOU",
+      "agreementHint": "Optional — PDF, up to 15 MB."
     },
     "salesAgreements": {
       "pageTitle": "Sales agreements",
@@ -824,7 +830,8 @@
       "contact": "Contact",
       "submittedBy": "Submitted by",
       "status": "Status"
-    }
+    },
+    "agreement": "Agreement"
   },
   "errors": {
     "forbidden": "Forbidden",
