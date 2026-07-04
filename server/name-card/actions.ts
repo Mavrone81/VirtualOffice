@@ -4,28 +4,46 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { isAdminRole } from "@/lib/rbac";
 
-export async function updateNameCard(input: {
-  chineseName?: string;
-  customTitle?: string;
-}): Promise<{ ok: boolean; error?: string }> {
+type CardData = { chineseName?: string | null; customTitle?: string | null };
+
+async function upsertCard(userId: string, data: CardData) {
+  const existing = await prisma.nameCard.findFirst({ where: { userId }, select: { id: true } });
+  if (existing) await prisma.nameCard.update({ where: { id: existing.id }, data });
+  else await prisma.nameCard.create({ data: { userId, ...data } });
+}
+
+/**
+ * Update the signed-in user's own name card. Only fields that are provided are
+ * changed — associates edit their Chinese name; the card title is admin-only
+ * (omitted here) except when an admin edits their own card.
+ */
+export async function updateNameCard(input: { chineseName?: string; customTitle?: string }): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
   if (!session?.user) return { ok: false, error: t("notSignedIn") };
 
-  const chineseName = input.chineseName?.trim() || null;
-  const customTitle = input.customTitle?.trim() || null;
+  const data: CardData = {};
+  if (input.chineseName !== undefined) data.chineseName = input.chineseName.trim() || null;
+  if (input.customTitle !== undefined) data.customTitle = input.customTitle.trim() || null;
 
-  // NameCard is one-to-many with User in the schema, so upsert by the first
-  // existing card for this user (or create one).
-  const existing = await prisma.nameCard.findFirst({ where: { userId: session.user.id }, select: { id: true } });
-  if (existing) {
-    await prisma.nameCard.update({ where: { id: existing.id }, data: { chineseName, customTitle } });
-  } else {
-    await prisma.nameCard.create({ data: { userId: session.user.id, chineseName, customTitle } });
-  }
-
+  await upsertCard(session.user.id, data);
   revalidatePath("/portal/name-card");
   revalidatePath("/admin/name-card");
+  return { ok: true };
+}
+
+/** Admin: set the card title shown on a specific associate's name card. */
+export async function setAssociateCardTitle(associateId: string, title: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  const assoc = await prisma.associate.findUnique({ where: { id: associateId }, include: { user: { select: { id: true } } } });
+  if (!assoc?.user) return { ok: false, error: t("associateNoLogin") };
+
+  await upsertCard(assoc.user.id, { customTitle: title.trim() || null });
+  revalidatePath(`/admin/associates/${associateId}`);
   return { ok: true };
 }

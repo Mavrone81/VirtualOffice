@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ResetPasswordButton } from "./reset-password";
+import { CardTitleEditor } from "./card-title-editor";
 
 export const metadata = { title: "Associate · Enshrine Admin" };
 
@@ -30,12 +31,13 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 
 export default async function AdminAssociateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("associates");
+  const tCard = await getTranslations("nameCard");
   const { id } = await params;
   const a = await prisma.associate.findUnique({
     where: { id },
     include: {
       directUpline: { select: { associateCode: true, fullName: true } },
-      user: { select: { email: true, isActive: true } },
+      user: { select: { email: true, isActive: true, nameCards: { select: { customTitle: true }, take: 1 } } },
       pFile: { include: { documents: { orderBy: { filedAt: "desc" } } } },
     },
   });
@@ -90,6 +92,13 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               <h2 className="mb-1 font-display text-[16px] text-ink">{t("detail.loginSection")}</h2>
               <p className="mb-3 text-[12px] text-muted">{a.user.email}</p>
               <ResetPasswordButton associateId={a.id} />
+            </Card>
+          )}
+
+          {a.user && (
+            <Card className="p-5">
+              <h2 className="mb-3 font-display text-[16px] text-ink">{tCard("adminSection")}</h2>
+              <CardTitleEditor associateId={a.id} initial={a.user.nameCards[0]?.customTitle ?? ""} />
             </Card>
           )}
 

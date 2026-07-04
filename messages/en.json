@@ -872,7 +872,8 @@
     "currentPasswordIncorrect": "Current password is incorrect.",
     "associateNotFound": "Associate not found.",
     "noLoginToReset": "This associate has no login to reset.",
-    "resetLinkInvalid": "This reset link is invalid or has expired."
+    "resetLinkInvalid": "This reset link is invalid or has expired.",
+    "associateNoLogin": "This associate has no login yet."
   },
   "nameCard": {
     "front": "Front",
@@ -887,7 +888,8 @@
     "saving": "Saving…",
     "save": "Save",
     "saved": "✓ Saved",
-    "subtitle": "Your Enshrine digital name card. Personalise it, then share the QR or download it."
+    "subtitle": "Your Enshrine digital name card. Personalise it, then share the QR or download it.",
+    "adminSection": "Name card title"
   },
   "reset": {
     "forgotTitle": "Reset your password",
