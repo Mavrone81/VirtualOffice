@@ -44,7 +44,12 @@ export default async function PortalNoticesPage() {
                       <h2 className="font-display text-[16px] text-ink">{n.title}</h2>
                     </div>
                     <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-body">{n.body}</p>
-                    <div className="mt-2 text-[11px] text-muted-2">{format(n.publishedAt, "dd MMM yyyy, HH:mm")}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 text-[11px] text-muted-2">
+                      <span>{format(n.publishedAt, "dd MMM yyyy, HH:mm")}</span>
+                      {n.attachmentFileKey && (
+                        <a href={`/notices/${n.id}/attachment`} target="_blank" rel="noopener" className="text-action hover:underline">📎 {t("notices.attachment")}</a>
+                      )}
+                    </div>
                   </div>
                   {unread && <MarkReadButton id={n.id} />}
                 </div>

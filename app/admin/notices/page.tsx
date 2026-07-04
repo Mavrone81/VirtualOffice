@@ -51,6 +51,9 @@ export default async function AdminNoticesPage() {
                     </span>
                     <span>{format(n.publishedAt, "dd MMM yyyy, HH:mm")}</span>
                     <span>{t("reads", { count: n._count.reads })}</span>
+                    {n.attachmentFileKey && (
+                      <a href={`/notices/${n.id}/attachment`} target="_blank" rel="noopener" className="text-action hover:underline">📎 {t("attachment")}</a>
+                    )}
                   </div>
                 </div>
               ))}

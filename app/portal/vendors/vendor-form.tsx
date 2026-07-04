@@ -50,6 +50,12 @@ export function VendorForm() {
           <textarea id="vr" value={f.remarks ?? ""} onChange={(e) => set({ remarks: e.target.value })} rows={3}
             className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-action focus:outline-none" />
         </div>
+        <div>
+          <Label htmlFor="vag">{t("vendors.agreementLabel")}</Label>
+          <input id="vag" type="file" onChange={(e) => set({ agreement: e.target.files?.[0] ?? null })}
+            className="block w-full text-[13px] text-body file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[13px] file:text-white hover:file:bg-ink-700" />
+          <p className="mt-1 text-[12px] text-muted-2">{t("vendors.agreementHint")}</p>
+        </div>
         {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
         {done && <p className="rounded-lg bg-success-50 px-3 py-2 text-[13px] text-success">{t("vendors.submittedOk")}</p>}
         <Button onClick={submit} disabled={pending || !f.vendorName}>{pending ? t("vendors.submitting") : t("vendors.submitReferral")}</Button>
