@@ -1,16 +1,27 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { NoticeAudience, AppRole } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { putObject, deleteObject } from "@/lib/storage";
+
+const MAX_BYTES = 15_000_000;
 
 async function requireAdmin() {
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return null;
   return session;
+}
+
+async function storeUpload(prefix: string, file: File): Promise<string> {
+  const safeName = file.name.replace(/[^\w.\-]/g, "_").slice(-80) || "file";
+  const key = `${prefix}/${randomUUID()}/${safeName}`;
+  await putObject(key, Buffer.from(await file.arrayBuffer()));
+  return key;
 }
 
 export type NoticeInput = {
@@ -19,6 +30,7 @@ export type NoticeInput = {
   audience: "All" | "Team" | "Role";
   audienceTeam?: string;
   audienceRole?: AppRole;
+  attachment?: File | null;
 };
 
 export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; error?: string }> {
@@ -30,6 +42,12 @@ export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; e
   if (input.audience === "Team" && !input.audienceTeam?.trim()) return { ok: false, error: t("teamNameRequiredForTeam") };
   if (input.audience === "Role" && !input.audienceRole) return { ok: false, error: t("roleRequiredForRole") };
 
+  let attachmentFileKey: string | null = null;
+  if (input.attachment && input.attachment.size > 0) {
+    if (input.attachment.size > MAX_BYTES) return { ok: false, error: t("fileTooLarge") };
+    attachmentFileKey = await storeUpload("notices", input.attachment);
+  }
+
   await prisma.notice.create({
     data: {
       title: input.title.trim(),
@@ -37,6 +55,7 @@ export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; e
       audience: NoticeAudience[input.audience],
       audienceTeam: input.audience === "Team" ? input.audienceTeam!.trim() : null,
       audienceRole: input.audience === "Role" ? input.audienceRole! : null,
+      attachmentFileKey,
       postedById: session.user.id,
     },
   });
@@ -49,6 +68,8 @@ export async function deleteNotice(id: string): Promise<{ ok: boolean; error?: s
   const t = await getTranslations("errors");
   const session = await requireAdmin();
   if (!session) return { ok: false, error: t("forbidden") };
+  const notice = await prisma.notice.findUnique({ where: { id }, select: { attachmentFileKey: true } });
+  if (notice?.attachmentFileKey) await deleteObject(notice.attachmentFileKey);
   await prisma.noticeRead.deleteMany({ where: { noticeId: id } });
   await prisma.notice.delete({ where: { id } });
   revalidatePath("/admin/notices");

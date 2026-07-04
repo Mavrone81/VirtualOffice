@@ -41,6 +41,9 @@ export default async function AdminVendorsPage() {
                     <td className="px-5 py-3">
                       <div className="text-ink">{v.vendorName}</div>
                       {v.remarks && <div className="text-[11px] text-muted-2">{v.remarks}</div>}
+                      {v.agreementFileKey && (
+                        <a href={`/api/files/${v.agreementFileKey}`} target="_blank" rel="noopener" className="text-[11px] text-action hover:underline">📎 {t("agreement")}</a>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-muted">{v.vendorType ?? "—"}</td>
                     <td className="px-5 py-3 text-muted">{v.contact ?? "—"}</td>

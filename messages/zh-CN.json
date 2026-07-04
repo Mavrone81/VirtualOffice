@@ -307,8 +307,11 @@
       "roleSalesDirector": "销售总监",
       "errorDefault": "发布失败，请重试。",
       "submit": "发布公告",
-      "submitting": "发布中…"
-    }
+      "submitting": "发布中…",
+      "attachmentLabel": "附件",
+      "attachmentHint": "选填 —— PDF 或图片，最大 15 MB。"
+    },
+    "attachment": "附件"
   },
   "onboarding": {
     "header": {
@@ -488,7 +491,8 @@
       "pageTitle": "公告",
       "pageSubtitle": "来自 Enshrine 的公告。",
       "noNotices": "暂无公告。",
-      "markAsRead": "标记已读"
+      "markAsRead": "标记已读",
+      "attachment": "附件"
     },
     "documents": {
       "pageTitle": "文件",
@@ -510,7 +514,9 @@
       "submitting": "提交中…",
       "submitReferral": "提交推荐",
       "activeVendors": "活跃供应商（{count}）",
-      "noVendors": "名录中暂无供应商。"
+      "noVendors": "名录中暂无供应商。",
+      "agreementLabel": "协议 / 备忘录",
+      "agreementHint": "选填 —— PDF，最大 15 MB。"
     },
     "salesAgreements": {
       "pageTitle": "销售协议",
@@ -824,7 +830,8 @@
       "contact": "联系方式",
       "submittedBy": "提交人",
       "status": "状态"
-    }
+    },
+    "agreement": "协议"
   },
   "errors": {
     "forbidden": "无权限",
