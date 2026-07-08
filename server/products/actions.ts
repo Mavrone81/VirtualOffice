@@ -5,11 +5,12 @@ import { CommissionType, ComValueType, ProductActiveStatus, Prisma } from "@pris
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 
+// Managing products / com codes / rates is Admin-only (docs/05_RBAC.md §3).
 async function requireAdmin() {
   const session = await auth();
-  if (!session || !isAdminRole(session.user.role)) return null;
+  if (!session || !can(session.user.role, "manage_products")) return null;
   return session;
 }
 

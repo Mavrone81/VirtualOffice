@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 
 type CardData = { chineseName?: string | null; customTitle?: string | null };
 
@@ -34,11 +34,11 @@ export async function updateNameCard(input: { chineseName?: string; customTitle?
   return { ok: true };
 }
 
-/** Admin: set the card title shown on a specific associate's name card. */
+/** Admin-only: set the card title on another associate's name card (managing others' cards — docs/05_RBAC.md §3). */
 export async function setAssociateCardTitle(associateId: string, title: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
-  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+  if (!session || !can(session.user.role, "manage_others_name_card")) return { ok: false, error: t("forbidden") };
 
   const assoc = await prisma.associate.findUnique({ where: { id: associateId }, include: { user: { select: { id: true } } } });
   if (!assoc?.user) return { ok: false, error: t("associateNoLogin") };

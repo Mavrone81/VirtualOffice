@@ -13,6 +13,41 @@ export const ROLE_HOME: Record<AppRole, string> = {
 export const ADMIN_ROLES: AppRole[] = ["Admin", "Accounts"];
 export const isAdminRole = (r: AppRole): boolean => ADMIN_ROLES.includes(r);
 
+/** True only for the full "Product Owner" Admin — not the Accounts role. */
+export const isFullAdmin = (r: AppRole): boolean => r === "Admin";
+
+/**
+ * Fine-grained capabilities where Admin and Accounts diverge. Both roles share
+ * the admin area (see {@link isAdminRole}); the ones below are granted to Admin
+ * ONLY per the canonical permission matrix in `docs/05_RBAC.md` §3.
+ */
+export type Capability =
+  | "manage_products" // products, com codes, commission rates/versions
+  | "manage_users" // user logins & role management (e.g. reset an associate's password)
+  | "manage_companies" // company / invoice entities
+  | "manage_others_name_card" // view or manage another user's name card / VCF
+  | "manual_commission_override";
+
+// Rows in docs/05_RBAC.md §3 that read Admin ✅ / Accounts ❌.
+const ADMIN_ONLY_CAPABILITIES: ReadonlySet<Capability> = new Set<Capability>([
+  "manage_products",
+  "manage_users",
+  "manage_companies",
+  "manage_others_name_card",
+  "manual_commission_override",
+]);
+
+/**
+ * Central capability check (RBAC §4 policy layer). Admin has everything;
+ * Accounts has every admin-area capability EXCEPT the Admin-only set above;
+ * portal roles (SD/SM/Consultant) hold none of these admin capabilities.
+ */
+export function can(role: AppRole, capability: Capability): boolean {
+  if (role === "Admin") return true;
+  if (role === "Accounts") return !ADMIN_ONLY_CAPABILITIES.has(capability);
+  return false;
+}
+
 // Roles with a downline they manage (team dashboards).
 export const MANAGER_ROLES: AppRole[] = ["SalesManager", "SalesDirector"];
 export const isManagerRole = (r: AppRole): boolean => MANAGER_ROLES.includes(r);

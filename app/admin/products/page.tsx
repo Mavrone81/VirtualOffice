@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { CommissionType } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { isFullAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +14,8 @@ import { ActiveToggle, ComCodeManager } from "./product-controls";
 export const metadata = { title: "Products & commission · Enshrine Admin" };
 
 export default async function ProductsPage() {
+  const session = await auth();
+  if (!session?.user || !isFullAdmin(session.user.role)) redirect("/admin/dashboard");
   const t = await getTranslations("products");
   const products = await prisma.product.findMany({
     where: { archivedAt: null },

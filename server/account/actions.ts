@@ -7,7 +7,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
-import { isAdminRole } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { sendMail, resetPasswordEmail } from "@/lib/mail";
 
@@ -83,11 +83,11 @@ export async function changePassword(
   return { ok: true };
 }
 
-/** Admin: reset an associate's login to a fresh temporary password (returned to relay). */
+/** Admin-only: reset an associate's login to a fresh temporary password (user management — docs/05_RBAC.md §3). */
 export async function resetAssociatePassword(associateId: string): Promise<{ ok: boolean; error?: string; tempPassword?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
-  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+  if (!session || !can(session.user.role, "manage_users")) return { ok: false, error: t("forbidden") };
 
   const assoc = await prisma.associate.findUnique({ where: { id: associateId }, include: { user: true } });
   if (!assoc) return { ok: false, error: t("associateNotFound") };
