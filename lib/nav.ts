@@ -28,7 +28,7 @@ export const adminNav: NavGroup[] = [
   {
     titleKey: "groupFinance",
     items: [
-      { labelKey: "products", href: "/admin/products", icon: Tags },
+      { labelKey: "products", href: "/admin/products", icon: Tags, roles: ["Admin"] },
       { labelKey: "commission", href: "/admin/commission", icon: Calculator },
       { labelKey: "invoices", href: "/admin/invoices", icon: FileText },
       { labelKey: "payouts", href: "/admin/payouts", icon: Banknote },
