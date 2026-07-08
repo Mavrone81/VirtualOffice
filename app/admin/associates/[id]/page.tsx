@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { FileText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { isFullAdmin } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
 import { decryptPII, maskNric, maskAccount } from "@/lib/crypto";
 import { PageHeader } from "@/components/ui/page-header";
@@ -32,6 +34,10 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 export default async function AdminAssociateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("associates");
   const tCard = await getTranslations("nameCard");
+  const session = await auth();
+  // Resetting a login (user management) and editing another associate's card
+  // are Admin-only; Accounts can view the associate but not these controls.
+  const canManage = !!session?.user && isFullAdmin(session.user.role);
   const { id } = await params;
   const a = await prisma.associate.findUnique({
     where: { id },
@@ -87,7 +93,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
         </div>
 
         <div className="space-y-4">
-          {a.user && (
+          {a.user && canManage && (
             <Card className="p-5">
               <h2 className="mb-1 font-display text-[16px] text-ink">{t("detail.loginSection")}</h2>
               <p className="mb-3 text-[12px] text-muted">{a.user.email}</p>
@@ -95,7 +101,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
             </Card>
           )}
 
-          {a.user && (
+          {a.user && canManage && (
             <Card className="p-5">
               <h2 className="mb-3 font-display text-[16px] text-ink">{tCard("adminSection")}</h2>
               <CardTitleEditor associateId={a.id} initial={a.user.nameCards[0]?.customTitle ?? ""} />
