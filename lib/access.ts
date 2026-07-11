@@ -1,5 +1,5 @@
 import type { AppRole } from "@prisma/client";
-import { isAdminRole, can, type Capability } from "@/lib/rbac";
+import { isAdminRole, isManagerRole, can, type Capability } from "@/lib/rbac";
 
 /** What a principal is allowed to see/act on. `all` = admin (unrestricted). */
 export type Scope = { kind: "all" } | { kind: "associates"; ids: string[] };
@@ -43,4 +43,19 @@ export function requireAdmin(p: Principal): void {
 /** Guard: throw `forbidden` unless the principal holds `cap`. */
 export function requireCapability(p: Principal, cap: Capability): void {
   if (!can(p.role, cap)) throw new AccessError("forbidden");
+}
+
+/**
+ * Resolve a role + associate into a Scope. `getDownline` is injected (the
+ * recursive-CTE query lives in the impure layer) so this stays pure/testable.
+ */
+export async function resolveScope(
+  role: AppRole,
+  associateId: string | null,
+  getDownline: (associateId: string) => Promise<string[]>,
+): Promise<Scope> {
+  if (isAdminRole(role)) return { kind: "all" };
+  if (!associateId) return { kind: "associates", ids: [] };
+  if (isManagerRole(role)) return { kind: "associates", ids: await getDownline(associateId) };
+  return { kind: "associates", ids: [associateId] };
 }
