@@ -6,6 +6,7 @@ import {
   assertInScope,
   requireAdmin,
   requireCapability,
+  resolveScope,
   type Principal,
   type Scope,
 } from "@/lib/access";
@@ -67,5 +68,41 @@ describe("requireCapability", () => {
   it("Admin holds manage_products; Accounts does not", () => {
     expect(() => requireCapability(principal("Admin", ALL), "manage_products")).not.toThrow();
     expect(() => requireCapability(principal("Accounts", ALL), "manage_products")).toThrow(AccessError);
+  });
+});
+
+describe("resolveScope", () => {
+  const downline = async (id: string) => [id, "child1", "child2"];
+
+  it("admin roles get the unrestricted 'all' scope and never call downline", async () => {
+    let called = false;
+    const spy = async (id: string) => { called = true; return [id]; };
+    expect(await resolveScope("Admin", "a1", spy)).toEqual({ kind: "all" });
+    expect(await resolveScope("Accounts", null, spy)).toEqual({ kind: "all" });
+    expect(called).toBe(false);
+  });
+
+  it("manager role gets its full downline closure", async () => {
+    expect(await resolveScope("SalesManager", "a1", downline)).toEqual({
+      kind: "associates",
+      ids: ["a1", "child1", "child2"],
+    });
+  });
+
+  it("consultant is scoped to self only (no downline call)", async () => {
+    let called = false;
+    const spy = async (id: string) => { called = true; return [id]; };
+    expect(await resolveScope("Consultant", "a9", spy)).toEqual({
+      kind: "associates",
+      ids: ["a9"],
+    });
+    expect(called).toBe(false);
+  });
+
+  it("a non-admin with no associateId sees nothing", async () => {
+    expect(await resolveScope("Consultant", null, downline)).toEqual({
+      kind: "associates",
+      ids: [],
+    });
   });
 });
