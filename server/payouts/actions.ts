@@ -3,21 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { Prisma, LedgerStatus, LedgerLineType, PayoutStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session || !isAdminRole(session.user.role)) return null;
-  return session;
-}
+import { getAdminPrincipal } from "@/server/access";
 
 /** Aggregate this month's Eligible ledger lines into monthly_payouts per associate. */
 export async function runPayouts(month: string): Promise<{ ok: boolean; count?: number; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  if (!(await getAdminPrincipal())) return { ok: false, error: t("forbidden") };
   if (!/^\d{4}-\d{2}$/.test(month)) return { ok: false, error: t("badMonth") };
 
   const lines = await prisma.commissionLedger.findMany({
@@ -60,7 +53,7 @@ export async function runPayouts(month: string): Promise<{ ok: boolean; count?: 
 
 export async function setPayoutStatus(payoutId: string, status: "Approved" | "Paid"): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  if (!(await getAdminPrincipal())) return { ok: false, error: t("forbidden") };
   await prisma.monthlyPayout.update({
     where: { id: payoutId },
     data: {
@@ -75,7 +68,7 @@ export async function setPayoutStatus(payoutId: string, status: "Approved" | "Pa
 
 export async function approveAllPayouts(month: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  if (!(await getAdminPrincipal())) return { ok: false, error: t("forbidden") };
   await prisma.monthlyPayout.updateMany({
     where: { payoutMonth: month, payoutStatus: PayoutStatus.Pending },
     data: { payoutStatus: PayoutStatus.Approved },
