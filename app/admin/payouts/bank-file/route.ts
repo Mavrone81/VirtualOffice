@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const month = req.nextUrl.searchParams.get("month") ?? "";
   if (!/^\d{4}-\d{2}$/.test(month)) return new Response("Bad month", { status: 400 });
 
-  const csv = await buildBankFileCsv(month);
+  const csv = await buildBankFileCsv(month, session.user.id);
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

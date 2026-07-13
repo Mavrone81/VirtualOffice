@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  const pdf = await renderStatementPdf(id);
+  const pdf = await renderStatementPdf(id, session.user.id);
   if (!pdf) return new NextResponse("Not found", { status: 404 });
 
   return new NextResponse(new Uint8Array(pdf.buffer), {
