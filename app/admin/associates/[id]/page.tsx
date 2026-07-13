@@ -7,7 +7,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isFullAdmin } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
-import { decryptPII, maskNric, maskAccount } from "@/lib/crypto";
+import { maskNric, maskAccount } from "@/lib/crypto";
+import { decryptPiiAudited } from "@/server/pii";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,6 @@ import { ResetPasswordButton } from "./reset-password";
 import { CardTitleEditor } from "./card-title-editor";
 
 export const metadata = { title: "Associate · Enshrine Admin" };
-
-function safeDecrypt(blob: string | null | undefined): string | null {
-  if (!blob) return null;
-  try { return decryptPII(blob); } catch { return null; }
-}
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -49,9 +45,13 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
   });
   if (!a) notFound();
 
+  const actorUserId = session?.user.id ?? null;
+  const nricPlain = await decryptPiiAudited({ blob: a.nric, field: "nric", subjectType: "Associate", subjectId: a.id, actorUserId });
+  const bankAcctPlain = await decryptPiiAudited({ blob: a.bankAccountNumber, field: "bankAccount", subjectType: "Associate", subjectId: a.id, actorUserId });
+
   const payTo = a.paymentMethod === "PayNow"
     ? a.paynowNumber
-    : a.bankName ? `${a.bankName} · ${maskAccount(safeDecrypt(a.bankAccountNumber))}` : null;
+    : a.bankName ? `${a.bankName} · ${maskAccount(bankAcctPlain)}` : null;
 
   return (
     <>
@@ -79,7 +79,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               <Field label={t("detail.team")} value={a.teamName} />
               <Field label={t("detail.mobile")} value={a.mobileNumber} />
               <Field label={t("detail.email")} value={a.email} />
-              <Field label={t("detail.nric")} value={maskNric(safeDecrypt(a.nric))} />
+              <Field label={t("detail.nric")} value={maskNric(nricPlain)} />
               <Field label={t("detail.dob")} value={a.dateOfBirth ? format(a.dateOfBirth, "dd MMM yyyy") : null} />
               <Field label={t("detail.joinDate")} value={a.joinDate ? format(a.joinDate, "dd MMM yyyy") : null} />
               <Field label={t("detail.directUpline")} value={a.directUpline ? `${a.directUpline.associateCode} · ${a.directUpline.fullName}` : null} />

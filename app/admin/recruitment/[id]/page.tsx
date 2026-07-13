@@ -5,7 +5,9 @@ import { OnboardingStage } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
-import { decryptPII, maskNric, maskAccount } from "@/lib/crypto";
+import { auth } from "@/auth";
+import { maskNric, maskAccount } from "@/lib/crypto";
+import { decryptPiiAudited } from "@/server/pii";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,11 +30,6 @@ type StoredPayload = {
   agreementAcceptedAt?: string | null;
 };
 
-function safeDecrypt(blob: string | null | undefined): string | null {
-  if (!blob) return null;
-  try { return decryptPII(blob); } catch { return null; }
-}
-
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
@@ -44,6 +41,7 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 
 export default async function CandidatePage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("recruitment");
+  const session = await auth();
   const { id } = await params;
   const c = await prisma.candidate.findUnique({
     where: { id },
@@ -56,6 +54,9 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
   if (!c) notFound();
 
   const p = (c.submittedPayload as StoredPayload | null) ?? {};
+  const actorUserId = session?.user.id ?? null;
+  const nricPlain = await decryptPiiAudited({ blob: p.nric, field: "nric", subjectType: "Candidate", subjectId: c.id, actorUserId });
+  const bankAcctPlain = await decryptPiiAudited({ blob: p.bankAccountNumber, field: "bankAccount", subjectType: "Candidate", subjectId: c.id, actorUserId });
   const submitted = c.onboardingStage !== OnboardingStage.Invited;
   const reviewable =
     c.onboardingStage === OnboardingStage.SignedPendingApproval || c.onboardingStage === OnboardingStage.FormSubmitted;
@@ -94,14 +95,14 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={t("detail.businessName")} value={p.businessName} />
-                <Field label={t("detail.nric")} value={maskNric(safeDecrypt(p.nric))} />
+                <Field label={t("detail.nric")} value={maskNric(nricPlain)} />
                 <Field label={t("detail.dob")} value={p.dateOfBirth ? format(new Date(p.dateOfBirth), "dd MMM yyyy") : null} />
                 <Field label={t("detail.residentialAddress")} value={p.residentialAddress} />
                 <Field label={t("detail.emergencyContact")} value={p.emergencyContactName ? `${p.emergencyContactName} · ${p.emergencyContactNumber ?? ""}` : null} />
                 <Field label={t("detail.paymentMethod")} value={p.paymentMethod} />
                 {p.paymentMethod === "PayNow"
                   ? <Field label={t("detail.paynow")} value={p.paynowNumber} />
-                  : <Field label={t("detail.bankAccount")} value={p.bankName ? `${p.bankName} · ${maskAccount(safeDecrypt(p.bankAccountNumber))}` : null} />}
+                  : <Field label={t("detail.bankAccount")} value={p.bankName ? `${p.bankName} · ${maskAccount(bankAcctPlain)}` : null} />}
                 <Field label={t("detail.agreementSigned")} value={p.agreementAcceptedAt ? format(new Date(p.agreementAcceptedAt), "dd MMM yyyy, HH:mm") : null} />
               </div>
               {c.signedAgreementFileKey && (

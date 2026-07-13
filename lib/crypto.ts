@@ -23,7 +23,7 @@ export function encryptPII(plain: string): string {
   return `v1:${iv.toString("base64")}:${tag.toString("base64")}:${enc.toString("base64")}`;
 }
 
-export function decryptPII(blob: string): string {
+export function decryptPiiRaw(blob: string): string {
   const [version, ivB, tagB, dataB] = blob.split(":");
   if (version !== "v1" || !ivB || !tagB || !dataB) {
     throw new Error("Malformed PII ciphertext");
