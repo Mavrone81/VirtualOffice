@@ -4,7 +4,8 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
 import { humanize } from "@/lib/labels";
-import { decryptPII, maskAccount } from "@/lib/crypto";
+import { maskAccount } from "@/lib/crypto";
+import { decryptPiiAudited } from "@/server/pii";
 
 const INK = "#1a1f2b";
 const MUTED = "#6b675e";
@@ -138,7 +139,7 @@ function StatementDoc({ d }: { d: StatementData }) {
   );
 }
 
-export async function renderStatementPdf(payoutId: string): Promise<{ buffer: Buffer; filename: string } | null> {
+export async function renderStatementPdf(payoutId: string, actorUserId?: string | null): Promise<{ buffer: Buffer; filename: string } | null> {
   const payout = await prisma.monthlyPayout.findUnique({
     where: { id: payoutId },
     include: { associate: { select: { associateCode: true } } },
@@ -163,7 +164,7 @@ export async function renderStatementPdf(payoutId: string): Promise<{ buffer: Bu
   let payTo: string | null = null;
   if (payout.paymentMethod === "PayNow") payTo = payout.paynowNumber;
   else if (payout.bankName) {
-    const acct = payout.bankAccountNumber ? safeDecrypt(payout.bankAccountNumber) : null;
+    const acct = await decryptPiiAudited({ blob: payout.bankAccountNumber, field: "bankAccount", subjectType: "Associate", subjectId: payout.associateId, actorUserId });
     payTo = `${payout.bankName}${acct ? ` · ${maskAccount(acct)}` : ""}`;
   }
 
@@ -185,8 +186,4 @@ export async function renderStatementPdf(payoutId: string): Promise<{ buffer: Bu
 
   const buffer = await renderToBuffer(<StatementDoc d={d} />);
   return { buffer, filename: `statement-${payout.associate.associateCode}-${payout.payoutMonth}.pdf` };
-}
-
-function safeDecrypt(blob: string): string | null {
-  try { return decryptPII(blob); } catch { return null; }
 }

@@ -1,6 +1,6 @@
 import { PayoutStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { decryptPII } from "@/lib/crypto";
+import { decryptPiiAudited } from "@/server/pii";
 
 /**
  * Build the bank bulk-payout (GIRO) file for a month as CSV. Associate payout
@@ -8,7 +8,7 @@ import { decryptPII } from "@/lib/crypto";
  * must be Admin/Accounts). The exact bank GIRO layout is TBC; this CSV is the
  * portable interim format.
  */
-export async function buildBankFileCsv(month: string): Promise<string> {
+export async function buildBankFileCsv(month: string, actorUserId?: string | null): Promise<string> {
   const payouts = await prisma.monthlyPayout.findMany({
     where: { payoutMonth: month, payoutStatus: { in: [PayoutStatus.Approved, PayoutStatus.Paid] } },
     include: { associate: true },
@@ -21,11 +21,10 @@ export async function buildBankFileCsv(month: string): Promise<string> {
   for (const p of payouts) {
     let account = p.paynowNumber ?? "";
     if (p.paymentMethod === "BankTransfer" && p.bankAccountNumber) {
-      try {
-        account = decryptPII(p.bankAccountNumber);
-      } catch {
-        account = "(decrypt-failed)";
-      }
+      account = (await decryptPiiAudited({
+        blob: p.bankAccountNumber, field: "bankAccount",
+        subjectType: "Associate", subjectId: p.associate.id, actorUserId,
+      })) ?? "(decrypt-failed)";
     }
     rows.push([
       p.associate.associateCode,

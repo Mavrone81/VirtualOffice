@@ -3,17 +3,13 @@ import { FileText } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
-import { decryptPII, maskNric, maskAccount } from "@/lib/crypto";
+import { maskNric, maskAccount } from "@/lib/crypto";
+import { decryptPiiAudited } from "@/server/pii";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "My P-File · Enshrine Portal" };
-
-function safeDecrypt(blob: string | null | undefined): string | null {
-  if (!blob) return null;
-  try { return decryptPII(blob); } catch { return null; }
-}
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -37,9 +33,13 @@ export default async function MyPFilePage() {
   ]);
   if (!me) return <PageHeader title={t("pfile.pageTitle")} subtitle={t("pfile.notFound")} />;
 
+  const actorUserId = session?.user.id ?? null;
+  const nricPlain = await decryptPiiAudited({ blob: me.nric, field: "nric", subjectType: "Associate", subjectId: me.id, actorUserId });
+  const bankAcctPlain = await decryptPiiAudited({ blob: me.bankAccountNumber, field: "bankAccount", subjectType: "Associate", subjectId: me.id, actorUserId });
+
   const payTo = me.paymentMethod === "PayNow"
     ? me.paynowNumber
-    : me.bankName ? `${me.bankName} · ${maskAccount(safeDecrypt(me.bankAccountNumber))}` : null;
+    : me.bankName ? `${me.bankName} · ${maskAccount(bankAcctPlain)}` : null;
 
   return (
     <>
@@ -67,7 +67,7 @@ export default async function MyPFilePage() {
               <Field label={t("pfile.fieldTeam")} value={me.teamName} />
               <Field label={t("pfile.fieldMobile")} value={me.mobileNumber} />
               <Field label={t("pfile.fieldEmail")} value={me.email} />
-              <Field label={t("pfile.fieldNric")} value={maskNric(safeDecrypt(me.nric))} />
+              <Field label={t("pfile.fieldNric")} value={maskNric(nricPlain)} />
               <Field label={t("pfile.fieldDob")} value={me.dateOfBirth ? format(me.dateOfBirth, "dd MMM yyyy") : null} />
               <Field label={t("pfile.fieldJoinDate")} value={me.joinDate ? format(me.joinDate, "dd MMM yyyy") : null} />
               <Field label={t("pfile.fieldDirectUpline")} value={me.directUpline ? `${me.directUpline.associateCode} · ${me.directUpline.fullName}` : null} />
