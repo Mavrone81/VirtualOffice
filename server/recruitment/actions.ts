@@ -19,6 +19,7 @@ import { humanize } from "@/lib/labels";
 import { renderAgreementPdf } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit } from "@/lib/audit";
+import { generateTempPassword } from "@/lib/temp-password";
 
 async function requireAdmin() {
   const session = await auth();
@@ -43,7 +44,6 @@ const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
   SalesConsultant: AppRole.Consultant,
 };
 
-const TEMP_PASSWORD = "Enshrine#2026"; // temporary login pw on provisioning; user should reset
 
 async function nextAssociateCode(): Promise<string> {
   const last = await prisma.associate.findFirst({ orderBy: { associateCode: "desc" }, select: { associateCode: true } });
@@ -226,6 +226,9 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     : null;
 
   const code = await nextAssociateCode();
+  // One per-user random temp password: hashed into the login AND emailed to the
+  // associate (same value — never diverge, or they can't log in). Forces reset.
+  const tempPassword = generateTempPassword();
   const pm = p.paymentMethod === "Bank Transfer" ? PaymentMethod.BankTransfer
     : p.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null;
 
@@ -280,13 +283,14 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     const existing = await tx.user.findUnique({ where: { email: c.email } });
     if (!existing) {
       provisioned = true;
-      const pwHash = await hash(TEMP_PASSWORD);
+      const pwHash = await hash(tempPassword);
       const user = await tx.user.create({
         data: {
           email: c.email,
           passwordHash: pwHash,
           role: ROLE_FOR_DESIGNATION[c.intendedDesignation!],
           associateId: associate.id,
+          mustResetPassword: true,
         },
       });
       const pFile = await tx.pFile.create({ data: { userId: user.id, associateId: associate.id } });
@@ -318,7 +322,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
   // Email the new associate their login credentials (best-effort, post-commit).
   if (result.provisioned) {
     await sendMail({
-      ...approvalEmail(c.fullName, `${await baseUrl()}/login`, c.email, TEMP_PASSWORD),
+      ...approvalEmail(c.fullName, `${await baseUrl()}/login`, c.email, tempPassword),
       to: c.email,
     });
   }

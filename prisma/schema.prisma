@@ -191,6 +191,10 @@ model User {
   resetTokenHash      String?   @map("reset_token_hash")
   resetTokenExpiresAt DateTime? @map("reset_token_expires_at")
 
+  // Forces a password change on next login (set when a login is provisioned
+  // with a temp password or when an admin resets it; cleared on password change).
+  mustResetPassword Boolean @default(false) @map("must_reset_password")
+
   pFile              PFile?
   nameCards          NameCard[]
   noticeReads        NoticeRead[]

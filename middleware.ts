@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import { authConfig } from "./auth.config";
+import { FORCE_RESET_PATH, shouldForceReset } from "./lib/force-reset";
 
 const { auth } = NextAuth(authConfig);
 
@@ -7,18 +8,25 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
-  const isLogin = nextUrl.pathname === "/login";
+  const pathname = nextUrl.pathname;
+  const isLogin = pathname === "/login";
   const isPublic =
     isLogin ||
-    nextUrl.pathname.startsWith("/onboard") ||
-    nextUrl.pathname === "/forgot-password" ||
-    nextUrl.pathname.startsWith("/reset-password");
+    pathname.startsWith("/onboard") ||
+    pathname === "/forgot-password" ||
+    pathname.startsWith("/reset-password");
 
   if (!isLoggedIn && !isPublic) {
     const url = new URL("/login", nextUrl);
-    url.searchParams.set("from", nextUrl.pathname);
+    url.searchParams.set("from", pathname);
     return Response.redirect(url);
   }
+
+  // A provisioned/admin-reset login must set a new password before anything else.
+  if (shouldForceReset({ isLoggedIn, mustReset: !!req.auth?.user?.mustResetPassword, pathname })) {
+    return Response.redirect(new URL(FORCE_RESET_PATH, nextUrl));
+  }
+
   if (isLoggedIn && isLogin) {
     return Response.redirect(new URL("/", nextUrl));
   }

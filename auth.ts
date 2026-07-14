@@ -31,6 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             (user.role === "Admin" ? "Product Owner" : user.role === "Accounts" ? "Accounts" : user.email),
           role: user.role,
           associateId: user.associateId ?? null,
+          mustResetPassword: user.mustResetPassword,
         };
       },
     }),

@@ -10,11 +10,13 @@ declare module "next-auth" {
       name?: string | null;
       role: AppRole;
       associateId: string | null;
+      mustResetPassword: boolean;
     };
   }
   interface User {
     role: AppRole;
     associateId: string | null;
+    mustResetPassword: boolean;
   }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     role: AppRole;
     associateId: string | null;
+    mustResetPassword: boolean;
   }
 }
