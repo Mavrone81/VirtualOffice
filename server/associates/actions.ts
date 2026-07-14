@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
 import { logAudit } from "@/lib/audit";
+import { generateTempPassword } from "@/lib/temp-password";
 
 async function requireAdmin() {
   const session = await auth();
@@ -24,7 +25,6 @@ const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
   SalesConsultant: AppRole.Consultant,
 };
 
-const TEMP_PASSWORD = "Enshrine#2026"; // temporary login pw on provisioning; user should reset
 
 export type NewAssociateInput = {
   fullName: string;
@@ -107,9 +107,9 @@ export async function setApprovalStatus(
 
   // provision a login on first approval if the associate has an email and no user
   if (status === "Approved" && !a.user && a.email) {
-    const pwHash = await hash(TEMP_PASSWORD);
+    const pwHash = await hash(generateTempPassword());
     const user = await prisma.user.create({
-      data: { email: a.email, passwordHash: pwHash, role: ROLE_FOR_DESIGNATION[a.designation], associateId: a.id },
+      data: { email: a.email, passwordHash: pwHash, role: ROLE_FOR_DESIGNATION[a.designation], associateId: a.id, mustResetPassword: true },
     });
     await prisma.pFile.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, associateId: a.id } });
   }

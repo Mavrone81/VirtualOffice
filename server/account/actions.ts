@@ -10,6 +10,7 @@ import { env } from "@/lib/env";
 import { can } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { sendMail, resetPasswordEmail } from "@/lib/mail";
+import { generateTempPassword } from "@/lib/temp-password";
 
 const MIN_LEN = 8;
 
@@ -55,7 +56,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
   if (!user) return { ok: false, error: t("resetLinkInvalid") };
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash: await hash(newPassword), resetTokenHash: null, resetTokenExpiresAt: null },
+    data: { passwordHash: await hash(newPassword), resetTokenHash: null, resetTokenExpiresAt: null, mustResetPassword: false },
   });
   await logAudit({ action: "password.reset_self", entityType: "User", entityId: user.id, actorUserId: user.id });
   return { ok: true };
@@ -78,7 +79,7 @@ export async function changePassword(
   const ok = await verify(user.passwordHash, currentPassword);
   if (!ok) return { ok: false, error: t("currentPasswordIncorrect") };
 
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hash(newPassword) } });
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hash(newPassword), mustResetPassword: false } });
   await logAudit({ action: "password.changed", entityType: "User", entityId: user.id, actorUserId: user.id });
   return { ok: true };
 }
@@ -93,8 +94,8 @@ export async function resetAssociatePassword(associateId: string): Promise<{ ok:
   if (!assoc) return { ok: false, error: t("associateNotFound") };
   if (!assoc.user) return { ok: false, error: t("noLoginToReset") };
 
-  const tempPassword = `En-${randomBytes(4).toString("hex")}`; // e.g. En-9f3a2b7c
-  await prisma.user.update({ where: { id: assoc.user.id }, data: { passwordHash: await hash(tempPassword) } });
+  const tempPassword = generateTempPassword();
+  await prisma.user.update({ where: { id: assoc.user.id }, data: { passwordHash: await hash(tempPassword), mustResetPassword: true } });
   await logAudit({ action: "password.reset_by_admin", entityType: "User", entityId: assoc.user.id, actorUserId: session.user.id, after: { associateId } });
   return { ok: true, tempPassword };
 }
