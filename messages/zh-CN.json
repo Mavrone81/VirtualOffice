@@ -928,5 +928,17 @@
     "secTransactions": "交易",
     "secInvoices": "发票",
     "secSales": "我的销售"
+  },
+  "forceReset": {
+    "title": "设置新密码",
+    "subtitle": "您的账户使用临时密码创建。请设置一个新密码以继续。",
+    "currentPassword": "临时密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "hint": "至少 8 个字符。",
+    "submit": "设置密码并继续",
+    "submitting": "设置中…",
+    "mismatch": "两次输入的新密码不一致。",
+    "failed": "无法设置密码。请检查临时密码后重试。"
   }
 }

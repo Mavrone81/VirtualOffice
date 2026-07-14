@@ -12,6 +12,7 @@ export const authConfig = {
       if (user) {
         token.role = user.role;
         token.associateId = user.associateId;
+        token.mustResetPassword = user.mustResetPassword;
         if (user.name) token.name = user.name;
       }
       return token;
@@ -21,6 +22,7 @@ export const authConfig = {
         session.user.id = token.sub as string;
         session.user.role = token.role;
         session.user.associateId = token.associateId;
+        session.user.mustResetPassword = token.mustResetPassword;
       }
       return session;
     },

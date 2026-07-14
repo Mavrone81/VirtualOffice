@@ -928,5 +928,17 @@
     "secTransactions": "Transactions",
     "secInvoices": "Invoices",
     "secSales": "My sales"
+  },
+  "forceReset": {
+    "title": "Set a new password",
+    "subtitle": "Your account was set up with a temporary password. Choose a new one to continue.",
+    "currentPassword": "Temporary password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "hint": "At least 8 characters.",
+    "submit": "Set password & continue",
+    "submitting": "Setting…",
+    "mismatch": "New passwords do not match.",
+    "failed": "Could not set the password. Check your temporary password and try again."
   }
 }
