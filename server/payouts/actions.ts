@@ -51,9 +51,23 @@ export async function runPayouts(month: string): Promise<{ ok: boolean; count?: 
   return { ok: true, count };
 }
 
+const ALLOWED_PAYOUT_TRANSITIONS: Partial<Record<PayoutStatus, PayoutStatus>> = {
+  [PayoutStatus.Pending]: PayoutStatus.Approved,
+  [PayoutStatus.Approved]: PayoutStatus.Paid,
+};
+
 export async function setPayoutStatus(payoutId: string, status: "Approved" | "Paid"): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   if (!(await getAdminPrincipal())) return { ok: false, error: t("forbidden") };
+
+  const cur = await prisma.monthlyPayout.findUnique({ where: { id: payoutId }, select: { payoutStatus: true } });
+  if (!cur) return { ok: false, error: t("notFound") };
+
+  const target = status === "Paid" ? PayoutStatus.Paid : PayoutStatus.Approved;
+  if (ALLOWED_PAYOUT_TRANSITIONS[cur.payoutStatus] !== target) {
+    return { ok: false, error: t("illegalPayoutTransition") };
+  }
+
   await prisma.monthlyPayout.update({
     where: { id: payoutId },
     data: {
