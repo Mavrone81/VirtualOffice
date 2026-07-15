@@ -851,6 +851,7 @@
     "photoInvalidFormat": "Photo must be a JPG, PNG, or WebP image.",
     "photoTooLarge": "Photo must be under 5 MB.",
     "signatureInvalid": "Invalid signature image.",
+    "invalidFileType": "Unsupported file type.",
     "alreadyConverted": "Already converted.",
     "onboardingIncomplete": "Candidate has not completed onboarding yet.",
     "noDesignationSet": "No intended designation set.",
