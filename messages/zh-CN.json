@@ -842,6 +842,7 @@
     "emailRequired": "邮箱为必填项。",
     "uplineCodeNotFound": "上线代码未找到。",
     "invalidOrExpiredLink": "链接无效或已过期。",
+    "tooManyAttempts": "尝试次数过多，请稍后再试。",
     "applicationAlreadyApproved": "您的申请已审批通过。",
     "applicationClosed": "此申请已关闭。",
     "nricRequired": "身份证/FIN 为必填项。",

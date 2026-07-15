@@ -22,6 +22,7 @@ import { logAudit } from "@/lib/audit";
 import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
 import { onboardingSchema } from "@/lib/schemas";
+import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 
 async function requireAdmin() {
   const session = await auth();
@@ -139,25 +140,60 @@ export async function submitOnboarding(
   submission: OnboardingSubmission,
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
+
+  // Rate-limit BEFORE any DB lookup or write, keyed by the onboarding token
+  // itself (unguessable, so token-scoped throttling is targeted + safe — no
+  // account-enumeration concern the way there would be for an email/IP key).
+  if (!(await checkRateLimit(token, "onboard_submit")).allowed) {
+    return { ok: false, error: t("tooManyAttempts") };
+  }
+
   const c = await prisma.candidate.findUnique({ where: { onboardingToken: token } });
-  if (!c) return { ok: false, error: t("invalidOrExpiredLink") };
-  if (c.onboardingStage === OnboardingStage.Approved) return { ok: false, error: t("applicationAlreadyApproved") };
-  if (c.onboardingStage === OnboardingStage.Rejected) return { ok: false, error: t("applicationClosed") };
+  if (!c) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("invalidOrExpiredLink") };
+  }
+  if (c.onboardingStage === OnboardingStage.Approved) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("applicationAlreadyApproved") };
+  }
+  if (c.onboardingStage === OnboardingStage.Rejected) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("applicationClosed") };
+  }
 
   const v = validate(onboardingSchema, blankToUndefined(submission));
-  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  if (!v.ok) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("invalidInput") };
+  }
   const s = v.data;
 
-  if (!s.nric?.trim()) return { ok: false, error: t("nricRequired") };
-  if (!s.agreementAccepted) return { ok: false, error: t("agreementRequired") };
-  if (!s.signature) return { ok: false, error: t("signatureRequired") };
+  if (!s.nric?.trim()) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("nricRequired") };
+  }
+  if (!s.agreementAccepted) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("agreementRequired") };
+  }
+  if (!s.signature) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("signatureRequired") };
+  }
 
   // Optional profile photo → object storage.
   let photoFileKey = c.photoFileKey ?? undefined;
   if (s.photo && s.photo.size > 0) {
     const ext = imageExt(s.photo.type);
-    if (!ext) return { ok: false, error: t("photoInvalidFormat") };
-    if (s.photo.size > 5_000_000) return { ok: false, error: t("photoTooLarge") };
+    if (!ext) {
+      await recordFailure(token, "onboard_submit");
+      return { ok: false, error: t("photoInvalidFormat") };
+    }
+    if (s.photo.size > 5_000_000) {
+      await recordFailure(token, "onboard_submit");
+      return { ok: false, error: t("photoTooLarge") };
+    }
     photoFileKey = `candidates/${c.id}/photo.${ext}`;
     await putObject(photoFileKey, Buffer.from(await s.photo.arrayBuffer()));
   }
@@ -182,7 +218,10 @@ export async function submitOnboarding(
   // Associate Agreement PDF embedding it.
   let signedAgreementFileKey = c.signedAgreementFileKey ?? undefined;
   const sigMatch = s.signature.match(/^data:image\/png;base64,(.+)$/);
-  if (!sigMatch) return { ok: false, error: t("signatureInvalid") };
+  if (!sigMatch) {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("signatureInvalid") };
+  }
   await putObject(`candidates/${c.id}/signature.png`, Buffer.from(sigMatch[1], "base64"));
 
   const upline = c.intendedDirectUplineId
