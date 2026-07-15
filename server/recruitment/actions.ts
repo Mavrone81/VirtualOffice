@@ -20,6 +20,8 @@ import { renderAgreementPdf } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit } from "@/lib/audit";
 import { generateTempPassword } from "@/lib/temp-password";
+import { validate } from "@/lib/validate";
+import { onboardingSchema } from "@/lib/schemas";
 
 async function requireAdmin() {
   const session = await auth();
@@ -118,15 +120,34 @@ export type OnboardingSubmission = {
   signature?: string; // PNG data URL from the signature pad
 };
 
+// The form renders optional fields as `value={f.x ?? ""}`, so clearing one
+// after typing sends "" rather than undefined. onboardingSchema treats
+// dateOfBirth/bankAccountNumber as optional-but-non-empty-when-present, so ""
+// would otherwise be wrongly rejected as invalidInput (same issue Task 2 hit
+// on the associate form) — normalize before validating.
+const BLANKABLE_KEYS: (keyof OnboardingSubmission)[] = ["dateOfBirth", "bankAccountNumber"];
+function blankToUndefined(input: OnboardingSubmission): OnboardingSubmission {
+  const out = { ...input };
+  for (const k of BLANKABLE_KEYS) {
+    if (out[k] === "") delete out[k];
+  }
+  return out;
+}
+
 export async function submitOnboarding(
   token: string,
-  s: OnboardingSubmission,
+  submission: OnboardingSubmission,
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const c = await prisma.candidate.findUnique({ where: { onboardingToken: token } });
   if (!c) return { ok: false, error: t("invalidOrExpiredLink") };
   if (c.onboardingStage === OnboardingStage.Approved) return { ok: false, error: t("applicationAlreadyApproved") };
   if (c.onboardingStage === OnboardingStage.Rejected) return { ok: false, error: t("applicationClosed") };
+
+  const v = validate(onboardingSchema, blankToUndefined(submission));
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const s = v.data;
+
   if (!s.nric?.trim()) return { ok: false, error: t("nricRequired") };
   if (!s.agreementAccepted) return { ok: false, error: t("agreementRequired") };
   if (!s.signature) return { ok: false, error: t("signatureRequired") };
