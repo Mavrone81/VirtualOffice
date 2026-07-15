@@ -21,10 +21,27 @@ jobs:
   # ---------------------------------------------------------------------------
   test:
     runs-on: ubuntu-latest
+    # Postgres service for the DB-integration tests (e.g. lib/rate-limit.test.ts
+    # exercises the real atomic rate-limit SQL). Pure-unit tests mock @/lib/db
+    # and ignore it; integration tests use the migrated schema below.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      # Build-time placeholders so eager env/prisma init never trips in CI
-      # (real values are only needed at runtime in production).
-      DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+      # Real test DB (the postgres service above). AUTH_SECRET/PII key stay
+      # placeholders — only needed at runtime in production, not by tests.
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/vo_test?schema=public"
       AUTH_SECRET: "ci-placeholder-not-used-at-runtime"
       PII_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
     steps:
@@ -39,11 +56,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Prisma generate
         run: pnpm prisma generate
+      - name: Apply migrations to test DB
+        run: pnpm prisma migrate deploy
       - name: Typecheck
         run: pnpm exec tsc --noEmit
       - name: Lint
         run: pnpm lint
-      - name: Unit tests
+      - name: Unit + integration tests
         run: pnpm test
 
   # ---------------------------------------------------------------------------
