@@ -10,6 +10,8 @@ import { isAdminRole } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
 import { logAudit } from "@/lib/audit";
 import { generateTempPassword } from "@/lib/temp-password";
+import { validate } from "@/lib/validate";
+import { newAssociateSchema } from "@/lib/schemas";
 
 async function requireAdmin() {
   const session = await auth();
@@ -49,35 +51,55 @@ async function nextAssociateCode(): Promise<string> {
   return `EN${String(n).padStart(4, "0")}`;
 }
 
+// The form renders optional fields as `value={f.x ?? ""}`, so clearing one
+// after typing sends "" rather than undefined. newAssociateSchema treats
+// these as optional-but-non-empty-when-present (e.g. nric/email), so "" would
+// otherwise be wrongly rejected as invalidInput even though the user's intent
+// was "leave this blank" — normalize before validating.
+const BLANKABLE_KEYS: (keyof NewAssociateInput)[] = [
+  "businessName", "mobileNumber", "email", "nric", "dateOfBirth",
+  "directUplineCode", "teamName", "recruitingManager", "paymentMethod",
+  "paynowNumber", "bankName", "bankAccountNumber",
+];
+function blankToUndefined(input: NewAssociateInput): NewAssociateInput {
+  const out = { ...input };
+  for (const k of BLANKABLE_KEYS) {
+    if (out[k] === "") delete out[k];
+  }
+  return out;
+}
+
 export async function createAssociate(input: NewAssociateInput): Promise<{ ok: boolean; error?: string; code?: string }> {
   const t = await getTranslations("errors");
+  const v = validate(newAssociateSchema, blankToUndefined(input));
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
   if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
-  if (!input.fullName?.trim()) return { ok: false, error: t("fullNameRequired") };
 
-  const directUpline = input.directUplineCode
-    ? await prisma.associate.findUnique({ where: { associateCode: input.directUplineCode } })
+  const directUpline = validInput.directUplineCode
+    ? await prisma.associate.findUnique({ where: { associateCode: validInput.directUplineCode } })
     : null;
-  if (input.directUplineCode && !directUpline) return { ok: false, error: t("directUplineNotFound") };
+  if (validInput.directUplineCode && !directUpline) return { ok: false, error: t("directUplineNotFound") };
 
   const code = await nextAssociateCode();
   await prisma.associate.create({
     data: {
       associateCode: code,
-      fullName: input.fullName.trim(),
-      businessName: input.businessName?.trim() || null,
-      mobileNumber: input.mobileNumber?.trim() || null,
-      email: input.email?.trim() || null,
-      nric: input.nric ? encryptPII(input.nric.trim()) : null,
-      dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
-      designation: input.designation,
+      fullName: validInput.fullName.trim(),
+      businessName: validInput.businessName?.trim() || null,
+      mobileNumber: validInput.mobileNumber?.trim() || null,
+      email: validInput.email?.trim() || null,
+      nric: validInput.nric ? encryptPII(validInput.nric.trim()) : null,
+      dateOfBirth: validInput.dateOfBirth ? new Date(validInput.dateOfBirth) : null,
+      designation: validInput.designation,
       directUplineId: directUpline?.id ?? null,
       secondUplineId: directUpline?.directUplineId ?? null, // auto-derive
-      recruitingManager: input.recruitingManager?.trim() || null,
-      teamName: input.teamName?.trim() || null,
-      paymentMethod: input.paymentMethod === "Bank Transfer" ? PaymentMethod.BankTransfer : input.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null,
-      paynowNumber: input.paynowNumber?.trim() || null,
-      bankName: input.bankName?.trim() || null,
-      bankAccountNumber: input.bankAccountNumber ? encryptPII(input.bankAccountNumber.trim()) : null,
+      recruitingManager: validInput.recruitingManager?.trim() || null,
+      teamName: validInput.teamName?.trim() || null,
+      paymentMethod: validInput.paymentMethod === "Bank Transfer" ? PaymentMethod.BankTransfer : validInput.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null,
+      paynowNumber: validInput.paynowNumber?.trim() || null,
+      bankName: validInput.bankName?.trim() || null,
+      bankAccountNumber: validInput.bankAccountNumber ? encryptPII(validInput.bankAccountNumber.trim()) : null,
       approvalStatus: ApprovalStatus.Pending,
       associateStatus: AssociateStatus.Inactive,
     },

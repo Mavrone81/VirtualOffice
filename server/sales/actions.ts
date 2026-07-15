@@ -12,6 +12,8 @@ import { isAdminRole } from "@/lib/rbac";
 import { D, round2, sum } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
+import { validate } from "@/lib/validate";
+import { saleSchema } from "@/lib/schemas";
 
 
 export type SubmitSaleInput = {
@@ -26,18 +28,20 @@ export type SubmitSaleInput = {
 
 export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
+  const v = validate(saleSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
+
   const session = await auth();
   if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
-  if (!input.clientName?.trim()) return { ok: false, error: t("clientNameRequired") };
-  if (!input.lines.length) return { ok: false, error: t("addProductLine") };
 
   const products = await prisma.product.findMany({
-    where: { id: { in: input.lines.map((l) => l.productId) } },
+    where: { id: { in: validInput.lines.map((l) => l.productId) } },
     include: { comCodes: true },
   });
   const byId = new Map(products.map((p) => [p.id, p]));
 
-  const lineData = input.lines.map((l) => {
+  const lineData = validInput.lines.map((l) => {
     const p = byId.get(l.productId);
     if (!p) throw new Error("Unknown product");
     const selected = p.comCodes
@@ -58,13 +62,13 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 
   await prisma.salesSubmission.create({
     data: {
-      salesDate: new Date(input.salesDate),
-      clientName: input.clientName.trim(),
-      clientContact: input.clientContact?.trim() || null,
+      salesDate: new Date(validInput.salesDate),
+      clientName: validInput.clientName.trim(),
+      clientContact: validInput.clientContact?.trim() || null,
       saleAmount,
-      paymentPlan: input.paymentPlan === "Installment" ? PaymentPlan.Installment : PaymentPlan.FullPayment,
-      deposit: input.deposit ? round2(input.deposit) : null,
-      installmentCount: input.paymentPlan === "Installment" ? input.installmentCount ?? null : null,
+      paymentPlan: validInput.paymentPlan === "Installment" ? PaymentPlan.Installment : PaymentPlan.FullPayment,
+      deposit: validInput.deposit ? round2(validInput.deposit) : null,
+      installmentCount: validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null,
       amountCollected: 0,
       closingAssociateId: session.user.associateId,
       status: SubmissionStatus.Submitted,

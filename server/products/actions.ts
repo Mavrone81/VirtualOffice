@@ -6,6 +6,8 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/rbac";
+import { validate as validateInput } from "@/lib/validate";
+import { productSchema, comCodeSchema } from "@/lib/schemas";
 
 // Managing products / com codes / rates is Admin-only (docs/05_RBAC.md §3).
 async function requireAdmin() {
@@ -54,34 +56,37 @@ function validate(i: ProductInput): string | null {
 
 export async function createProduct(input: ProductInput): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
+  const v = validateInput(productSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
   if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
-  const err = validate(input);
+  const err = validate(validInput);
   if (err) return { ok: false, error: t(err) };
-  if (await prisma.product.findFirst({ where: { productCode: input.productCode.trim() } })) {
+  if (await prisma.product.findFirst({ where: { productCode: validInput.productCode.trim() } })) {
     return { ok: false, error: t("productCodeExists") };
   }
-  const eff = new Date(input.effectiveDate);
+  const eff = new Date(validInput.effectiveDate);
   const product = await prisma.product.create({
     data: {
-      productCode: input.productCode.trim(),
-      productName: input.productName.trim(),
-      productCategory: input.productCategory?.trim() || null,
-      commissionType: input.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
-      closingCommPct: input.commissionType === "Percentage" ? input.closingCommPct : null,
-      closingCommFixed: input.commissionType === "Fixed" ? input.closingCommFixed : null,
-      companyCutPct: input.companyCutPct || "0",
-      asmOverridePct: input.asmOverridePct || "0",
-      smOverridePct: input.smOverridePct || "0",
-      sdOverridePct: input.sdOverridePct || "0",
-      isExternal: input.isExternal,
-      externalCompanyRetainedPct: input.isExternal ? input.externalCompanyRetainedPct || "0" : null,
-      defaultCompanyId: input.defaultCompanyId || null,
+      productCode: validInput.productCode.trim(),
+      productName: validInput.productName.trim(),
+      productCategory: validInput.productCategory?.trim() || null,
+      commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
+      closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
+      closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
+      companyCutPct: validInput.companyCutPct || "0",
+      asmOverridePct: validInput.asmOverridePct || "0",
+      smOverridePct: validInput.smOverridePct || "0",
+      sdOverridePct: validInput.sdOverridePct || "0",
+      isExternal: validInput.isExternal,
+      externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
+      defaultCompanyId: validInput.defaultCompanyId || null,
       activeStatus: ProductActiveStatus.Active,
       effectiveDate: eff,
     },
   });
   await prisma.commissionStructureVersion.create({
-    data: { productCode: product.productCode, productId: product.id, effectiveDate: eff, rateSnapshot: rateSnapshot(input) },
+    data: { productCode: product.productCode, productId: product.id, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
   });
   revalidatePath("/admin/products");
   return { ok: true };
@@ -90,29 +95,32 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
 /** New effective-dated rate version (history preserved for the engine). */
 export async function changeRates(productId: string, input: ProductInput): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
+  const v = validateInput(productSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
   if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
-  const err = validate(input);
+  const err = validate(validInput);
   if (err) return { ok: false, error: t(err) };
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) return { ok: false, error: t("notFound") };
-  const eff = new Date(input.effectiveDate);
+  const eff = new Date(validInput.effectiveDate);
   await prisma.product.update({
     where: { id: productId },
     data: {
-      commissionType: input.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
-      closingCommPct: input.commissionType === "Percentage" ? input.closingCommPct : null,
-      closingCommFixed: input.commissionType === "Fixed" ? input.closingCommFixed : null,
-      companyCutPct: input.companyCutPct || "0",
-      asmOverridePct: input.asmOverridePct || "0",
-      smOverridePct: input.smOverridePct || "0",
-      sdOverridePct: input.sdOverridePct || "0",
-      isExternal: input.isExternal,
-      externalCompanyRetainedPct: input.isExternal ? input.externalCompanyRetainedPct || "0" : null,
+      commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
+      closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
+      closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
+      companyCutPct: validInput.companyCutPct || "0",
+      asmOverridePct: validInput.asmOverridePct || "0",
+      smOverridePct: validInput.smOverridePct || "0",
+      sdOverridePct: validInput.sdOverridePct || "0",
+      isExternal: validInput.isExternal,
+      externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
       effectiveDate: eff,
     },
   });
   await prisma.commissionStructureVersion.create({
-    data: { productCode: product.productCode, productId, effectiveDate: eff, rateSnapshot: rateSnapshot(input) },
+    data: { productCode: product.productCode, productId, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
   });
   revalidatePath("/admin/products");
   return { ok: true };
@@ -133,15 +141,17 @@ export async function addComCode(
   input: { comCode: string; label: string; valueType: "Percentage" | "Absolute"; value: string },
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
+  const v = validateInput(comCodeSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
   if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
-  if (!input.comCode?.trim() || !input.label?.trim() || !input.value) return { ok: false, error: t("allFieldsRequired") };
   await prisma.comcode.create({
     data: {
       productId,
-      comCode: input.comCode.trim(),
-      label: input.label.trim(),
-      valueType: input.valueType === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage,
-      value: input.value,
+      comCode: validInput.comCode.trim(),
+      label: validInput.label.trim(),
+      valueType: validInput.valueType === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage,
+      value: validInput.value,
       active: true,
     },
   });
