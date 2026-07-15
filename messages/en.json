@@ -834,6 +834,7 @@
     "agreement": "Agreement"
   },
   "errors": {
+    "invalidInput": "Invalid input.",
     "forbidden": "Forbidden",
     "notFound": "Not found",
     "fullNameRequired": "Full name is required.",
