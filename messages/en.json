@@ -865,6 +865,7 @@
     "addProductLine": "Add at least one product line.",
     "alreadyProcessed": "Already processed",
     "badMonth": "Bad month",
+    "illegalPayoutTransition": "Illegal payout status change.",
     "titleRequired": "Title is required.",
     "messageBodyRequired": "Message body is required.",
     "teamNameRequiredForTeam": "Team name is required for a team notice.",
