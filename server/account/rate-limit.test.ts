@@ -43,8 +43,17 @@ describe("requestPasswordReset rate limiting", () => {
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("checks and records against the lowercased+trimmed email", async () => {
-    rateLimitMock.checkRateLimit.mockResolvedValue({ allowed: false });
+  it("does NOT record a failure while already blocked (would reset the lockout window)", async () => {
+    rateLimitMock.checkRateLimit.mockResolvedValue({ allowed: false, retryAfterSec: 900 });
+
+    const result = await requestPasswordReset("user@example.com");
+
+    expect(result).toEqual({ ok: true });
+    expect(rateLimitMock.recordFailure).not.toHaveBeenCalled();
+  });
+
+  it("checks against the lowercased+trimmed email and records a failure when allowed", async () => {
+    rateLimitMock.checkRateLimit.mockResolvedValue({ allowed: true });
 
     await requestPasswordReset("  User@Example.com  ");
 
