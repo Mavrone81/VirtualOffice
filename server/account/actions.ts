@@ -34,18 +34,20 @@ function sha256(v: string): string {
 export async function requestPasswordReset(email: string): Promise<{ ok: boolean }> {
   const e = email?.trim().toLowerCase();
   const id = e ?? "";
-  // Rate-limit BEFORE any DB lookup. Every reset request counts toward the
-  // limit (recordFailure runs unconditionally) — whether or not the email
-  // matches a real account, and whether or not the caller is already
-  // locked out — so an attacker can't distinguish "no such user" from
-  // "rate-limited" from attempt-counting behavior either.
-  const limited = !(await checkRateLimit(id, "password_reset")).allowed;
-  await recordFailure(id, "password_reset");
-  // On lockout, return the SAME neutral { ok: true } the success path
-  // already returns — this must never become an enumeration oracle (a
+  // Rate-limit BEFORE any DB lookup. Mirrors the login pattern in auth.ts:
+  // when already blocked, return immediately WITHOUT calling recordFailure.
+  // (WINDOW_MS === LOCKOUT_MS, so an unconditional recordFailure while
+  // already locked would hit the atomic SQL's "window elapsed" branch and
+  // reset the counter + clear locked_until — silently discarding the
+  // lockout.) On lockout, return the SAME neutral { ok: true } the success
+  // path already returns — this must never become an enumeration oracle (a
   // different response would reveal that the rate limiter engaged, which
   // correlates with a real account existing).
-  if (limited) return { ok: true };
+  if (!(await checkRateLimit(id, "password_reset")).allowed) return { ok: true };
+  // Every non-blocked reset request counts toward the limit — whether or
+  // not the email matches a real account — so an attacker can't distinguish
+  // "no such user" from attempt-counting behavior either.
+  await recordFailure(id, "password_reset");
   if (e) {
     const user = await prisma.user.findUnique({ where: { email: e } });
     if (user?.isActive) {
