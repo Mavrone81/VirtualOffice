@@ -834,6 +834,7 @@
     "agreement": "协议"
   },
   "errors": {
+    "invalidInput": "输入无效。",
     "forbidden": "无权限",
     "notFound": "未找到",
     "fullNameRequired": "全名为必填项。",
