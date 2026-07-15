@@ -743,7 +743,7 @@ model AuditLog {
 // Security controls (Phase 1d §4.2) — DB-backed rate-limit / lockout state.
 // ---------------------------------------------------------------------------
 model RateLimitAttempt {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid()) @db.Uuid
   identifier  String
   action      String
   windowStart DateTime  @map("window_start")

@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "rate_limit_attempts" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "identifier" TEXT NOT NULL,
     "action" TEXT NOT NULL,
     "window_start" TIMESTAMP(3) NOT NULL,
