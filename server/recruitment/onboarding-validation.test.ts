@@ -30,7 +30,6 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/storage", () => ({
   putObject: putObjectMock,
   getObject: vi.fn(),
-  imageExt: vi.fn(() => "jpg"),
 }));
 vi.mock("@/lib/pdf/agreement", () => ({ renderAgreementPdf: vi.fn(async () => Buffer.from("pdf")) }));
 vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(), onboardingInviteEmail: vi.fn(), approvalEmail: vi.fn() }));
@@ -63,7 +62,7 @@ describe("submitOnboarding validation", () => {
       nric: "S1234567A",
       paymentMethod: "Crypto",
       agreementAccepted: true,
-      signature: "data:image/png;base64,abc",
+      signature: "data:image/png;base64,iVBORw0KGgo=",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately malformed input, per Task 3 brief Step 1
     } as any;
     const r = await submitOnboarding("tok123", malformed);
@@ -79,7 +78,7 @@ describe("submitOnboarding validation", () => {
       nric: "S1234567A",
       paymentMethod: "PayNow",
       agreementAccepted: true,
-      signature: "data:image/png;base64,abc",
+      signature: "data:image/png;base64,iVBORw0KGgo=",
       dateOfBirth: "",
       bankAccountNumber: "",
     });
