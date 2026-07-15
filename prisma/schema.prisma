@@ -738,3 +738,19 @@ model AuditLog {
   @@index([entityType, entityId])
   @@map("audit_log")
 }
+
+// ---------------------------------------------------------------------------
+// Security controls (Phase 1d §4.2) — DB-backed rate-limit / lockout state.
+// ---------------------------------------------------------------------------
+model RateLimitAttempt {
+  id          String    @id @default(cuid())
+  identifier  String
+  action      String
+  windowStart DateTime  @map("window_start")
+  count       Int       @default(0)
+  lockedUntil DateTime? @map("locked_until")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([identifier, action])
+  @@map("rate_limit_attempts")
+}
