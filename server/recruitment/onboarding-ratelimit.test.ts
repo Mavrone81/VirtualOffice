@@ -28,7 +28,6 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/storage", () => ({
   putObject: putObjectMock,
   getObject: vi.fn(),
-  imageExt: vi.fn(() => "jpg"),
 }));
 vi.mock("@/lib/pdf/agreement", () => ({ renderAgreementPdf: vi.fn(async () => Buffer.from("pdf")) }));
 vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(), onboardingInviteEmail: vi.fn(), approvalEmail: vi.fn() }));
@@ -39,7 +38,7 @@ const validSubmission = {
   nric: "S1234567A",
   paymentMethod: "PayNow" as const,
   agreementAccepted: true,
-  signature: "data:image/png;base64,abc",
+  signature: "data:image/png;base64,iVBORw0KGgo=",
 };
 
 beforeEach(() => {
@@ -92,7 +91,7 @@ describe("submitOnboarding rate limiting", () => {
       nric: "S1234567A",
       paymentMethod: "Crypto",
       agreementAccepted: true,
-      signature: "data:image/png;base64,abc",
+      signature: "data:image/png;base64,iVBORw0KGgo=",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately malformed input
     } as any;
 

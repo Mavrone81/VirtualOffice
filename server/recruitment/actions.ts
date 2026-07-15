@@ -14,7 +14,8 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
 import { encryptPII, maskNric } from "@/lib/crypto";
-import { putObject, getObject, imageExt } from "@/lib/storage";
+import { putObject, getObject } from "@/lib/storage";
+import { assertUpload } from "@/lib/file-type";
 import { humanize } from "@/lib/labels";
 import { renderAgreementPdf } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
@@ -182,20 +183,25 @@ export async function submitOnboarding(
     return { ok: false, error: t("signatureRequired") };
   }
 
-  // Optional profile photo → object storage.
+  // Optional profile photo → object storage. The browser-supplied MIME type
+  // (s.photo.type) is untrustworthy — sniff the real magic bytes instead.
   let photoFileKey = c.photoFileKey ?? undefined;
   if (s.photo && s.photo.size > 0) {
-    const ext = imageExt(s.photo.type);
-    if (!ext) {
-      await recordFailure(token, "onboard_submit");
-      return { ok: false, error: t("photoInvalidFormat") };
-    }
     if (s.photo.size > 5_000_000) {
       await recordFailure(token, "onboard_submit");
       return { ok: false, error: t("photoTooLarge") };
     }
+    const photoBytes = new Uint8Array(await s.photo.arrayBuffer());
+    let sniffed: "png" | "jpeg";
+    try {
+      sniffed = assertUpload(photoBytes, ["png", "jpeg"]) as "png" | "jpeg";
+    } catch {
+      await recordFailure(token, "onboard_submit");
+      return { ok: false, error: t("invalidFileType") };
+    }
+    const ext = sniffed === "jpeg" ? "jpg" : "png";
     photoFileKey = `candidates/${c.id}/photo.${ext}`;
-    await putObject(photoFileKey, Buffer.from(await s.photo.arrayBuffer()));
+    await putObject(photoFileKey, Buffer.from(photoBytes));
   }
 
   // Sensitive fields are encrypted at rest inside the JSON payload; the same
@@ -222,7 +228,14 @@ export async function submitOnboarding(
     await recordFailure(token, "onboard_submit");
     return { ok: false, error: t("signatureInvalid") };
   }
-  await putObject(`candidates/${c.id}/signature.png`, Buffer.from(sigMatch[1], "base64"));
+  const signatureBytes = new Uint8Array(Buffer.from(sigMatch[1], "base64"));
+  try {
+    assertUpload(signatureBytes, ["png"]);
+  } catch {
+    await recordFailure(token, "onboard_submit");
+    return { ok: false, error: t("invalidFileType") };
+  }
+  await putObject(`candidates/${c.id}/signature.png`, Buffer.from(signatureBytes));
 
   const upline = c.intendedDirectUplineId
     ? await prisma.associate.findUnique({ where: { id: c.intendedDirectUplineId }, select: { fullName: true, associateCode: true } })

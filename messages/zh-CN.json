@@ -851,6 +851,7 @@
     "photoInvalidFormat": "照片必须为 JPG、PNG 或 WebP 格式。",
     "photoTooLarge": "照片大小不能超过 5 MB。",
     "signatureInvalid": "签名图片无效。",
+    "invalidFileType": "不支持的文件类型。",
     "alreadyConverted": "已转换。",
     "onboardingIncomplete": "候选人尚未完成入职流程。",
     "noDesignationSet": "未设置预期职位。",
