@@ -842,6 +842,7 @@
     "emailRequired": "Email is required.",
     "uplineCodeNotFound": "Upline code not found.",
     "invalidOrExpiredLink": "Invalid or expired link.",
+    "tooManyAttempts": "Too many attempts. Please try again later.",
     "applicationAlreadyApproved": "Your application is already approved.",
     "applicationClosed": "This application is closed.",
     "nricRequired": "NRIC/FIN is required.",

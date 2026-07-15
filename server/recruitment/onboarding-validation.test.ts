@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { prismaMock, putObjectMock } = vi.hoisted(() => {
+const { prismaMock, putObjectMock, rateLimitMock } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared mock is reused for both a throwing and a resolving case
   const throwOnTouch = (label: string) => vi.fn<(...args: any[]) => any>(() => { throw new Error(`${label} must not be touched on invalid input`); });
   return {
@@ -14,10 +14,16 @@ const { prismaMock, putObjectMock } = vi.hoisted(() => {
       },
     },
     putObjectMock: vi.fn(),
+    rateLimitMock: {
+      checkRateLimit: vi.fn(async () => ({ allowed: true })),
+      recordFailure: vi.fn(),
+      recordSuccess: vi.fn(),
+    },
   };
 });
 
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
+vi.mock("@/lib/rate-limit", () => rateLimitMock);
 vi.mock("@/auth", () => ({ auth: async () => null }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
