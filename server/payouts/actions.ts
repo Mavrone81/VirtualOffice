@@ -96,13 +96,18 @@ export async function setPayoutStatus(payoutId: string, status: "Approved" | "Pa
     return { ok: false, error: t("illegalPayoutTransition") };
   }
 
-  await prisma.monthlyPayout.update({
-    where: { id: payoutId },
+  // Compare-and-swap on the current status closes the TOCTOU window between the
+  // read above and this write: if a concurrent transition already moved the row,
+  // the where matches nothing and we reject rather than double-process (e.g. two
+  // clicks both marking the same payout Paid).
+  const result = await prisma.monthlyPayout.updateMany({
+    where: { id: payoutId, payoutStatus: cur.payoutStatus },
     data: {
-      payoutStatus: status === "Paid" ? PayoutStatus.Paid : PayoutStatus.Approved,
+      payoutStatus: target,
       paidDate: status === "Paid" ? new Date() : undefined,
     },
   });
+  if (result.count === 0) return { ok: false, error: t("illegalPayoutTransition") };
   await logAudit({ action: `payout.${status}`, entityType: "MonthlyPayout", entityId: payoutId });
   revalidatePath("/admin/payouts");
   return { ok: true };
