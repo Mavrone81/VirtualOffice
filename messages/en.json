@@ -866,6 +866,7 @@
     "alreadyProcessed": "Already processed",
     "badMonth": "Bad month",
     "illegalPayoutTransition": "Illegal payout status change.",
+    "reauthFailed": "Password confirmation failed.",
     "titleRequired": "Title is required.",
     "messageBodyRequired": "Message body is required.",
     "teamNameRequiredForTeam": "Team name is required for a team notice.",

@@ -6,6 +6,34 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { getAdminPrincipal } from "@/server/access";
+import { reauth } from "@/lib/reauth";
+import { buildBankFileCsv } from "@/server/payouts/bankfile";
+
+/**
+ * Generate the bank/GIRO bulk-payout CSV for a month — money leaving the
+ * business, so it is gated by a FRESH password re-entry (a session cookie alone
+ * is not enough authority) and every generation is audited. Returns the CSV
+ * string on success; the route (POST) streams it as a download.
+ */
+export async function generateBankFile(
+  month: string,
+  password: string,
+): Promise<{ ok: true; csv: string } | { ok: false; error: string }> {
+  const t = await getTranslations("errors");
+  const principal = await getAdminPrincipal();
+  if (!principal) return { ok: false, error: t("forbidden") };
+  if (!/^\d{4}-\d{2}$/.test(month)) return { ok: false, error: t("badMonth") };
+  if (!(await reauth(principal.userId, password))) return { ok: false, error: t("reauthFailed") };
+
+  const csv = await buildBankFileCsv(month, principal.userId);
+  await logAudit({
+    action: "payout.bankfile_generated",
+    entityType: "MonthlyPayout",
+    entityId: month,
+    actorUserId: principal.userId,
+  });
+  return { ok: true, csv };
+}
 
 /** Aggregate this month's Eligible ledger lines into monthly_payouts per associate. */
 export async function runPayouts(month: string): Promise<{ ok: boolean; count?: number; error?: string }> {
