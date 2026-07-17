@@ -866,6 +866,7 @@
     "alreadyProcessed": "已处理",
     "badMonth": "月份格式无效",
     "illegalPayoutTransition": "非法的支付状态变更。",
+    "reauthFailed": "密码确认失败。",
     "titleRequired": "标题为必填项。",
     "messageBodyRequired": "消息内容为必填项。",
     "teamNameRequiredForTeam": "团队通知需要填写团队名称。",
