@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import {
-  PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus,
+  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus,
 } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -15,6 +15,21 @@ import { runCommission } from "@/server/commission/run";
 import { validate } from "@/lib/validate";
 import { saleSchema } from "@/lib/schemas";
 
+
+/**
+ * Concurrency-safe transaction code. Postgres serializes `nextval`, so two
+ * simultaneous verifications can never mint the same code — unlike the old
+ * `count()+1`, where both counted N and both emitted TXN-{N+1}. Takes a tx
+ * client so it runs inside verifySubmission's transaction; gaps on rollback are
+ * acceptable for an opaque code.
+ */
+export async function nextTransactionCode(
+  db: Prisma.TransactionClient | typeof prisma,
+): Promise<string> {
+  const rows = await db.$queryRaw<{ nextval: bigint }[]>`SELECT nextval('transaction_code_seq')`;
+  const n = Number(rows[0].nextval);
+  return `TXN-${String(n).padStart(4, "0")}`;
+}
 
 export type SubmitSaleInput = {
   salesDate: string;
@@ -97,8 +112,7 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
   const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;
 
   const txId = await prisma.$transaction(async (db) => {
-    const n = await db.salesTransaction.count();
-    const code = `TXN-${String(n + 1).padStart(4, "0")}`;
+    const code = await nextTransactionCode(db);
 
     const transaction = await db.salesTransaction.create({
       data: {
