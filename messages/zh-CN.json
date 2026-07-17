@@ -401,6 +401,11 @@
     "aggregated": "已汇总 {count} 条发放记录",
     "approveAll": "批准全部",
     "bankFile": "⤓ 银行代发文件",
+    "bankFilePrompt": "请确认密码以下载银行代发文件。",
+    "bankFilePassword": "密码",
+    "bankFileConfirm": "下载",
+    "bankFileError": "无法生成银行代发文件。",
+    "cancel": "取消",
     "approve": "批准",
     "markPaid": "标记已付"
   },
