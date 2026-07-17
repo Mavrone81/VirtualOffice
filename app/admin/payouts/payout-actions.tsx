@@ -34,14 +34,92 @@ export function RunPayoutsBar({ month }: { month: string }) {
       >
         {t("approveAll")}
       </Button>
-      <a
-        href={`/admin/payouts/bank-file?month=${month}`}
-        className="inline-flex h-8 items-center rounded-lg border border-line bg-white px-3 text-[13px] text-ink hover:bg-paper-100"
-      >
-        {t("bankFile")}
-      </a>
+      <BankFileButton month={month} />
       {msg && <span className="text-[12px] text-muted">{msg}</span>}
     </div>
+  );
+}
+
+/**
+ * Bank/GIRO file download, gated by a fresh password re-entry. The old bare GET
+ * <a> link is gone: the button reveals an inline password field that POSTs to
+ * the reauth-gated route, and the CSV is downloaded from the response blob only
+ * after the server verifies the password (and audits the generation).
+ */
+function BankFileButton({ month }: { month: string }) {
+  const t = useTranslations("payouts");
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+
+  async function download() {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const body = new FormData();
+      body.set("month", month);
+      body.set("password", password);
+      const res = await fetch("/admin/payouts/bank-file", { method: "POST", body });
+      if (!res.ok) {
+        const text = await res.text();
+        setError(text || t("bankFileError"));
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `giro-payout-${month}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setOpen(false);
+      setPassword("");
+    } catch {
+      setError(t("bankFileError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button size="sm" variant="secondary" onClick={() => { setError(undefined); setOpen(true); }}>
+        {t("bankFile")}
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      onSubmit={(e) => { e.preventDefault(); if (!busy && password) void download(); }}
+    >
+      <span className="text-[12px] text-muted">{t("bankFilePrompt")}</span>
+      <input
+        type="password"
+        autoFocus
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder={t("bankFilePassword")}
+        aria-label={t("bankFilePassword")}
+        className="h-8 rounded-lg border border-line bg-white px-3 text-[13px] text-ink"
+      />
+      <Button size="sm" type="submit" disabled={busy || !password}>
+        {t("bankFileConfirm")}
+      </Button>
+      <Button
+        size="sm"
+        variant="secondary"
+        type="button"
+        disabled={busy}
+        onClick={() => { setOpen(false); setPassword(""); setError(undefined); }}
+      >
+        {t("cancel")}
+      </Button>
+      {error && <span className="text-[12px] text-danger">{error}</span>}
+    </form>
   );
 }
 

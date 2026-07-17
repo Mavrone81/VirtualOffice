@@ -401,6 +401,11 @@
     "aggregated": "Aggregated {count} payout(s)",
     "approveAll": "Approve all",
     "bankFile": "⤓ Bank file",
+    "bankFilePrompt": "Confirm your password to download the bank file.",
+    "bankFilePassword": "Password",
+    "bankFileConfirm": "Download",
+    "bankFileError": "Could not generate the bank file.",
+    "cancel": "Cancel",
     "approve": "Approve",
     "markPaid": "Mark paid"
   },
