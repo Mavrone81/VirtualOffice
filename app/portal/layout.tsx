@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SubmissionStatus } from "@prisma/client";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -31,6 +32,18 @@ export default async function PortalLayout({ children }: { children: React.React
     : 0;
   const unreadNotices = relevant.length - readCount;
 
+  // Pending split-approvals for a team SD (16-Jul §4) — sidebar badge.
+  const splitApprovals =
+    session.user.role === "SalesDirector" && session.user.associateId
+      ? await prisma.salesSubmission.count({
+          where: {
+            status: SubmissionStatus.Submitted,
+            sdApprovedAt: null,
+            closingAssociate: { secondUplineId: session.user.associateId },
+          },
+        })
+      : 0;
+
   const user = {
     name,
     roleLabel: tRoles(session.user.role),
@@ -43,7 +56,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const alerts = [{ labelKey: "notices", count: unreadNotices, href: "/portal/notices" }];
 
   return (
-    <AppShell area="portal" user={user} badges={{ notices: unreadNotices }} alerts={alerts} period={currentPeriod(locale)}>
+    <AppShell area="portal" user={user} badges={{ notices: unreadNotices, splitApprovals }} alerts={alerts} period={currentPeriod(locale)}>
       {children}
     </AppShell>
   );
