@@ -57,6 +57,8 @@
     "mySales": "My Sales",
     "myCommissions": "My Commissions",
     "myPayouts": "My Payouts",
+    "myInvoices": "My Invoices",
+    "splitApprovals": "Split Approvals",
     "teamOverview": "Team Overview",
     "teamSales": "Team Sales",
     "teamCommissions": "Team Commissions",
@@ -521,6 +523,32 @@
       "colAddon": "Add-on",
       "colTotal": "Total",
       "statement": "Statement ↗"
+    },
+    "invoices": {
+      "pageTitle": "My invoices",
+      "pageSubtitle": "Print the invoice, get the client to sign it, then upload the signed copy.",
+      "empty": "No invoices yet — they appear here once your sales are verified.",
+      "colInvoice": "Invoice",
+      "colClient": "Client",
+      "colAmount": "Amount",
+      "colSigned": "Signed copy",
+      "signedOnFile": "Signed ↗",
+      "notSigned": "Not signed",
+      "viewPdf": "Invoice ↗",
+      "uploadSigned": "Upload signed",
+      "replaceSigned": "Replace",
+      "uploadFailed": "Upload failed."
+    },
+    "approvals": {
+      "pageTitle": "Split approvals",
+      "pageSubtitle": "Approve the share-com split for your team's sales. Anything not actioned auto-approves 3 days after submission.",
+      "empty": "Nothing awaiting your approval.",
+      "autoIn": "Auto-approves in {days}d",
+      "associate1": "Associate 1",
+      "associate2": "Associate 2",
+      "associate3": "Associate 3",
+      "approve": "Approve split",
+      "failed": "Approval failed."
     },
     "notices": {
       "pageTitle": "Notices",

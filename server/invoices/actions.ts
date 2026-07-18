@@ -1,18 +1,61 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { InvoiceStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { canManageSignedInvoice } from "@/lib/invoice-access";
 import { logAudit } from "@/lib/audit";
+import { putObject } from "@/lib/storage";
+import { assertUpload } from "@/lib/file-type";
 import { recomputeEligibility } from "@/server/commission/eligibility";
+
+const MAX_SIGNED_BYTES = 15_000_000;
 
 async function requireAdmin() {
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return null;
   return session;
+}
+
+/**
+ * Upload the client-signed copy of a generated invoice (16-Jul signed-invoice
+ * precursor). The closing associate — or back-office — attaches the signed PDF
+ * before the sale is tracked for payment. PDF only, magic-byte verified.
+ */
+export async function uploadSignedInvoice(invoiceId: string, file: File): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { transaction: { select: { closingAssociateId: true } } },
+  });
+  if (!invoice) return { ok: false, error: t("notFound") };
+  if (!canManageSignedInvoice({ closingAssociateId: invoice.transaction.closingAssociateId }, { associateId: session.user.associateId, role: session.user.role })) {
+    return { ok: false, error: t("forbidden") };
+  }
+  if (!file || file.size === 0) return { ok: false, error: t("fileRequired") };
+  if (file.size > MAX_SIGNED_BYTES) return { ok: false, error: t("fileTooLarge") };
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  try {
+    assertUpload(bytes, ["pdf"]);
+  } catch {
+    return { ok: false, error: t("invalidFileType") };
+  }
+
+  const key = `invoices/${invoice.id}/signed-${randomUUID()}.pdf`;
+  await putObject(key, Buffer.from(bytes));
+  await prisma.invoice.update({ where: { id: invoice.id }, data: { signedPdfFileKey: key } });
+  await logAudit({ action: "invoice.signed_uploaded", entityType: "Invoice", entityId: invoice.id, actorUserId: session.user.id });
+  revalidatePath("/portal/invoices");
+  revalidatePath("/admin/invoices");
+  return { ok: true };
 }
 
 export async function markInvoicePaid(invoiceId: string): Promise<{ ok: boolean; error?: string }> {

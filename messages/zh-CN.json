@@ -57,6 +57,8 @@
     "mySales": "我的销售",
     "myCommissions": "我的佣金",
     "myPayouts": "我的发放",
+    "myInvoices": "我的发票",
+    "splitApprovals": "分成审批",
     "teamOverview": "团队概览",
     "teamSales": "团队销售",
     "teamCommissions": "团队佣金",
@@ -521,6 +523,32 @@
       "colAddon": "附加佣金",
       "colTotal": "合计",
       "statement": "对账单 ↗"
+    },
+    "invoices": {
+      "pageTitle": "我的发票",
+      "pageSubtitle": "打印发票，请客户签名，然后上传已签署的副本。",
+      "empty": "暂无发票——销售通过审核后将显示在此处。",
+      "colInvoice": "发票",
+      "colClient": "客户",
+      "colAmount": "金额",
+      "colSigned": "签署副本",
+      "signedOnFile": "已签署 ↗",
+      "notSigned": "未签署",
+      "viewPdf": "发票 ↗",
+      "uploadSigned": "上传签署",
+      "replaceSigned": "替换",
+      "uploadFailed": "上传失败。"
+    },
+    "approvals": {
+      "pageTitle": "分成审批",
+      "pageSubtitle": "审批您团队销售的分成佣金。提交 3 天内未处理的将自动审批。",
+      "empty": "暂无待您审批的项目。",
+      "autoIn": "{days} 天后自动审批",
+      "associate1": "顾问 1",
+      "associate2": "顾问 2",
+      "associate3": "顾问 3",
+      "approve": "审批分成",
+      "failed": "审批失败。"
     },
     "notices": {
       "pageTitle": "公告",

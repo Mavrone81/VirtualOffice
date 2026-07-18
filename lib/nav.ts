@@ -47,7 +47,10 @@ export const adminNav: NavGroup[] = [
   },
 ];
 
-const MANAGER_ROLES: AppRole[] = ["SalesManager", "SalesDirector"];
+const MANAGER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector"];
+// Mirror lib/rbac.ts (kept local so nav.ts doesn't pull prisma into the client bundle).
+const RECRUITER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector", "Admin"];
+const DIRECTOR_ROLES: AppRole[] = ["SalesDirector", "Admin"];
 
 export const portalNav: NavGroup[] = [
   {
@@ -57,6 +60,7 @@ export const portalNav: NavGroup[] = [
       { labelKey: "mySales", href: "/portal/sales", icon: Receipt },
       { labelKey: "myCommissions", href: "/portal/commissions", icon: Calculator },
       { labelKey: "myPayouts", href: "/portal/payouts", icon: Banknote },
+      { labelKey: "myInvoices", href: "/portal/invoices", icon: FileText },
     ],
   },
   {
@@ -65,6 +69,8 @@ export const portalNav: NavGroup[] = [
       { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
       { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
       { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
+      { labelKey: "recruitment", href: "/portal/recruitment/new", icon: UserPlus, roles: RECRUITER_ROLES },
+      { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
     ],
   },
   {
