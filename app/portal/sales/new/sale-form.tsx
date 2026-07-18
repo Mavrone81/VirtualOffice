@@ -19,8 +19,11 @@ export type FormProduct = {
 };
 
 type Line = { productId: string; amount: string; comCodeIds: string[] };
+type Split = { associateId: string; valueType: "Percentage" | "Absolute"; value: string };
 
-export function SaleForm({ products, today }: { products: FormProduct[]; today: string }) {
+const selectCls = "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
+
+export function SaleForm({ products, associates, today }: { products: FormProduct[]; associates: { id: string; name: string }[]; today: string }) {
   const router = useRouter();
   const t = useTranslations("portal");
   const [pending, startTransition] = useTransition();
@@ -33,6 +36,8 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
   const [deposit, setDeposit] = useState("");
   const [installmentCount, setInstallmentCount] = useState("3");
   const [lines, setLines] = useState<Line[]>([{ productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }]);
+  const [split2, setSplit2] = useState<Split>({ associateId: "", valueType: "Percentage", value: "" });
+  const [split3, setSplit3] = useState<Split>({ associateId: "", valueType: "Percentage", value: "" });
 
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const total = lines.reduce((a, l) => a + (parseFloat(l.amount) || 0), 0);
@@ -40,6 +45,34 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
   function setLine(i: number, patch: Partial<Line>) {
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
+
+  const mkSplit = (s: Split) =>
+    s.associateId && parseFloat(s.value) > 0
+      ? { associateId: s.associateId, valueType: s.valueType, value: parseFloat(s.value) }
+      : undefined;
+
+  const splitRow = (label: string, s: Split, setS: (v: Split) => void) => (
+    <div className="grid gap-3 sm:grid-cols-[1fr_110px_90px]">
+      <div>
+        <Label>{label}</Label>
+        <select className={selectCls} value={s.associateId} onChange={(e) => setS({ ...s, associateId: e.target.value })}>
+          <option value="">{t("saleForm.splitNone")}</option>
+          {associates.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </div>
+      <div>
+        <Label>{t("saleForm.splitValue")}</Label>
+        <Input value={s.value} onChange={(e) => setS({ ...s, value: e.target.value })} placeholder="0" inputMode="decimal" disabled={!s.associateId} />
+      </div>
+      <div>
+        <Label>{t("saleForm.splitType")}</Label>
+        <select className={selectCls} value={s.valueType} onChange={(e) => setS({ ...s, valueType: e.target.value as "Percentage" | "Absolute" })} disabled={!s.associateId}>
+          <option value="Percentage">%</option>
+          <option value="Absolute">$</option>
+        </select>
+      </div>
+    </div>
+  );
 
   function submit() {
     setError(undefined);
@@ -54,6 +87,8 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
         lines: lines
           .filter((l) => l.productId && parseFloat(l.amount) > 0)
           .map((l) => ({ productId: l.productId, lineSaleAmount: parseFloat(l.amount), comCodeIds: l.comCodeIds })),
+        associate2: mkSplit(split2),
+        associate3: mkSplit(split3),
       });
       if (res.ok) router.push("/portal/sales");
       else setError(res.error ?? t("saleForm.couldNotSubmit"));
@@ -180,6 +215,15 @@ export function SaleForm({ products, today }: { products: FormProduct[]; today: 
           <span className="font-display text-[20px] text-ink">
             S${total.toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="font-display text-[17px] text-ink">{t("saleForm.splitTitle")}</h2>
+        <p className="mb-4 mt-1 text-[12px] text-muted-2">{t("saleForm.splitNote")}</p>
+        <div className="space-y-3">
+          {splitRow(t("saleForm.splitAssociate2"), split2, setSplit2)}
+          {splitRow(t("saleForm.splitAssociate3"), split3, setSplit3)}
         </div>
       </Card>
 

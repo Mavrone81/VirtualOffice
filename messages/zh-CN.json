@@ -464,6 +464,13 @@
       "submitting": "提交中…",
       "submitSale": "提交销售",
       "verificationNote": "经财务/人力资源核实后正式生效。",
+      "splitTitle": "佣金分配（可选）",
+      "splitNote": "可将您的成交者净得分给最多两位同事（按净得的百分比或固定金额），余额归您所有。",
+      "splitAssociate2": "同事 2",
+      "splitAssociate3": "同事 3",
+      "splitValue": "分配",
+      "splitType": "类型",
+      "splitNone": "— 无 —",
       "couldNotSubmit": "提交失败，请重试。"
     },
     "commissions": {

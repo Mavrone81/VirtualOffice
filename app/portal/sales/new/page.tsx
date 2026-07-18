@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ProductActiveStatus } from "@prisma/client";
+import { ProductActiveStatus, ApprovalStatus, AssociateStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { SaleForm, type FormProduct } from "./sale-form";
@@ -24,10 +24,18 @@ export default async function NewSalePage() {
     comCodes: p.comCodes.map((c) => ({ id: c.id, label: c.label, valueType: c.valueType, value: c.value.toString() })),
   }));
 
+  // Split partners — active approved associates. (Team-scoping arrives with #7 Teams.)
+  const associates = await prisma.associate.findMany({
+    where: { associateStatus: AssociateStatus.Active, approvalStatus: ApprovalStatus.Approved, archivedAt: null },
+    select: { id: true, fullName: true },
+    orderBy: { fullName: "asc" },
+  });
+  const formAssociates = associates.map((a) => ({ id: a.id, name: a.fullName }));
+
   return (
     <>
       <PageHeader title={t("newSale.pageTitle")} subtitle={t("newSale.pageSubtitle")} />
-      <SaleForm products={formProducts} today={format(new Date(), "yyyy-MM-dd")} />
+      <SaleForm products={formProducts} associates={formAssociates} today={format(new Date(), "yyyy-MM-dd")} />
     </>
   );
 }
