@@ -639,6 +639,8 @@
       "mobile": "Mobile *",
       "intendedTeam": "Intended team",
       "intendedDesignation": "Intended designation *",
+      "commencementDate": "Commencement date",
+      "commencementHint": "Optional — defaults to the agreement send date.",
       "desSalesAssociate": "Sales Associate",
       "desAsmgr": "Assistant Sales Manager",
       "desSalesMgr": "Sales Manager",
