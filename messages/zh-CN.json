@@ -41,6 +41,7 @@
     "overview": "概览",
     "recruitment": "招募",
     "associates": "伙伴",
+    "teams": "团队",
     "salesVerify": "销售 · 审核",
     "transactions": "交易记录",
     "products": "产品与佣金",
@@ -209,6 +210,22 @@
       "entity": "对象",
       "detail": "详情"
     }
+  },
+  "teams": {
+    "title": "团队",
+    "subtitle": "创建团队并管理成员。每个团队由一名总监领导；销售员可同时属于多个团队。",
+    "createHeading": "创建团队",
+    "nameLabel": "团队名称",
+    "directorLabel": "总监（负责人）",
+    "noDirector": "— 无总监 —",
+    "createBtn": "创建团队",
+    "empty": "暂无团队。",
+    "director": "总监",
+    "memberCount": "{count} 名成员",
+    "noMembers": "暂无成员。",
+    "addMember": "+ 添加成员…",
+    "add": "添加",
+    "remove": "移除"
   },
   "commission": {
     "title": "佣金引擎",
@@ -864,6 +881,8 @@
   "errors": {
     "invalidInput": "输入无效。",
     "forbidden": "无权限",
+    "teamNameRequired": "团队名称为必填项。",
+    "teamNameTaken": "已存在同名团队。",
     "notFound": "未找到",
     "fullNameRequired": "全名为必填项。",
     "directUplineNotFound": "直属上线代码未找到。",

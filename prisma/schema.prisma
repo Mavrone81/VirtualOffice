@@ -495,6 +495,34 @@ model SalesQuota {
   @@map("sales_quotas")
 }
 
+// Team (16-Jul): Business Admin creates/names teams; each is headed by one
+// Director. Associates can belong to MULTIPLE teams (via TeamMember). directorId
+// + associateId are plain UUID columns (no FK relation) — matches the
+// split/quota convention and avoids Associate back-relations.
+model Team {
+  id         String       @id @default(uuid()) @db.Uuid
+  name       String       @unique
+  directorId String?      @map("director_id") @db.Uuid
+  active     Boolean      @default(true)
+  members    TeamMember[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String   @map("team_id") @db.Uuid
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  associateId String   @map("associate_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([teamId, associateId])
+  @@map("team_members")
+}
+
 model SaleLineItem {
   id                     String                      @id @default(uuid()) @db.Uuid
   submissionId           String                      @map("submission_id") @db.Uuid
