@@ -41,6 +41,7 @@
     "overview": "Overview",
     "recruitment": "Recruitment",
     "associates": "Associates",
+    "teams": "Teams",
     "salesVerify": "Sales · Verify",
     "transactions": "Transactions",
     "products": "Products & Com",
@@ -209,6 +210,22 @@
       "entity": "Entity",
       "detail": "Detail"
     }
+  },
+  "teams": {
+    "title": "Teams",
+    "subtitle": "Create teams and manage membership. Each team is headed by a Director; associates may belong to more than one.",
+    "createHeading": "Create a team",
+    "nameLabel": "Team name",
+    "directorLabel": "Director (head)",
+    "noDirector": "— No director —",
+    "createBtn": "Create team",
+    "empty": "No teams yet.",
+    "director": "Director",
+    "memberCount": "{count} members",
+    "noMembers": "No members yet.",
+    "addMember": "+ Add member…",
+    "add": "Add",
+    "remove": "Remove"
   },
   "commission": {
     "title": "Commission engine",
@@ -864,6 +881,8 @@
   "errors": {
     "invalidInput": "Invalid input.",
     "forbidden": "Forbidden",
+    "teamNameRequired": "Team name is required.",
+    "teamNameTaken": "A team with that name already exists.",
     "notFound": "Not found",
     "fullNameRequired": "Full name is required.",
     "directUplineNotFound": "Direct upline code not found.",
