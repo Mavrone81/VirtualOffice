@@ -123,6 +123,7 @@ export async function approveSubmissionSplit(submissionId: string): Promise<{ ok
   await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id } });
   await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
   revalidatePath("/admin/sales/verify");
+  revalidatePath("/portal/approvals");
   return { ok: true };
 }
 
