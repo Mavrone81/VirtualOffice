@@ -20,6 +20,12 @@ const name = z.string().trim().min(1).max(200);
 const dateStr = z.string().trim().min(1).max(32);
 // Human-issued code (e.g. associate code "EN0001").
 const code = z.string().trim().min(1).max(20);
+// A Net-to-Closer split share (% of net or an absolute amount) for Associate 2/3.
+const splitShare = z.object({
+  associateId: id,
+  valueType: z.enum(["Percentage", "Absolute"]),
+  value: z.number().finite().nonnegative().max(100_000_000),
+});
 
 // ---------------------------------------------------------------------------
 // Sales — mirrors SubmitSaleInput (server/sales/actions.ts)
@@ -41,6 +47,9 @@ export const saleSchema = z.object({
     )
     .min(1)
     .max(100),
+  // Flow-3 Net-to-Closer split (optional).
+  associate2: splitShare.optional(),
+  associate3: splitShare.optional(),
 });
 export type SaleInput = z.infer<typeof saleSchema>;
 

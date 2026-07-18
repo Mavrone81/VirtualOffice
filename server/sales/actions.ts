@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import {
-  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus,
+  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType,
 } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -39,6 +39,8 @@ export type SubmitSaleInput = {
   deposit?: number;
   installmentCount?: number;
   lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[];
+  associate2?: { associateId: string; valueType: "Percentage" | "Absolute"; value: number };
+  associate3?: { associateId: string; valueType: "Percentage" | "Absolute"; value: number };
 };
 
 export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string }> {
@@ -86,6 +88,12 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
       installmentCount: validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null,
       amountCollected: 0,
       closingAssociateId: session.user.associateId,
+      associate2Id: validInput.associate2?.associateId ?? null,
+      associate2ValueType: validInput.associate2 ? (validInput.associate2.valueType as ComValueType) : null,
+      associate2Value: validInput.associate2 ? round2(validInput.associate2.value) : null,
+      associate3Id: validInput.associate3?.associateId ?? null,
+      associate3ValueType: validInput.associate3 ? (validInput.associate3.valueType as ComValueType) : null,
+      associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
       status: SubmissionStatus.Submitted,
       lineItems: { create: lineData },
     },

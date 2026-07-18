@@ -442,6 +442,15 @@ model SalesSubmission {
   amountCollected    Decimal          @default(0) @map("amount_collected") @db.Decimal(14, 2)
   closingAssociateId String           @map("closing_associate_id") @db.Uuid
   closingAssociate   Associate        @relation("SubmissionCloser", fields: [closingAssociateId], references: [id])
+  // Flow-3 Net-to-Closer split. Associate 1 = closingAssociate (submitter);
+  // Associate 2 / 3 each get a % of Net-to-Closer or an absolute amount. Plain
+  // UUID columns (no FK relation) — the ledger row carries the payable relation.
+  associate2Id        String?       @map("associate2_id") @db.Uuid
+  associate2ValueType ComValueType? @map("associate2_value_type")
+  associate2Value     Decimal?      @map("associate2_value") @db.Decimal(14, 4)
+  associate3Id        String?       @map("associate3_id") @db.Uuid
+  associate3ValueType ComValueType? @map("associate3_value_type")
+  associate3Value     Decimal?      @map("associate3_value") @db.Decimal(14, 4)
   invoiceFileKey     String?          @map("invoice_file_key")
   remarks            String?
   status             SubmissionStatus @default(Submitted)
