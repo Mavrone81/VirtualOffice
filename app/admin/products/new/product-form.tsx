@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { createProduct, type ProductInput } from "@/server/products/actions";
+import { computeProductPreview } from "@/lib/commission-preview";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
+
+const money = (s: string) =>
+  "$" + Number(s).toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function ProductForm({ companies, today }: { companies: { id: string; name: string }[]; today: string }) {
   const t = useTranslations("products");
@@ -18,12 +22,33 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
+  // Preview-only sale amount (not stored on the product; the real amount is per transaction).
+  const [salesPreview, setSalesPreview] = useState("10000");
   const [f, setF] = useState<ProductInput>({
     productCode: "", productName: "", commissionType: "Percentage",
-    closingCommPct: "10", companyCutPct: "40", asmOverridePct: "10", smOverridePct: "20", sdOverridePct: "10",
+    // 16-Jul model: every % is of the SALES AMOUNT (closing 10 / cut pool 2 / SM 5 / SD 3).
+    closingCommPct: "10", companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3",
     isExternal: false, effectiveDate: today, defaultCompanyId: companies[0]?.id,
   });
   const set = (patch: Partial<ProductInput>) => setF((p) => ({ ...p, ...patch }));
+
+  // Live breakdown so the admin sees exactly how the product pays out (§6A.2).
+  const preview = useMemo(() => {
+    if (f.isExternal) return null;
+    try {
+      return computeProductPreview({
+        salesAmount: salesPreview || "0",
+        closing: f.commissionType === "Fixed"
+          ? { value: f.closingCommFixed || "0", percent: false }
+          : { value: f.closingCommPct || "0", percent: true },
+        companyCutPool: { value: f.companyCutPct || "0", percent: true },
+        smOverride: { value: f.smOverridePct || "0", percent: true },
+        sdOverride: { value: f.sdOverridePct || "0", percent: true },
+      });
+    } catch {
+      return null;
+    }
+  }, [f, salesPreview]);
 
   function submit() {
     setError(undefined);
@@ -76,39 +101,59 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
             <p className="mt-1 text-[12px] text-muted-2">{t("externalProviderNote")}</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="ct">{t("commissionTypeLabel")}</Label>
-              <select id="ct" className={selectCls} value={f.commissionType} onChange={(e) => set({ commissionType: e.target.value as "Percentage" | "Fixed" })}>
-                <option value="Percentage">{t("percentageOfSale")}</option>
-                <option value="Fixed">{t("fixedAmount")}</option>
-              </select>
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="ct">{t("commissionTypeLabel")}</Label>
+                <select id="ct" className={selectCls} value={f.commissionType} onChange={(e) => set({ commissionType: e.target.value as "Percentage" | "Fixed" })}>
+                  <option value="Percentage">{t("percentageOfSale")}</option>
+                  <option value="Fixed">{t("fixedAmount")}</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="closing">{f.commissionType === "Fixed" ? t("closingAmountFixed") : t("closingAmountPct")}</Label>
+                {f.commissionType === "Fixed" ? (
+                  <Input id="closing" value={f.closingCommFixed ?? ""} onChange={(e) => set({ closingCommFixed: e.target.value })} placeholder="1000" />
+                ) : (
+                  <Input id="closing" value={f.closingCommPct ?? ""} onChange={(e) => set({ closingCommPct: e.target.value })} placeholder="10" />
+                )}
+              </div>
+              <div>
+                <Label htmlFor="cut">{t("companyCutPoolLabel")}</Label>
+                <Input id="cut" value={f.companyCutPct} onChange={(e) => set({ companyCutPct: e.target.value })} placeholder="2" />
+              </div>
+              <div>
+                <Label htmlFor="sm">{t("smOverrideLabel")}</Label>
+                <Input id="sm" value={f.smOverridePct} onChange={(e) => set({ smOverridePct: e.target.value })} placeholder="5" />
+              </div>
+              <div>
+                <Label htmlFor="sd">{t("sdOverrideLabel")}</Label>
+                <Input id="sd" value={f.sdOverridePct} onChange={(e) => set({ sdOverridePct: e.target.value })} placeholder="3" />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="closing">{f.commissionType === "Fixed" ? t("closingAmountFixed") : t("closingAmountPct")}</Label>
-              {f.commissionType === "Fixed" ? (
-                <Input id="closing" value={f.closingCommFixed ?? ""} onChange={(e) => set({ closingCommFixed: e.target.value })} placeholder="500" />
+
+            {/* Live breakdown — every % is of the Sales Amount (§6A.2). */}
+            <div className="mt-5 rounded-lg border border-line bg-paper-50 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Label htmlFor="salesprev" className="mb-0">{t("previewSalesAmountLabel")}</Label>
+                <Input id="salesprev" className="h-9 w-40" value={salesPreview} onChange={(e) => setSalesPreview(e.target.value)} placeholder="10000" />
+              </div>
+              {preview ? (
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-[13px]">
+                  <dt className="text-body">{t("closingAmountPct")}</dt><dd className="text-right font-medium text-ink">{money(preview.closing)}</dd>
+                  <dt className="text-body">{t("companyCutPoolLabel")}</dt><dd className="text-right text-ink">{money(preview.companyCutPool)}</dd>
+                  <dt className="text-body">{t("smOverrideLabel")}</dt><dd className="text-right text-ink">{money(preview.smOverride)}</dd>
+                  <dt className="text-body">{t("sdOverrideLabel")}</dt><dd className="text-right text-ink">{money(preview.sdOverride)}</dd>
+                  <dt className="mt-1 border-t border-line pt-1 font-semibold text-ink">{t("netToCloserLabel")}</dt>
+                  <dd className="mt-1 border-t border-line pt-1 text-right font-semibold text-action">{money(preview.netToCloser)}</dd>
+                  <dt className="font-semibold text-ink">{t("companyRetainedLabel")}</dt>
+                  <dd className="text-right font-semibold text-ink">{money(preview.companyRetained)}</dd>
+                </dl>
               ) : (
-                <Input id="closing" value={f.closingCommPct ?? ""} onChange={(e) => set({ closingCommPct: e.target.value })} placeholder="10" />
+                <p className="text-[12px] text-muted-2">{t("previewEnterNumbers")}</p>
               )}
             </div>
-            <div>
-              <Label htmlFor="cut">{t("companyCutPoolLabel")}</Label>
-              <Input id="cut" value={f.companyCutPct} onChange={(e) => set({ companyCutPct: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="asm">{t("asmOverrideLabel")}</Label>
-              <Input id="asm" value={f.asmOverridePct} onChange={(e) => set({ asmOverridePct: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="sm">{t("smOverrideLabel")}</Label>
-              <Input id="sm" value={f.smOverridePct} onChange={(e) => set({ smOverridePct: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="sd">{t("sdOverrideLabel")}</Label>
-              <Input id="sd" value={f.sdOverridePct} onChange={(e) => set({ sdOverridePct: e.target.value })} />
-            </div>
-          </div>
+          </>
         )}
       </Card>
 

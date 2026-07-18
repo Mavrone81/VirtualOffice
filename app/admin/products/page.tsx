@@ -57,7 +57,6 @@ export default async function ProductsPage() {
             {!p.isExternal ? (
               <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-muted">
                 <span>{t("companyCutLabel")} <b className="text-ink">{String(p.companyCutPct)}%</b></span>
-                <span>{t("asmLabel")} <b className="text-ink">{String(p.asmOverridePct)}%</b></span>
                 <span>{t("smLabel")} <b className="text-ink">{String(p.smOverridePct)}%</b></span>
                 <span>{t("sdLabel")} <b className="text-ink">{String(p.sdOverridePct)}%</b></span>
               </div>

@@ -66,7 +66,6 @@ export const productSchema = z.object({
   closingCommPct: rate.optional(),
   closingCommFixed: money.optional(),
   companyCutPct: rate,
-  asmOverridePct: rate,
   smOverridePct: rate,
   sdOverridePct: rate,
   isExternal: z.boolean(),
