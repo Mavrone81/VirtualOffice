@@ -7,6 +7,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 import { putObject, deleteObject } from "@/lib/storage";
 
 async function requireAdmin() {
@@ -47,7 +48,7 @@ export async function uploadDocument(input: DocumentUpload): Promise<{ ok: boole
   const key = `documents/${randomUUID()}/${safeName}`;
   await putObject(key, Buffer.from(await input.file.arrayBuffer()));
 
-  await prisma.document.create({
+  const doc = await prisma.document.create({
     data: {
       type: input.type,
       title: input.title.trim(),
@@ -58,6 +59,7 @@ export async function uploadDocument(input: DocumentUpload): Promise<{ ok: boole
       uploadedById: session.user.id,
     },
   });
+  await logAudit({ action: "document.uploaded", entityType: "Document", entityId: doc.id, actorUserId: session.user.id });
   revalidatePath("/admin/documents");
   revalidatePath("/portal/documents");
   return { ok: true };
@@ -70,6 +72,7 @@ export async function deleteDocument(id: string): Promise<{ ok: boolean; error?:
   const doc = await prisma.document.findUnique({ where: { id }, select: { fileKey: true } });
   if (doc?.fileKey) await deleteObject(doc.fileKey);
   await prisma.document.delete({ where: { id } });
+  await logAudit({ action: "document.deleted", entityType: "Document", entityId: id, actorUserId: session.user.id });
   revalidatePath("/admin/documents");
   revalidatePath("/portal/documents");
   return { ok: true };

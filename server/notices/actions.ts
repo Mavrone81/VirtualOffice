@@ -7,6 +7,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 import { putObject, deleteObject } from "@/lib/storage";
 
 const MAX_BYTES = 15_000_000;
@@ -48,7 +49,7 @@ export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; e
     attachmentFileKey = await storeUpload("notices", input.attachment);
   }
 
-  await prisma.notice.create({
+  const notice = await prisma.notice.create({
     data: {
       title: input.title.trim(),
       body: input.body.trim(),
@@ -59,6 +60,7 @@ export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; e
       postedById: session.user.id,
     },
   });
+  await logAudit({ action: "notice.published", entityType: "Notice", entityId: notice.id, actorUserId: session.user.id });
   revalidatePath("/admin/notices");
   revalidatePath("/portal/notices");
   return { ok: true };
@@ -72,6 +74,7 @@ export async function deleteNotice(id: string): Promise<{ ok: boolean; error?: s
   if (notice?.attachmentFileKey) await deleteObject(notice.attachmentFileKey);
   await prisma.noticeRead.deleteMany({ where: { noticeId: id } });
   await prisma.notice.delete({ where: { id } });
+  await logAudit({ action: "notice.deleted", entityType: "Notice", entityId: id, actorUserId: session.user.id });
   revalidatePath("/admin/notices");
   revalidatePath("/portal/notices");
   return { ok: true };
