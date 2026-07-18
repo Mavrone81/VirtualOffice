@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 import { validate as validateInput } from "@/lib/validate";
 import { productSchema, comCodeSchema } from "@/lib/schemas";
 
@@ -85,6 +86,7 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
   await prisma.commissionStructureVersion.create({
     data: { productCode: product.productCode, productId: product.id, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
   });
+  await logAudit({ action: "product.created", entityType: "Product", entityId: product.id });
   revalidatePath("/admin/products");
   return { ok: true };
 }
@@ -118,6 +120,7 @@ export async function changeRates(productId: string, input: ProductInput): Promi
   await prisma.commissionStructureVersion.create({
     data: { productCode: product.productCode, productId, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
   });
+  await logAudit({ action: "product.rates_changed", entityType: "Product", entityId: productId });
   revalidatePath("/admin/products");
   return { ok: true };
 }
@@ -128,6 +131,7 @@ export async function setProductActive(productId: string, active: boolean): Prom
     where: { id: productId },
     data: { activeStatus: active ? ProductActiveStatus.Active : ProductActiveStatus.Inactive },
   });
+  await logAudit({ action: active ? "product.activated" : "product.deactivated", entityType: "Product", entityId: productId });
   revalidatePath("/admin/products");
   return { ok: true };
 }
@@ -151,6 +155,7 @@ export async function addComCode(
       active: true,
     },
   });
+  await logAudit({ action: "product.comcode_added", entityType: "Product", entityId: productId });
   revalidatePath("/admin/products");
   return { ok: true };
 }
@@ -158,6 +163,7 @@ export async function addComCode(
 export async function toggleComCode(comCodeId: string, active: boolean): Promise<{ ok: boolean }> {
   if (!(await requireAdmin())) return { ok: false };
   await prisma.comcode.update({ where: { id: comCodeId }, data: { active } });
+  await logAudit({ action: active ? "product.comcode_enabled" : "product.comcode_disabled", entityType: "ComCode", entityId: comCodeId });
   revalidatePath("/admin/products");
   return { ok: true };
 }

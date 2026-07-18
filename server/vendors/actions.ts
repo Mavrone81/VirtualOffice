@@ -7,6 +7,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 import { putObject } from "@/lib/storage";
 
 const MAX_BYTES = 15_000_000;
@@ -34,7 +35,7 @@ export async function submitVendor(input: VendorInput): Promise<{ ok: boolean; e
     await putObject(agreementFileKey, Buffer.from(await input.agreement.arrayBuffer()));
   }
 
-  await prisma.vendorReferral.create({
+  const vendor = await prisma.vendorReferral.create({
     data: {
       vendorName: input.vendorName.trim(),
       vendorType: input.vendorType?.trim() || null,
@@ -45,6 +46,7 @@ export async function submitVendor(input: VendorInput): Promise<{ ok: boolean; e
       status: VendorStatus.Active,
     },
   });
+  await logAudit({ action: "vendor.submitted", entityType: "VendorReferral", entityId: vendor.id });
   revalidatePath("/portal/vendors");
   revalidatePath("/admin/vendors");
   return { ok: true };
@@ -55,6 +57,7 @@ export async function setVendorStatus(id: string, status: "Active" | "Lapsed"): 
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
   await prisma.vendorReferral.update({ where: { id }, data: { status: VendorStatus[status] } });
+  await logAudit({ action: `vendor.status_${status.toLowerCase()}`, entityType: "VendorReferral", entityId: id, actorUserId: session.user.id });
   revalidatePath("/admin/vendors");
   revalidatePath("/portal/vendors");
   return { ok: true };
