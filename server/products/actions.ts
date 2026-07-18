@@ -24,7 +24,6 @@ export type ProductInput = {
   closingCommPct?: string;
   closingCommFixed?: string;
   companyCutPct: string;
-  asmOverridePct: string;
   smOverridePct: string;
   sdOverridePct: string;
   isExternal: boolean;
@@ -39,7 +38,6 @@ function rateSnapshot(i: ProductInput) {
     closingCommPct: i.closingCommPct ?? null,
     closingCommFixed: i.closingCommFixed ?? null,
     companyCutPct: i.companyCutPct,
-    asmOverridePct: i.asmOverridePct,
     smOverridePct: i.smOverridePct,
     sdOverridePct: i.sdOverridePct,
     isExternal: i.isExternal,
@@ -75,7 +73,6 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
       closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
       closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
       companyCutPct: validInput.companyCutPct || "0",
-      asmOverridePct: validInput.asmOverridePct || "0",
       smOverridePct: validInput.smOverridePct || "0",
       sdOverridePct: validInput.sdOverridePct || "0",
       isExternal: validInput.isExternal,
@@ -111,7 +108,6 @@ export async function changeRates(productId: string, input: ProductInput): Promi
       closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
       closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
       companyCutPct: validInput.companyCutPct || "0",
-      asmOverridePct: validInput.asmOverridePct || "0",
       smOverridePct: validInput.smOverridePct || "0",
       sdOverridePct: validInput.sdOverridePct || "0",
       isExternal: validInput.isExternal,

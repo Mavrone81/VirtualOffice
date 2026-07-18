@@ -13,7 +13,8 @@ const upline = {
   directUpline: { associateId: "sm", designation: Designation.SalesManager, eligible: true },
   secondUpline: { associateId: "sd", designation: Designation.SalesDirector, eligible: true },
 };
-const rates = { companyCutPct: "40", asmOverridePct: "10", smOverridePct: "20", sdOverridePct: "10" };
+// 16-Jul model: every % is of the SALES AMOUNT.
+const rates = { companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3" };
 const closer = { associateId: "closer", designation: Designation.SalesConsultant };
 
 function row(lines: LedgerLineResult[], type: LedgerLineType, id?: string) {
@@ -37,13 +38,9 @@ async function Preview({
   const sm = row(lines, LedgerLineType.Override, "sm")!;
   const sd = row(lines, LedgerLineType.Override, "sd")!;
   const retained = row(lines, LedgerLineType.CompanyRetained)!;
-  const closing = personal.basisAmount;
-  const pool = retained.basisAmount;
 
   const items = [
     { label: t("saleAmount"), value: formatSGD(sale), muted: true },
-    { label: t("closingCommission"), value: formatSGD(closing), strong: true },
-    { label: t("companyCutPool"), value: formatSGD(pool), muted: true },
     { label: t("netToCloser"), value: formatSGD(personal.amount), accent: "ink" },
     { label: t("smOverride"), value: formatSGD(sm.amount), accent: "action" },
     { label: t("sdOverride"), value: formatSGD(sd.amount), accent: "action" },
@@ -73,9 +70,7 @@ async function Preview({
                   ? "font-medium text-action"
                   : it.accent === "ink"
                     ? "font-display text-[16px] text-ink"
-                    : it.strong
-                      ? "font-medium text-ink"
-                      : "text-body"
+                    : "text-body"
               }
             >
               {it.value}
