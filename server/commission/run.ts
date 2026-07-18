@@ -8,7 +8,6 @@ type RateSnapshot = {
   closingCommPct?: string | null;
   closingCommFixed?: string | null;
   companyCutPct: string;
-  asmOverridePct: string;
   smOverridePct: string;
   sdOverridePct: string;
   isExternal: boolean;
@@ -54,7 +53,6 @@ export async function runCommission(transactionId: string): Promise<number> {
       closingCommPct: rs.closingCommPct ?? null,
       closingCommFixed: rs.closingCommFixed ?? null,
       companyCutPct: rs.companyCutPct ?? "0",
-      asmOverridePct: rs.asmOverridePct ?? "0",
       smOverridePct: rs.smOverridePct ?? "0",
       sdOverridePct: rs.sdOverridePct ?? "0",
       isExternal: li.isExternal,
