@@ -7,7 +7,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { submitSale, verifySubmission } from "./actions";
+import { submitSale, verifySubmission, approveSubmissionSplit } from "./actions";
 
 const TAG = "SPLIT4-";
 const SALE_DATE = "2099-02-10";
@@ -87,6 +87,7 @@ describe("Associate 2/3 split flows submit → verify → ledger", () => {
     });
 
     who.session = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
+    expect((await approveSubmissionSplit(sub.id)).ok).toBe(true); // SD/BA approves the split first (16-Jul §4)
     const verified = await verifySubmission(sub.id);
     expect(verified.ok).toBe(true);
 
