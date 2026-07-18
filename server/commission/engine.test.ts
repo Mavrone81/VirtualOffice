@@ -22,7 +22,7 @@ const base = {
   isExternal: false,
   externalCompanyRetainedPct: null,
   comCodes: [],
-  closer: { associateId: "closer", designation: Designation.SalesConsultant },
+  closer: { associateId: "closer", designation: Designation.SalesAssociate },
   directUpline: { associateId: "sm", designation: Designation.SalesManager, eligible: true },
   secondUpline: { associateId: "sd", designation: Designation.SalesDirector, eligible: true },
 } satisfies Partial<LineInput>;

@@ -33,7 +33,7 @@ describe("setApprovalStatus provisioning", () => {
     prismaMock.associate.findUnique.mockResolvedValue({
       id: "a1",
       email: "new@enshrine.sg",
-      designation: "SalesConsultant",
+      designation: "SalesAssociate",
       user: null,
       approvalStatus: "Pending",
     });

@@ -1,4 +1,4 @@
-// Prisma returns enum *member names* (e.g. "SalesConsultant", "PendingCollection").
+// Prisma returns enum *member names* (e.g. "SalesAssociate", "PendingCollection").
 // Humanize them for display.
 const SPECIAL: Record<string, string> = {
   AddOn: "Add-on",

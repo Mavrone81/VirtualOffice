@@ -75,7 +75,7 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
           {t("welcome", { name: c.fullName.split(" ")[0] })}
         </h1>
         <p className="mt-1 text-[14px] text-muted">
-          {t("intro", { designation: humanize(c.intendedDesignation ?? "Sales Consultant") })}
+          {t("intro", { designation: humanize(c.intendedDesignation ?? "Sales Associate") })}
         </p>
       </div>
       <OnboardForm token={token} alreadySubmitted={alreadySubmitted} />

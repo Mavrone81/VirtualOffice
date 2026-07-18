@@ -15,7 +15,7 @@ const upline = {
 };
 // 16-Jul model: every % is of the SALES AMOUNT.
 const rates = { companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3" };
-const closer = { associateId: "closer", designation: Designation.SalesConsultant };
+const closer = { associateId: "closer", designation: Designation.SalesAssociate };
 
 function row(lines: LedgerLineResult[], type: LedgerLineType, id?: string) {
   return lines.find((l) => l.lineType === type && (id === undefined || l.associateId === id));

@@ -27,7 +27,7 @@ export function InviteForm({
   const [emailed, setEmailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [f, setF] = useState<InviteInput>({
-    fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesConsultant",
+    fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate",
   });
   const set = (patch: Partial<InviteInput>) => setF((p) => ({ ...p, ...patch }));
 
@@ -68,7 +68,7 @@ export function InviteForm({
         </Card>
         <div className="flex gap-2">
           <Button asChild><Link href="/admin/recruitment">{t("form.backToPipeline")}</Link></Button>
-          <Button variant="secondary" onClick={() => { setLink(undefined); setF({ fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesConsultant" }); }}>
+          <Button variant="secondary" onClick={() => { setLink(undefined); setF({ fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate" }); }}>
             {t("form.inviteAnother")}
           </Button>
         </div>
@@ -100,8 +100,8 @@ export function InviteForm({
           <div>
             <Label htmlFor="des">{t("form.intendedDesignation")}</Label>
             <select id="des" className={selectCls} value={f.intendedDesignation} onChange={(e) => set({ intendedDesignation: e.target.value as InviteInput["intendedDesignation"] })}>
-              <option value="SalesConsultant">{t("form.desSalesConsultant")}</option>
-              <option value="AssistantSalesManager">{t("form.desAsmgr")}</option>
+              <option value="SalesAssociate">{t("form.desSalesAssociate")}</option>
+              <option value="SalesAssistantManager">{t("form.desAsmgr")}</option>
               <option value="SalesManager">{t("form.desSalesMgr")}</option>
               <option value="SalesDirector">{t("form.desSalesDir")}</option>
             </select>

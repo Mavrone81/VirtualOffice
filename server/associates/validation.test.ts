@@ -24,14 +24,14 @@ beforeEach(() => {
 
 describe("createAssociate validation", () => {
   it("rejects malformed input (empty fullName) as invalidInput", async () => {
-    const r = await createAssociate({ fullName: "", designation: "SalesConsultant" });
+    const r = await createAssociate({ fullName: "", designation: "SalesAssociate" });
     expect(r).toEqual({ ok: false, error: "invalidInput" });
   });
 
   it("does not reject cleared optional fields sent as empty strings (form clears to '', not undefined)", async () => {
     const r = await createAssociate({
       fullName: "Jane Tan",
-      designation: "SalesConsultant",
+      designation: "SalesAssociate",
       email: "",
       nric: "",
       dateOfBirth: "",

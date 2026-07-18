@@ -1,6 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { AppRole } from "@prisma/client";
-import { can, isFullAdmin, isAdminRole, type Capability } from "./rbac";
+import { AppRole, Designation } from "@prisma/client";
+import { can, isFullAdmin, isAdminRole, roleForDesignation, canRecruit, type Capability } from "./rbac";
+
+describe("roleForDesignation — AppRole is derived from the sales designation (16-Jul)", () => {
+  it.each([
+    [Designation.SalesAssociate, AppRole.SalesAssociate],
+    [Designation.SalesAssistantManager, AppRole.SalesAssistantManager],
+    [Designation.SalesManager, AppRole.SalesManager],
+    [Designation.SalesDirector, AppRole.SalesDirector],
+  ])("%s → %s", (d, r) => {
+    expect(roleForDesignation(d)).toBe(r);
+  });
+});
+
+describe("canRecruit — invite candidate is SAM and above", () => {
+  it("SAM, SM, SD and Business Admin can recruit", () => {
+    for (const r of [AppRole.SalesAssistantManager, AppRole.SalesManager, AppRole.SalesDirector, AppRole.Admin]) {
+      expect(canRecruit(r)).toBe(true);
+    }
+  });
+  it("Sales Associate and Accounts cannot recruit", () => {
+    expect(canRecruit(AppRole.SalesAssociate)).toBe(false);
+    expect(canRecruit(AppRole.Accounts)).toBe(false);
+  });
+});
 
 // Canonical source: docs/05_RBAC.md §3 permission matrix.
 const ADMIN_ONLY: Capability[] = [
@@ -26,7 +49,7 @@ describe("isAdminRole (admin-area gate) is unchanged", () => {
   it("still admits both Admin and Accounts to the admin area", () => {
     expect(isAdminRole(AppRole.Admin)).toBe(true);
     expect(isAdminRole(AppRole.Accounts)).toBe(true);
-    expect(isAdminRole(AppRole.Consultant)).toBe(false);
+    expect(isAdminRole(AppRole.SalesAssociate)).toBe(false);
   });
 });
 
@@ -48,7 +71,7 @@ describe("can() — Accounts is denied the Admin-only capabilities", () => {
 });
 
 describe("can() — portal roles hold none of these admin capabilities", () => {
-  const portal = [AppRole.SalesDirector, AppRole.SalesManager, AppRole.Consultant];
+  const portal = [AppRole.SalesDirector, AppRole.SalesManager, AppRole.SalesAssociate];
   it.each(portal)("%s has no admin capability", (role) => {
     for (const cap of ADMIN_ONLY) expect(can(role, cap)).toBe(false);
   });
