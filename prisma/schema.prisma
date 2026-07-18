@@ -220,6 +220,9 @@ model Candidate {
   intendedDirectUplineId String?         @map("intended_direct_upline_id") @db.Uuid
   intendedDirectUpline   Associate?      @relation("CandidateIntendedUpline", fields: [intendedDirectUplineId], references: [id])
   intendedTeam           String?         @map("intended_team")
+  // Commencement date (16-Jul): a Business Admin may set it on the invite;
+  // otherwise it defaults to the agreement send date at onboarding.
+  commencementDate       DateTime?       @map("commencement_date") @db.Date
   onboardingToken        String          @unique @map("onboarding_token")
   onboardingStage        OnboardingStage @default(Invited) @map("onboarding_stage")
   submittedPayload       Json?           @map("submitted_payload")
