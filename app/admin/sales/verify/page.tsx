@@ -6,7 +6,9 @@ import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { humanize } from "@/lib/labels";
+import { isSdApproved } from "@/lib/approval";
 import { VerifyButton } from "./verify-button";
+import { ApproveSplitButton } from "./approve-split-button";
 
 export const metadata = { title: "Verify sales · Enshrine Admin" };
 
@@ -37,6 +39,7 @@ export default async function VerifyQueuePage() {
                   <th className="px-5 py-3 font-medium">{t("verify.col.amount")}</th>
                   <th className="px-5 py-3 font-medium">{t("verify.col.plan")}</th>
                   <th className="px-5 py-3 font-medium">{t("verify.col.closer")}</th>
+                  <th className="px-5 py-3 font-medium">{t("verify.col.sdApproval")}</th>
                   <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
@@ -49,6 +52,13 @@ export default async function VerifyQueuePage() {
                     <td className="px-5 py-3 text-ink">{formatSGD(s.saleAmount)}</td>
                     <td className="px-5 py-3 text-muted">{humanize(s.paymentPlan)}</td>
                     <td className="px-5 py-3 text-muted">{s.closingAssociate.fullName}</td>
+                    <td className="px-5 py-3">
+                      {(() => {
+                        const sd = isSdApproved(s);
+                        if (sd.approved) return <span className="text-[12px] text-success">{sd.auto ? t("verify.autoApproved") : t("verify.sdApproved")}</span>;
+                        return <ApproveSplitButton id={s.id} />;
+                      })()}
+                    </td>
                     <td className="px-5 py-3"><VerifyButton id={s.id} /></td>
                   </tr>
                 ))}

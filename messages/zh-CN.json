@@ -708,11 +708,15 @@
         "products": "产品",
         "amount": "金额",
         "plan": "方案",
-        "closer": "成交人"
+        "closer": "成交人",
+        "sdApproval": "SD 批准"
       },
       "verifying": "审核中…",
       "button": "审核",
-      "failed": "操作失败"
+      "failed": "操作失败",
+      "approveSplit": "批准分配（SD）",
+      "sdApproved": "✓ SD 已批准",
+      "autoApproved": "✓ 自动批准（3天）"
     },
     "transactions": {
       "title": "销售交易",
@@ -888,6 +892,7 @@
     "clientNameRequired": "客户姓名为必填项。",
     "addProductLine": "请至少添加一个产品明细。",
     "alreadyProcessed": "已处理",
+    "pendingSdApproval": "等待销售总监批准佣金分配。",
     "badMonth": "月份格式无效",
     "quotaLocked": "该配额由更高层级设定，无法修改。",
     "illegalPayoutTransition": "非法的支付状态变更。",

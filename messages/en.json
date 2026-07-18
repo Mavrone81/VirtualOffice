@@ -708,11 +708,15 @@
         "products": "Products",
         "amount": "Amount",
         "plan": "Plan",
-        "closer": "Closer"
+        "closer": "Closer",
+        "sdApproval": "SD approval"
       },
       "verifying": "Verifying…",
       "button": "Verify",
-      "failed": "Failed"
+      "failed": "Failed",
+      "approveSplit": "Approve split (SD)",
+      "sdApproved": "✓ SD approved",
+      "autoApproved": "✓ Auto-approved (3d)"
     },
     "transactions": {
       "title": "Sales transactions",
@@ -888,6 +892,7 @@
     "clientNameRequired": "Client name is required.",
     "addProductLine": "Add at least one product line.",
     "alreadyProcessed": "Already processed",
+    "pendingSdApproval": "Pending SD approval of the commission split.",
     "badMonth": "Bad month",
     "quotaLocked": "This quota was set by a higher authority and can't be changed.",
     "illegalPayoutTransition": "Illegal payout status change.",
