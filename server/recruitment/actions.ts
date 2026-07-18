@@ -12,7 +12,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, canRecruit } from "@/lib/rbac";
 import { encryptPII, maskNric } from "@/lib/crypto";
 import { putObject, getObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
@@ -28,6 +28,13 @@ import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 async function requireAdmin() {
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return null;
+  return session;
+}
+
+// Recruitment invite is open to SAM and above (16-Jul RBAC matrix §A).
+async function requireRecruiter() {
+  const session = await auth();
+  if (!session || !canRecruit(session.user.role)) return null;
   return session;
 }
 
@@ -65,11 +72,12 @@ export type InviteInput = {
   intendedDesignation: Designation;
   intendedDirectUplineCode?: string;
   intendedTeam?: string;
+  commencementDate?: string;
 };
 
 export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean; error?: string; token?: string; emailed?: boolean }> {
   const t = await getTranslations("errors");
-  const session = await requireAdmin();
+  const session = await requireRecruiter();
   if (!session) return { ok: false, error: t("forbidden") };
   if (!input.fullName?.trim()) return { ok: false, error: t("fullNameRequired") };
   if (!input.email?.trim()) return { ok: false, error: t("emailRequired") };
@@ -89,6 +97,7 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
       intendedDesignation: input.intendedDesignation,
       intendedDirectUplineId: upline?.id ?? null,
       intendedTeam: input.intendedTeam?.trim() || null,
+      commencementDate: input.commencementDate ? new Date(input.commencementDate) : null,
       onboardingToken: token,
       onboardingStage: OnboardingStage.Invited,
       invitedById: session.user.id,

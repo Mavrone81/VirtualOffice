@@ -107,6 +107,11 @@ export function InviteForm({
             </select>
           </div>
           <div>
+            <Label htmlFor="commence">{t("form.commencementDate")}</Label>
+            <Input id="commence" type="date" value={f.commencementDate ?? ""} onChange={(e) => set({ commencementDate: e.target.value })} />
+            <p className="mt-1 text-[11px] text-muted-2">{t("form.commencementHint")}</p>
+          </div>
+          <div>
             <Label htmlFor="up">{t("form.directUpline")}</Label>
             <select id="up" className={selectCls} value={f.intendedDirectUplineCode ?? ""} onChange={(e) => set({ intendedDirectUplineCode: e.target.value || undefined })}>
               <option value="">{t("form.noneOption")}</option>

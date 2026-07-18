@@ -639,6 +639,8 @@
       "mobile": "手机号码 *",
       "intendedTeam": "预定团队",
       "intendedDesignation": "预定职级 *",
+      "commencementDate": "入职日期",
+      "commencementHint": "可选 —— 默认为协议发送日期。",
       "desSalesAssociate": "销售专员",
       "desAsmgr": "助理销售经理",
       "desSalesMgr": "销售经理",
