@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 import { recomputeEligibility } from "@/server/commission/eligibility";
 
 async function requireAdmin() {
@@ -27,6 +28,7 @@ export async function markInvoicePaid(invoiceId: string): Promise<{ ok: boolean;
     data: { status: InvoiceStatus.Paid, paidDate: new Date(), paidMarkedById: session.user.id },
   });
   await recomputeEligibility(invoice.transactionId);
+  await logAudit({ action: "invoice.marked_paid", entityType: "Invoice", entityId: invoiceId, actorUserId: session.user.id });
 
   revalidatePath("/admin/invoices");
   revalidatePath("/admin/commission");
@@ -50,6 +52,7 @@ export async function markInstallmentPaid(scheduleId: string): Promise<{ ok: boo
     data: { paid: true, paidDate: new Date() },
   });
   await recomputeEligibility(entry.plan.transactionId);
+  await logAudit({ action: "installment.marked_paid", entityType: "InstallmentSchedule", entityId: scheduleId, actorUserId: session.user.id });
 
   revalidatePath("/admin/invoices");
   revalidatePath("/admin/commission");

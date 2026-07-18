@@ -1,5 +1,8 @@
 import { format } from "date-fns";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { isFullAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
@@ -7,6 +10,10 @@ import { getTranslations } from "next-intl/server";
 export const metadata = { title: "Audit log · Enshrine Admin" };
 
 export default async function AuditLogPage() {
+  // Audit log view is Business Admin only (16-Jul Rule 2) — not Accounts.
+  const session = await auth();
+  if (!session || !isFullAdmin(session.user.role)) redirect("/admin/dashboard");
+
   const t = await getTranslations("audit");
   const logs = await prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
 

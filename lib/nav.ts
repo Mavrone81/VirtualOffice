@@ -42,7 +42,7 @@ export const adminNav: NavGroup[] = [
       { labelKey: "documents", href: "/admin/documents", icon: FolderOpen },
       { labelKey: "vendors", href: "/admin/vendors", icon: Handshake },
       { labelKey: "nameCard", href: "/admin/name-card", icon: IdCard },
-      { labelKey: "auditLog", href: "/admin/audit", icon: ScrollText },
+      { labelKey: "auditLog", href: "/admin/audit", icon: ScrollText, roles: ["Admin"] },
     ],
   },
 ];
