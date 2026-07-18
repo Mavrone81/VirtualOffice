@@ -63,11 +63,8 @@ export default async function InvoicesPage() {
                       >
                         <span className="text-muted">#{s.sequence}</span>
                         <span className="font-medium text-ink">{formatSGD(s.dueAmount)}</span>
-                        {s.paid ? (
-                          <span className="text-[11px] font-medium text-success">{t("paidMark")}</span>
-                        ) : (
-                          <MarkPaidButton id={s.id} kind="installment" />
-                        )}
+                        {s.paid && <span className="text-[11px] font-medium text-success">{t("paidMark")}</span>}
+                        <MarkPaidButton id={s.id} kind="installment" paid={s.paid} />
                       </div>
                     ))}
                   </div>
@@ -108,7 +105,7 @@ export default async function InvoicesPage() {
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-3">
                         <a href={`/admin/invoices/${inv.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">{t("pdfLink")}</a>
-                        {inv.status === InvoiceStatus.Outstanding && <MarkPaidButton id={inv.id} kind="invoice" />}
+                        {inv.status !== InvoiceStatus.Cancelled && <MarkPaidButton id={inv.id} kind="invoice" paid={inv.status === InvoiceStatus.Paid} />}
                       </div>
                     </td>
                   </tr>
