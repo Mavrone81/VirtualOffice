@@ -1,7 +1,7 @@
 import { format } from "date-fns";
-import { CommissionType, Designation, LedgerStatus } from "@prisma/client";
+import { CommissionType, Designation, LedgerStatus, ComValueType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { computeTransactionCommission, type LineInput, type UplineInput, type ComCodeInput } from "./engine";
+import { computeTransactionCommission, type LineInput, type UplineInput, type ComCodeInput, type SplitInput } from "./engine";
 
 type RateSnapshot = {
   commissionType: CommissionType;
@@ -21,11 +21,23 @@ type RateSnapshot = {
 export async function runCommission(transactionId: string): Promise<number> {
   const tx = await prisma.salesTransaction.findUniqueOrThrow({
     where: { id: transactionId },
-    include: { lineItems: { include: { structureVersion: true } }, closingAssociate: true },
+    include: { lineItems: { include: { structureVersion: true } }, closingAssociate: true, submission: true },
   });
 
-  const uplineIds = [tx.directUplineId, tx.secondUplineId].filter((x): x is string => Boolean(x));
-  const uplines = await prisma.associate.findMany({ where: { id: { in: uplineIds } } });
+  // Flow-3 Net-to-Closer split (Associate 2 / 3), captured on the submission.
+  // Applied per line item — exact for the common single-line sale; a multi-line
+  // ABSOLUTE split would repeat the amount per line (revisit if multi-line sales
+  // with absolute splits become common).
+  const toSplit = (
+    id: string | null, vt: ComValueType | null, value: Prisma.Decimal | null,
+  ): SplitInput | null => (id && vt ? { associateId: id, valueType: vt, value: value ?? "0" } : null);
+  const associate2 = toSplit(tx.submission.associate2Id, tx.submission.associate2ValueType, tx.submission.associate2Value);
+  const associate3 = toSplit(tx.submission.associate3Id, tx.submission.associate3ValueType, tx.submission.associate3Value);
+
+  // Fetch uplines + split partners so both override and split ledger rows get names.
+  const relatedIds = [tx.directUplineId, tx.secondUplineId, tx.submission.associate2Id, tx.submission.associate3Id]
+    .filter((x): x is string => Boolean(x));
+  const uplines = await prisma.associate.findMany({ where: { id: { in: relatedIds } } });
   const upById = new Map(uplines.map((u) => [u.id, u]));
 
   const toUpline = (id: string | null): UplineInput => {
@@ -61,6 +73,8 @@ export async function runCommission(transactionId: string): Promise<number> {
       closer: { associateId: tx.closingAssociateId, designation: tx.closingAssociate.designation },
       directUpline,
       secondUpline,
+      associate2,
+      associate3,
     };
   });
 
