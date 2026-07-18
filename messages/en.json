@@ -298,6 +298,7 @@
     "colAmount": "Amount",
     "pdfLink": "PDF ↗",
     "markPaid": "Mark paid",
+    "markUnpaid": "Mark unpaid",
     "failed": "Failed"
   },
   "notices": {
