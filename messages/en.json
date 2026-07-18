@@ -417,6 +417,11 @@
       "viewTeam": "View team →",
       "mySales": "My sales",
       "allSubmitted": "All submitted",
+      "ytdSales": "YTD sales",
+      "ytdCount": "{count} transactions since 1 Jan",
+      "monthlyQuota": "Monthly quota",
+      "noQuota": "Not set",
+      "thisMonth": "This month",
       "eligibleCommission": "Eligible commission",
       "readyForPayout": "Ready for payout",
       "pending": "Pending",
@@ -794,7 +799,10 @@
       "colDesignation": "Designation",
       "colUpline": "Upline",
       "colSales": "Sales",
-      "colCommission": "Commission"
+      "colCommission": "Commission",
+      "colQuota": "Quota (this month)",
+      "setQuota": "Set",
+      "save": "Save"
     },
     "sales": {
       "pageTitle": "Team sales",
@@ -879,6 +887,7 @@
     "addProductLine": "Add at least one product line.",
     "alreadyProcessed": "Already processed",
     "badMonth": "Bad month",
+    "quotaLocked": "This quota was set by a higher authority and can't be changed.",
     "illegalPayoutTransition": "Illegal payout status change.",
     "reauthFailed": "Password confirmation failed.",
     "titleRequired": "Title is required.",

@@ -468,6 +468,25 @@ model SalesSubmission {
   @@map("sales_submissions")
 }
 
+// Monthly sales quota per associate (16-Jul §3). Set by a manager/director for
+// their team member; a Director's value overrides a Manager's (setByRole records
+// the setter's authority so a lower tier can't overwrite a higher one). Plain
+// associate_id column (no relation) — matches the split-field convention.
+model SalesQuota {
+  id          String   @id @default(uuid()) @db.Uuid
+  associateId String   @map("associate_id") @db.Uuid
+  month       String // YYYY-MM
+  amount      Decimal  @db.Decimal(14, 2)
+  setByRole   AppRole  @map("set_by_role")
+  setById     String?  @map("set_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([associateId, month])
+  @@map("sales_quotas")
+}
+
 model SaleLineItem {
   id                     String                      @id @default(uuid()) @db.Uuid
   submissionId           String                      @map("submission_id") @db.Uuid
