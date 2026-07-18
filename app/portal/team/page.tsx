@@ -3,6 +3,8 @@ import { LedgerLineType } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { downlineIds } from "@/lib/rbac";
+import { canSetQuota } from "@/lib/quota";
+import { QuotaCell } from "./quota-cell";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
@@ -36,6 +38,16 @@ export default async function TeamOverviewPage() {
   const teamCommission = sum(ledger.map((l) => l.amount));
   const myOverride = sum(myOverrides.map((l) => l.amount));
 
+  // Monthly quota per member (16-Jul §3) — editable by SAM+ (director overrides manager).
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const canEditQuota = session ? canSetQuota(session.user.role) : false;
+  const quotas = await prisma.salesQuota.findMany({
+    where: { associateId: { in: teamIds }, month: thisMonth },
+    select: { associateId: true, amount: true },
+  });
+  const quotaByAssoc = new Map(quotas.map((q) => [q.associateId, q.amount.toString()]));
+
   return (
     <>
       <PageHeader
@@ -68,6 +80,7 @@ export default async function TeamOverviewPage() {
                   <th className="px-5 py-3 font-medium">{t("overview.colUpline")}</th>
                   <th className="px-5 py-3 font-medium text-right">{t("overview.colSales")}</th>
                   <th className="px-5 py-3 font-medium text-right">{t("overview.colCommission")}</th>
+                  <th className="px-5 py-3 font-medium">{t("overview.colQuota")}</th>
                   <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
@@ -83,6 +96,9 @@ export default async function TeamOverviewPage() {
                       <td className="px-5 py-3 text-muted">{a.directUpline?.associateCode ?? "—"}</td>
                       <td className="px-5 py-3 text-right text-ink">{formatSGD(memberSales)}</td>
                       <td className="px-5 py-3 text-right text-ink">{formatSGD(memberComm)}</td>
+                      <td className="px-5 py-3">
+                        <QuotaCell associateId={a.id} month={thisMonth} current={quotaByAssoc.get(a.id) ?? null} canEdit={canEditQuota} />
+                      </td>
                       <td className="px-5 py-3"><StatusPill status={a.associateStatus} /></td>
                     </tr>
                   );

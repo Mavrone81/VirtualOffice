@@ -417,6 +417,11 @@
       "viewTeam": "查看团队 →",
       "mySales": "我的销售",
       "allSubmitted": "全部已提交",
+      "ytdSales": "年初至今销售",
+      "ytdCount": "自1月1日起 {count} 笔交易",
+      "monthlyQuota": "月度配额",
+      "noQuota": "未设定",
+      "thisMonth": "本月",
       "eligibleCommission": "可发放佣金",
       "readyForPayout": "可发放",
       "pending": "待处理",
@@ -794,7 +799,10 @@
       "colDesignation": "职位",
       "colUpline": "上线",
       "colSales": "销售",
-      "colCommission": "佣金"
+      "colCommission": "佣金",
+      "colQuota": "配额（本月）",
+      "setQuota": "设定",
+      "save": "保存"
     },
     "sales": {
       "pageTitle": "团队销售",
@@ -879,6 +887,7 @@
     "addProductLine": "请至少添加一个产品明细。",
     "alreadyProcessed": "已处理",
     "badMonth": "月份格式无效",
+    "quotaLocked": "该配额由更高层级设定，无法修改。",
     "illegalPayoutTransition": "非法的支付状态变更。",
     "reauthFailed": "密码确认失败。",
     "titleRequired": "标题为必填项。",

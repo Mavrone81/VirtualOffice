@@ -34,13 +34,25 @@ export default async function PortalDashboard() {
       orderBy: { associateCode: "asc" },
       include: { directUpline: true },
     }),
-    prisma.salesSubmission.findMany({ where: { closingAssociateId: associateId }, select: { saleAmount: true } }),
+    prisma.salesSubmission.findMany({ where: { closingAssociateId: associateId }, select: { saleAmount: true, salesDate: true } }),
     prisma.commissionLedger.findMany({ where: { associateId }, select: { amount: true, status: true } }),
   ]);
 
   const mySales = sum(mySubmissions.map((s) => s.saleAmount));
   const myEligible = sum(myLedger.filter((l) => l.status === LedgerStatus.Eligible).map((l) => l.amount));
   const myPending = sum(myLedger.filter((l) => l.status === LedgerStatus.Pending).map((l) => l.amount));
+
+  // Sales targets (16-Jul §3): YTD sales ($ + count) from 1 Jan + this month's quota.
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const ytdSubs = mySubmissions.filter((s) => s.salesDate >= yearStart);
+  const ytdAmount = sum(ytdSubs.map((s) => s.saleAmount));
+  const ytdCount = ytdSubs.length;
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const quota = await prisma.salesQuota.findUnique({
+    where: { associateId_month: { associateId, month: thisMonth } },
+    select: { amount: true },
+  });
 
   const firstName = me?.businessName ?? me?.fullName?.split(/\s+/)[0] ?? "there";
 
@@ -58,9 +70,11 @@ export default async function PortalDashboard() {
       </PageHeader>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label={t("dashboard.mySales")} value={formatSGD(mySales)} sub={t("dashboard.allSubmitted")} />
+        <StatTile label={t("dashboard.ytdSales")} value={formatSGD(ytdAmount)} sub={t("dashboard.ytdCount", { count: ytdCount })} />
+        <StatTile label={t("dashboard.monthlyQuota")} value={quota ? formatSGD(quota.amount) : t("dashboard.noQuota")} sub={t("dashboard.thisMonth")} />
         <StatTile label={t("dashboard.eligibleCommission")} value={formatSGD(myEligible)} sub={t("dashboard.readyForPayout")} />
         <StatTile label={t("dashboard.pending")} value={formatSGD(myPending)} sub={t("dashboard.awaitingCollection")} />
+        <StatTile label={t("dashboard.mySales")} value={formatSGD(mySales)} sub={t("dashboard.allSubmitted")} />
         <StatTile label={t("dashboard.myDownline")} value={downline.length} sub={t("dashboard.associatesInYourTeam")} />
       </div>
 
