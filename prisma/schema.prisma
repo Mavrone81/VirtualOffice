@@ -458,6 +458,11 @@ model SalesSubmission {
   associate3Id        String?       @map("associate3_id") @db.Uuid
   associate3ValueType ComValueType? @map("associate3_value_type")
   associate3Value     Decimal?      @map("associate3_value") @db.Decimal(14, 4)
+  // Approval chain (16-Jul §4): the team SD approves the share-com split (or it
+  // auto-approves 3 calendar days after submission), then a Business Admin
+  // verifies. sdApprovedById is null for an auto-approval (a system actor).
+  sdApprovedAt       DateTime?        @map("sd_approved_at")
+  sdApprovedById     String?          @map("sd_approved_by") @db.Uuid
   invoiceFileKey     String?          @map("invoice_file_key")
   remarks            String?
   status             SubmissionStatus @default(Submitted)

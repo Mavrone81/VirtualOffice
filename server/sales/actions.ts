@@ -8,7 +8,8 @@ import {
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, isFullAdmin } from "@/lib/rbac";
+import { isSdApproved } from "@/lib/approval";
 import { D, round2, sum } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
@@ -104,6 +105,27 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
   return { ok: true };
 }
 
+/**
+ * SD approval of a submission's share-com split (16-Jul §4). The team SD (or a
+ * Business Admin) approves; after 3 days it auto-approves without this call.
+ * Idempotent; only valid while the submission is still Submitted.
+ */
+export async function approveSubmissionSplit(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !(isFullAdmin(session.user.role) || session.user.role === "SalesDirector")) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true } });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+  if (sub.sdApprovedAt) { revalidatePath("/admin/sales/verify"); return { ok: true }; }
+
+  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id } });
+  await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
+  revalidatePath("/admin/sales/verify");
+  return { ok: true };
+}
+
 export async function verifySubmission(submissionId: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
@@ -115,6 +137,9 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
   });
   if (!sub) return { ok: false, error: t("notFound") };
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+  // Business Admin verifies only after the team SD has approved the split
+  // (or it auto-approved 3 days after submission).
+  if (!isSdApproved(sub).approved) return { ok: false, error: t("pendingSdApproval") };
 
   const closer = sub.closingAssociate;
   const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;
