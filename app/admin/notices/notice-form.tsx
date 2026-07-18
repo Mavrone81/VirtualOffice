@@ -60,8 +60,8 @@ export function NoticeForm() {
           {f.audience === "Role" && (
             <div>
               <Label htmlFor="r">{t("form.roleLabel")}</Label>
-              <select id="r" className={selectCls} value={f.audienceRole ?? "Consultant"} onChange={(e) => set({ audienceRole: e.target.value as NoticeInput["audienceRole"] })}>
-                <option value="Consultant">{t("form.roleConsultant")}</option>
+              <select id="r" className={selectCls} value={f.audienceRole ?? "SalesAssociate"} onChange={(e) => set({ audienceRole: e.target.value as NoticeInput["audienceRole"] })}>
+                <option value="SalesAssociate">{t("form.roleConsultant")}</option>
                 <option value="SalesManager">{t("form.roleSalesManager")}</option>
                 <option value="SalesDirector">{t("form.roleSalesDirector")}</option>
               </select>

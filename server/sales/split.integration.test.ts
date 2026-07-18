@@ -51,8 +51,8 @@ beforeAll(async () => {
   });
   sdId = await mkAssoc("SD", "SalesDirector", null, null);
   smId = await mkAssoc("SM", "SalesManager", sdId, null);
-  closerId = await mkAssoc("CL", "SalesConsultant", smId, sdId);
-  a2Id = await mkAssoc("A2", "SalesConsultant", smId, sdId);
+  closerId = await mkAssoc("CL", "SalesAssociate", smId, sdId);
+  a2Id = await mkAssoc("A2", "SalesAssociate", smId, sdId);
 });
 
 afterAll(async () => {

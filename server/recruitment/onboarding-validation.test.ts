@@ -44,7 +44,7 @@ beforeEach(() => {
     photoFileKey: null,
     signedAgreementFileKey: null,
     intendedDirectUplineId: null,
-    intendedDesignation: "SalesConsultant",
+    intendedDesignation: "SalesAssociate",
     fullName: "Jane Tan",
     email: "jane@example.com",
     mobileNumber: "91234567",

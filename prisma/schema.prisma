@@ -16,17 +16,21 @@ datasource db {
 // ---------------------------------------------------------------------------
 // Enums (values @map to the exact strings in docs/02 §3)
 // ---------------------------------------------------------------------------
+// 16-Jul model. Sales designations (SA/SAM/SM/SD) drive the derived AppRole at
+// onboarding (see roleForDesignation in lib/rbac.ts). Admin (= "Business Admin")
+// and Accounts are system roles assigned to office staff, not sales designations.
 enum AppRole {
   Admin
   Accounts
   SalesDirector
   SalesManager
-  Consultant
+  SalesAssistantManager
+  SalesAssociate
 }
 
 enum Designation {
-  SalesConsultant       @map("Sales Consultant")
-  AssistantSalesManager @map("Assistant Sales Manager")
+  SalesAssociate        @map("Sales Associate")
+  SalesAssistantManager @map("Sales Assistant Manager")
   SalesManager          @map("Sales Manager")
   SalesDirector         @map("Sales Director")
 }

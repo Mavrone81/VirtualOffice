@@ -153,7 +153,7 @@
       "dob": "出生日期",
       "roleHierarchy": "职级与层级",
       "designation": "职级",
-      "desSalesConsultant": "销售顾问",
+      "desSalesAssociate": "销售专员",
       "desAsmgr": "助理销售经理",
       "desSalesMgr": "销售经理",
       "desSalesDir": "销售总监",
@@ -302,7 +302,7 @@
       "audienceRole": "某个角色",
       "teamNameLabel": "团队名称",
       "roleLabel": "角色",
-      "roleConsultant": "顾问",
+      "roleConsultant": "销售专员",
       "roleSalesManager": "销售经理",
       "roleSalesDirector": "销售总监",
       "errorDefault": "发布失败，请重试。",
@@ -634,7 +634,7 @@
       "mobile": "手机号码 *",
       "intendedTeam": "预定团队",
       "intendedDesignation": "预定职级 *",
-      "desSalesConsultant": "销售顾问",
+      "desSalesAssociate": "销售专员",
       "desAsmgr": "助理销售经理",
       "desSalesMgr": "销售经理",
       "desSalesDir": "销售总监",
@@ -688,7 +688,7 @@
     "Accounts": "财务",
     "SalesDirector": "销售总监",
     "SalesManager": "销售经理",
-    "Consultant": "销售顾问"
+    "SalesAssociate": "销售专员"
   },
   "sales": {
     "verify": {
@@ -747,8 +747,8 @@
     "AddOn": "加项佣金",
     "CompanyRetained": "公司留存",
     "ExternalPayable": "外部应付",
-    "SalesConsultant": "销售顾问",
-    "AssistantSalesManager": "助理销售经理",
+    "SalesAssociate": "销售专员",
+    "SalesAssistantManager": "助理销售经理",
     "SalesManager": "销售经理",
     "SalesDirector": "销售总监",
     "PayNow": "PayNow",
