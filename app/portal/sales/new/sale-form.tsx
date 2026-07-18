@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { submitSale } from "@/server/sales/actions";
+import { PercentAmountInput } from "@/components/ui/percent-amount-input";
 import { useTranslations } from "next-intl";
 
 export type FormProduct = {
@@ -52,7 +53,7 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
       : undefined;
 
   const splitRow = (label: string, s: Split, setS: (v: Split) => void) => (
-    <div className="grid gap-3 sm:grid-cols-[1fr_110px_90px]">
+    <div className="grid gap-3 sm:grid-cols-2">
       <div>
         <Label>{label}</Label>
         <select className={selectCls} value={s.associateId} onChange={(e) => setS({ ...s, associateId: e.target.value })}>
@@ -62,14 +63,14 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
       </div>
       <div>
         <Label>{t("saleForm.splitValue")}</Label>
-        <Input value={s.value} onChange={(e) => setS({ ...s, value: e.target.value })} placeholder="0" inputMode="decimal" disabled={!s.associateId} />
-      </div>
-      <div>
-        <Label>{t("saleForm.splitType")}</Label>
-        <select className={selectCls} value={s.valueType} onChange={(e) => setS({ ...s, valueType: e.target.value as "Percentage" | "Absolute" })} disabled={!s.associateId}>
-          <option value="Percentage">%</option>
-          <option value="Absolute">$</option>
-        </select>
+        <PercentAmountInput
+          value={s.value}
+          valueType={s.valueType}
+          onValueChange={(v) => setS({ ...s, value: v })}
+          onTypeChange={(tp) => setS({ ...s, valueType: tp })}
+          placeholder="0"
+          disabled={!s.associateId}
+        />
       </div>
     </div>
   );
