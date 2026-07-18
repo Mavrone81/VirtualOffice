@@ -153,7 +153,7 @@
       "dob": "Date of birth",
       "roleHierarchy": "Role & hierarchy",
       "designation": "Designation",
-      "desSalesConsultant": "Sales Consultant",
+      "desSalesAssociate": "Sales Associate",
       "desAsmgr": "Assistant Sales Manager",
       "desSalesMgr": "Sales Manager",
       "desSalesDir": "Sales Director",
@@ -302,7 +302,7 @@
       "audienceRole": "A role",
       "teamNameLabel": "Team name",
       "roleLabel": "Role",
-      "roleConsultant": "Consultant",
+      "roleConsultant": "Sales Associate",
       "roleSalesManager": "Sales Manager",
       "roleSalesDirector": "Sales Director",
       "errorDefault": "Could not publish.",
@@ -634,7 +634,7 @@
       "mobile": "Mobile *",
       "intendedTeam": "Intended team",
       "intendedDesignation": "Intended designation *",
-      "desSalesConsultant": "Sales Consultant",
+      "desSalesAssociate": "Sales Associate",
       "desAsmgr": "Assistant Sales Manager",
       "desSalesMgr": "Sales Manager",
       "desSalesDir": "Sales Director",
@@ -688,7 +688,7 @@
     "Accounts": "Accounts",
     "SalesDirector": "Sales Director",
     "SalesManager": "Sales Manager",
-    "Consultant": "Sales Consultant"
+    "SalesAssociate": "Sales Associate"
   },
   "sales": {
     "verify": {
@@ -747,8 +747,8 @@
     "AddOn": "Add-on",
     "CompanyRetained": "Company Retained",
     "ExternalPayable": "External Payable",
-    "SalesConsultant": "Sales Consultant",
-    "AssistantSalesManager": "Assistant Sales Manager",
+    "SalesAssociate": "Sales Associate",
+    "SalesAssistantManager": "Sales Assistant Manager",
     "SalesManager": "Sales Manager",
     "SalesDirector": "Sales Director",
     "PayNow": "PayNow",

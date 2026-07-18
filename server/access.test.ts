@@ -50,7 +50,7 @@ describe("getAdminPrincipal", () => {
   });
 
   it("returns null for a non-admin role", async () => {
-    authMock.mockResolvedValue({ user: { id: "u3", role: "Consultant", associateId: "a9" } });
+    authMock.mockResolvedValue({ user: { id: "u3", role: "SalesAssociate", associateId: "a9" } });
     expect(await getAdminPrincipal()).toBeNull();
   });
 });

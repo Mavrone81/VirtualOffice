@@ -58,7 +58,7 @@ describe("requireAdmin", () => {
     expect(() => requireAdmin(principal("Accounts", ALL))).not.toThrow();
   });
   it("throws forbidden for a portal role", () => {
-    expect(() => requireAdmin(principal("Consultant", DL))).toThrowError(
+    expect(() => requireAdmin(principal("SalesAssociate", DL))).toThrowError(
       expect.objectContaining({ code: "forbidden" }),
     );
   });
@@ -92,7 +92,7 @@ describe("resolveScope", () => {
   it("consultant is scoped to self only (no downline call)", async () => {
     let called = false;
     const spy = async (id: string) => { called = true; return [id]; };
-    expect(await resolveScope("Consultant", "a9", spy)).toEqual({
+    expect(await resolveScope("SalesAssociate", "a9", spy)).toEqual({
       kind: "associates",
       ids: ["a9"],
     });
@@ -100,7 +100,7 @@ describe("resolveScope", () => {
   });
 
   it("a non-admin with no associateId sees nothing", async () => {
-    expect(await resolveScope("Consultant", null, downline)).toEqual({
+    expect(await resolveScope("SalesAssociate", null, downline)).toEqual({
       kind: "associates",
       ids: [],
     });

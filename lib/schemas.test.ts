@@ -103,9 +103,9 @@ describe("productSchema", () => {
 
 describe("newAssociateSchema", () => {
   it("accepts a minimal valid associate and rejects a bad email", () => {
-    expect(newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesConsultant" }).success).toBe(true);
+    expect(newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesAssociate" }).success).toBe(true);
     expect(
-      newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesConsultant", email: "not-an-email" }).success,
+      newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesAssociate", email: "not-an-email" }).success,
     ).toBe(false);
   });
   it("rejects an unknown designation", () => {

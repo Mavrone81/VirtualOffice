@@ -18,7 +18,7 @@ export function AssociateForm({ uplines }: { uplines: { code: string; label: str
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
-  const [f, setF] = useState<NewAssociateInput>({ fullName: "", designation: "SalesConsultant" });
+  const [f, setF] = useState<NewAssociateInput>({ fullName: "", designation: "SalesAssociate" });
   const set = (patch: Partial<NewAssociateInput>) => setF((p) => ({ ...p, ...patch }));
 
   function submit() {
@@ -68,8 +68,8 @@ export function AssociateForm({ uplines }: { uplines: { code: string; label: str
           <div>
             <Label htmlFor="des">{t("form.designation")}</Label>
             <select id="des" className={selectCls} value={f.designation} onChange={(e) => set({ designation: e.target.value as NewAssociateInput["designation"] })}>
-              <option value="SalesConsultant">{t("form.desSalesConsultant")}</option>
-              <option value="AssistantSalesManager">{t("form.desAsmgr")}</option>
+              <option value="SalesAssociate">{t("form.desSalesAssociate")}</option>
+              <option value="SalesAssistantManager">{t("form.desAsmgr")}</option>
               <option value="SalesManager">{t("form.desSalesMgr")}</option>
               <option value="SalesDirector">{t("form.desSalesDir")}</option>
             </select>

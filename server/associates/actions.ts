@@ -19,12 +19,12 @@ async function requireAdmin() {
   return session;
 }
 
-// app_role provisioned from org designation (ASM has no dedicated role → Consultant scope)
+// app_role provisioned from org designation (16-Jul: each sales tier has its own role; cf. roleForDesignation in lib/rbac.ts)
 const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
   SalesDirector: AppRole.SalesDirector,
   SalesManager: AppRole.SalesManager,
-  AssistantSalesManager: AppRole.Consultant,
-  SalesConsultant: AppRole.Consultant,
+  SalesAssistantManager: AppRole.SalesAssistantManager,
+  SalesAssociate: AppRole.SalesAssociate,
 };
 
 

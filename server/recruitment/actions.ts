@@ -40,12 +40,12 @@ async function baseUrl(): Promise<string> {
   return host ? `${proto}://${host}` : "";
 }
 
-// app_role provisioned from org designation (ASM has no dedicated role → Consultant scope)
+// app_role provisioned from org designation (16-Jul: each sales tier has its own role; cf. roleForDesignation in lib/rbac.ts)
 const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
   SalesDirector: AppRole.SalesDirector,
   SalesManager: AppRole.SalesManager,
-  AssistantSalesManager: AppRole.Consultant,
-  SalesConsultant: AppRole.Consultant,
+  SalesAssistantManager: AppRole.SalesAssistantManager,
+  SalesAssociate: AppRole.SalesAssociate,
 };
 
 
@@ -242,7 +242,7 @@ export async function submitOnboarding(
     : null;
   const agreementPdf = await renderAgreementPdf({
     fullName: c.fullName,
-    designation: humanize(c.intendedDesignation ?? "Sales Consultant"),
+    designation: humanize(c.intendedDesignation ?? "Sales Associate"),
     email: c.email,
     mobile: c.mobileNumber,
     nricMasked: maskNric(s.nric.trim()),

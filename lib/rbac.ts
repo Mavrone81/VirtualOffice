@@ -1,4 +1,4 @@
-import { AppRole } from "@prisma/client";
+import { AppRole, Designation } from "@prisma/client";
 import { prisma } from "./db";
 
 // Where each role lands after login.
@@ -7,14 +7,33 @@ export const ROLE_HOME: Record<AppRole, string> = {
   Accounts: "/admin/dashboard",
   SalesDirector: "/portal/dashboard",
   SalesManager: "/portal/dashboard",
-  Consultant: "/portal/dashboard",
+  SalesAssistantManager: "/portal/dashboard",
+  SalesAssociate: "/portal/dashboard",
 };
+
+/**
+ * A sales associate's AppRole is DERIVED from the designation given at
+ * onboarding (16-Jul model, user-confirmed). Admin ("Business Admin") and
+ * Accounts are system roles assigned to office staff, never derived here.
+ */
+export function roleForDesignation(d: Designation): AppRole {
+  switch (d) {
+    case "SalesDirector": return "SalesDirector";
+    case "SalesManager": return "SalesManager";
+    case "SalesAssistantManager": return "SalesAssistantManager";
+    case "SalesAssociate": return "SalesAssociate";
+  }
+}
 
 export const ADMIN_ROLES: AppRole[] = ["Admin", "Accounts"];
 export const isAdminRole = (r: AppRole): boolean => ADMIN_ROLES.includes(r);
 
-/** True only for the full "Product Owner" Admin — not the Accounts role. */
+/** True only for the full "Business Admin" — not the Accounts role. */
 export const isFullAdmin = (r: AppRole): boolean => r === "Admin";
+
+// Recruitment (invite candidate) is open to SAM and above (RBAC matrix §A).
+export const RECRUITER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector", "Admin"];
+export const canRecruit = (r: AppRole): boolean => RECRUITER_ROLES.includes(r);
 
 /**
  * Fine-grained capabilities where Admin and Accounts diverge. Both roles share
@@ -40,7 +59,7 @@ const ADMIN_ONLY_CAPABILITIES: ReadonlySet<Capability> = new Set<Capability>([
 /**
  * Central capability check (RBAC §4 policy layer). Admin has everything;
  * Accounts has every admin-area capability EXCEPT the Admin-only set above;
- * portal roles (SD/SM/Consultant) hold none of these admin capabilities.
+ * portal roles (SA/SAM/SM/SD) hold none of these admin capabilities.
  */
 export function can(role: AppRole, capability: Capability): boolean {
   if (role === "Admin") return true;
@@ -48,16 +67,18 @@ export function can(role: AppRole, capability: Capability): boolean {
   return false;
 }
 
-// Roles with a downline they manage (team dashboards).
-export const MANAGER_ROLES: AppRole[] = ["SalesManager", "SalesDirector"];
+// Roles with a downline they manage (team individual breakdown — RBAC matrix §D:
+// SAM / SM / SD).
+export const MANAGER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector"];
 export const isManagerRole = (r: AppRole): boolean => MANAGER_ROLES.includes(r);
 
 export const roleLabel: Record<AppRole, string> = {
-  Admin: "Product Owner",
+  Admin: "Business Admin",
   Accounts: "Accounts",
   SalesDirector: "Sales Director",
   SalesManager: "Sales Manager",
-  Consultant: "Sales Consultant",
+  SalesAssistantManager: "Sales Assistant Manager",
+  SalesAssociate: "Sales Associate",
 };
 
 /**
