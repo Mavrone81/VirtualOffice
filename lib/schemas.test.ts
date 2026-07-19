@@ -126,6 +126,27 @@ describe("onboardingSchema", () => {
       }).success,
     ).toBe(true);
   });
+
+  const base = { nric: "S1234567A", paymentMethod: "PayNow" as const, agreementAccepted: true };
+
+  it("accepts an optional marital status", () => {
+    expect(onboardingSchema.safeParse({ ...base, maritalStatus: "Married" }).success).toBe(true);
+  });
+
+  it("rejects an unknown marital status", () => {
+    expect(onboardingSchema.safeParse({ ...base, maritalStatus: "Complicated" }).success).toBe(false);
+  });
+
+  it("accepts a No spouse-conflict declaration without spouse details", () => {
+    expect(onboardingSchema.safeParse({ ...base, spouseConflict: false }).success).toBe(true);
+  });
+
+  it("requires spouse name + company when the conflict is declared Yes", () => {
+    expect(onboardingSchema.safeParse({ ...base, spouseConflict: true }).success).toBe(false);
+    expect(
+      onboardingSchema.safeParse({ ...base, spouseConflict: true, spouseName: "Jane Tan", spouseCompany: "Rival Funeral Pte Ltd" }).success,
+    ).toBe(true);
+  });
 });
 
 describe("validate()", () => {

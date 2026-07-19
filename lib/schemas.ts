@@ -127,10 +127,24 @@ export const onboardingSchema = z.object({
   // Encrypted at rest — validate shape/length only.
   bankAccountNumber: z.string().trim().min(1).max(40).optional(),
   agreementAccepted: z.boolean(),
+  // V-2026-07 identity addition.
+  maritalStatus: z.enum(["Single", "Married", "Divorced", "Widowed"]).optional(),
+  // Spouse / Conflict of Interest Declaration (V-2026-07): is the spouse working
+  // for or supplying a funeral / afterlife company? If declared Yes, capture who.
+  spouseConflict: z.boolean().optional(),
+  spouseName: z.string().trim().max(200).optional(),
+  spouseCompany: z.string().trim().max(200).optional(),
+  spouseDesignation: z.string().trim().max(200).optional(),
   // Presence/type only; actual bytes are sniffed downstream (Task 7).
   photo: z.instanceof(File).nullable().optional(),
   // Base64 PNG data-URL from the signature pad — capped to bound payload
   // size; magic bytes verified downstream (Task 7), not here.
   signature: z.string().max(8_000_000).optional(),
+}).superRefine((v, ctx) => {
+  // A declared conflict must name the spouse + their company.
+  if (v.spouseConflict === true) {
+    if (!v.spouseName?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spouseName"], message: "required" });
+    if (!v.spouseCompany?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spouseCompany"], message: "required" });
+  }
 });
 export type OnboardingSchemaInput = z.infer<typeof onboardingSchema>;

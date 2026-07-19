@@ -23,6 +23,11 @@ type StoredPayload = {
   residentialAddress?: string | null;
   emergencyContactName?: string | null;
   emergencyContactNumber?: string | null;
+  maritalStatus?: string | null;
+  spouseConflict?: boolean | null;
+  spouseName?: string | null;
+  spouseCompany?: string | null;
+  spouseDesignation?: string | null;
   paymentMethod?: string | null;
   paynowNumber?: string | null;
   bankName?: string | null;
@@ -98,7 +103,18 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
                 <Field label={t("detail.nric")} value={maskNric(nricPlain)} />
                 <Field label={t("detail.dob")} value={p.dateOfBirth ? format(new Date(p.dateOfBirth), "dd MMM yyyy") : null} />
                 <Field label={t("detail.residentialAddress")} value={p.residentialAddress} />
+                <Field label={t("detail.maritalStatus")} value={p.maritalStatus} />
                 <Field label={t("detail.emergencyContact")} value={p.emergencyContactName ? `${p.emergencyContactName} · ${p.emergencyContactNumber ?? ""}` : null} />
+                <Field
+                  label={t("detail.spouseConflict")}
+                  value={
+                    p.spouseConflict
+                      ? `${t("detail.conflictYes")} — ${[p.spouseName, p.spouseCompany, p.spouseDesignation].filter(Boolean).join(" · ")}`
+                      : p.spouseConflict === false
+                        ? t("detail.conflictNo")
+                        : null
+                  }
+                />
                 <Field label={t("detail.paymentMethod")} value={p.paymentMethod} />
                 {p.paymentMethod === "PayNow"
                   ? <Field label={t("detail.paynow")} value={p.paynowNumber} />
