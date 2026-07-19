@@ -209,7 +209,11 @@
       "agreementSigned": "协议签署",
       "reviewedBy": "审核人",
       "invitedOn": "邀请日期",
-      "noApplication": "无入职申请记录（该顾问为直接添加）。"
+      "noApplication": "无入职申请记录（该顾问为直接添加）。",
+      "bankAccount": "银行账号",
+      "show": "显示",
+      "hide": "隐藏",
+      "revealFailed": "无法显示。"
     },
     "reset": {
       "newPassword": "✓ 新临时密码：",

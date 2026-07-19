@@ -209,7 +209,11 @@
       "agreementSigned": "Agreement signed",
       "reviewedBy": "Reviewed by",
       "invitedOn": "Invited on",
-      "noApplication": "No onboarding application on file (this associate was added directly)."
+      "noApplication": "No onboarding application on file (this associate was added directly).",
+      "bankAccount": "Bank account",
+      "show": "Show",
+      "hide": "Hide",
+      "revealFailed": "Could not reveal."
     },
     "reset": {
       "newPassword": "✓ New temporary password:",
