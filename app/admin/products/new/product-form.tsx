@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { PercentAmountInput } from "@/components/ui/percent-amount-input";
 import { createProduct, type ProductInput } from "@/server/products/actions";
 import { computeProductPreview } from "@/lib/commission-preview";
 
@@ -28,6 +29,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
     productCode: "", productName: "", commissionType: "Percentage",
     // 16-Jul model: every % is of the SALES AMOUNT (closing 10 / cut pool 2 / SM 5 / SD 3).
     closingCommPct: "10", companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3",
+    companyCutType: "Percentage", smOverrideType: "Percentage", sdOverrideType: "Percentage",
     isExternal: false, effectiveDate: today, defaultCompanyId: companies[0]?.id,
   });
   const set = (patch: Partial<ProductInput>) => setF((p) => ({ ...p, ...patch }));
@@ -41,9 +43,9 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
         closing: f.commissionType === "Fixed"
           ? { value: f.closingCommFixed || "0", percent: false }
           : { value: f.closingCommPct || "0", percent: true },
-        companyCutPool: { value: f.companyCutPct || "0", percent: true },
-        smOverride: { value: f.smOverridePct || "0", percent: true },
-        sdOverride: { value: f.sdOverridePct || "0", percent: true },
+        companyCutPool: { value: f.companyCutPct || "0", percent: f.companyCutType !== "Absolute" },
+        smOverride: { value: f.smOverridePct || "0", percent: f.smOverrideType !== "Absolute" },
+        sdOverride: { value: f.sdOverridePct || "0", percent: f.sdOverrideType !== "Absolute" },
       });
     } catch {
       return null;
@@ -120,15 +122,39 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
               </div>
               <div>
                 <Label htmlFor="cut">{t("companyCutPoolLabel")}</Label>
-                <Input id="cut" value={f.companyCutPct} onChange={(e) => set({ companyCutPct: e.target.value })} placeholder="2" />
+                <PercentAmountInput
+                  id="cut"
+                  value={f.companyCutPct}
+                  valueType={f.companyCutType ?? "Percentage"}
+                  onValueChange={(v) => set({ companyCutPct: v })}
+                  onTypeChange={(tp) => set({ companyCutType: tp })}
+                  base={Number(salesPreview) || undefined}
+                  placeholder="2"
+                />
               </div>
               <div>
                 <Label htmlFor="sm">{t("smOverrideLabel")}</Label>
-                <Input id="sm" value={f.smOverridePct} onChange={(e) => set({ smOverridePct: e.target.value })} placeholder="5" />
+                <PercentAmountInput
+                  id="sm"
+                  value={f.smOverridePct}
+                  valueType={f.smOverrideType ?? "Percentage"}
+                  onValueChange={(v) => set({ smOverridePct: v })}
+                  onTypeChange={(tp) => set({ smOverrideType: tp })}
+                  base={Number(salesPreview) || undefined}
+                  placeholder="5"
+                />
               </div>
               <div>
                 <Label htmlFor="sd">{t("sdOverrideLabel")}</Label>
-                <Input id="sd" value={f.sdOverridePct} onChange={(e) => set({ sdOverridePct: e.target.value })} placeholder="3" />
+                <PercentAmountInput
+                  id="sd"
+                  value={f.sdOverridePct}
+                  valueType={f.sdOverrideType ?? "Percentage"}
+                  onValueChange={(v) => set({ sdOverridePct: v })}
+                  onTypeChange={(tp) => set({ sdOverrideType: tp })}
+                  base={Number(salesPreview) || undefined}
+                  placeholder="3"
+                />
               </div>
             </div>
 

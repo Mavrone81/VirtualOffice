@@ -25,13 +25,18 @@ export type ProductInput = {
   closingCommPct?: string;
   closingCommFixed?: string;
   companyCutPct: string;
+  companyCutType?: "Percentage" | "Absolute";
   smOverridePct: string;
+  smOverrideType?: "Percentage" | "Absolute";
   sdOverridePct: string;
+  sdOverrideType?: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct?: string;
   defaultCompanyId?: string;
   effectiveDate: string;
 };
+
+const valueType = (v?: "Percentage" | "Absolute") => (v === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage);
 
 function rateSnapshot(i: ProductInput) {
   return {
@@ -39,8 +44,11 @@ function rateSnapshot(i: ProductInput) {
     closingCommPct: i.closingCommPct ?? null,
     closingCommFixed: i.closingCommFixed ?? null,
     companyCutPct: i.companyCutPct,
+    companyCutType: i.companyCutType ?? "Percentage",
     smOverridePct: i.smOverridePct,
+    smOverrideType: i.smOverrideType ?? "Percentage",
     sdOverridePct: i.sdOverridePct,
+    sdOverrideType: i.sdOverrideType ?? "Percentage",
     isExternal: i.isExternal,
     externalCompanyRetainedPct: i.externalCompanyRetainedPct ?? null,
   } satisfies Prisma.InputJsonValue;
@@ -74,8 +82,11 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
       closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
       closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
       companyCutPct: validInput.companyCutPct || "0",
+      companyCutType: valueType(validInput.companyCutType),
       smOverridePct: validInput.smOverridePct || "0",
+      smOverrideType: valueType(validInput.smOverrideType),
       sdOverridePct: validInput.sdOverridePct || "0",
+      sdOverrideType: valueType(validInput.sdOverrideType),
       isExternal: validInput.isExternal,
       externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
       defaultCompanyId: validInput.defaultCompanyId || null,
@@ -110,8 +121,11 @@ export async function changeRates(productId: string, input: ProductInput): Promi
       closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
       closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
       companyCutPct: validInput.companyCutPct || "0",
+      companyCutType: valueType(validInput.companyCutType),
       smOverridePct: validInput.smOverridePct || "0",
+      smOverrideType: valueType(validInput.smOverrideType),
       sdOverridePct: validInput.sdOverridePct || "0",
+      sdOverrideType: valueType(validInput.sdOverrideType),
       isExternal: validInput.isExternal,
       externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
       effectiveDate: eff,

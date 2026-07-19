@@ -8,8 +8,11 @@ type RateSnapshot = {
   closingCommPct?: string | null;
   closingCommFixed?: string | null;
   companyCutPct: string;
+  companyCutType?: ComValueType | null;
   smOverridePct: string;
+  smOverrideType?: ComValueType | null;
   sdOverridePct: string;
+  sdOverrideType?: ComValueType | null;
   isExternal: boolean;
   externalCompanyRetainedPct?: string | null;
 };
@@ -65,8 +68,11 @@ export async function runCommission(transactionId: string): Promise<number> {
       closingCommPct: rs.closingCommPct ?? null,
       closingCommFixed: rs.closingCommFixed ?? null,
       companyCutPct: rs.companyCutPct ?? "0",
+      companyCutType: rs.companyCutType ?? ComValueType.Percentage,
       smOverridePct: rs.smOverridePct ?? "0",
+      smOverrideType: rs.smOverrideType ?? ComValueType.Percentage,
       sdOverridePct: rs.sdOverridePct ?? "0",
+      sdOverrideType: rs.sdOverrideType ?? ComValueType.Percentage,
       isExternal: li.isExternal,
       externalCompanyRetainedPct: rs.externalCompanyRetainedPct ?? null,
       comCodes,
