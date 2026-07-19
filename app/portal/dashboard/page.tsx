@@ -2,7 +2,8 @@ import Link from "next/link";
 import { LedgerStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { downlineIds, isManagerRole } from "@/lib/rbac";
+import { isManagerRole } from "@/lib/rbac";
+import { teamScopeIds } from "@/lib/team";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
@@ -26,7 +27,7 @@ export default async function PortalDashboard() {
     return <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.noProfile")} />;
   }
 
-  const dlIds = await downlineIds(associateId);
+  const dlIds = await teamScopeIds(associateId);
   const [me, downline, mySubmissions, myLedger] = await Promise.all([
     prisma.associate.findUnique({ where: { id: associateId } }),
     prisma.associate.findMany({

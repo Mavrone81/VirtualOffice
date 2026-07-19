@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LedgerLineType } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { downlineIds } from "@/lib/rbac";
+import { teamScopeIds } from "@/lib/team";
 import { canSetQuota } from "@/lib/quota";
 import { QuotaCell } from "./quota-cell";
 import { humanize } from "@/lib/labels";
@@ -23,8 +23,8 @@ export default async function TeamOverviewPage() {
   const associateId = session?.user.associateId ?? null;
   if (!associateId) return <PageHeader title={t("overview.noProfileTitle")} subtitle={t("overview.noProfile")} />;
 
-  const dlIds = await downlineIds(associateId);
-  const teamIds = dlIds.filter((id) => id !== associateId); // downline excluding self
+  const dlIds = await teamScopeIds(associateId);
+  const teamIds = dlIds.filter((id) => id !== associateId); // team members excluding self
 
   const [me, members, submissions, ledger, myOverrides] = await Promise.all([
     prisma.associate.findUnique({ where: { id: associateId } }),
