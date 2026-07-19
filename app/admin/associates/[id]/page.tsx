@@ -18,6 +18,20 @@ import { CardTitleEditor } from "./card-title-editor";
 
 export const metadata = { title: "Associate · Enshrine Admin" };
 
+// Application-form fields captured at onboarding (candidates.submitted_payload).
+// NRIC / bank account are encrypted there and shown from the associate record.
+type StoredPayload = {
+  residentialAddress?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactNumber?: string | null;
+  maritalStatus?: string | null;
+  spouseConflict?: boolean | null;
+  spouseName?: string | null;
+  spouseCompany?: string | null;
+  spouseDesignation?: string | null;
+  agreementAcceptedAt?: string | null;
+};
+
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
@@ -44,6 +58,18 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
     },
   });
   if (!a) notFound();
+
+  // The onboarding application + invite data live on the originating candidate
+  // (converted → this associate). Absent for associates added directly by admin.
+  const candidate = await prisma.candidate.findFirst({
+    where: { convertedAssociateId: a.id },
+    include: {
+      invitedBy: { select: { email: true } },
+      reviewedBy: { select: { email: true } },
+      intendedDirectUpline: { select: { associateCode: true, fullName: true } },
+    },
+  });
+  const p = (candidate?.submittedPayload as StoredPayload | null) ?? {};
 
   const actorUserId = session?.user.id ?? null;
   const nricPlain = await decryptPiiAudited({ blob: a.nric, field: "nric", subjectType: "Associate", subjectId: a.id, actorUserId });
@@ -89,6 +115,59 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               />
               <Field label={t("detail.payout")} value={a.paymentMethod ? `${humanize(a.paymentMethod)}${payTo ? ` · ${payTo}` : ""}` : null} />
             </div>
+          </Card>
+
+          {/* Full application form (from the onboarding submission) */}
+          <Card className="p-5">
+            <h2 className="mb-4 font-display text-[16px] text-ink">{t("detail.appFormSection")}</h2>
+            {candidate ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t("detail.residentialAddress")} value={p.residentialAddress} />
+                <Field
+                  label={t("detail.emergencyContact")}
+                  value={p.emergencyContactName ? `${p.emergencyContactName}${p.emergencyContactNumber ? ` · ${p.emergencyContactNumber}` : ""}` : null}
+                />
+                <Field label={t("detail.maritalStatus")} value={p.maritalStatus} />
+                <Field
+                  label={t("detail.spouseConflict")}
+                  value={
+                    p.spouseConflict
+                      ? `${t("detail.conflictYes")} — ${[p.spouseName, p.spouseCompany, p.spouseDesignation].filter(Boolean).join(" · ")}`
+                      : p.spouseConflict === false ? t("detail.conflictNo") : null
+                  }
+                />
+              </div>
+            ) : (
+              <p className="text-[13px] text-muted">{t("detail.noApplication")}</p>
+            )}
+          </Card>
+
+          {/* Invite + onboarding trail */}
+          <Card className="p-5">
+            <h2 className="mb-4 font-display text-[16px] text-ink">{t("detail.inviteSection")}</h2>
+            {candidate ? (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={t("detail.invitedBy")} value={candidate.invitedBy?.email} />
+                  <Field label={t("detail.invitedOn")} value={format(candidate.createdAt, "dd MMM yyyy")} />
+                  <Field label={t("detail.intendedDesignation")} value={candidate.intendedDesignation ? humanize(candidate.intendedDesignation) : null} />
+                  <Field label={t("detail.intendedTeam")} value={candidate.intendedTeam} />
+                  <Field label={t("detail.intendedUpline")} value={candidate.intendedDirectUpline ? `${candidate.intendedDirectUpline.associateCode} · ${candidate.intendedDirectUpline.fullName}` : null} />
+                  <Field label={t("detail.commencementDate")} value={candidate.commencementDate ? format(candidate.commencementDate, "dd MMM yyyy") : null} />
+                  <Field label={t("detail.onboardingStage")} value={humanize(candidate.onboardingStage)} />
+                  <Field label={t("detail.agreementSigned")} value={p.agreementAcceptedAt ? format(new Date(p.agreementAcceptedAt), "dd MMM yyyy, HH:mm") : null} />
+                  <Field label={t("detail.reviewedBy")} value={candidate.reviewedBy?.email} />
+                </div>
+                {candidate.signedAgreementFileKey && (
+                  <a href={`/api/files/${candidate.signedAgreementFileKey}`} target="_blank" rel="noopener"
+                    className="mt-4 inline-flex items-center gap-2 text-[13px] text-action hover:underline">
+                    <FileText className="h-4 w-4" strokeWidth={1.75} /> {t("detail.agreementSigned")} ↗
+                  </a>
+                )}
+              </>
+            ) : (
+              <p className="text-[13px] text-muted">{t("detail.noApplication")}</p>
+            )}
           </Card>
         </div>
 
