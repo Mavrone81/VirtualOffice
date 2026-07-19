@@ -828,3 +828,30 @@ model RateLimitAttempt {
   @@unique([identifier, action])
   @@map("rate_limit_attempts")
 }
+
+// ---------------------------------------------------------------------------
+// UAT tracker (/uat) — testers record pass/fail/blocked per case; the case
+// catalogue lives in code (lib/uat-cases.ts). Keyed by a tester-entered name so
+// one person's run stays coherent while they log into different role accounts.
+// ---------------------------------------------------------------------------
+enum UatStatus {
+  Untested
+  Pass
+  Fail
+  Blocked
+}
+
+model UatResult {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @map("case_id")
+  testerName   String    @map("tester_name")
+  status       UatStatus @default(Untested)
+  notes        String?
+  updatedById  String?   @map("updated_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@unique([caseId, testerName])
+  @@index([testerName])
+  @@map("uat_results")
+}
