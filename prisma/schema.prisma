@@ -376,10 +376,16 @@ model Product {
   commissionType             CommissionType      @default(Percentage) @map("commission_type")
   closingCommPct             Decimal?            @map("closing_comm_pct") @db.Decimal(7, 4)
   closingCommFixed           Decimal?            @map("closing_comm_fixed") @db.Decimal(14, 2)
-  companyCutPct              Decimal             @default(0) @map("company_cut_pct") @db.Decimal(7, 4)
+  // Company cut + overrides can each be a % of the sale or an absolute $ amount
+  // (16-Jul (d)). Widened to (14,4) so the same column holds either. The *Type
+  // column records which; existing rows default to Percentage (unchanged).
+  companyCutPct              Decimal             @default(0) @map("company_cut_pct") @db.Decimal(14, 4)
+  companyCutType             ComValueType        @default(Percentage) @map("company_cut_type")
   asmOverridePct             Decimal             @default(0) @map("asm_override_pct") @db.Decimal(7, 4)
-  smOverridePct              Decimal             @default(0) @map("sm_override_pct") @db.Decimal(7, 4)
-  sdOverridePct              Decimal             @default(0) @map("sd_override_pct") @db.Decimal(7, 4)
+  smOverridePct              Decimal             @default(0) @map("sm_override_pct") @db.Decimal(14, 4)
+  smOverrideType             ComValueType        @default(Percentage) @map("sm_override_type")
+  sdOverridePct              Decimal             @default(0) @map("sd_override_pct") @db.Decimal(14, 4)
+  sdOverrideType             ComValueType        @default(Percentage) @map("sd_override_type")
   companyRetainedPct         Decimal?            @map("company_retained_pct") @db.Decimal(7, 4)
   isExternal                 Boolean             @default(false) @map("is_external")
   externalCompanyRetainedPct Decimal?            @map("external_company_retained_pct") @db.Decimal(7, 4)

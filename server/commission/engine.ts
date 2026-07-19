@@ -16,10 +16,13 @@ export type LineInput = {
   closingCommFixed?: Numeric | null;
   /** Company Cut Pool — % of the SALES AMOUNT (or absolute), taken from the closing commission. */
   companyCutPct: Numeric;
+  companyCutType?: ComValueType | null;
   /** SM Overriding — % of the SALES AMOUNT (or absolute), paid to the direct upline (Tier 1). */
   smOverridePct: Numeric;
+  smOverrideType?: ComValueType | null;
   /** SD Overriding — % of the SALES AMOUNT (or absolute), paid to the second upline (Tier 2). */
   sdOverridePct: Numeric;
+  sdOverrideType?: ComValueType | null;
   isExternal: boolean;
   externalCompanyRetainedPct?: Numeric | null;
   comCodes: ComCodeInput[];
@@ -80,12 +83,13 @@ export function computeLineCommission(line: LineInput): LineResult {
       ? round2(line.closingCommFixed ?? 0)
       : pctOf(lineSale, D(line.closingCommPct ?? 0));
 
-  const cutPool = pctOf(lineSale, D(line.companyCutPct)); // % of the SALE
+  // Company cut + overrides each resolve as % of the SALE or an absolute amount.
+  const cutPool = resolve(lineSale, line.companyCutType ?? ComValueType.Percentage, line.companyCutPct);
   const netToCloser = round2(closing.sub(cutPool));
 
   // Overrides: position-based, only for an eligible upline.
-  const smAmt = line.directUpline?.eligible ? pctOf(lineSale, D(line.smOverridePct)) : ZERO;
-  const sdAmt = line.secondUpline?.eligible ? pctOf(lineSale, D(line.sdOverridePct)) : ZERO;
+  const smAmt = line.directUpline?.eligible ? resolve(lineSale, line.smOverrideType ?? ComValueType.Percentage, line.smOverridePct) : ZERO;
+  const sdAmt = line.secondUpline?.eligible ? resolve(lineSale, line.sdOverrideType ?? ComValueType.Percentage, line.sdOverridePct) : ZERO;
 
   // Net-to-Closer split across Associate 1 (submitter) / 2 / 3.
   const split2 = line.associate2 ? resolve(netToCloser, line.associate2.valueType, line.associate2.value) : ZERO;

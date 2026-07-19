@@ -50,6 +50,36 @@ describe("commission engine (16-Jul model)", () => {
     expect(reconciles).toBe(true);
   });
 
+  it("ABSOLUTE company-cut + overrides: fixed $ amounts, not % of sale", () => {
+    // sale 10,000, closing 10% = 1,000. Cut $150 → Net 850. SM $400, SD $250.
+    // company = 10,000 − 850 − 400 − 250 = 8,500. Values chosen ≠ the % path.
+    const { lines, reconciles } = computeLineCommission({
+      ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
+      companyCutPct: "150", companyCutType: ComValueType.Absolute,
+      smOverridePct: "400", smOverrideType: ComValueType.Absolute,
+      sdOverridePct: "250", sdOverrideType: ComValueType.Absolute,
+    });
+    expect(pick(lines, LedgerLineType.Personal, "closer")).toBe("850");
+    expect(pick(lines, LedgerLineType.Override, "sm")).toBe("400");
+    expect(pick(lines, LedgerLineType.Override, "sd")).toBe("250");
+    expect(sum(lines, LedgerLineType.CompanyRetained)).toBe(8500);
+    expect(reconciles).toBe(true);
+  });
+
+  it("mixed: absolute SM override with percentage company-cut + SD", () => {
+    // cut 2% = 200 → Net 800. SM $450 (absolute). SD 3% = 300.
+    // company = 10,000 − 800 − 450 − 300 = 8,450.
+    const { lines, reconciles } = computeLineCommission({
+      ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
+      smOverridePct: "450", smOverrideType: ComValueType.Absolute,
+    });
+    expect(pick(lines, LedgerLineType.Personal, "closer")).toBe("800");
+    expect(pick(lines, LedgerLineType.Override, "sm")).toBe("450");
+    expect(pick(lines, LedgerLineType.Override, "sd")).toBe("300");
+    expect(sum(lines, LedgerLineType.CompanyRetained)).toBe(8450);
+    expect(reconciles).toBe(true);
+  });
+
   it("overrides are POSITION-based: direct→SM amount, second→SD amount, regardless of designation", () => {
     const { lines } = computeLineCommission({
       ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
