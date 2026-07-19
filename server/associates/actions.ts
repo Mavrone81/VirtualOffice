@@ -6,9 +6,10 @@ import { hash } from "@node-rs/argon2";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
 import { logAudit } from "@/lib/audit";
+import { decryptPiiAudited, type PiiField } from "@/server/pii";
 import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
 import { newAssociateSchema } from "@/lib/schemas";
@@ -17,6 +18,31 @@ async function requireAdmin() {
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return null;
   return session;
+}
+
+/**
+ * Reveal an associate's masked PII (NRIC / bank account) to a Business Admin on
+ * demand. Decrypt happens only on this explicit click and is recorded in the
+ * audit trail (`decrypt_pii`, with the field + actor) — not on every page view.
+ */
+export async function revealAssociatePii(
+  associateId: string,
+  field: PiiField,
+): Promise<{ ok: boolean; value?: string; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isFullAdmin(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  const a = await prisma.associate.findUnique({
+    where: { id: associateId },
+    select: { nric: true, bankAccountNumber: true },
+  });
+  if (!a) return { ok: false, error: t("notFound") };
+
+  const blob = field === "nric" ? a.nric : a.bankAccountNumber;
+  const value = await decryptPiiAudited({ blob, field, subjectType: "Associate", subjectId: associateId, actorUserId: session.user.id });
+  if (value == null) return { ok: false, error: t("notFound") };
+  return { ok: true, value };
 }
 
 // app_role provisioned from org designation (16-Jul: each sales tier has its own role; cf. roleForDesignation in lib/rbac.ts)
