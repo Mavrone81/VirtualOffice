@@ -127,6 +127,12 @@ export type OnboardingSubmission = {
   bankName?: string;
   bankAccountNumber?: string;
   agreementAccepted: boolean;
+  // V-2026-07 additions.
+  maritalStatus?: "Single" | "Married" | "Divorced" | "Widowed";
+  spouseConflict?: boolean;
+  spouseName?: string;
+  spouseCompany?: string;
+  spouseDesignation?: string;
   photo?: File | null;
   signature?: string; // PNG data URL from the signature pad
 };
@@ -226,6 +232,13 @@ export async function submitOnboarding(
     paynowNumber: s.paynowNumber?.trim() || null,
     bankName: s.bankName?.trim() || null,
     bankAccountNumber: s.bankAccountNumber ? encryptPII(s.bankAccountNumber.trim()) : null,
+    maritalStatus: s.maritalStatus ?? null,
+    // Conflict-of-interest declaration (V-2026-07). Spouse details are only kept
+    // when the conflict is declared Yes.
+    spouseConflict: s.spouseConflict ?? false,
+    spouseName: s.spouseConflict ? s.spouseName?.trim() || null : null,
+    spouseCompany: s.spouseConflict ? s.spouseCompany?.trim() || null : null,
+    spouseDesignation: s.spouseConflict ? s.spouseDesignation?.trim() || null : null,
     agreementAcceptedAt: new Date().toISOString(),
   };
 
