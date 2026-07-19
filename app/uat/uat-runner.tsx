@@ -4,24 +4,29 @@ import { useEffect, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import type { UatSection } from "@/lib/uat-cases";
 import { UAT_TOTAL } from "@/lib/uat-cases";
-import { setUatResult, getUatResults } from "@/server/uat/actions";
+import { setUatResult, getUatResults, getUatTesters } from "@/server/uat/actions";
 
 type Res = { status: string; notes: string | null };
-const STATUSES: { key: string; label: string; on: string; off: string }[] = [
-  { key: "Pass", label: "Pass", on: "bg-success-50 border-success text-success", off: "" },
-  { key: "Fail", label: "Fail", on: "bg-danger text-white border-danger", off: "" },
-  { key: "Blocked", label: "Block", on: "bg-action text-white border-action", off: "" },
-];
+const STATUS_KEYS = ["Pass", "Fail", "Blocked"] as const;
+const STATUS_LABEL: Record<string, string> = { Pass: "Pass", Fail: "Fail", Blocked: "Block" };
+const STATUS_ON: Record<string, string> = {
+  Pass: "bg-success-50 border-success text-success",
+  Fail: "bg-danger text-white border-danger",
+  Blocked: "bg-action text-white border-action",
+};
 
 export function UatRunner({ sections, defaultTester }: { sections: UatSection[]; defaultTester: string }) {
   const [draft, setDraft] = useState(defaultTester);
   const [tester, setTester] = useState(defaultTester);
   const [results, setResults] = useState<Record<string, Res>>({});
-  const [, start] = useTransition();
+  const [testers, setTesters] = useState<string[]>([]);
+  const [isPending, start] = useTransition();
+  const [touched, setTouched] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem("vo-uat-tester");
     if (s) { setDraft(s); setTester(s); }
+    getUatTesters().then(setTesters).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -33,12 +38,15 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
 
   const commitTester = () => {
     const n = draft.trim();
+    if (n === tester) return;
     setTester(n);
+    setTouched(false);
     if (n) localStorage.setItem("vo-uat-tester", n);
   };
 
   const persist = (caseId: string, next: Res) => {
     setResults((p) => ({ ...p, [caseId]: next }));
+    setTouched(true);
     if (tester) start(() => { setUatResult({ caseId, testerName: tester, status: next.status, notes: next.notes ?? undefined }); });
   };
   const setStatus = (caseId: string, status: string) => {
@@ -47,6 +55,7 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
   };
   const setNote = (caseId: string, notes: string) => {
     const cur = results[caseId] ?? { status: "Untested", notes: null };
+    if ((cur.notes ?? "") === notes) return;
     persist(caseId, { ...cur, notes });
   };
 
@@ -62,22 +71,26 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
       <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-action">✦ Enshrine VirtualOffice</div>
       <h1 className="font-display text-[30px] text-ink">Acceptance testing</h1>
       <p className="mt-1 text-[14px] text-muted">
-        Build <code className="rounded bg-paper-200 px-1.5 py-0.5 text-[12px]">main · aafae85</code>. Record what you see — your results save to the platform and the team tracks them in Admin → UAT.
+        Build <code className="rounded bg-paper-200 px-1.5 py-0.5 text-[12px]">main · latest</code>. Open each screen, try it, and record what you see — results save to the platform and the team tracks them in Admin → UAT.
       </p>
 
       {/* Tester + progress */}
       <Card className="mt-5 p-5">
         <div className="flex flex-wrap items-end gap-4">
           <label className="text-[13px] text-muted">
-            <span className="mb-1 block">Your name (used to group your results)</span>
+            <span className="mb-1 block">Your name — enter it to start, or type/pick a name to resume</span>
             <input
               value={draft}
+              list="uat-testers"
               onChange={(e) => setDraft(e.target.value)}
               onBlur={commitTester}
               onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
               placeholder="e.g. Angeline"
               className="h-11 w-64 rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none"
             />
+            <datalist id="uat-testers">
+              {testers.map((t) => <option key={t} value={t} />)}
+            </datalist>
           </label>
           <div className="ml-auto flex items-center gap-4">
             <div className="text-right">
@@ -89,13 +102,18 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-line">
           <div className="h-full rounded-full bg-action transition-all" style={{ width: `${pct}%` }} />
         </div>
-        <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
           <span className="rounded-full border border-success/40 bg-success-50 px-3 py-1 font-medium text-success">Pass {counts.pass}</span>
           <span className="rounded-full border border-danger/40 bg-danger-50 px-3 py-1 font-medium text-danger">Fail {counts.fail}</span>
           <span className="rounded-full border border-line bg-paper-100 px-3 py-1 font-medium text-muted">Blocked {counts.block}</span>
           <span className="rounded-full border border-line bg-paper-100 px-3 py-1 font-medium text-muted">Left {UAT_TOTAL - done}</span>
+          <span className="ml-auto text-[12px] text-muted">
+            {!tester ? <span className="text-danger">Enter your name to begin.</span>
+              : isPending ? "Saving…"
+              : done > 0 ? `Continuing as ${tester} · ${done} recorded · saved ✓`
+              : touched ? "Saved ✓" : `Ready — ${tester}`}
+          </span>
         </div>
-        {!tester && <p className="mt-3 text-[12px] text-danger">Enter your name above before recording results.</p>}
       </Card>
 
       {/* Sections */}
@@ -121,23 +139,31 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
                       <div className="text-[14px] font-medium text-ink">{c.action}</div>
                       <div className="mt-0.5 text-[13px] text-muted"><span className="font-semibold text-ink">Expect:</span> {c.expect}</div>
                     </div>
-                    <div className="ml-auto flex gap-1.5">
-                      {STATUSES.map((st) => (
+                    <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                      {c.go && (
+                        <a href={c.go} target="_blank" rel="noopener"
+                          className="rounded-lg border border-action bg-action-50 px-3 py-1.5 text-[12.5px] font-semibold text-action transition hover:bg-action hover:text-white">
+                          Open ↗
+                        </a>
+                      )}
+                      <span className="mx-0.5 hidden h-5 w-px bg-line sm:inline-block" />
+                      {STATUS_KEYS.map((st) => (
                         <button
-                          key={st.key}
+                          key={st}
                           type="button"
                           disabled={!tester}
-                          aria-pressed={r.status === st.key}
-                          onClick={() => setStatus(c.id, st.key)}
-                          className={`rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold transition disabled:opacity-40 ${r.status === st.key ? st.on : "border-line bg-white text-muted hover:border-action"}`}
+                          aria-pressed={r.status === st}
+                          onClick={() => setStatus(c.id, st)}
+                          className={`rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold transition disabled:opacity-40 ${r.status === st ? STATUS_ON[st] : "border-line bg-white text-muted hover:border-action"}`}
                         >
-                          {st.label}
+                          {STATUS_LABEL[st]}
                         </button>
                       ))}
                     </div>
                   </div>
                   {(r.status === "Fail" || r.status === "Blocked" || r.notes) && (
                     <input
+                      key={`${tester}:${c.id}`}
                       defaultValue={r.notes ?? ""}
                       onBlur={(e) => setNote(c.id, e.target.value)}
                       placeholder="Notes — what you saw, screenshot reference…"
@@ -153,7 +179,7 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
       ))}
 
       <p className="mt-10 border-t border-line pt-4 text-[12px] text-muted">
-        Results are saved to the platform as you go. The team reviews them in <span className="font-medium text-ink">Admin → UAT results</span>.
+        Results save to the platform as you go — close the tab and come back any time, enter the same name, and continue. The team reviews everything in <span className="font-medium text-ink">Admin → UAT results</span>.
       </p>
     </div>
   );
