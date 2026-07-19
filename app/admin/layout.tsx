@@ -29,6 +29,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     name,
     roleLabel: tRoles(session.user.role),
     initials: initialsOf(name),
+    // Without this the sidebar's role filter hides every Admin-only nav item
+    // (Teams, Products, Audit Log, UAT) — they'd be reachable only by URL.
+    role: session.user.role,
   };
 
   const alerts = [
