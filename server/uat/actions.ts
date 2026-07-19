@@ -43,6 +43,14 @@ export async function setUatResult(input: {
   return { ok: true };
 }
 
+/** Distinct tester names that already have saved results — for resume autocomplete. */
+export async function getUatTesters(): Promise<string[]> {
+  const session = await auth();
+  if (!session?.user) return [];
+  const rows = await prisma.uatResult.findMany({ distinct: ["testerName"], select: { testerName: true }, orderBy: { testerName: "asc" } });
+  return rows.map((r) => r.testerName);
+}
+
 /** Load one tester's saved results, keyed by case id, for the /uat runner. */
 export async function getUatResults(testerName: string): Promise<Record<string, { status: string; notes: string | null }>> {
   const session = await auth();
