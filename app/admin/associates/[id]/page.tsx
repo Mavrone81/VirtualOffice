@@ -7,14 +7,13 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isFullAdmin } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
-import { maskNric, maskAccount } from "@/lib/crypto";
-import { decryptPiiAudited } from "@/server/pii";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ResetPasswordButton } from "./reset-password";
 import { CardTitleEditor } from "./card-title-editor";
+import { RevealPii } from "./reveal-pii";
 
 export const metadata = { title: "Associate · Enshrine Admin" };
 
@@ -71,13 +70,8 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
   });
   const p = (candidate?.submittedPayload as StoredPayload | null) ?? {};
 
-  const actorUserId = session?.user.id ?? null;
-  const nricPlain = await decryptPiiAudited({ blob: a.nric, field: "nric", subjectType: "Associate", subjectId: a.id, actorUserId });
-  const bankAcctPlain = await decryptPiiAudited({ blob: a.bankAccountNumber, field: "bankAccount", subjectType: "Associate", subjectId: a.id, actorUserId });
-
-  const payTo = a.paymentMethod === "PayNow"
-    ? a.paynowNumber
-    : a.bankName ? `${a.bankName} · ${maskAccount(bankAcctPlain)}` : null;
+  // NRIC + bank account are revealed on demand (audited on click), not here.
+  const payoutDetail = a.paymentMethod === "PayNow" ? a.paynowNumber : a.bankName;
 
   return (
     <>
@@ -105,7 +99,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               <Field label={t("detail.team")} value={a.teamName} />
               <Field label={t("detail.mobile")} value={a.mobileNumber} />
               <Field label={t("detail.email")} value={a.email} />
-              <Field label={t("detail.nric")} value={maskNric(nricPlain)} />
+              <RevealPii associateId={a.id} field="nric" label={t("detail.nric")} hasValue={!!a.nric} canReveal={canManage} />
               <Field label={t("detail.dob")} value={a.dateOfBirth ? format(a.dateOfBirth, "dd MMM yyyy") : null} />
               <Field label={t("detail.joinDate")} value={a.joinDate ? format(a.joinDate, "dd MMM yyyy") : null} />
               <Field label={t("detail.directUpline")} value={a.directUpline ? `${a.directUpline.associateCode} · ${a.directUpline.fullName}` : null} />
@@ -113,7 +107,10 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
                 label={t("detail.login")}
                 value={a.user ? `${a.user.email}${a.user.isActive ? "" : ` ${t("detail.loginDisabled")}`}` : t("detail.loginNotProvisioned")}
               />
-              <Field label={t("detail.payout")} value={a.paymentMethod ? `${humanize(a.paymentMethod)}${payTo ? ` · ${payTo}` : ""}` : null} />
+              <Field label={t("detail.payout")} value={a.paymentMethod ? `${humanize(a.paymentMethod)}${payoutDetail ? ` · ${payoutDetail}` : ""}` : null} />
+              {a.bankAccountNumber && (
+                <RevealPii associateId={a.id} field="bankAccount" label={t("detail.bankAccount")} hasValue={!!a.bankAccountNumber} canReveal={canManage} />
+              )}
             </div>
           </Card>
 
