@@ -110,3 +110,18 @@ export const UAT_SECTIONS: UatSection[] = [
 
 export const UAT_TOTAL = UAT_SECTIONS.reduce((n, s) => n + s.cases.length, 0);
 export const UAT_CASE_IDS = new Set(UAT_SECTIONS.flatMap((s) => s.cases.map((c) => c.id)));
+
+// Seeded test accounts shown to the tester so they can log in per role. All
+// share one password (dev/UAT seed).
+export type UatAccount = { role: string; login: string; who: string };
+export const UAT_PASSWORD = "Enshrine#2026";
+export const UAT_ACCOUNTS: UatAccount[] = [
+  { role: "Business Admin", login: "admin@enshrine.sg", who: "Full admin — products, teams, audit" },
+  { role: "Accounts", login: "accounts@enshrine.sg", who: "Finance sub-role" },
+  { role: "Sales Director", login: "sylvia.lee.cx@gmail.com", who: "Sylvia Lee · EN0001 · Sylvia Lee Division" },
+  { role: "Sales Director", login: "petafterlifesg@gmail.com", who: "Vincent Lim · EN0002 · Vincent Lim Division" },
+  { role: "Sales Manager", login: "franceskoohk@gmail.com", who: "Frances Koo · EN0007 (under EN0001)" },
+  { role: "Sales Associate", login: "uma.devi.jennifer@gmail.com", who: "Jennifer RK · EN0003 (under EN0002)" },
+  { role: "Sales Associate", login: "johnlee@mobilebellator.com", who: "John Lee · EN0004 (under EN0002)" },
+  { role: "Sales Associate", login: "limwailee8200@gmail.com", who: "Lim Wai Lee · EN0005 (under EN0002)" },
+];

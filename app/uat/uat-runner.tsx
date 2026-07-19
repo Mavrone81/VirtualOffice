@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import type { UatSection } from "@/lib/uat-cases";
-import { UAT_TOTAL } from "@/lib/uat-cases";
+import { UAT_TOTAL, UAT_ACCOUNTS, UAT_PASSWORD } from "@/lib/uat-cases";
 import { setUatResult, getUatResults, getUatTesters } from "@/server/uat/actions";
 
 type Res = { status: string; notes: string | null };
@@ -22,6 +22,13 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
   const [testers, setTesters] = useState<string[]>([]);
   const [isPending, start] = useTransition();
   const [touched, setTouched] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = (v: string) => {
+    navigator.clipboard?.writeText(v).then(() => {
+      setCopied(v);
+      setTimeout(() => setCopied((c) => (c === v ? null : c)), 1200);
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     const s = localStorage.getItem("vo-uat-tester");
@@ -115,6 +122,46 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
           </span>
         </div>
       </Card>
+
+      {/* Test accounts — how to log in per role */}
+      <details open className="mt-4 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 font-display text-[16px] text-ink">
+          Test accounts
+          <span className="text-[12px] font-normal text-muted">— log in with these per role · click a value to copy</span>
+        </summary>
+        <div className="px-5 pb-5">
+          <div className="mb-3 text-[13px] text-muted">
+            Log in at <a href="/login" target="_blank" rel="noopener" className="font-medium text-action hover:underline">/login</a> using the email as the username. All accounts share one password:
+            <button type="button" onClick={() => copy(UAT_PASSWORD)} className="ml-1.5 rounded bg-paper-100 px-2 py-0.5 font-mono text-[12.5px] text-ink transition hover:bg-action-50">
+              {UAT_PASSWORD}{copied === UAT_PASSWORD ? " ✓" : ""}
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
+                  <th className="py-2 pr-4 font-medium">Role</th>
+                  <th className="py-2 pr-4 font-medium">Login (email)</th>
+                  <th className="py-2 font-medium">Who</th>
+                </tr>
+              </thead>
+              <tbody>
+                {UAT_ACCOUNTS.map((a) => (
+                  <tr key={a.login} className="border-b border-line-200 last:border-0">
+                    <td className="py-2 pr-4 font-medium text-ink">{a.role}</td>
+                    <td className="py-2 pr-4">
+                      <button type="button" onClick={() => copy(a.login)} className="rounded bg-paper-100 px-2 py-0.5 font-mono text-[12.5px] text-ink transition hover:bg-action-50">
+                        {a.login}{copied === a.login ? " ✓" : ""}
+                      </button>
+                    </td>
+                    <td className="py-2 text-muted">{a.who}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
 
       {/* Sections */}
       {sections.map((s) => (
