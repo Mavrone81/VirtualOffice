@@ -67,6 +67,21 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
             <Label htmlFor="dob">{t("details.dob")}</Label>
             <Input id="dob" type="date" value={f.dateOfBirth ?? ""} onChange={(e) => set({ dateOfBirth: e.target.value })} />
           </div>
+          <div>
+            <Label htmlFor="marital">{t("details.maritalStatus")}</Label>
+            <select
+              id="marital"
+              className={selectCls}
+              value={f.maritalStatus ?? ""}
+              onChange={(e) => set({ maritalStatus: (e.target.value || undefined) as OnboardingSubmission["maritalStatus"] })}
+            >
+              <option value="">—</option>
+              <option value="Single">{t("details.single")}</option>
+              <option value="Married">{t("details.married")}</option>
+              <option value="Divorced">{t("details.divorced")}</option>
+              <option value="Widowed">{t("details.widowed")}</option>
+            </select>
+          </div>
           <div className="sm:col-span-2">
             <Label htmlFor="addr">{t("details.address")}</Label>
             <Input id="addr" value={f.residentialAddress ?? ""} onChange={(e) => set({ residentialAddress: e.target.value })} />
@@ -79,6 +94,35 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
             <Label htmlFor="ecp">{t("details.ecNumber")}</Label>
             <Input id="ecp" value={f.emergencyContactNumber ?? ""} onChange={(e) => set({ emergencyContactNumber: e.target.value })} />
           </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="spouseConflict">{t("details.spouseConflict")}</Label>
+            <select
+              id="spouseConflict"
+              className={selectCls}
+              value={f.spouseConflict ? "yes" : "no"}
+              onChange={(e) => set({ spouseConflict: e.target.value === "yes" })}
+            >
+              <option value="no">{t("details.conflictNo")}</option>
+              <option value="yes">{t("details.conflictYes")}</option>
+            </select>
+            <p className="mt-1 text-[12px] text-muted-2">{t("details.spouseConflictHint")}</p>
+          </div>
+          {f.spouseConflict && (
+            <>
+              <div>
+                <Label htmlFor="spouseName">{t("details.spouseName")}</Label>
+                <Input id="spouseName" value={f.spouseName ?? ""} onChange={(e) => set({ spouseName: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="spouseCompany">{t("details.spouseCompany")}</Label>
+                <Input id="spouseCompany" value={f.spouseCompany ?? ""} onChange={(e) => set({ spouseCompany: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="spouseDesignation">{t("details.spouseDesignation")}</Label>
+                <Input id="spouseDesignation" value={f.spouseDesignation ?? ""} onChange={(e) => set({ spouseDesignation: e.target.value })} />
+              </div>
+            </>
+          )}
           <div className="sm:col-span-2">
             <Label htmlFor="photo">{t("details.photo")}</Label>
             <input
