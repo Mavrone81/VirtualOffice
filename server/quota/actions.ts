@@ -6,13 +6,14 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { round2 } from "@/lib/money";
 import { canSetQuota, canOverrideQuota } from "@/lib/quota";
-import { downlineIds } from "@/lib/rbac";
+import { teamScopeIds } from "@/lib/team";
 import { logAudit } from "@/lib/audit";
 
 /**
  * Set a team member's monthly sales quota (16-Jul §3). The setter must be
- * SAM+, the target must be in their downline (or self), and a lower authority
- * cannot overwrite a quota a higher one already set (director overrides manager).
+ * SAM+, the target must be in their team scope (explicit Team membership, or
+ * their downline until teams are populated), and a lower authority cannot
+ * overwrite a quota a higher one already set (director overrides manager).
  */
 export async function setQuota(input: {
   associateId: string;
@@ -24,7 +25,7 @@ export async function setQuota(input: {
   if (!session?.user.associateId || !canSetQuota(session.user.role)) return { ok: false, error: t("forbidden") };
   if (!/^\d{4}-\d{2}$/.test(input.month)) return { ok: false, error: t("badMonth") };
 
-  const scope = new Set([session.user.associateId, ...(await downlineIds(session.user.associateId))]);
+  const scope = new Set([session.user.associateId, ...(await teamScopeIds(session.user.associateId))]);
   if (!scope.has(input.associateId)) return { ok: false, error: t("forbidden") };
 
   const key = { associateId_month: { associateId: input.associateId, month: input.month } };

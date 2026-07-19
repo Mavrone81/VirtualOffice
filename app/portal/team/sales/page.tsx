@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { downlineIds } from "@/lib/rbac";
+import { teamScopeIds } from "@/lib/team";
 import { formatSGD, sum } from "@/lib/money";
 import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
@@ -20,7 +20,7 @@ export default async function TeamSalesPage() {
   const associateId = session?.user.associateId ?? null;
   if (!associateId) return <PageHeader title={t("sales.pageTitle")} subtitle={t("sales.noProfile")} />;
 
-  const dlIds = await downlineIds(associateId);
+  const dlIds = await teamScopeIds(associateId);
   const teamIds = dlIds.filter((id) => id !== associateId);
 
   const submissions = teamIds.length
