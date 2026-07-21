@@ -14,6 +14,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { ResetPasswordButton } from "./reset-password";
 import { CardTitleEditor } from "./card-title-editor";
 import { RevealPii } from "./reveal-pii";
+import { UplineEditor } from "./upline-editor";
 
 export const metadata = { title: "Associate · Enshrine Admin" };
 
@@ -52,11 +53,21 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
     where: { id },
     include: {
       directUpline: { select: { associateCode: true, fullName: true } },
+      secondUpline: { select: { associateCode: true, fullName: true } },
       user: { select: { email: true, isActive: true, nameCards: { select: { customTitle: true }, take: 1 } } },
       pFile: { include: { documents: { orderBy: { filedAt: "desc" } } } },
     },
   });
   if (!a) notFound();
+
+  // Candidate uplines for the editor (Admin only): everyone except this associate.
+  const uplineChoices = canManage
+    ? (await prisma.associate.findMany({
+        where: { id: { not: id } },
+        orderBy: { associateCode: "asc" },
+        select: { associateCode: true, fullName: true, designation: true },
+      })).map((u) => ({ code: u.associateCode, label: `${u.associateCode} · ${u.fullName} (${humanize(u.designation)})` }))
+    : [];
 
   // The onboarding application + invite data live on the originating candidate
   // (converted → this associate). Absent for associates added directly by admin.
@@ -103,6 +114,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               <Field label={t("detail.dob")} value={a.dateOfBirth ? format(a.dateOfBirth, "dd MMM yyyy") : null} />
               <Field label={t("detail.joinDate")} value={a.joinDate ? format(a.joinDate, "dd MMM yyyy") : null} />
               <Field label={t("detail.directUpline")} value={a.directUpline ? `${a.directUpline.associateCode} · ${a.directUpline.fullName}` : null} />
+              <Field label={t("detail.secondUpline")} value={a.secondUpline ? `${a.secondUpline.associateCode} · ${a.secondUpline.fullName}` : null} />
               <Field
                 label={t("detail.login")}
                 value={a.user ? `${a.user.email}${a.user.isActive ? "" : ` ${t("detail.loginDisabled")}`}` : t("detail.loginNotProvisioned")}
@@ -113,6 +125,19 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               )}
             </div>
           </Card>
+
+          {/* Admin-only: set the direct + second upline (positional overrides) */}
+          {canManage && (
+            <Card className="p-5">
+              <h2 className="mb-4 font-display text-[16px] text-ink">{t("detail.uplineSection")}</h2>
+              <UplineEditor
+                associateId={a.id}
+                choices={uplineChoices}
+                initialDirect={a.directUpline?.associateCode ?? null}
+                initialSecond={a.secondUpline?.associateCode ?? null}
+              />
+            </Card>
+          )}
 
           {/* Full application form (from the onboarding submission) */}
           <Card className="p-5">
