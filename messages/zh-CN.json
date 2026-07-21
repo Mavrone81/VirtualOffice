@@ -801,7 +801,8 @@
       "failed": "操作失败",
       "approveSplit": "批准分配（SD）",
       "sdApproved": "✓ SD 已批准",
-      "autoApproved": "✓ 自动批准（3天）"
+      "autoApproved": "✓ 自动批准（3天）",
+      "sdNotRequired": "— 无需批准"
     },
     "transactions": {
       "title": "销售交易",

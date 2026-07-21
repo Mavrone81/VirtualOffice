@@ -1,4 +1,48 @@
+import { Designation } from "@prisma/client";
+
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+type UplineDesig = { designation: Designation } | null | undefined;
+
+export type CloserChain = {
+  directUplineId: string | null;
+  directUpline?: UplineDesig;
+  secondUplineId: string | null;
+  secondUpline?: UplineDesig;
+};
+
+/**
+ * The Sales Director who approves a submission's split (16-Jul §4). The approver
+ * is the nearest SD in the closer's upline chain: the DIRECT upline when the
+ * associate reports straight to an SD (2-level SD→SA — the common case in this
+ * org), otherwise the SECOND upline (3-level SD→SM→SA). Returns null when no SD
+ * sits above the closer (e.g. an SD closing their own sale) — there is then no
+ * SD approver, so verification is not gated on one.
+ *
+ * The earlier code assumed the SD is always the second upline, which left every
+ * sale from an associate reporting directly to an SD invisible to that SD and
+ * stuck until the 3-day auto-approve.
+ */
+export function sdApproverId(closer: CloserChain): string | null {
+  if (closer.directUpline?.designation === Designation.SalesDirector) return closer.directUplineId;
+  if (closer.secondUpline?.designation === Designation.SalesDirector) return closer.secondUplineId;
+  return null;
+}
+
+/**
+ * Whether a submission still needs SD split approval before a Business Admin can
+ * verify it. True only while an SD approver exists in the closer's chain AND
+ * neither an explicit SD approval nor the 3-day auto-approve has landed. With no
+ * SD above the closer there is no approver, so verification is not blocked.
+ */
+export function pendingSdApproval(
+  sub: { sdApprovedAt: Date | null; createdAt: Date },
+  closer: CloserChain,
+  now: Date = new Date(),
+): boolean {
+  if (sdApproverId(closer) === null) return false;
+  return !isSdApproved(sub, now).approved;
+}
 
 /**
  * Share-com split approval state (16-Jul §4). The team SD approves the split;
