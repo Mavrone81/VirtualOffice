@@ -6,7 +6,7 @@ import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { humanize } from "@/lib/labels";
-import { isSdApproved } from "@/lib/approval";
+import { isSdApproved, sdApproverId } from "@/lib/approval";
 import { VerifyButton } from "./verify-button";
 import { ApproveSplitButton } from "./approve-split-button";
 
@@ -18,7 +18,15 @@ export default async function VerifyQueuePage() {
   const submissions = await prisma.salesSubmission.findMany({
     where: { status: SubmissionStatus.Submitted },
     orderBy: { createdAt: "asc" },
-    include: { lineItems: true, closingAssociate: true },
+    include: {
+      lineItems: true,
+      closingAssociate: {
+        include: {
+          directUpline: { select: { designation: true } },
+          secondUpline: { select: { designation: true } },
+        },
+      },
+    },
   });
 
   return (
@@ -56,6 +64,8 @@ export default async function VerifyQueuePage() {
                       {(() => {
                         const sd = isSdApproved(s);
                         if (sd.approved) return <span className="text-[12px] text-success">{sd.auto ? t("verify.autoApproved") : t("verify.sdApproved")}</span>;
+                        // No SD above the closer → no split approver, verify directly.
+                        if (sdApproverId(s.closingAssociate) === null) return <span className="text-[12px] text-muted">{t("verify.sdNotRequired")}</span>;
                         return <ApproveSplitButton id={s.id} />;
                       })()}
                     </td>

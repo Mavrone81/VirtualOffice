@@ -801,7 +801,8 @@
       "failed": "Failed",
       "approveSplit": "Approve split (SD)",
       "sdApproved": "✓ SD approved",
-      "autoApproved": "✓ Auto-approved (3d)"
+      "autoApproved": "✓ Auto-approved (3d)",
+      "sdNotRequired": "— not required"
     },
     "transactions": {
       "title": "Sales transactions",

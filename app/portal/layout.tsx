@@ -39,7 +39,13 @@ export default async function PortalLayout({ children }: { children: React.React
           where: {
             status: SubmissionStatus.Submitted,
             sdApprovedAt: null,
-            closingAssociate: { secondUplineId: session.user.associateId },
+            // Nearest-SD approver: direct upline (2-level) or second upline (3-level).
+            closingAssociate: {
+              OR: [
+                { directUplineId: session.user.associateId },
+                { secondUplineId: session.user.associateId },
+              ],
+            },
           },
         })
       : 0;

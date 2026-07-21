@@ -35,8 +35,12 @@ export default async function PortalApprovalsPage() {
     where: {
       status: SubmissionStatus.Submitted,
       sdApprovedAt: null,
-      // The team SD for a submission is the closer's second upline. Admins see all.
-      ...(isSD ? { closingAssociate: { secondUplineId: associateId } } : {}),
+      // The SD approver is the nearest SD in the closer's chain — the DIRECT
+      // upline (2-level SD→SA) or the SECOND upline (3-level SD→SM→SA). Match
+      // both so an SD sees the sales they can approve. A Business Admin sees all.
+      ...(isSD
+        ? { closingAssociate: { OR: [{ directUplineId: associateId }, { secondUplineId: associateId }] } }
+        : {}),
     },
     orderBy: { createdAt: "asc" },
     include: { closingAssociate: true },

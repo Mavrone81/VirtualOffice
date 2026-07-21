@@ -9,7 +9,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
-import { isSdApproved } from "@/lib/approval";
+import { isSdApproved, sdApproverId, pendingSdApproval } from "@/lib/approval";
 import { D, round2, sum } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
@@ -134,15 +134,30 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
 
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
-    include: { lineItems: true, closingAssociate: true },
+    include: {
+      lineItems: true,
+      closingAssociate: {
+        include: {
+          directUpline: { select: { designation: true } },
+          secondUpline: { select: { designation: true } },
+        },
+      },
+    },
   });
   if (!sub) return { ok: false, error: t("notFound") };
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
-  // Business Admin verifies only after the team SD has approved the split
-  // (or it auto-approved 3 days after submission).
-  if (!isSdApproved(sub).approved) return { ok: false, error: t("pendingSdApproval") };
 
   const closer = sub.closingAssociate;
+  // Business Admin verifies only after the chain's SD has approved the split
+  // (or it auto-approved 3 days after submission). Sales with no SD above the
+  // closer have no approver and are not gated.
+  if (pendingSdApproval(sub, closer)) return { ok: false, error: t("pendingSdApproval") };
+
+  // When an SD approver exists but never explicitly approved, verification is
+  // only possible because the 3-day rule auto-approved the split — stamp and
+  // audit it as a system approval (16-Jul §4).
+  const autoApproved = sdApproverId(closer) !== null && sub.sdApprovedAt === null;
+
   const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;
 
   const txId = await prisma.$transaction(async (db) => {
@@ -223,12 +238,24 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
       }
     }
 
-    await db.salesSubmission.update({ where: { id: sub.id }, data: { status: SubmissionStatus.Verified } });
+    await db.salesSubmission.update({
+      where: { id: sub.id },
+      data: { status: SubmissionStatus.Verified, ...(autoApproved ? { sdApprovedAt: new Date() } : {}) },
+    });
     return transaction.id;
   });
 
   await runCommission(txId);
 
+  if (autoApproved) {
+    await logAudit({
+      action: "submission.sd_approved",
+      entityType: "SalesSubmission",
+      entityId: sub.id,
+      actorUserId: null, // system actor — the 3-day auto-approve rule, not a person
+      after: { auto: true },
+    });
+  }
   await logAudit({ action: "sale.verified", entityType: "SalesTransaction", entityId: txId, after: { submissionId } });
   revalidatePath("/admin/sales/verify");
   revalidatePath("/admin/sales/transactions");
