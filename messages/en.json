@@ -28,7 +28,8 @@
     "yes": "Yes",
     "no": "No",
     "dash": "—",
-    "allCaughtUp": "You're all caught up."
+    "allCaughtUp": "You're all caught up.",
+    "saved": "Saved"
   },
   "nav": {
     "groupOperations": "Operations",
@@ -173,7 +174,9 @@
       "bankTransfer": "Bank Transfer",
       "createAssociate": "Create associate",
       "createHint": "Created as Pending / Inactive — approve to activate & provision login.",
-      "couldNotCreate": "Could not create."
+      "couldNotCreate": "Could not create.",
+      "secondUpline": "Second upline (Tier-2 override)",
+      "secondUplineHint": "Auto-filled from the direct upline's own upline — change if needed."
     },
     "detail": {
       "allAssociates": "← All associates",
@@ -213,7 +216,10 @@
       "bankAccount": "Bank account",
       "show": "Show",
       "hide": "Hide",
-      "revealFailed": "Could not reveal."
+      "revealFailed": "Could not reveal.",
+      "secondUpline": "Second upline",
+      "uplineEditHint": "Overrides are positional — the direct upline earns the Tier-1 override, the second upline the Tier-2. Changing these affects future sales only.",
+      "uplineSection": "Upline / hierarchy"
     },
     "reset": {
       "newPassword": "✓ New temporary password:",
@@ -263,8 +269,8 @@
     "closingCommission": "Closing commission",
     "companyCutPool": "Company cut pool (40%)",
     "netToCloser": "Net to closer",
-    "smOverride": "SM override (20% of pool)",
-    "sdOverride": "SD override (10% of pool)",
+    "smOverride": "Direct-upline override",
+    "sdOverride": "Second-upline override",
     "companyRetained": "Company retained",
     "reconciles": "✓ Reconciles",
     "ledgerTitle": "Commission ledger",
@@ -682,8 +688,8 @@
     "closingAmountFixed": "Closing amount (S$)",
     "closingAmountPct": "Closing %",
     "companyCutPoolLabel": "Company cut % (pool)",
-    "smOverrideLabel": "SM overriding",
-    "sdOverrideLabel": "SD overriding",
+    "smOverrideLabel": "Direct-upline override",
+    "sdOverrideLabel": "Second-upline override",
     "previewSalesAmountLabel": "Sales amount (preview)",
     "netToCloserLabel": "Net to closer",
     "companyRetainedLabel": "Company retained",
@@ -955,6 +961,10 @@
     "notFound": "Not found",
     "fullNameRequired": "Full name is required.",
     "directUplineNotFound": "Direct upline code not found.",
+    "secondUplineNotFound": "Second upline code not found.",
+    "uplinesMustDiffer": "Direct and second upline must be different associates.",
+    "uplineCannotBeSelf": "An associate cannot be their own upline.",
+    "uplineCannotBeDownline": "An upline cannot be one of this associate's own downline.",
     "emailRequired": "Email is required.",
     "uplineCodeNotFound": "Upline code not found.",
     "invalidOrExpiredLink": "Invalid or expired link.",
@@ -993,7 +1003,6 @@
     "fileTooLarge": "File must be under 15 MB.",
     "associateCodeRequired": "Associate code is required.",
     "associateCodeNotFound": "Associate code not found.",
-    "teamNameRequired": "Team name is required.",
     "vendorNameRequired": "Vendor name is required.",
     "notSignedIn": "Not signed in.",
     "newPasswordTooShort": "New password must be at least {min} characters.",

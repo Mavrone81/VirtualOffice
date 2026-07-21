@@ -6,7 +6,7 @@ import { hash } from "@node-rs/argon2";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole, isFullAdmin } from "@/lib/rbac";
+import { isAdminRole, isFullAdmin, downlineIds } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
 import { logAudit } from "@/lib/audit";
 import { decryptPiiAudited, type PiiField } from "@/server/pii";
@@ -63,6 +63,7 @@ export type NewAssociateInput = {
   dateOfBirth?: string;
   designation: Designation;
   directUplineCode?: string;
+  secondUplineCode?: string;
   teamName?: string;
   recruitingManager?: string;
   paymentMethod?: "PayNow" | "Bank Transfer";
@@ -84,7 +85,7 @@ async function nextAssociateCode(): Promise<string> {
 // was "leave this blank" — normalize before validating.
 const BLANKABLE_KEYS: (keyof NewAssociateInput)[] = [
   "businessName", "mobileNumber", "email", "nric", "dateOfBirth",
-  "directUplineCode", "teamName", "recruitingManager", "paymentMethod",
+  "directUplineCode", "secondUplineCode", "teamName", "recruitingManager", "paymentMethod",
   "paynowNumber", "bankName", "bankAccountNumber",
 ];
 function blankToUndefined(input: NewAssociateInput): NewAssociateInput {
@@ -107,6 +108,20 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
     : null;
   if (validInput.directUplineCode && !directUpline) return { ok: false, error: t("directUplineNotFound") };
 
+  // Second upline defaults to the direct upline's own upline (auto-derived, the
+  // usual chain) but the admin may override it. Overrides are positional: the
+  // direct upline earns the Tier-1 override, the second upline the Tier-2 one,
+  // regardless of either's designation — so both must be settable.
+  let secondUplineId: string | null;
+  if (validInput.secondUplineCode) {
+    const secondUpline = await prisma.associate.findUnique({ where: { associateCode: validInput.secondUplineCode } });
+    if (!secondUpline) return { ok: false, error: t("secondUplineNotFound") };
+    if (directUpline && secondUpline.id === directUpline.id) return { ok: false, error: t("uplinesMustDiffer") };
+    secondUplineId = secondUpline.id;
+  } else {
+    secondUplineId = directUpline?.directUplineId ?? null; // auto-derive default
+  }
+
   const code = await nextAssociateCode();
   await prisma.associate.create({
     data: {
@@ -119,7 +134,7 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
       dateOfBirth: validInput.dateOfBirth ? new Date(validInput.dateOfBirth) : null,
       designation: validInput.designation,
       directUplineId: directUpline?.id ?? null,
-      secondUplineId: directUpline?.directUplineId ?? null, // auto-derive
+      secondUplineId,
       recruitingManager: validInput.recruitingManager?.trim() || null,
       teamName: validInput.teamName?.trim() || null,
       paymentMethod: validInput.paymentMethod === "Bank Transfer" ? PaymentMethod.BankTransfer : validInput.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null,
@@ -132,6 +147,63 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
   });
   revalidatePath("/admin/associates");
   return { ok: true, code };
+}
+
+/**
+ * Change an existing associate's direct + second upline (16-Jul §7). Overrides
+ * are positional (direct = Tier-1, second = Tier-2), so an admin must be able to
+ * set both. Pass a code to set, or null/blank to clear. Guards self-reference,
+ * direct==second, and picking one of this associate's own downline (which would
+ * create a cycle). Only affects FUTURE verifications — past transactions keep
+ * the upline they snapshotted at verify time.
+ */
+export async function updateAssociateUplines(
+  id: string,
+  directUplineCode: string | null,
+  secondUplineCode: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+
+  const associate = await prisma.associate.findUnique({
+    where: { id },
+    select: { directUplineId: true, secondUplineId: true },
+  });
+  if (!associate) return { ok: false, error: t("notFound") };
+
+  async function resolveCode(codeVal: string | null, notFoundKey: string) {
+    const trimmed = codeVal?.trim();
+    if (!trimmed) return { ok: true as const, id: null };
+    const up = await prisma.associate.findUnique({ where: { associateCode: trimmed }, select: { id: true } });
+    if (!up) return { ok: false as const, key: notFoundKey };
+    return { ok: true as const, id: up.id };
+  }
+
+  const dir = await resolveCode(directUplineCode, "directUplineNotFound");
+  if (!dir.ok) return { ok: false, error: t(dir.key) };
+  const sec = await resolveCode(secondUplineCode, "secondUplineNotFound");
+  if (!sec.ok) return { ok: false, error: t(sec.key) };
+
+  if (dir.id === id || sec.id === id) return { ok: false, error: t("uplineCannotBeSelf") };
+  if (dir.id && sec.id && dir.id === sec.id) return { ok: false, error: t("uplinesMustDiffer") };
+
+  // Cycle guard: an upline may not be one of this associate's own descendants.
+  const descendants = new Set(await downlineIds(id));
+  if ((dir.id && descendants.has(dir.id)) || (sec.id && descendants.has(sec.id))) {
+    return { ok: false, error: t("uplineCannotBeDownline") };
+  }
+
+  await prisma.associate.update({ where: { id }, data: { directUplineId: dir.id, secondUplineId: sec.id } });
+  await logAudit({
+    action: "associate.uplines.updated",
+    entityType: "Associate",
+    entityId: id,
+    before: { directUplineId: associate.directUplineId, secondUplineId: associate.secondUplineId },
+    after: { directUplineId: dir.id, secondUplineId: sec.id },
+  });
+  revalidatePath(`/admin/associates/${id}`);
+  revalidatePath("/admin/associates");
+  return { ok: true };
 }
 
 /** Approve/Reject/Incomplete. On Approve → activate + provision a login if none. */

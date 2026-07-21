@@ -28,7 +28,8 @@
     "yes": "是",
     "no": "否",
     "dash": "—",
-    "allCaughtUp": "暂无待处理事项。"
+    "allCaughtUp": "暂无待处理事项。",
+    "saved": "已保存"
   },
   "nav": {
     "groupOperations": "运营",
@@ -173,7 +174,9 @@
       "bankTransfer": "银行转账",
       "createAssociate": "创建伙伴",
       "createHint": "将以待处理/未激活状态创建 — 批准后激活并开通登录权限。",
-      "couldNotCreate": "无法创建。"
+      "couldNotCreate": "无法创建。",
+      "secondUpline": "第二上线（第二级 override）",
+      "secondUplineHint": "默认取直属上线的上线，可按需更改。"
     },
     "detail": {
       "allAssociates": "← 所有伙伴",
@@ -213,7 +216,10 @@
       "bankAccount": "银行账号",
       "show": "显示",
       "hide": "隐藏",
-      "revealFailed": "无法显示。"
+      "revealFailed": "无法显示。",
+      "secondUpline": "第二上线",
+      "uplineEditHint": "佣金 override 按位置分配——直属上线获得第一级 override，第二上线获得第二级。修改仅影响之后的销售。",
+      "uplineSection": "上线 / 层级"
     },
     "reset": {
       "newPassword": "✓ 新临时密码：",
@@ -263,8 +269,8 @@
     "closingCommission": "成交佣金",
     "companyCutPool": "公司抽成奖池 (40%)",
     "netToCloser": "成交员净额",
-    "smOverride": "SM 越级佣金（奖池 20%）",
-    "sdOverride": "SD 越级佣金（奖池 10%）",
+    "smOverride": "直属上线 override",
+    "sdOverride": "第二上线 override",
     "companyRetained": "公司留存",
     "reconciles": "✓ 已核对",
     "ledgerTitle": "佣金账本",
@@ -682,8 +688,8 @@
     "closingAmountFixed": "成交金额（S$）",
     "closingAmountPct": "成交百分比 %",
     "companyCutPoolLabel": "公司抽成比例 %（奖池）",
-    "smOverrideLabel": "SM 越级佣金",
-    "sdOverrideLabel": "SD 越级佣金",
+    "smOverrideLabel": "直属上线 override",
+    "sdOverrideLabel": "第二上线 override",
     "previewSalesAmountLabel": "销售金额（预览）",
     "netToCloserLabel": "成交者净得",
     "companyRetainedLabel": "公司留存",
@@ -955,6 +961,10 @@
     "notFound": "未找到",
     "fullNameRequired": "全名为必填项。",
     "directUplineNotFound": "直属上线代码未找到。",
+    "secondUplineNotFound": "第二上线代码未找到。",
+    "uplinesMustDiffer": "直属上线与第二上线必须是不同的伙伴。",
+    "uplineCannotBeSelf": "伙伴不能是自己的上线。",
+    "uplineCannotBeDownline": "上线不能是该伙伴的下线。",
     "emailRequired": "邮箱为必填项。",
     "uplineCodeNotFound": "上线代码未找到。",
     "invalidOrExpiredLink": "链接无效或已过期。",
@@ -993,7 +1003,6 @@
     "fileTooLarge": "文件大小不能超过 15 MB。",
     "associateCodeRequired": "伙伴代码为必填项。",
     "associateCodeNotFound": "伙伴代码未找到。",
-    "teamNameRequired": "团队名称为必填项。",
     "vendorNameRequired": "供应商名称为必填项。",
     "notSignedIn": "未登录。",
     "newPasswordTooShort": "新密码至少需要 {min} 个字符。",
