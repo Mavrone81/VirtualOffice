@@ -100,6 +100,7 @@ export const newAssociateSchema = z.object({
   dateOfBirth: dateStr.optional(),
   designation: z.enum(["SalesAssociate", "SalesAssistantManager", "SalesManager", "SalesDirector"]),
   directUplineCode: code.optional(),
+  secondUplineCode: code.optional(),
   teamName: z.string().trim().max(200).optional(),
   recruitingManager: z.string().trim().max(200).optional(),
   paymentMethod: z.enum(["PayNow", "Bank Transfer"]).optional(),

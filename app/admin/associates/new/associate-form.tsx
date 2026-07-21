@@ -12,7 +12,7 @@ import { createAssociate, type NewAssociateInput } from "@/server/associates/act
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
 
-export function AssociateForm({ uplines }: { uplines: { code: string; label: string }[] }) {
+export function AssociateForm({ uplines }: { uplines: { code: string; label: string; upCode: string | null }[] }) {
   const t = useTranslations("associates");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -76,12 +76,33 @@ export function AssociateForm({ uplines }: { uplines: { code: string; label: str
           </div>
           <div>
             <Label htmlFor="up">{t("form.directUpline")}</Label>
-            <select id="up" className={selectCls} value={f.directUplineCode ?? ""} onChange={(e) => set({ directUplineCode: e.target.value || undefined })}>
+            <select
+              id="up"
+              className={selectCls}
+              value={f.directUplineCode ?? ""}
+              onChange={(e) => {
+                // Picking a direct upline auto-fills the second upline with that
+                // upline's own upline (the usual chain) — editable below.
+                const codeVal = e.target.value || undefined;
+                const derived = uplines.find((u) => u.code === codeVal)?.upCode ?? undefined;
+                set({ directUplineCode: codeVal, secondUplineCode: derived });
+              }}
+            >
               <option value="">{t("form.noneHead")}</option>
               {uplines.map((u) => (
                 <option key={u.code} value={u.code}>{u.label}</option>
               ))}
             </select>
+          </div>
+          <div>
+            <Label htmlFor="up2">{t("form.secondUpline")}</Label>
+            <select id="up2" className={selectCls} value={f.secondUplineCode ?? ""} onChange={(e) => set({ secondUplineCode: e.target.value || undefined })}>
+              <option value="">{t("form.noneHead")}</option>
+              {uplines.map((u) => (
+                <option key={u.code} value={u.code}>{u.label}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-[12px] text-muted-2">{t("form.secondUplineHint")}</p>
           </div>
           <div>
             <Label htmlFor="team">{t("form.teamDivision")}</Label>
