@@ -330,7 +330,16 @@
     "pdfLink": "PDF ↗",
     "markPaid": "标记已付",
     "markUnpaid": "标记未付",
-    "failed": "操作失败"
+    "failed": "操作失败",
+    "payment": {
+      "method": "方式",
+      "cash": "现金",
+      "credit": "信用卡",
+      "bank": "银行",
+      "reference": "参考编号",
+      "confirm": "确认已付款",
+      "cancel": "取消"
+    }
   },
   "notices": {
     "title": "公告",

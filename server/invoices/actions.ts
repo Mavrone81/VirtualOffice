@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { InvoiceStatus } from "@prisma/client";
+import { InvoiceStatus, InvoicePaymentMethod } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -58,7 +58,10 @@ export async function uploadSignedInvoice(invoiceId: string, file: File): Promis
   return { ok: true };
 }
 
-export async function markInvoicePaid(invoiceId: string): Promise<{ ok: boolean; error?: string }> {
+export async function markInvoicePaid(
+  invoiceId: string,
+  payment?: { method: InvoicePaymentMethod; reference?: string },
+): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await requireAdmin();
   if (!session) return { ok: false, error: t("forbidden") };
@@ -68,10 +71,16 @@ export async function markInvoicePaid(invoiceId: string): Promise<{ ok: boolean;
 
   await prisma.invoice.update({
     where: { id: invoiceId },
-    data: { status: InvoiceStatus.Paid, paidDate: new Date(), paidMarkedById: session.user.id },
+    data: {
+      status: InvoiceStatus.Paid,
+      paidDate: new Date(),
+      paidMarkedById: session.user.id,
+      paidMethod: payment?.method ?? null,
+      paidReference: payment?.reference?.trim() || null,
+    },
   });
   await recomputeEligibility(invoice.transactionId);
-  await logAudit({ action: "invoice.marked_paid", entityType: "Invoice", entityId: invoiceId, actorUserId: session.user.id });
+  await logAudit({ action: "invoice.marked_paid", entityType: "Invoice", entityId: invoiceId, actorUserId: session.user.id, after: { method: payment?.method ?? null, reference: payment?.reference?.trim() || null } });
 
   revalidatePath("/admin/invoices");
   revalidatePath("/admin/commission");
@@ -114,7 +123,7 @@ export async function markInvoiceUnpaid(invoiceId: string): Promise<{ ok: boolea
 
   await prisma.invoice.update({
     where: { id: invoiceId },
-    data: { status: InvoiceStatus.Outstanding, paidDate: null, paidMarkedById: null },
+    data: { status: InvoiceStatus.Outstanding, paidDate: null, paidMarkedById: null, paidMethod: null, paidReference: null },
   });
   await recomputeEligibility(invoice.transactionId);
   await logAudit({ action: "invoice.marked_unpaid", entityType: "Invoice", entityId: invoiceId, actorUserId: session.user.id });

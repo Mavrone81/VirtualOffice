@@ -119,6 +119,12 @@ enum InvoiceStatus {
   Cancelled
 }
 
+enum InvoicePaymentMethod {
+  Cash
+  Credit
+  Bank
+}
+
 enum LedgerLineType {
   Personal
   Override
@@ -634,6 +640,9 @@ model Invoice {
   status           InvoiceStatus        @default(Outstanding)
   paidDate         DateTime?            @map("paid_date")
   paidMarkedById   String?              @map("paid_marked_by") @db.Uuid
+  // Payment capture on mark-Paid (Issues v1.0 #6): how the client tendered.
+  paidMethod       InvoicePaymentMethod? @map("paid_method")
+  paidReference    String?              @map("paid_reference")
   pdfFileKey       String?              @map("pdf_file_key")
   signedPdfFileKey String?              @map("signed_pdf_file_key")
   remarks          String?

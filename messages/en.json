@@ -330,7 +330,16 @@
     "pdfLink": "PDF ↗",
     "markPaid": "Mark paid",
     "markUnpaid": "Mark unpaid",
-    "failed": "Failed"
+    "failed": "Failed",
+    "payment": {
+      "method": "Method",
+      "cash": "Cash",
+      "credit": "Credit",
+      "bank": "Bank",
+      "reference": "Reference no.",
+      "confirm": "Confirm paid",
+      "cancel": "Cancel"
+    }
   },
   "notices": {
     "title": "Notices",
