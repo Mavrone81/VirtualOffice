@@ -327,6 +327,7 @@
     "colClient": "Client",
     "colCompany": "Company",
     "colAmount": "Amount",
+    "colPayment": "Payment",
     "pdfLink": "PDF ↗",
     "markPaid": "Mark paid",
     "markUnpaid": "Mark unpaid",
