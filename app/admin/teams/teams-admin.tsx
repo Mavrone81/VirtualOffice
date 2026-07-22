@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { createTeam, addTeamMember, removeTeamMember } from "@/server/teams/actions";
+import { createTeam, addTeamMember, removeTeamMember, setTeamDirector } from "@/server/teams/actions";
 
 type Assoc = { id: string; name: string; designation: string };
 type Team = { id: string; name: string; directorId: string | null; memberIds: string[] };
@@ -75,7 +75,18 @@ function TeamCard({ team, associates, nameById }: { team: Team; associates: Asso
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-display text-[16px] text-ink">{team.name}</h3>
-          <p className="text-[12px] text-muted">{t("director")}: {team.directorId ? nameById.get(team.directorId) ?? "—" : t("noDirector")}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-[12px] text-muted">{t("director")}:</span>
+            <select
+              className="h-8 rounded-lg border border-line bg-white px-2 text-[12px] text-ink"
+              value={team.directorId ?? ""}
+              disabled={pending}
+              onChange={(e) => start(async () => { await setTeamDirector({ teamId: team.id, directorId: e.target.value || null }); router.refresh(); })}
+            >
+              <option value="">{t("noDirector")}</option>
+              {associates.filter((a) => a.designation === "SalesDirector").map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
         </div>
         <span className="text-[12px] text-muted">{t("memberCount", { count: team.memberIds.length })}</span>
       </div>
