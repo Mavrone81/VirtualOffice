@@ -39,6 +39,16 @@ export async function addTeamMember(input: { teamId: string; associateId: string
     update: {},
   });
   await logAudit({ action: "team.member_added", entityType: "Team", entityId: input.teamId, actorUserId: session.user.id });
+
+  // Approval follows the team (16-Jul §7): a member's split-approver + Tier-1
+  // commission override is the team Director, so sync their direct upline to the
+  // Director. Skip if the team has no director or the member IS the director.
+  const team = await prisma.team.findUnique({ where: { id: input.teamId }, select: { directorId: true } });
+  if (team?.directorId && team.directorId !== input.associateId) {
+    await prisma.associate.update({ where: { id: input.associateId }, data: { directUplineId: team.directorId } });
+    await logAudit({ action: "associate.upline.team_synced", entityType: "Associate", entityId: input.associateId, actorUserId: session.user.id, after: { directUplineId: team.directorId } });
+    revalidatePath("/admin/associates");
+  }
   revalidatePath("/admin/teams");
   return { ok: true };
 }
