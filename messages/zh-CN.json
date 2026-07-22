@@ -592,7 +592,12 @@
       "associate2": "顾问 2",
       "associate3": "顾问 3",
       "approve": "审批分成",
-      "failed": "审批失败。"
+      "failed": "审批失败。",
+      "pendingTitle": "待批准",
+      "approvedTitle": "已批准 —— 等待管理员",
+      "approvedTag": "您已批准",
+      "revert": "撤回",
+      "revertFailed": "无法撤回。"
     },
     "notices": {
       "pageTitle": "公告",
