@@ -794,6 +794,18 @@
       "reject": "拒绝",
       "couldNotApprove": "无法批准。",
       "couldNotReject": "无法拒绝。"
+    },
+    "invites": {
+      "title": "我的邀请",
+      "empty": "暂无待处理的邀请。",
+      "colName": "候选人",
+      "colEmail": "电子邮件",
+      "colStage": "阶段",
+      "colInvited": "邀请日期",
+      "cancel": "取消",
+      "confirmCancel": "确认取消",
+      "keep": "保留",
+      "cancelFailed": "无法取消。"
     }
   },
   "roles": {
