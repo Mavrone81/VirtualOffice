@@ -32,7 +32,7 @@ export default async function TeamSalesPage() {
       })
     : [];
 
-  const verified = submissions.filter((s) => s.status === "Verified");
+  const verified = submissions.filter((s) => s.status === "QuotationApproved");
   const total = sum(submissions.map((s) => s.saleAmount));
   const verifiedTotal = sum(verified.map((s) => s.saleAmount));
 

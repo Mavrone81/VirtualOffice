@@ -836,7 +836,7 @@
     "Terminated": "已终止",
     "Inactive": "未激活",
     "Submitted": "已提交",
-    "Verified": "已审核",
+    "QuotationApproved": "报价已批准",
     "Eligible": "可发放",
     "PendingCollection": "待收款",
     "PartiallyEligible": "部分可发放",
