@@ -671,7 +671,9 @@
       "viewDoc": "View",
       "noSigned": "No signed documents uploaded yet.",
       "uploadSigned": "Upload signed",
-      "uploadFailed": "Upload failed."
+      "uploadFailed": "Upload failed.",
+      "paid": "Paid",
+      "awaitingPayment": "Awaiting payment"
     },
     "saleDetail": {
       "back": "← My Sales",
