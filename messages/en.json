@@ -541,7 +541,8 @@
       "splitValue": "Share",
       "splitType": "Type",
       "splitNone": "— none —",
-      "couldNotSubmit": "Could not submit."
+      "couldNotSubmit": "Could not submit.",
+      "saveChanges": "Save changes"
     },
     "commissions": {
       "pageTitle": "My commissions",
@@ -698,6 +699,10 @@
       "invoicePending": "Invoice available once paid.",
       "signedDocs": "Signed documents",
       "noSigned": "No signed documents."
+    },
+    "editSale": {
+      "pageTitle": "Edit sale",
+      "pageSubtitle": "Change the details while the sale is still pending approval."
     }
   },
   "products": {
