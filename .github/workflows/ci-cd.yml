@@ -96,11 +96,9 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ---------------------------------------------------------------------------
-  # Deploy — 165 pulls the freshly built image and restarts the app.
+  # Deploy — 165 pulls the freshly built image, applies pending DB migrations
+  # (deploy-only, never seeds), then restarts the app.
   # Requires repo secrets: SSH_HOST, SSH_USER, SSH_KEY.
-  # NB: database migrations are NOT auto-applied here. When prisma/schema.prisma
-  # changes, run the migrate profile once manually:
-  #   docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
   # ---------------------------------------------------------------------------
   deploy:
     needs: build-push
@@ -133,6 +131,10 @@ jobs:
             cd /root/VirtualOffice
             git pull --ff-only origin main
             docker compose -f docker-compose.prod.yml pull app
+            # Apply pending migrations (deploy-only, never seeds) from the
+            # freshly pulled source BEFORE swapping the app, so the schema is
+            # ready when the new code starts. --build picks up new migrations.
+            docker compose -f docker-compose.prod.yml --profile tools run --rm --build migrate
             docker compose -f docker-compose.prod.yml up -d app
             docker image prune -f
             docker logout ghcr.io

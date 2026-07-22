@@ -39,18 +39,22 @@ services:
     volumes:
       - vo_uploads:/data/uploads # persisted associate photos / documents
 
-  # One-off: prisma migrate deploy + seed (uses the full builder image).
+  # prisma migrate deploy — DEPLOY ONLY, never seeds prod (the lightweight
+  # `migrator` image rebuilds fast). CI runs this on every deploy, so schema
+  # migrations apply automatically. To seed a FRESH environment (rare), use the
+  # builder target explicitly: `run --rm --build -T migrate` won't seed —
+  # instead run `... run --rm --build $(target=builder) ... pnpm prisma db seed`.
   migrate:
     build:
       context: .
       dockerfile: Dockerfile
-      target: builder
+      target: migrator
     profiles: ["tools"]
     env_file: .env
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "pnpm prisma migrate deploy && pnpm prisma db seed"
+    command: sh -c "pnpm prisma migrate deploy"
 
 volumes:
   vo_pgdata:

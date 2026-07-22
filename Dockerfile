@@ -20,6 +20,17 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm prisma generate && pnpm build
 
+# --- migrator (lightweight: `prisma migrate deploy` only) ---
+# Just deps + the prisma schema/migrations — no `next build`, so it rebuilds
+# fast (deps layer is cached; only the COPY prisma layer changes when a
+# migration is added). Used by the compose `migrate` service so CI can apply
+# pending migrations on every deploy. DATABASE_URL comes from .env at runtime.
+FROM base AS migrator
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json pnpm-lock.yaml ./
+COPY prisma ./prisma
+CMD ["pnpm", "prisma", "migrate", "deploy"]
+
 # --- runtime (standalone) ---
 FROM base AS runner
 ENV NODE_ENV=production
