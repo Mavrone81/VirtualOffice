@@ -58,7 +58,6 @@
     "mySales": "我的销售",
     "myCommissions": "我的佣金",
     "myPayouts": "我的发放",
-    "myInvoices": "我的发票",
     "splitApprovals": "分成审批",
     "teamOverview": "团队概览",
     "teamSales": "团队销售",
@@ -67,7 +66,8 @@
     "salesAgreements": "销售协议",
     "myPFile": "我的人事档案",
     "soon": "即将推出",
-    "quotations": "报价"
+    "quotations": "报价",
+    "myQuotations": "我的报价"
   },
   "auth": {
     "brand": "Enshrine",
@@ -653,6 +653,18 @@
       "fieldPayout": "发放方式",
       "docsHeading": "文件",
       "noDocs": "暂无已归档文件。"
+    },
+    "quotations": {
+      "pageTitle": "我的报价",
+      "pageSubtitle": "销售获批后，下载报价发送给客户签署，并上传签署后的文件。",
+      "empty": "暂无已获批的报价。",
+      "downloadQuotation": "⤓ 下载报价",
+      "viewInvoice": "查看发票",
+      "docketTitle": "签署文件",
+      "viewDoc": "查看",
+      "noSigned": "暂无上传的签署文件。",
+      "uploadSigned": "上传签署文件",
+      "uploadFailed": "上传失败。"
     }
   },
   "products": {

@@ -58,7 +58,6 @@
     "mySales": "My Sales",
     "myCommissions": "My Commissions",
     "myPayouts": "My Payouts",
-    "myInvoices": "My Invoices",
     "splitApprovals": "Split Approvals",
     "teamOverview": "Team Overview",
     "teamSales": "Team Sales",
@@ -67,7 +66,8 @@
     "salesAgreements": "Sales Agreements",
     "myPFile": "My P-File",
     "soon": "soon",
-    "quotations": "Quotations"
+    "quotations": "Quotations",
+    "myQuotations": "My Quotations"
   },
   "auth": {
     "brand": "Enshrine",
@@ -653,6 +653,18 @@
       "fieldPayout": "Payout",
       "docsHeading": "Documents",
       "noDocs": "No documents filed yet."
+    },
+    "quotations": {
+      "pageTitle": "My Quotations",
+      "pageSubtitle": "Once a sale is approved, download the quotation, get it signed by the client, and upload the signed documents.",
+      "empty": "No approved quotations yet.",
+      "downloadQuotation": "⤓ Download quotation",
+      "viewInvoice": "View invoice",
+      "docketTitle": "Signed documents",
+      "viewDoc": "View",
+      "noSigned": "No signed documents uploaded yet.",
+      "uploadSigned": "Upload signed",
+      "uploadFailed": "Upload failed."
     }
   },
   "products": {

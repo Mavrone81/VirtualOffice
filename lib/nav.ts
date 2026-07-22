@@ -61,7 +61,7 @@ export const portalNav: NavGroup[] = [
       { labelKey: "mySales", href: "/portal/sales", icon: Receipt },
       { labelKey: "myCommissions", href: "/portal/commissions", icon: Calculator },
       { labelKey: "myPayouts", href: "/portal/payouts", icon: Banknote },
-      { labelKey: "myInvoices", href: "/portal/invoices", icon: FileText },
+      { labelKey: "myQuotations", href: "/portal/quotations", icon: FileText },
     ],
   },
   {
