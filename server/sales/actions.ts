@@ -22,7 +22,7 @@ import { addSubmissionDocuments } from "@/server/documents/submission-docs";
  * Concurrency-safe transaction code. Postgres serializes `nextval`, so two
  * simultaneous verifications can never mint the same code — unlike the old
  * `count()+1`, where both counted N and both emitted TXN-{N+1}. Takes a tx
- * client so it runs inside verifySubmission's transaction; gaps on rollback are
+ * client so it runs inside approveQuotation's transaction; gaps on rollback are
  * acceptable for an opaque code.
  */
 export async function nextTransactionCode(
@@ -109,7 +109,7 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
   }
 
   revalidatePath("/portal/sales");
-  revalidatePath("/admin/sales/verify");
+  revalidatePath("/admin/quotations");
   return { ok: true };
 }
 
@@ -139,16 +139,24 @@ export async function approveSubmissionSplit(submissionId: string): Promise<{ ok
   if (!allowed) return { ok: false, error: t("forbidden") };
 
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
-  if (sub.sdApprovedAt) { revalidatePath("/admin/sales/verify"); return { ok: true }; }
+  if (sub.sdApprovedAt) { revalidatePath("/admin/quotations"); return { ok: true }; }
 
   await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id } });
   await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
-  revalidatePath("/admin/sales/verify");
+  revalidatePath("/admin/quotations");
   revalidatePath("/portal/approvals");
   return { ok: true };
 }
 
-export async function verifySubmission(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+/**
+ * Business Admin approves the rep's right to generate the quotation (16-Jul
+ * quotation workflow). Requires the split to be approved first (SD or 3-day
+ * auto). Creates the SalesTransaction + commission ledger as PENDING and, for a
+ * full-payment sale, an OUTSTANDING invoice — commission only becomes payable
+ * when the admin later marks it Paid / the 3rd installment is paid. Sets the
+ * submission to QuotationApproved so the rep can generate the quotation.
+ */
+export async function approveQuotation(submissionId: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
@@ -195,11 +203,12 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
         paymentPlan: sub.paymentPlan,
         deposit: sub.deposit,
         installmentCount: sub.installmentCount,
-        amountCollected: fullPayment ? sub.saleAmount : sub.deposit ?? 0,
+        amountCollected: 0, // nothing collected at approval — collected on mark-Paid
         closingAssociateId: sub.closingAssociateId,
         directUplineId: closer.directUplineId,
         secondUplineId: closer.secondUplineId,
-        commissionEligibility: fullPayment ? CommissionEligibility.Eligible : CommissionEligibility.PendingCollection,
+        // Commission is only confirmed at payment (mark-Paid / 3rd installment).
+        commissionEligibility: CommissionEligibility.PendingCollection,
         verifiedById: session.user.id,
         verifiedAt: new Date(),
       },
@@ -219,8 +228,9 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
       byCompany.set(li.companyId, (byCompany.get(li.companyId) ?? D(0)).add(D(li.lineSaleAmount)));
     }
 
-    // Full Payment → one invoice per company entity, marked Paid (collected on
-    // verify). Installments are represented by the schedule below instead.
+    // Full Payment → one invoice per company entity, OUTSTANDING (unpaid). The
+    // admin marks it Paid later, which flips commission Eligible. Installments
+    // are represented by the schedule below instead.
     if (fullPayment) {
       for (const [companyId, amount] of byCompany) {
         const company = await db.company.update({
@@ -236,8 +246,7 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
             invoiceNumber,
             invoiceType: InvoiceType.ComputerGenerated,
             amount,
-            status: InvoiceStatus.Paid,
-            paidDate: new Date(),
+            status: InvoiceStatus.Outstanding,
           },
         });
       }
@@ -277,10 +286,30 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
       after: { auto: true },
     });
   }
-  await logAudit({ action: "sale.verified", entityType: "SalesTransaction", entityId: txId, after: { submissionId } });
-  revalidatePath("/admin/sales/verify");
+  await logAudit({ action: "submission.quotation_approved", entityType: "SalesTransaction", entityId: txId, after: { submissionId } });
+  revalidatePath("/admin/quotations");
   revalidatePath("/admin/sales/transactions");
   revalidatePath("/admin/commission");
   revalidatePath("/admin/dashboard");
+  revalidatePath("/portal/quotations");
+  return { ok: true };
+}
+
+/**
+ * Business Admin rejects a submission at the quotation-review stage (16-Jul
+ * quotation workflow). Only valid while it is still Submitted; audited.
+ */
+export async function rejectSubmission(submissionId: string, reason?: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true } });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+
+  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { status: SubmissionStatus.Rejected } });
+  await logAudit({ action: "submission.rejected", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: reason?.trim() || null } });
+  revalidatePath("/admin/quotations");
   return { ok: true };
 }

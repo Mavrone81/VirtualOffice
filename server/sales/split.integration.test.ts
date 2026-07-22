@@ -7,7 +7,8 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { submitSale, verifySubmission, approveSubmissionSplit } from "./actions";
+import { submitSale, approveQuotation, approveSubmissionSplit } from "./actions";
+import { markInvoicePaid } from "@/server/invoices/actions";
 
 const TAG = "SPLIT4-";
 const SALE_DATE = "2099-02-10";
@@ -88,8 +89,20 @@ describe("Associate 2/3 split flows submit → verify → ledger", () => {
 
     who.session = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
     expect((await approveSubmissionSplit(sub.id)).ok).toBe(true); // SD/BA approves the split first (16-Jul §4)
-    const verified = await verifySubmission(sub.id);
+    const verified = await approveQuotation(sub.id);
     expect(verified.ok).toBe(true);
+
+    // 16-Jul quotation workflow: at approval the sale is QuotationApproved, the
+    // transaction + ledger are PENDING, and the invoice is OUTSTANDING —
+    // commission is only confirmed once the invoice is marked Paid.
+    const tx = await prisma.salesTransaction.findFirstOrThrow({ where: { submissionId: sub.id } });
+    expect(tx.commissionEligibility).toBe("PendingCollection");
+    const subAfter = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: sub.id }, select: { status: true } });
+    expect(subAfter.status).toBe("QuotationApproved");
+    const invoice = await prisma.invoice.findFirstOrThrow({ where: { transactionId: tx.id } });
+    expect(invoice.status).toBe("Outstanding");
+    const pendingLine = await prisma.commissionLedger.findFirstOrThrow({ where: { transactionId: tx.id } });
+    expect(pendingLine.status).toBe("Pending");
 
     const ledger = await prisma.commissionLedger.findMany({
       where: { associate: { associateCode: { startsWith: TAG } } },
@@ -100,5 +113,12 @@ describe("Associate 2/3 split flows submit → verify → ledger", () => {
     expect(sumFor(a2Id)).toBeCloseTo(200, 2); // 25% of 800
     expect(sumFor(smId)).toBeCloseTo(500, 2); // SM overriding on sale (unchanged by split)
     expect(sumFor(sdId)).toBeCloseTo(300, 2); // SD overriding on sale
+
+    // Marking the invoice Paid confirms commission (Pending → Eligible).
+    expect((await markInvoicePaid(invoice.id)).ok).toBe(true);
+    const txPaid = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id }, select: { commissionEligibility: true } });
+    expect(txPaid.commissionEligibility).toBe("Eligible");
+    const eligibleLine = await prisma.commissionLedger.findFirstOrThrow({ where: { transactionId: tx.id } });
+    expect(eligibleLine.status).toBe("Eligible");
   });
 });

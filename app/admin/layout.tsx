@@ -15,11 +15,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session?.user) redirect("/login");
   if (!isAdminRole(session.user.role)) redirect("/portal/dashboard");
 
-  const [recruit, verify] = await Promise.all([
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const [recruit, quotations] = await Promise.all([
     prisma.candidate.count({
       where: { onboardingStage: { in: [OnboardingStage.FormSubmitted, OnboardingStage.SignedPendingApproval] } },
     }),
-    prisma.salesSubmission.count({ where: { status: SubmissionStatus.Submitted } }),
+    // Awaiting quotation approval = split-approved (Director or 3-day auto).
+    prisma.salesSubmission.count({
+      where: { status: SubmissionStatus.Submitted, OR: [{ sdApprovedAt: { not: null } }, { createdAt: { lte: threeDaysAgo } }] },
+    }),
   ]);
 
   const tRoles = await getTranslations("roles");
@@ -36,11 +40,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const alerts = [
     { labelKey: "recruitment", count: recruit, href: "/admin/recruitment" },
-    { labelKey: "salesVerify", count: verify, href: "/admin/sales/verify" },
+    { labelKey: "quotations", count: quotations, href: "/admin/quotations" },
   ];
 
   return (
-    <AppShell area="admin" user={user} badges={{ recruit, verify }} alerts={alerts} period={currentPeriod(locale)}>
+    <AppShell area="admin" user={user} badges={{ recruit, quotations }} alerts={alerts} period={currentPeriod(locale)}>
       {children}
     </AppShell>
   );

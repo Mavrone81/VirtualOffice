@@ -43,7 +43,6 @@
     "recruitment": "招募",
     "associates": "伙伴",
     "teams": "团队",
-    "salesVerify": "销售 · 审核",
     "transactions": "交易记录",
     "products": "产品与佣金",
     "commission": "佣金",
@@ -67,7 +66,8 @@
     "vendorRegistry": "供应商名录",
     "salesAgreements": "销售协议",
     "myPFile": "我的人事档案",
-    "soon": "即将推出"
+    "soon": "即将推出",
+    "quotations": "报价"
   },
   "auth": {
     "brand": "Enshrine",
@@ -1075,5 +1075,44 @@
     "submitting": "设置中…",
     "mismatch": "两次输入的新密码不一致。",
     "failed": "无法设置密码。请检查临时密码后重试。"
+  },
+  "quotations": {
+    "list": {
+      "title": "报价",
+      "subtitle": "已批准分成、待您审核的销售——核对客户与文件后，批准销售员生成报价。",
+      "empty": "暂无待批准的报价。",
+      "colDate": "日期",
+      "colClient": "客户",
+      "colProducts": "产品",
+      "colAmount": "金额",
+      "colCloser": "成交人",
+      "colDocs": "文件",
+      "colPlan": "方案",
+      "review": "审核 →"
+    },
+    "detail": {
+      "back": "← 所有报价",
+      "saleTitle": "销售",
+      "client": "客户",
+      "contact": "联系方式",
+      "plan": "方案",
+      "closer": "成交人",
+      "product": "产品",
+      "amount": "金额",
+      "assoc1": "成交人 1",
+      "assoc2": "成交人 2",
+      "assoc3": "成交人 3",
+      "docsTitle": "文件",
+      "noDocs": "暂无上传文件。",
+      "viewDoc": "查看",
+      "decisionTitle": "决定",
+      "decisionNote": "核对客户资料与文件后，批准销售员生成报价。",
+      "alreadyProcessed": "该提交已处理。",
+      "approve": "批准——生成报价",
+      "reject": "拒绝",
+      "confirmReject": "确认拒绝",
+      "reasonPlaceholder": "原因（可选）",
+      "failed": "操作失败。"
+    }
   }
 }
