@@ -240,7 +240,7 @@ export async function verifySubmission(submissionId: string): Promise<{ ok: bool
 
     await db.salesSubmission.update({
       where: { id: sub.id },
-      data: { status: SubmissionStatus.Verified, ...(autoApproved ? { sdApprovedAt: new Date() } : {}) },
+      data: { status: SubmissionStatus.QuotationApproved, ...(autoApproved ? { sdApprovedAt: new Date() } : {}) },
     });
     return transaction.id;
   });

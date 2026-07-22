@@ -92,8 +92,13 @@ enum ComValueType {
 
 enum SubmissionStatus {
   Submitted
-  Verified
+  QuotationApproved
   Rejected
+}
+
+enum SubmissionDocKind {
+  Supporting
+  Signed
 }
 
 enum CommissionEligibility {
@@ -475,11 +480,30 @@ model SalesSubmission {
 
   lineItems   SaleLineItem[]
   transaction SalesTransaction?
+  documents   SubmissionDocument[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("sales_submissions")
+}
+
+// Freeform documents attached to a sale (16-Jul quotation workflow). `Supporting`
+// = uploaded by the rep at/around submission (admin reviews before approving the
+// quotation); `Signed` = client-signed documents uploaded into the sale's docket
+// after the quotation is generated. Files live in the lib/storage object store.
+model SubmissionDocument {
+  id           String            @id @default(uuid()) @db.Uuid
+  submissionId String            @map("submission_id") @db.Uuid
+  submission   SalesSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  kind         SubmissionDocKind
+  fileKey      String            @map("file_key")
+  fileName     String            @map("file_name")
+  uploadedById String?           @map("uploaded_by") @db.Uuid
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  @@index([submissionId])
+  @@map("submission_documents")
 }
 
 // Monthly sales quota per associate (16-Jul §3). Set by a manager/director for
