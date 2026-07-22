@@ -53,6 +53,35 @@ export async function addTeamMember(input: { teamId: string; associateId: string
   return { ok: true };
 }
 
+/**
+ * Change a team's leader/director (Issues v1.0 — Teams). Admin only. Re-syncs
+ * every current member's direct upline to the new Director (approval follows the
+ * team) so split-approval + Tier-1 overrides track the new leader. Pass null to
+ * clear the director.
+ */
+export async function setTeamDirector(input: { teamId: string; directorId: string | null }): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await requireBusinessAdmin();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const team = await prisma.team.findUnique({ where: { id: input.teamId }, include: { members: { select: { associateId: true } } } });
+  if (!team) return { ok: false, error: t("notFound") };
+
+  const directorId = input.directorId || null;
+  await prisma.team.update({ where: { id: input.teamId }, data: { directorId } });
+
+  if (directorId) {
+    const memberIds = team.members.map((m) => m.associateId).filter((id) => id !== directorId);
+    if (memberIds.length) {
+      await prisma.associate.updateMany({ where: { id: { in: memberIds } }, data: { directUplineId: directorId } });
+    }
+  }
+  await logAudit({ action: "team.director_changed", entityType: "Team", entityId: input.teamId, actorUserId: session.user.id, after: { directorId } });
+  revalidatePath("/admin/teams");
+  revalidatePath("/admin/associates");
+  return { ok: true };
+}
+
 export async function removeTeamMember(input: { teamId: string; associateId: string }): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await requireBusinessAdmin();
