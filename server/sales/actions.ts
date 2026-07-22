@@ -149,6 +149,40 @@ export async function approveSubmissionSplit(submissionId: string): Promise<{ ok
 }
 
 /**
+ * Revert a split approval (Issues v1.0 — Split Approvals). The Director (or a
+ * Business Admin) may undo their approval as long as the admin has not yet
+ * approved the quotation (status still Submitted). Same team-based permission as
+ * approving. Clears the approval stamp so it returns to the pending queue.
+ */
+export async function revertSplitApproval(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, closingAssociateId: true } });
+  if (!sub) return { ok: false, error: t("notFound") };
+
+  let allowed = isFullAdmin(session.user.role);
+  if (!allowed && session.user.associateId) {
+    const team = await prisma.team.findFirst({
+      where: { directorId: session.user.associateId, active: true, members: { some: { associateId: sub.closingAssociateId } } },
+      select: { id: true },
+    });
+    allowed = !!team;
+  }
+  if (!allowed) return { ok: false, error: t("forbidden") };
+
+  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+  if (!sub.sdApprovedAt) return { ok: false, error: t("alreadyProcessed") };
+
+  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: null, sdApprovedById: null } });
+  await logAudit({ action: "submission.split_reverted", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
+  revalidatePath("/portal/approvals");
+  revalidatePath("/admin/quotations");
+  return { ok: true };
+}
+
+/**
  * Business Admin approves the rep's right to generate the quotation (16-Jul
  * quotation workflow). Requires the split to be approved first (SD or 3-day
  * auto). Creates the SalesTransaction + commission ledger as PENDING and, for a
