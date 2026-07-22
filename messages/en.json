@@ -43,7 +43,6 @@
     "recruitment": "Recruitment",
     "associates": "Associates",
     "teams": "Teams",
-    "salesVerify": "Sales · Verify",
     "transactions": "Transactions",
     "products": "Products & Com",
     "commission": "Commission",
@@ -67,7 +66,8 @@
     "vendorRegistry": "Vendor Registry",
     "salesAgreements": "Sales Agreements",
     "myPFile": "My P-File",
-    "soon": "soon"
+    "soon": "soon",
+    "quotations": "Quotations"
   },
   "auth": {
     "brand": "Enshrine",
@@ -1075,5 +1075,44 @@
     "submitting": "Setting…",
     "mismatch": "New passwords do not match.",
     "failed": "Could not set the password. Check your temporary password and try again."
+  },
+  "quotations": {
+    "list": {
+      "title": "Quotations",
+      "subtitle": "Split-approved sales awaiting your review — check the client + documents, then approve the rep to generate the quotation.",
+      "empty": "Nothing awaiting quotation approval.",
+      "colDate": "Date",
+      "colClient": "Client",
+      "colProducts": "Products",
+      "colAmount": "Amount",
+      "colCloser": "Closer",
+      "colDocs": "Docs",
+      "colPlan": "Plan",
+      "review": "Review →"
+    },
+    "detail": {
+      "back": "← All quotations",
+      "saleTitle": "Sale",
+      "client": "Client",
+      "contact": "Contact",
+      "plan": "Plan",
+      "closer": "Closer",
+      "product": "Product",
+      "amount": "Amount",
+      "assoc1": "Associate 1",
+      "assoc2": "Associate 2",
+      "assoc3": "Associate 3",
+      "docsTitle": "Documents",
+      "noDocs": "No documents uploaded.",
+      "viewDoc": "View",
+      "decisionTitle": "Decision",
+      "decisionNote": "Check the client details and documents, then approve the rep to generate the quotation.",
+      "alreadyProcessed": "This submission has already been processed.",
+      "approve": "Approve — generate quotation",
+      "reject": "Reject",
+      "confirmReject": "Confirm reject",
+      "reasonPlaceholder": "Reason (optional)",
+      "failed": "Action failed."
+    }
   }
 }
