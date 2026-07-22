@@ -113,10 +113,23 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 export async function approveSubmissionSplit(submissionId: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
-  if (!session || !(isFullAdmin(session.user.role) || session.user.role === "SalesDirector")) return { ok: false, error: t("forbidden") };
+  if (!session) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, closingAssociateId: true } });
   if (!sub) return { ok: false, error: t("notFound") };
+
+  // Approval follows the team (16-Jul §7): a Business Admin, or a Director of a
+  // team the closer belongs to, may approve the split.
+  let allowed = isFullAdmin(session.user.role);
+  if (!allowed && session.user.associateId) {
+    const team = await prisma.team.findFirst({
+      where: { directorId: session.user.associateId, active: true, members: { some: { associateId: sub.closingAssociateId } } },
+      select: { id: true },
+    });
+    allowed = !!team;
+  }
+  if (!allowed) return { ok: false, error: t("forbidden") };
+
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
   if (sub.sdApprovedAt) { revalidatePath("/admin/sales/verify"); return { ok: true }; }
 
