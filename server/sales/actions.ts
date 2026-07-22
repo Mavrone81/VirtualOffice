@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import {
-  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType,
+  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType, SubmissionDocKind,
 } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -15,6 +15,7 @@ import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
 import { validate } from "@/lib/validate";
 import { saleSchema } from "@/lib/schemas";
+import { addSubmissionDocuments } from "@/server/documents/submission-docs";
 
 
 /**
@@ -42,6 +43,7 @@ export type SubmitSaleInput = {
   lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[];
   associate2?: { associateId: string; valueType: "Percentage" | "Absolute"; value: number };
   associate3?: { associateId: string; valueType: "Percentage" | "Absolute"; value: number };
+  documents?: File[]; // optional supporting documents (16-Jul quotation workflow); not validated by saleSchema
 };
 
 export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string }> {
@@ -78,7 +80,8 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 
   const saleAmount = sum(lineData.map((l) => l.lineSaleAmount));
 
-  await prisma.salesSubmission.create({
+  const created = await prisma.salesSubmission.create({
+    select: { id: true },
     data: {
       salesDate: new Date(validInput.salesDate),
       clientName: validInput.clientName.trim(),
@@ -99,6 +102,11 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
       lineItems: { create: lineData },
     },
   });
+
+  // Optional supporting documents (freeform) — never fail the sale over a doc.
+  if (input.documents?.length) {
+    await addSubmissionDocuments(created.id, input.documents, SubmissionDocKind.Supporting, session.user.id);
+  }
 
   revalidatePath("/portal/sales");
   revalidatePath("/admin/sales/verify");
