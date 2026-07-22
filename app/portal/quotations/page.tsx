@@ -49,6 +49,9 @@ export default async function PortalQuotationsPage() {
                     <span className="text-muted"> · {formatSGD(s.saleAmount)} · {format(s.salesDate, "d MMM yyyy")}</span>
                   </div>
                   <div className="flex items-center gap-3">
+                    {paidInvoice
+                      ? <span className="text-[11px] font-medium text-success">✓ {t("quotations.paid")}</span>
+                      : <span className="text-[11px] text-muted">{t("quotations.awaitingPayment")}</span>}
                     <a href={`/portal/quotations/${s.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] font-medium text-action hover:underline">
                       {t("quotations.downloadQuotation")}
                     </a>
