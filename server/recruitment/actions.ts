@@ -113,6 +113,32 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
 }
 
 // ---------------------------------------------------------------------------
+/**
+ * Cancel a pending invite (Issues v1.0 — Recruitment). Deletes the candidate
+ * record, which invalidates the onboarding link already sent (the token is
+ * gone). Allowed to the person who sent the invite or a Business Admin, and only
+ * while the candidate has not yet been converted into an associate.
+ */
+export async function cancelInvite(candidateId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const c = await prisma.candidate.findUnique({
+    where: { id: candidateId },
+    select: { invitedById: true, convertedAssociateId: true },
+  });
+  if (!c) return { ok: false, error: t("notFound") };
+  if (!(isAdminRole(session.user.role) || c.invitedById === session.user.id)) return { ok: false, error: t("forbidden") };
+  if (c.convertedAssociateId) return { ok: false, error: t("alreadyConverted") };
+
+  await prisma.candidate.delete({ where: { id: candidateId } });
+  await logAudit({ action: "candidate.invite_cancelled", entityType: "Candidate", entityId: candidateId, actorUserId: session.user.id });
+  revalidatePath("/portal/recruitment/new");
+  revalidatePath("/admin/recruitment");
+  return { ok: true };
+}
+
 // Candidate self-onboarding (PUBLIC — no session, gated by unguessable token)
 // ---------------------------------------------------------------------------
 export type OnboardingSubmission = {

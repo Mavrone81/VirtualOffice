@@ -794,6 +794,18 @@
       "reject": "Reject",
       "couldNotApprove": "Could not approve.",
       "couldNotReject": "Could not reject."
+    },
+    "invites": {
+      "title": "My invites",
+      "empty": "No pending invites.",
+      "colName": "Candidate",
+      "colEmail": "Email",
+      "colStage": "Stage",
+      "colInvited": "Invited",
+      "cancel": "Cancel",
+      "confirmCancel": "Confirm cancel",
+      "keep": "Keep",
+      "cancelFailed": "Could not cancel."
     }
   },
   "roles": {
