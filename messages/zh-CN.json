@@ -671,7 +671,9 @@
       "viewDoc": "查看",
       "noSigned": "暂无上传的签署文件。",
       "uploadSigned": "上传签署文件",
-      "uploadFailed": "上传失败。"
+      "uploadFailed": "上传失败。",
+      "paid": "已付款",
+      "awaitingPayment": "等待付款"
     },
     "saleDetail": {
       "back": "← 我的销售",
