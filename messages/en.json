@@ -507,7 +507,8 @@
       "colClient": "Client",
       "colProducts": "Products",
       "colAmount": "Amount",
-      "colPlan": "Plan"
+      "colPlan": "Plan",
+      "view": "View"
     },
     "newSale": {
       "pageTitle": "Submit a sale",
@@ -670,6 +671,33 @@
       "noSigned": "No signed documents uploaded yet.",
       "uploadSigned": "Upload signed",
       "uploadFailed": "Upload failed."
+    },
+    "saleDetail": {
+      "back": "← My Sales",
+      "edit": "Edit",
+      "detailsTitle": "Sale details",
+      "client": "Client",
+      "contact": "Contact",
+      "plan": "Plan",
+      "date": "Date",
+      "product": "Product",
+      "amount": "Amount",
+      "assoc2": "Associate 2",
+      "assoc3": "Associate 3",
+      "commissionsTitle": "My commissions on this sale",
+      "noCommissions": "No commission yet — created once the sale is approved.",
+      "colType": "Type",
+      "colMonth": "Month",
+      "colAmount": "Amount",
+      "colStatus": "Status",
+      "docsTitle": "Documents & downloads",
+      "quote": "Quotation",
+      "quotePending": "Quotation available once approved.",
+      "agreement": "Agreement",
+      "invoice": "Invoice",
+      "invoicePending": "Invoice available once paid.",
+      "signedDocs": "Signed documents",
+      "noSigned": "No signed documents."
     }
   },
   "products": {

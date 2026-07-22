@@ -507,7 +507,8 @@
       "colClient": "客户",
       "colProducts": "产品",
       "colAmount": "金额",
-      "colPlan": "付款方式"
+      "colPlan": "付款方式",
+      "view": "查看"
     },
     "newSale": {
       "pageTitle": "提交销售",
@@ -670,6 +671,33 @@
       "noSigned": "暂无上传的签署文件。",
       "uploadSigned": "上传签署文件",
       "uploadFailed": "上传失败。"
+    },
+    "saleDetail": {
+      "back": "← 我的销售",
+      "edit": "编辑",
+      "detailsTitle": "销售详情",
+      "client": "客户",
+      "contact": "联系方式",
+      "plan": "方案",
+      "date": "日期",
+      "product": "产品",
+      "amount": "金额",
+      "assoc2": "成交人 2",
+      "assoc3": "成交人 3",
+      "commissionsTitle": "本单佣金",
+      "noCommissions": "尚无佣金 —— 销售获批后生成。",
+      "colType": "类型",
+      "colMonth": "月份",
+      "colAmount": "金额",
+      "colStatus": "状态",
+      "docsTitle": "文件与下载",
+      "quote": "报价",
+      "quotePending": "报价将在获批后可用。",
+      "agreement": "协议",
+      "invoice": "发票",
+      "invoicePending": "发票将在付款后可用。",
+      "signedDocs": "签署文件",
+      "noSigned": "暂无签署文件。"
     }
   },
   "products": {
