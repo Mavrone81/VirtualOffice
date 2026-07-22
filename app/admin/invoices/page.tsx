@@ -91,6 +91,7 @@ export default async function InvoicesPage() {
                   <th className="px-5 py-3 font-medium">{t("colCompany")}</th>
                   <th className="px-5 py-3 font-medium">{t("colAmount")}</th>
                   <th className="px-5 py-3 font-medium">{tc("status")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colPayment")}</th>
                   <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
@@ -102,6 +103,16 @@ export default async function InvoicesPage() {
                     <td className="px-5 py-3 text-muted">{inv.company.name}</td>
                     <td className="px-5 py-3 text-ink">{formatSGD(inv.amount)}</td>
                     <td className="px-5 py-3"><StatusPill status={inv.status} /></td>
+                    <td className="px-5 py-3 text-muted">
+                      {inv.paidMethod ? (
+                        <span>
+                          <span className="text-ink">{t(`payment.${inv.paidMethod.toLowerCase()}`)}</span>
+                          {inv.paidReference && <span className="text-muted"> · {inv.paidReference}</span>}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-3">
                         <a href={`/admin/invoices/${inv.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">{t("pdfLink")}</a>

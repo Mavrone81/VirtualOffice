@@ -327,6 +327,7 @@
     "colClient": "客户",
     "colCompany": "公司",
     "colAmount": "金额",
+    "colPayment": "付款方式",
     "pdfLink": "PDF ↗",
     "markPaid": "标记已付",
     "markUnpaid": "标记未付",
