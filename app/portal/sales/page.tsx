@@ -51,6 +51,7 @@ export default async function MySalesPage() {
                   <th className="px-5 py-3 font-medium">{t("sales.colAmount")}</th>
                   <th className="px-5 py-3 font-medium">{t("sales.colPlan")}</th>
                   <th className="px-5 py-3 font-medium">{tc("status")}</th>
+                  <th className="px-5 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -62,6 +63,7 @@ export default async function MySalesPage() {
                     <td className="px-5 py-3 text-ink">{formatSGD(s.saleAmount)}</td>
                     <td className="px-5 py-3 text-muted">{humanize(s.paymentPlan)}</td>
                     <td className="px-5 py-3"><StatusPill status={s.status} /></td>
+                    <td className="px-5 py-3 text-right"><Link href={`/portal/sales/${s.id}`} className="text-[12px] text-action hover:underline">{t("sales.view")}</Link></td>
                   </tr>
                 ))}
               </tbody>
