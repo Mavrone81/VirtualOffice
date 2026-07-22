@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { getObject, contentTypeForKey } from "@/lib/storage";
 
@@ -12,13 +13,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
   const { key: segments } = await params;
   const key = segments.map((s) => decodeURIComponent(s)).join("/");
 
-  // Admins/Accounts may read any object. Associates may only read objects
-  // filed under their own associate namespace.
+  // Admins/Accounts may read any object. Associates may read objects under their
+  // own associate namespace, plus documents on a sale they closed (their
+  // supporting/signed docket — key `submissions/<id>/…`).
   if (!isAdminRole(session.user.role)) {
     const assocId = session.user.associateId;
-    if (!assocId || !key.startsWith(`associates/${assocId}/`)) {
-      return new NextResponse("Forbidden", { status: 403 });
+    let allowed = !!assocId && key.startsWith(`associates/${assocId}/`);
+    if (!allowed && assocId && key.startsWith("submissions/")) {
+      const subId = key.split("/")[1];
+      if (/^[0-9a-f-]{36}$/i.test(subId)) {
+        const sub = await prisma.salesSubmission.findUnique({ where: { id: subId }, select: { closingAssociateId: true } });
+        allowed = !!sub && sub.closingAssociateId === assocId;
+      }
     }
+    if (!allowed) return new NextResponse("Forbidden", { status: 403 });
   }
 
   const data = await getObject(key);
