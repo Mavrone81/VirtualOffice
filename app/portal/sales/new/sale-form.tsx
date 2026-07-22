@@ -39,6 +39,7 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
   const [lines, setLines] = useState<Line[]>([{ productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }]);
   const [split2, setSplit2] = useState<Split>({ associateId: "", valueType: "Percentage", value: "" });
   const [split3, setSplit3] = useState<Split>({ associateId: "", valueType: "Percentage", value: "" });
+  const [documents, setDocuments] = useState<File[]>([]);
 
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const total = lines.reduce((a, l) => a + (parseFloat(l.amount) || 0), 0);
@@ -77,6 +78,9 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
 
   function submit() {
     setError(undefined);
+    // Keep the whole Server Action payload under the 10 MB body limit.
+    const totalBytes = documents.reduce((n, f) => n + f.size, 0);
+    if (totalBytes > 9_000_000) { setError(t("saleForm.docsTooLarge")); return; }
     startTransition(async () => {
       const res = await submitSale({
         salesDate,
@@ -90,6 +94,7 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
           .map((l) => ({ productId: l.productId, lineSaleAmount: parseFloat(l.amount), comCodeIds: l.comCodeIds })),
         associate2: mkSplit(split2),
         associate3: mkSplit(split3),
+        documents,
       });
       if (res.ok) router.push("/portal/sales");
       else setError(res.error ?? t("saleForm.couldNotSubmit"));
@@ -226,6 +231,25 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
           {splitRow(t("saleForm.splitAssociate2"), split2, setSplit2)}
           {splitRow(t("saleForm.splitAssociate3"), split3, setSplit3)}
         </div>
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="font-display text-[17px] text-ink">{t("saleForm.docsTitle")}</h2>
+        <p className="mb-3 mt-1 text-[12px] text-muted-2">{t("saleForm.docsNote")}</p>
+        <input
+          type="file"
+          multiple
+          accept="application/pdf,image/png,image/jpeg"
+          onChange={(e) => setDocuments(Array.from(e.target.files ?? []))}
+          className="block w-full text-[13px] text-muted file:mr-3 file:rounded-lg file:border file:border-line file:bg-paper-100 file:px-3 file:py-1.5 file:text-[12px] file:text-ink hover:file:bg-paper-200"
+        />
+        {documents.length > 0 && (
+          <ul className="mt-3 space-y-1 text-[12px] text-muted">
+            {documents.map((f, i) => (
+              <li key={i}>· {f.name}</li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
