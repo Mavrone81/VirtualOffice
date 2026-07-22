@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
+import { humanize } from "@/lib/labels";
+import { teamApprovableCloserIds } from "@/lib/approval-routing";
 import { ApproveSplitButton } from "./approve-split-button";
 
 export const dynamic = "force-dynamic";
@@ -28,22 +30,27 @@ export default async function PortalApprovalsPage() {
   if (!session || (role !== "SalesDirector" && role !== "Admin")) redirect("/portal/dashboard");
 
   const t = await getTranslations("portal");
-  const isSD = role === "SalesDirector";
+  const isAdmin = role === "Admin";
   const associateId = session.user.associateId;
 
+  // Approval follows the team (16-Jul §7): a Director sees sales from members of
+  // the teams they direct. A Business Admin sees every pending split.
+  let closerFilter: object = {};
+  if (!isAdmin) {
+    const directedTeams = associateId
+      ? await prisma.team.findMany({
+          where: { directorId: associateId, active: true },
+          select: { members: { select: { associateId: true } } },
+        })
+      : [];
+    const memberIds = teamApprovableCloserIds(directedTeams.map((tm) => ({ memberIds: tm.members.map((m) => m.associateId) })));
+    closerFilter = { closingAssociateId: { in: memberIds } };
+  }
+
   const subs = await prisma.salesSubmission.findMany({
-    where: {
-      status: SubmissionStatus.Submitted,
-      sdApprovedAt: null,
-      // The SD approver is the nearest SD in the closer's chain — the DIRECT
-      // upline (2-level SD→SA) or the SECOND upline (3-level SD→SM→SA). Match
-      // both so an SD sees the sales they can approve. A Business Admin sees all.
-      ...(isSD
-        ? { closingAssociate: { OR: [{ directUplineId: associateId }, { secondUplineId: associateId }] } }
-        : {}),
-    },
+    where: { status: SubmissionStatus.Submitted, sdApprovedAt: null, ...closerFilter },
     orderBy: { createdAt: "asc" },
-    include: { closingAssociate: true },
+    include: { closingAssociate: true, lineItems: true },
   });
 
   const extraIds = [
@@ -97,6 +104,13 @@ export default async function PortalApprovalsPage() {
                         <span className="text-muted"> ({fmtShare(s.associate3ValueType, s.associate3Value)})</span>
                       </span>
                     )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted">
+                    {s.lineItems.map((li) => (
+                      <span key={li.id}>{li.productName} · <span className="text-ink">{formatSGD(li.lineSaleAmount)}</span></span>
+                    ))}
+                    {s.clientContact && <span>· {s.clientContact}</span>}
+                    <span>· {humanize(s.paymentPlan)}</span>
                   </div>
                 </div>
               );

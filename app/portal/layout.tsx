@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { noticeAudienceWhere } from "@/lib/notices";
+import { teamApprovableCloserIds } from "@/lib/approval-routing";
 import { initialsOf, currentPeriod } from "@/lib/utils";
 import { AppShell } from "@/components/shell/app-shell";
 
@@ -32,23 +33,21 @@ export default async function PortalLayout({ children }: { children: React.React
     : 0;
   const unreadNotices = relevant.length - readCount;
 
-  // Pending split-approvals for a team SD (16-Jul §4) — sidebar badge.
-  const splitApprovals =
-    session.user.role === "SalesDirector" && session.user.associateId
-      ? await prisma.salesSubmission.count({
-          where: {
-            status: SubmissionStatus.Submitted,
-            sdApprovedAt: null,
-            // Nearest-SD approver: direct upline (2-level) or second upline (3-level).
-            closingAssociate: {
-              OR: [
-                { directUplineId: session.user.associateId },
-                { secondUplineId: session.user.associateId },
-              ],
-            },
-          },
-        })
-      : 0;
+  // Pending split-approvals for a team Director (16-Jul §7, approval follows the
+  // team) — sidebar badge. Counts pending sales from members of teams they direct.
+  let splitApprovals = 0;
+  if (session.user.role === "SalesDirector" && session.user.associateId) {
+    const directedTeams = await prisma.team.findMany({
+      where: { directorId: session.user.associateId, active: true },
+      select: { members: { select: { associateId: true } } },
+    });
+    const memberIds = teamApprovableCloserIds(directedTeams.map((tm) => ({ memberIds: tm.members.map((m) => m.associateId) })));
+    if (memberIds.length) {
+      splitApprovals = await prisma.salesSubmission.count({
+        where: { status: SubmissionStatus.Submitted, sdApprovedAt: null, closingAssociateId: { in: memberIds } },
+      });
+    }
+  }
 
   const user = {
     name,
