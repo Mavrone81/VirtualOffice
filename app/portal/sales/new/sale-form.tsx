@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { submitSale } from "@/server/sales/actions";
+import { submitSale, editSale } from "@/server/sales/actions";
 import { PercentAmountInput } from "@/components/ui/percent-amount-input";
 import { useTranslations } from "next-intl";
 
@@ -24,21 +24,28 @@ type Split = { associateId: string; valueType: "Percentage" | "Absolute"; value:
 
 const selectCls = "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
 
-export function SaleForm({ products, associates, today }: { products: FormProduct[]; associates: { id: string; name: string }[]; today: string }) {
+export type SaleFormInitial = {
+  clientName: string; clientContact: string; salesDate: string;
+  plan: "Full Payment" | "Installment"; deposit: string; installmentCount: string;
+  lines: Line[]; split2: Split; split3: Split;
+};
+
+export function SaleForm({ products, associates, today, initial, submissionId }: { products: FormProduct[]; associates: { id: string; name: string }[]; today: string; initial?: SaleFormInitial; submissionId?: string }) {
+  const isEdit = !!submissionId;
   const router = useRouter();
   const t = useTranslations("portal");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
 
-  const [clientName, setClientName] = useState("");
-  const [clientContact, setClientContact] = useState("");
-  const [salesDate, setSalesDate] = useState(today);
-  const [plan, setPlan] = useState<"Full Payment" | "Installment">("Full Payment");
-  const [deposit, setDeposit] = useState("");
-  const [installmentCount, setInstallmentCount] = useState("3");
-  const [lines, setLines] = useState<Line[]>([{ productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }]);
-  const [split2, setSplit2] = useState<Split>({ associateId: "", valueType: "Percentage", value: "" });
-  const [split3, setSplit3] = useState<Split>({ associateId: "", valueType: "Percentage", value: "" });
+  const [clientName, setClientName] = useState(initial?.clientName ?? "");
+  const [clientContact, setClientContact] = useState(initial?.clientContact ?? "");
+  const [salesDate, setSalesDate] = useState(initial?.salesDate ?? today);
+  const [plan, setPlan] = useState<"Full Payment" | "Installment">(initial?.plan ?? "Full Payment");
+  const [deposit, setDeposit] = useState(initial?.deposit ?? "");
+  const [installmentCount, setInstallmentCount] = useState(initial?.installmentCount ?? "3");
+  const [lines, setLines] = useState<Line[]>(initial?.lines ?? [{ productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }]);
+  const [split2, setSplit2] = useState<Split>(initial?.split2 ?? { associateId: "", valueType: "Percentage", value: "" });
+  const [split3, setSplit3] = useState<Split>(initial?.split3 ?? { associateId: "", valueType: "Percentage", value: "" });
   const [documents, setDocuments] = useState<File[]>([]);
 
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
@@ -80,23 +87,25 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
     setError(undefined);
     // Keep the whole Server Action payload under the 10 MB body limit.
     const totalBytes = documents.reduce((n, f) => n + f.size, 0);
-    if (totalBytes > 9_000_000) { setError(t("saleForm.docsTooLarge")); return; }
+    if (!isEdit && totalBytes > 9_000_000) { setError(t("saleForm.docsTooLarge")); return; }
+    const base = {
+      salesDate,
+      clientName,
+      clientContact,
+      paymentPlan: plan,
+      deposit: plan === "Installment" ? parseFloat(deposit) || 0 : undefined,
+      installmentCount: plan === "Installment" ? parseInt(installmentCount) || undefined : undefined,
+      lines: lines
+        .filter((l) => l.productId && parseFloat(l.amount) > 0)
+        .map((l) => ({ productId: l.productId, lineSaleAmount: parseFloat(l.amount), comCodeIds: l.comCodeIds })),
+      associate2: mkSplit(split2),
+      associate3: mkSplit(split3),
+    };
     startTransition(async () => {
-      const res = await submitSale({
-        salesDate,
-        clientName,
-        clientContact,
-        paymentPlan: plan,
-        deposit: plan === "Installment" ? parseFloat(deposit) || 0 : undefined,
-        installmentCount: plan === "Installment" ? parseInt(installmentCount) || undefined : undefined,
-        lines: lines
-          .filter((l) => l.productId && parseFloat(l.amount) > 0)
-          .map((l) => ({ productId: l.productId, lineSaleAmount: parseFloat(l.amount), comCodeIds: l.comCodeIds })),
-        associate2: mkSplit(split2),
-        associate3: mkSplit(split3),
-        documents,
-      });
-      if (res.ok) router.push("/portal/sales");
+      const res = isEdit
+        ? await editSale({ id: submissionId!, ...base })
+        : await submitSale({ ...base, documents });
+      if (res.ok) router.push(isEdit ? `/portal/sales/${submissionId}` : "/portal/sales");
       else setError(res.error ?? t("saleForm.couldNotSubmit"));
     });
   }
@@ -233,30 +242,32 @@ export function SaleForm({ products, associates, today }: { products: FormProduc
         </div>
       </Card>
 
-      <Card className="p-5">
-        <h2 className="font-display text-[17px] text-ink">{t("saleForm.docsTitle")}</h2>
-        <p className="mb-3 mt-1 text-[12px] text-muted-2">{t("saleForm.docsNote")}</p>
-        <input
-          type="file"
-          multiple
-          accept="application/pdf,image/png,image/jpeg"
-          onChange={(e) => setDocuments(Array.from(e.target.files ?? []))}
-          className="block w-full text-[13px] text-muted file:mr-3 file:rounded-lg file:border file:border-line file:bg-paper-100 file:px-3 file:py-1.5 file:text-[12px] file:text-ink hover:file:bg-paper-200"
-        />
-        {documents.length > 0 && (
-          <ul className="mt-3 space-y-1 text-[12px] text-muted">
-            {documents.map((f, i) => (
-              <li key={i}>· {f.name}</li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {!isEdit && (
+        <Card className="p-5">
+          <h2 className="font-display text-[17px] text-ink">{t("saleForm.docsTitle")}</h2>
+          <p className="mb-3 mt-1 text-[12px] text-muted-2">{t("saleForm.docsNote")}</p>
+          <input
+            type="file"
+            multiple
+            accept="application/pdf,image/png,image/jpeg"
+            onChange={(e) => setDocuments(Array.from(e.target.files ?? []))}
+            className="block w-full text-[13px] text-muted file:mr-3 file:rounded-lg file:border file:border-line file:bg-paper-100 file:px-3 file:py-1.5 file:text-[12px] file:text-ink hover:file:bg-paper-200"
+          />
+          {documents.length > 0 && (
+            <ul className="mt-3 space-y-1 text-[12px] text-muted">
+              {documents.map((f, i) => (
+                <li key={i}>· {f.name}</li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
 
       <div className="flex items-center gap-3">
         <Button onClick={submit} disabled={pending || !clientName || total <= 0}>
-          {pending ? t("saleForm.submitting") : t("saleForm.submitSale")}
+          {pending ? t("saleForm.submitting") : isEdit ? t("saleForm.saveChanges") : t("saleForm.submitSale")}
         </Button>
         <span className="text-[12px] text-muted-2">{t("saleForm.verificationNote")}</span>
       </div>

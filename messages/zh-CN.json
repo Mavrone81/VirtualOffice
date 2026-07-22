@@ -541,7 +541,8 @@
       "splitValue": "分配",
       "splitType": "类型",
       "splitNone": "— 无 —",
-      "couldNotSubmit": "提交失败，请重试。"
+      "couldNotSubmit": "提交失败，请重试。",
+      "saveChanges": "保存更改"
     },
     "commissions": {
       "pageTitle": "我的佣金",
@@ -698,6 +699,10 @@
       "invoicePending": "发票将在付款后可用。",
       "signedDocs": "签署文件",
       "noSigned": "暂无签署文件。"
+    },
+    "editSale": {
+      "pageTitle": "编辑销售",
+      "pageSubtitle": "在销售获批前修改详情。"
     }
   },
   "products": {
