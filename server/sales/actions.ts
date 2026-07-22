@@ -46,22 +46,12 @@ export type SubmitSaleInput = {
   documents?: File[]; // optional supporting documents (16-Jul quotation workflow); not validated by saleSchema
 };
 
-export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string }> {
-  const t = await getTranslations("errors");
-  const v = validate(saleSchema, input);
-  if (!v.ok) return { ok: false, error: t("invalidInput") };
-  const validInput = v.data;
-
-  const session = await auth();
-  if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
-
-  const products = await prisma.product.findMany({
-    where: { id: { in: validInput.lines.map((l) => l.productId) } },
-    include: { comCodes: true },
-  });
+/** Resolve submitted lines into persisted line-item data + the total. Shared by
+ * submitSale + editSale so both build line items identically. */
+async function resolveSaleLines(lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[]) {
+  const products = await prisma.product.findMany({ where: { id: { in: lines.map((l) => l.productId) } }, include: { comCodes: true } });
   const byId = new Map(products.map((p) => [p.id, p]));
-
-  const lineData = validInput.lines.map((l) => {
+  const lineData = lines.map((l) => {
     const p = byId.get(l.productId);
     if (!p) throw new Error("Unknown product");
     const selected = p.comCodes
@@ -77,8 +67,19 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
       selectedComCodes: selected,
     };
   });
+  return { lineData, saleAmount: sum(lineData.map((l) => l.lineSaleAmount)) };
+}
 
-  const saleAmount = sum(lineData.map((l) => l.lineSaleAmount));
+export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const v = validate(saleSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
+
+  const session = await auth();
+  if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
+
+  const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
 
   const created = await prisma.salesSubmission.create({
     select: { id: true },
@@ -110,6 +111,56 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 
   revalidatePath("/portal/sales");
   revalidatePath("/admin/quotations");
+  return { ok: true };
+}
+
+/**
+ * Edit a still-Submitted sale (Issues v1.0 — My Sales). The closing associate
+ * may change client / line / split details until an admin has approved it.
+ * Rebuilds the line items + total; supporting documents are managed separately.
+ */
+export async function editSale(input: SubmitSaleInput & { id: string }): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const v = validate(saleSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
+
+  const session = await auth();
+  if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
+
+  const existing = await prisma.salesSubmission.findUnique({ where: { id: input.id }, select: { closingAssociateId: true, status: true } });
+  if (!existing) return { ok: false, error: t("notFound") };
+  if (existing.closingAssociateId !== session.user.associateId) return { ok: false, error: t("forbidden") };
+  if (existing.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+
+  const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
+
+  await prisma.$transaction([
+    prisma.saleLineItem.deleteMany({ where: { submissionId: input.id } }),
+    prisma.salesSubmission.update({
+      where: { id: input.id },
+      data: {
+        salesDate: new Date(validInput.salesDate),
+        clientName: validInput.clientName.trim(),
+        clientContact: validInput.clientContact?.trim() || null,
+        saleAmount,
+        paymentPlan: validInput.paymentPlan === "Installment" ? PaymentPlan.Installment : PaymentPlan.FullPayment,
+        deposit: validInput.deposit ? round2(validInput.deposit) : null,
+        installmentCount: validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null,
+        associate2Id: validInput.associate2?.associateId ?? null,
+        associate2ValueType: validInput.associate2 ? (validInput.associate2.valueType as ComValueType) : null,
+        associate2Value: validInput.associate2 ? round2(validInput.associate2.value) : null,
+        associate3Id: validInput.associate3?.associateId ?? null,
+        associate3ValueType: validInput.associate3 ? (validInput.associate3.valueType as ComValueType) : null,
+        associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
+        lineItems: { create: lineData },
+      },
+    }),
+  ]);
+
+  await logAudit({ action: "sale.edited", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id });
+  revalidatePath("/portal/sales");
+  revalidatePath(`/portal/sales/${input.id}`);
   return { ok: true };
 }
 
