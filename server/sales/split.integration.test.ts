@@ -114,8 +114,13 @@ describe("Associate 2/3 split flows submit → verify → ledger", () => {
     expect(sumFor(smId)).toBeCloseTo(500, 2); // SM overriding on sale (unchanged by split)
     expect(sumFor(sdId)).toBeCloseTo(300, 2); // SD overriding on sale
 
-    // Marking the invoice Paid confirms commission (Pending → Eligible).
-    expect((await markInvoicePaid(invoice.id)).ok).toBe(true);
+    // Marking the invoice Paid captures the payment (Issues v1.0 #6) and confirms
+    // commission (Pending → Eligible).
+    expect((await markInvoicePaid(invoice.id, { method: "Bank", reference: "REF-TEST-1" })).ok).toBe(true);
+    const paidInv = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id }, select: { status: true, paidMethod: true, paidReference: true } });
+    expect(paidInv.status).toBe("Paid");
+    expect(paidInv.paidMethod).toBe("Bank");
+    expect(paidInv.paidReference).toBe("REF-TEST-1");
     const txPaid = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id }, select: { commissionEligibility: true } });
     expect(txPaid.commissionEligibility).toBe("Eligible");
     const eligibleLine = await prisma.commissionLedger.findFirstOrThrow({ where: { transactionId: tx.id } });
