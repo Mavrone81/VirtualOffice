@@ -15,7 +15,7 @@ const tones: Record<Tone, string> = {
 
 // keyed by Prisma enum member names
 const STATUS_TONE: Record<string, Tone> = {
-  Active: "success", Approved: "success", Paid: "success", Eligible: "success", Verified: "success",
+  Active: "success", Approved: "success", Paid: "success", Eligible: "success", QuotationApproved: "success",
   Pending: "warn", Outstanding: "warn", PendingCollection: "warn", Submitted: "warn", Invited: "warn", Suspended: "warn",
   PartiallyEligible: "info",
   Inactive: "neutral", Lapsed: "neutral", Cancelled: "neutral",
