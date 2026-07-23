@@ -4,9 +4,11 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
+import { splitFullyApproved } from "@/lib/approval";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { DocketUpload } from "./docket-upload";
+import { CloseSaleButton } from "./close-sale-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My quotations · Enshrine Portal" };
@@ -31,6 +33,8 @@ export default async function PortalQuotationsPage() {
       })
     : [];
 
+  const now = new Date();
+
   return (
     <>
       <PageHeader title={t("quotations.pageTitle")} subtitle={t("quotations.pageSubtitle")} />
@@ -41,6 +45,12 @@ export default async function PortalQuotationsPage() {
         <div className="space-y-4">
           {subs.map((s) => {
             const paidInvoice = s.transaction?.invoices.find((i) => i.status === InvoiceStatus.Paid) ?? null;
+            const closed = !!s.transaction;
+            const hasSigned = s.documents.length > 0;
+            // Close needs the split fully approved + a signed quotation in the docket.
+            const splitOk = splitFullyApproved(s, now);
+            const closeReady = splitOk && hasSigned;
+            const closeReason = !hasSigned ? t("quotations.needsSigned") : !splitOk ? t("quotations.needsSplit") : "";
             return (
               <Card key={s.id} className="p-5">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -49,9 +59,11 @@ export default async function PortalQuotationsPage() {
                     <span className="text-muted"> · {formatSGD(s.saleAmount)} · {format(s.salesDate, "d MMM yyyy")}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    {paidInvoice
-                      ? <span className="text-[11px] font-medium text-success">✓ {t("quotations.paid")}</span>
-                      : <span className="text-[11px] text-muted">{t("quotations.awaitingPayment")}</span>}
+                    {closed
+                      ? (paidInvoice
+                          ? <span className="text-[11px] font-medium text-success">✓ {t("quotations.paid")}</span>
+                          : <span className="text-[11px] text-muted">{t("quotations.awaitingPayment")}</span>)
+                      : <CloseSaleButton id={s.id} ready={closeReady} reason={closeReason} />}
                     <a href={`/portal/quotations/${s.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] font-medium text-action hover:underline">
                       {t("quotations.downloadQuotation")}
                     </a>

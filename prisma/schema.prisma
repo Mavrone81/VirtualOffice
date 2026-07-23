@@ -475,11 +475,25 @@ model SalesSubmission {
   associate3Id        String?       @map("associate3_id") @db.Uuid
   associate3ValueType ComValueType? @map("associate3_value_type")
   associate3Value     Decimal?      @map("associate3_value") @db.Decimal(14, 4)
-  // Approval chain (16-Jul §4): the team SD approves the share-com split (or it
-  // auto-approves 3 calendar days after submission), then a Business Admin
-  // verifies. sdApprovedById is null for an auto-approval (a system actor).
-  sdApprovedAt       DateTime?        @map("sd_approved_at")
-  sdApprovedById     String?          @map("sd_approved_by") @db.Uuid
+  // Date of quotation (23-Jul parallel workflow): filled by the rep up front, at
+  // submission — drives the generated quotation.
+  quoteDate          DateTime?        @db.Date @map("quote_date")
+  // Split approval (23-Jul, two-step + parallel to quotation generation). The
+  // split's SD is defaulted to the closer's team director at submission
+  // (splitDirectorId; the first team's director when several) and is
+  // admin-reassignable. Flow A: the SD approves (sdApprovedAt; auto-approves 3
+  // calendar days after submission — sdApprovedById null for that system actor),
+  // then a Business Admin signs off (splitAdminApprovedAt). Runs in parallel with
+  // quotation-generation approval (which advances `status`), not before it.
+  splitDirectorId       String?       @map("split_director_id") @db.Uuid
+  sdApprovedAt          DateTime?     @map("sd_approved_at")
+  sdApprovedById        String?       @map("sd_approved_by") @db.Uuid
+  splitAdminApprovedAt  DateTime?     @map("split_admin_approved_at")
+  splitAdminApprovedById String?      @map("split_admin_approved_by") @db.Uuid
+  // Closure (23-Jul): the associate closes the sale once the quotation is signed
+  // and the split is fully approved — that mints the transaction/ledger/invoice.
+  closedAt           DateTime?        @map("closed_at")
+  closedById         String?          @map("closed_by") @db.Uuid
   invoiceFileKey     String?          @map("invoice_file_key")
   remarks            String?
   status             SubmissionStatus @default(Submitted)

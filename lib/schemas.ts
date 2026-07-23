@@ -30,27 +30,35 @@ const splitShare = z.object({
 // ---------------------------------------------------------------------------
 // Sales — mirrors SubmitSaleInput (server/sales/actions.ts)
 // ---------------------------------------------------------------------------
-export const saleSchema = z.object({
-  salesDate: dateStr,
-  clientName: name,
-  clientContact: z.string().trim().max(200).optional(),
-  paymentPlan: z.enum(["Full Payment", "Installment"]),
-  deposit: z.number().finite().nonnegative().max(100_000_000).optional(),
-  installmentCount: z.number().finite().int().positive().max(360).optional(),
-  lines: z
-    .array(
-      z.object({
-        productId: id,
-        lineSaleAmount: z.number().finite().positive().max(100_000_000),
-        comCodeIds: z.array(id).max(50),
-      }),
-    )
-    .min(1)
-    .max(100),
-  // Flow-3 Net-to-Closer split (optional).
-  associate2: splitShare.optional(),
-  associate3: splitShare.optional(),
-});
+export const saleSchema = z
+  .object({
+    salesDate: dateStr,
+    // Date of quotation (23-Jul parallel workflow) — filled up front at submission.
+    quoteDate: dateStr.optional(),
+    clientName: name,
+    clientContact: z.string().trim().max(200).optional(),
+    paymentPlan: z.enum(["Full Payment", "Installment"]),
+    deposit: z.number().finite().nonnegative().max(100_000_000).optional(),
+    // Installment plans are fixed at 12 or 24 months (23-Jul); refined below.
+    installmentCount: z.number().finite().int().positive().max(360).optional(),
+    lines: z
+      .array(
+        z.object({
+          productId: id,
+          lineSaleAmount: z.number().finite().positive().max(100_000_000),
+          comCodeIds: z.array(id).max(50),
+        }),
+      )
+      .min(1)
+      .max(100),
+    // Flow-3 Net-to-Closer split (optional).
+    associate2: splitShare.optional(),
+    associate3: splitShare.optional(),
+  })
+  .refine(
+    (d) => d.paymentPlan !== "Installment" || d.installmentCount === 12 || d.installmentCount === 24,
+    { message: "Installment plan must be 12 or 24 months", path: ["installmentCount"] },
+  );
 export type SaleInput = z.infer<typeof saleSchema>;
 
 // ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
-import { isSdApproved, sdApproverId, pendingSdApproval } from "@/lib/approval";
+import { isSdApproved, sdApproverId, pickSplitDirectorId, splitFullyApproved } from "@/lib/approval";
 import { D, round2, sum } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
@@ -35,6 +35,7 @@ export async function nextTransactionCode(
 
 export type SubmitSaleInput = {
   salesDate: string;
+  quoteDate?: string;
   clientName: string;
   clientContact?: string;
   paymentPlan: "Full Payment" | "Installment";
@@ -78,6 +79,27 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 
   const session = await auth();
   if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
+  const closerId = session.user.associateId;
+
+  // Split director defaults to the closer's team director (23-Jul, issue 2): the
+  // earliest active directed team the closer belongs to (the "first" SD when in
+  // several teams); fall back to the nearest upline SD.
+  const [teams, closer] = await Promise.all([
+    prisma.team.findMany({
+      where: { active: true, directorId: { not: null }, members: { some: { associateId: closerId } } },
+      orderBy: { createdAt: "asc" },
+      select: { directorId: true },
+    }),
+    prisma.associate.findUnique({
+      where: { id: closerId },
+      select: {
+        directUplineId: true, secondUplineId: true,
+        directUpline: { select: { designation: true } },
+        secondUpline: { select: { designation: true } },
+      },
+    }),
+  ]);
+  const splitDirectorId = pickSplitDirectorId(teams) ?? (closer ? sdApproverId(closer) : null);
 
   const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
 
@@ -85,6 +107,8 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
     select: { id: true },
     data: {
       salesDate: new Date(validInput.salesDate),
+      quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
+      splitDirectorId,
       clientName: validInput.clientName.trim(),
       clientContact: validInput.clientContact?.trim() || null,
       saleAmount,
@@ -141,6 +165,7 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
       where: { id: input.id },
       data: {
         salesDate: new Date(validInput.salesDate),
+        quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
         clientName: validInput.clientName.trim(),
         clientContact: validInput.clientContact?.trim() || null,
         saleAmount,
@@ -210,7 +235,7 @@ export async function revertSplitApproval(submissionId: string): Promise<{ ok: b
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, closingAssociateId: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, splitAdminApprovedAt: true, closingAssociateId: true } });
   if (!sub) return { ok: false, error: t("notFound") };
 
   let allowed = isFullAdmin(session.user.role);
@@ -225,6 +250,8 @@ export async function revertSplitApproval(submissionId: string): Promise<{ ok: b
 
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
   if (!sub.sdApprovedAt) return { ok: false, error: t("alreadyProcessed") };
+  // Once the Business Admin has signed off the split, the SD step is locked.
+  if (sub.splitAdminApprovedAt) return { ok: false, error: t("alreadyProcessed") };
 
   await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: null, sdApprovedById: null } });
   await logAudit({ action: "submission.split_reverted", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
@@ -234,44 +261,114 @@ export async function revertSplitApproval(submissionId: string): Promise<{ ok: b
 }
 
 /**
- * Business Admin approves the rep's right to generate the quotation (16-Jul
- * quotation workflow). Requires the split to be approved first (SD or 3-day
- * auto). Creates the SalesTransaction + commission ledger as PENDING and, for a
- * full-payment sale, an OUTSTANDING invoice — commission only becomes payable
- * when the admin later marks it Paid / the 3rd installment is paid. Sets the
- * submission to QuotationApproved so the rep can generate the quotation.
+ * Business Admin signs off the share-com split (23-Jul parallel workflow, flow
+ * A step 2). Follows the SD's approval (or the 3-day auto-approve); this is the
+ * second, admin step shown on /admin/split-approvals. When the SD step only
+ * auto-approved (never an explicit SD action), stamp sdApprovedAt now as a
+ * system approval so the split's history is complete. Idempotent; only valid
+ * while the sale is unclosed (no transaction yet).
  */
-export async function approveQuotation(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+export async function adminApproveSplit(submissionId: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
 
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
+    select: { status: true, sdApprovedAt: true, createdAt: true, splitAdminApprovedAt: true, splitDirectorId: true, closedAt: true },
+  });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (sub.status === SubmissionStatus.Rejected || sub.closedAt) return { ok: false, error: t("alreadyProcessed") };
+  if (sub.splitAdminApprovedAt) { revalidatePath("/admin/split-approvals"); return { ok: true }; }
+
+  // The admin step opens once the SD step has landed (explicit or 3-day auto).
+  // A sale with no SD assigned has no one to wait on, so the admin may sign off
+  // straight away (the sdApprovedAt stamp below records it as a system approval).
+  if (sub.splitDirectorId && !isSdApproved(sub).approved) return { ok: false, error: t("pendingSdApproval") };
+
+  await prisma.salesSubmission.update({
+    where: { id: submissionId },
+    data: {
+      splitAdminApprovedAt: new Date(),
+      splitAdminApprovedById: session.user.id,
+      // If it was never explicitly SD-approved (3-day auto), record the auto now.
+      ...(sub.sdApprovedAt === null ? { sdApprovedAt: new Date() } : {}),
+    },
+  });
+
+  if (sub.sdApprovedAt === null) {
+    await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: null, after: { auto: true } });
+  }
+  await logAudit({ action: "submission.split_admin_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
+  revalidatePath("/admin/split-approvals");
+  revalidatePath("/portal/quotations");
+  return { ok: true };
+}
+
+/**
+ * Business Admin approves the rep's right to generate the quotation (23-Jul
+ * parallel workflow, flow B). Runs in PARALLEL with split approval — it is NOT
+ * gated on the split — after the admin has reviewed the uploaded documents. This
+ * only unlocks generation (status → QuotationApproved); the SalesTransaction /
+ * commission ledger / invoice are minted later, when the rep closes the sale.
+ */
+export async function approveQuotation(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true } });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+
+  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { status: SubmissionStatus.QuotationApproved } });
+  await logAudit({ action: "submission.quotation_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
+  revalidatePath("/admin/quotations");
+  revalidatePath("/portal/quotations");
+  return { ok: true };
+}
+
+/**
+ * The closing associate closes the sale (23-Jul parallel workflow, issue 4).
+ * Requires BOTH flows complete — quotation generation approved (status
+ * QuotationApproved) AND the split fully approved (SD + admin) — plus a signed
+ * quotation in the docket. This is where the money artifacts are minted: the
+ * SalesTransaction + commission ledger (PendingCollection) and, for a full
+ * payment, an OUTSTANDING invoice per company entity; installments get a
+ * schedule. Commission becomes payable later, when the admin marks it Paid in
+ * Sales & Verify. Idempotent — a sale that already has a transaction is a no-op.
+ */
+export async function closeSale(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({
+    where: { id: submissionId },
     include: {
       lineItems: true,
+      transaction: { select: { id: true } },
       closingAssociate: {
         include: {
           directUpline: { select: { designation: true } },
           secondUpline: { select: { designation: true } },
         },
       },
+      _count: { select: { documents: { where: { kind: SubmissionDocKind.Signed } } } },
     },
   });
   if (!sub) return { ok: false, error: t("notFound") };
-  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+
+  // Only the closing associate (or an admin) may close the sale.
+  const isCloser = !!session.user.associateId && session.user.associateId === sub.closingAssociateId;
+  if (!isCloser && !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  if (sub.transaction) { revalidatePath("/portal/quotations"); return { ok: true }; } // already closed
+  if (sub.status !== SubmissionStatus.QuotationApproved) return { ok: false, error: t("quotationNotApproved") };
+  if (!splitFullyApproved(sub)) return { ok: false, error: t("splitNotApproved") };
+  if (sub._count.documents === 0) return { ok: false, error: t("signedDocRequired") };
 
   const closer = sub.closingAssociate;
-  // Business Admin verifies only after the chain's SD has approved the split
-  // (or it auto-approved 3 days after submission). Sales with no SD above the
-  // closer have no approver and are not gated.
-  if (pendingSdApproval(sub, closer)) return { ok: false, error: t("pendingSdApproval") };
-
-  // When an SD approver exists but never explicitly approved, verification is
-  // only possible because the 3-day rule auto-approved the split — stamp and
-  // audit it as a system approval (16-Jul §4).
-  const autoApproved = sdApproverId(closer) !== null && sub.sdApprovedAt === null;
-
   const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;
 
   const txId = await prisma.$transaction(async (db) => {
@@ -288,7 +385,7 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
         paymentPlan: sub.paymentPlan,
         deposit: sub.deposit,
         installmentCount: sub.installmentCount,
-        amountCollected: 0, // nothing collected at approval — collected on mark-Paid
+        amountCollected: 0, // nothing collected at closing — collected on mark-Paid
         closingAssociateId: sub.closingAssociateId,
         directUplineId: closer.directUplineId,
         secondUplineId: closer.secondUplineId,
@@ -314,8 +411,8 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
     }
 
     // Full Payment → one invoice per company entity, OUTSTANDING (unpaid). The
-    // admin marks it Paid later, which flips commission Eligible. Installments
-    // are represented by the schedule below instead.
+    // admin marks it Paid later in Sales & Verify, which flips commission
+    // Eligible. Installments are represented by the schedule below instead.
     if (fullPayment) {
       for (const [companyId, amount] of byCompany) {
         const company = await db.company.update({
@@ -355,28 +452,19 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
 
     await db.salesSubmission.update({
       where: { id: sub.id },
-      data: { status: SubmissionStatus.QuotationApproved, ...(autoApproved ? { sdApprovedAt: new Date() } : {}) },
+      data: { closedAt: new Date(), closedById: session.user.id },
     });
     return transaction.id;
   });
 
   await runCommission(txId);
 
-  if (autoApproved) {
-    await logAudit({
-      action: "submission.sd_approved",
-      entityType: "SalesSubmission",
-      entityId: sub.id,
-      actorUserId: null, // system actor — the 3-day auto-approve rule, not a person
-      after: { auto: true },
-    });
-  }
-  await logAudit({ action: "submission.quotation_approved", entityType: "SalesTransaction", entityId: txId, after: { submissionId } });
-  revalidatePath("/admin/quotations");
+  await logAudit({ action: "sale.closed", entityType: "SalesTransaction", entityId: txId, actorUserId: session.user.id, after: { submissionId } });
+  revalidatePath("/portal/quotations");
+  revalidatePath("/admin/sales/verify");
   revalidatePath("/admin/sales/transactions");
   revalidatePath("/admin/commission");
   revalidatePath("/admin/dashboard");
-  revalidatePath("/portal/quotations");
   return { ok: true };
 }
 
