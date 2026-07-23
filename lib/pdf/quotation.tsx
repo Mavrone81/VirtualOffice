@@ -1,5 +1,5 @@
 import React from "react";
-import { Document, Page, View, Text, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
@@ -41,6 +41,7 @@ const s = StyleSheet.create({
   sigRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 40 },
   sigCell: { width: 220 },
   sigLine: { borderBottomWidth: 1, borderBottomColor: INK, marginBottom: 4, height: 26 },
+  sigImg: { height: 40, marginBottom: 2, objectFit: "contain", alignSelf: "flex-start" },
   footer: { position: "absolute", bottom: 30, left: 40, right: 40, borderTopWidth: 1, borderTopColor: LINE, paddingTop: 8, fontSize: 7.5, color: MUTED },
 });
 
@@ -58,6 +59,9 @@ type QuotationData = {
   lines: Line[];
   total: number;
   planLabel: string;
+  signatureDataUrl?: string | null; // PNG data URL — client's on-system signature
+  signerName?: string | null;
+  signedDate?: Date | null;
 };
 
 function QuotationDoc({ d }: { d: QuotationData }) {
@@ -120,8 +124,18 @@ function QuotationDoc({ d }: { d: QuotationData }) {
         </View>
 
         <View style={s.sigRow}>
-          <View style={s.sigCell}><View style={s.sigLine} /><Text style={s.coMeta}>Client acceptance (name & signature)</Text></View>
-          <View style={s.sigCell}><View style={s.sigLine} /><Text style={s.coMeta}>Date</Text></View>
+          <View style={s.sigCell}>
+            {d.signatureDataUrl ? (
+              /* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, not an HTML img */
+              <Image src={d.signatureDataUrl} style={s.sigImg} />
+            ) : null}
+            <View style={s.sigLine}>{d.signerName ? <Text style={s.strong}>{d.signerName}</Text> : null}</View>
+            <Text style={s.coMeta}>Client acceptance (name & signature)</Text>
+          </View>
+          <View style={s.sigCell}>
+            <View style={s.sigLine}>{d.signedDate ? <Text style={s.strong}>{format(d.signedDate, "dd MMM yyyy")}</Text> : null}</View>
+            <Text style={s.coMeta}>Date</Text>
+          </View>
         </View>
 
         <Text style={s.footer} fixed>
@@ -135,8 +149,12 @@ function QuotationDoc({ d }: { d: QuotationData }) {
 const VALID_DAYS = 30;
 
 /** Render the rep-facing quotation for a submission (16-Jul quotation workflow).
- * Only meaningful once the submission is QuotationApproved; the route gates that. */
-export async function renderQuotationPdf(submissionId: string): Promise<{ buffer: Buffer; filename: string } | null> {
+ * Only meaningful once the submission is QuotationApproved; the route gates that.
+ * Pass `signature` to embed the client's on-system acceptance (23-Jul, issue 4). */
+export async function renderQuotationPdf(
+  submissionId: string,
+  signature?: { dataUrl: string; signerName: string; signedDate: Date },
+): Promise<{ buffer: Buffer; filename: string } | null> {
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
     include: { lineItems: true, closingAssociate: true, transaction: { select: { transactionCode: true } } },
@@ -164,6 +182,9 @@ export async function renderQuotationPdf(submissionId: string): Promise<{ buffer
     lines: sub.lineItems.map((li) => ({ description: li.productName, amount: Number(li.lineSaleAmount) })),
     total: Number(sub.saleAmount),
     planLabel,
+    signatureDataUrl: signature?.dataUrl ?? null,
+    signerName: signature?.signerName ?? null,
+    signedDate: signature?.signedDate ?? null,
   };
 
   const buffer = await renderToBuffer(<QuotationDoc d={d} />);

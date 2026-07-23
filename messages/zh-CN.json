@@ -1162,6 +1162,13 @@
   },
   "quotations": {
     "closeSale": "关闭销售",
+    "signOnSystem": "在系统上签署",
+    "signOr": "— 或让客户在系统上签署 —",
+    "signTitle": "客户签署报价单",
+    "signerName": "客户姓名",
+    "signerNamePlaceholder": "全名",
+    "signAttach": "签署并附上",
+    "cancel": "取消",
     "list": {
       "title": "报价",
       "subtitle": "待您审核的销售——核对客户与文件后，批准销售员生成报价。与分成审批并行进行。",

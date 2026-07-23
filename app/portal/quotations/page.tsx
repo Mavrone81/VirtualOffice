@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { DocketUpload } from "./docket-upload";
 import { CloseSaleButton } from "./close-sale-button";
+import { SignQuotation } from "./sign-quotation";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My quotations · Enshrine Portal" };
@@ -89,7 +90,13 @@ export default async function PortalQuotationsPage() {
                   ) : (
                     <p className="mb-3 text-[12px] text-muted">{t("quotations.noSigned")}</p>
                   )}
-                  <DocketUpload submissionId={s.id} />
+                  {!closed && (
+                    <div className="space-y-2">
+                      <DocketUpload submissionId={s.id} />
+                      <div className="text-[11px] text-muted-2">{t("quotations.signOr")}</div>
+                      <SignQuotation submissionId={s.id} />
+                    </div>
+                  )}
                 </div>
               </Card>
             );

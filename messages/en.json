@@ -1162,6 +1162,13 @@
   },
   "quotations": {
     "closeSale": "Close sale",
+    "signOnSystem": "Sign on system",
+    "signOr": "— or have the client sign on-system —",
+    "signTitle": "Client signs the quotation",
+    "signerName": "Client name",
+    "signerNamePlaceholder": "Full name",
+    "signAttach": "Sign & attach",
+    "cancel": "Cancel",
     "list": {
       "title": "Quotations",
       "subtitle": "Sales awaiting your review — check the client + documents, then approve the rep to generate the quotation. Runs in parallel with split approval.",
