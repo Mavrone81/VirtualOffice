@@ -8,7 +8,6 @@ import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { humanize } from "@/lib/labels";
-import { teamApprovableCloserIds } from "@/lib/approval-routing";
 import { ApproveSplitButton } from "./approve-split-button";
 import { RevertSplitButton } from "./revert-split-button";
 
@@ -34,25 +33,16 @@ export default async function PortalApprovalsPage() {
   const isAdmin = role === "Admin";
   const associateId = session.user.associateId;
 
-  // Approval follows the team (16-Jul §7): a Director sees sales from members of
-  // the teams they direct. A Business Admin sees every pending split.
-  let closerFilter: object = {};
-  if (!isAdmin) {
-    const directedTeams = associateId
-      ? await prisma.team.findMany({
-          where: { directorId: associateId, active: true },
-          select: { members: { select: { associateId: true } } },
-        })
-      : [];
-    const memberIds = teamApprovableCloserIds(directedTeams.map((tm) => ({ memberIds: tm.members.map((m) => m.associateId) })));
-    closerFilter = { closingAssociateId: { in: memberIds } };
-  }
+  // The split is routed to the SD assigned at submission (23-Jul, issue 2): a
+  // Director sees the sales whose splitDirectorId is them. A Business Admin sees
+  // every pending split (they also have /admin/split-approvals for their step).
+  const splitFilter: object = isAdmin ? {} : { splitDirectorId: associateId ?? "__none__" };
 
   const include = { closingAssociate: true, lineItems: true } as const;
   const [subs, approvedSubs] = await Promise.all([
-    prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: null, ...closerFilter }, orderBy: { createdAt: "asc" }, include }),
-    // Approved by the Director but not yet quotation-approved by admin — revertable.
-    prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: { not: null }, ...closerFilter }, orderBy: { createdAt: "desc" }, include }),
+    prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "asc" }, include }),
+    // SD-approved but the admin hasn't signed off yet — revertable until then.
+    prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: { not: null }, splitAdminApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "desc" }, include }),
   ]);
 
   const extraIds = [

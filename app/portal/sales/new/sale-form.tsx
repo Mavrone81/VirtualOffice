@@ -25,7 +25,7 @@ type Split = { associateId: string; valueType: "Percentage" | "Absolute"; value:
 const selectCls = "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
 
 export type SaleFormInitial = {
-  clientName: string; clientContact: string; salesDate: string;
+  clientName: string; clientContact: string; salesDate: string; quoteDate: string;
   plan: "Full Payment" | "Installment"; deposit: string; installmentCount: string;
   lines: Line[]; split2: Split; split3: Split;
 };
@@ -40,9 +40,10 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
   const [clientName, setClientName] = useState(initial?.clientName ?? "");
   const [clientContact, setClientContact] = useState(initial?.clientContact ?? "");
   const [salesDate, setSalesDate] = useState(initial?.salesDate ?? today);
+  const [quoteDate, setQuoteDate] = useState(initial?.quoteDate ?? today);
   const [plan, setPlan] = useState<"Full Payment" | "Installment">(initial?.plan ?? "Full Payment");
   const [deposit, setDeposit] = useState(initial?.deposit ?? "");
-  const [installmentCount, setInstallmentCount] = useState(initial?.installmentCount ?? "3");
+  const [installmentCount, setInstallmentCount] = useState(initial?.installmentCount ?? "12");
   const [lines, setLines] = useState<Line[]>(initial?.lines ?? [{ productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }]);
   const [split2, setSplit2] = useState<Split>(initial?.split2 ?? { associateId: "", valueType: "Percentage", value: "" });
   const [split3, setSplit3] = useState<Split>(initial?.split3 ?? { associateId: "", valueType: "Percentage", value: "" });
@@ -90,6 +91,7 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
     if (!isEdit && totalBytes > 9_000_000) { setError(t("saleForm.docsTooLarge")); return; }
     const base = {
       salesDate,
+      quoteDate: quoteDate || undefined,
       clientName,
       clientContact,
       paymentPlan: plan,
@@ -128,6 +130,10 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
             <Input id="sd" type="date" value={salesDate} onChange={(e) => setSalesDate(e.target.value)} />
           </div>
           <div>
+            <Label htmlFor="qd">{t("saleForm.quoteDate")}</Label>
+            <Input id="qd" type="date" value={quoteDate} onChange={(e) => setQuoteDate(e.target.value)} />
+          </div>
+          <div>
             <Label htmlFor="pp">{t("saleForm.paymentPlan")}</Label>
             <select
               id="pp"
@@ -146,8 +152,11 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
                 <Input id="dep" value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder="0" inputMode="decimal" />
               </div>
               <div>
-                <Label htmlFor="ic">{t("saleForm.numInstallments")}</Label>
-                <Input id="ic" value={installmentCount} onChange={(e) => setInstallmentCount(e.target.value)} inputMode="numeric" />
+                <Label htmlFor="ic">{t("saleForm.installmentPlan")}</Label>
+                <select id="ic" value={installmentCount} onChange={(e) => setInstallmentCount(e.target.value)} className={selectCls}>
+                  <option value="12">{t("saleForm.months12")}</option>
+                  <option value="24">{t("saleForm.months24")}</option>
+                </select>
               </div>
             </>
           )}
