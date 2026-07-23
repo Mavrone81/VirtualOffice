@@ -11,6 +11,9 @@ vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/documents/submission-docs", () => ({ addSubmissionDocuments: addDocsMock }));
+// actions.ts now also imports the quotation PDF renderer (a .tsx) for on-system
+// signing; stub it so vitest doesn't transform JSX (tsconfig jsx=preserve).
+vi.mock("@/lib/pdf/quotation", () => ({ renderQuotationPdf: vi.fn() }));
 
 import { uploadDocketDocuments } from "@/app/portal/quotations/actions";
 
