@@ -11,21 +11,15 @@ import { Card } from "@/components/ui/card";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Quotations · Enshrine Admin" };
 
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-
-// Admin quotation-review queue (16-Jul quotation workflow): submissions whose
-// split has been approved (by the team Director, or the 3-day auto-approve) and
-// are waiting for a Business Admin to check the client + documents and approve
-// the rep's right to generate the quotation.
+// Admin quotation-generation queue (23-Jul parallel workflow, flow B): every
+// still-Submitted sale awaiting a Business Admin to review the uploaded
+// documents and approve the rep's right to generate the quotation. Runs in
+// parallel with split approval — it is NOT gated on the split.
 export default async function AdminQuotationsPage() {
   const t = await getTranslations("quotations");
-  const threeDaysAgo = new Date(Date.now() - THREE_DAYS_MS);
 
   const subs = await prisma.salesSubmission.findMany({
-    where: {
-      status: SubmissionStatus.Submitted,
-      OR: [{ sdApprovedAt: { not: null } }, { createdAt: { lte: threeDaysAgo } }],
-    },
+    where: { status: SubmissionStatus.Submitted },
     orderBy: { createdAt: "asc" },
     include: {
       lineItems: { select: { productName: true } },

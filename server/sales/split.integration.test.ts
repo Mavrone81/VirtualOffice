@@ -7,7 +7,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { submitSale, approveQuotation, approveSubmissionSplit } from "./actions";
+import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "./actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
 
 const TAG = "SPLIT4-";
@@ -87,18 +87,32 @@ describe("Associate 2/3 split flows submit → verify → ledger", () => {
       where: { closingAssociateId: closerId }, orderBy: { createdAt: "desc" }, select: { id: true },
     });
 
+    // 23-Jul parallel workflow: split (SD → admin) and quotation-generation run
+    // in parallel; the transaction/ledger/invoice are minted only at closure,
+    // which needs both flows approved plus a signed quotation in the docket.
     who.session = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
-    expect((await approveSubmissionSplit(sub.id)).ok).toBe(true); // SD/BA approves the split first (16-Jul §4)
-    const verified = await approveQuotation(sub.id);
-    expect(verified.ok).toBe(true);
+    expect((await approveSubmissionSplit(sub.id)).ok).toBe(true); // flow A step 1: SD/BA approves the split
+    expect((await adminApproveSplit(sub.id)).ok).toBe(true); // flow A step 2: admin signs off the split
+    expect((await approveQuotation(sub.id)).ok).toBe(true); // flow B: admin approves generation
 
-    // 16-Jul quotation workflow: at approval the sale is QuotationApproved, the
-    // transaction + ledger are PENDING, and the invoice is OUTSTANDING —
-    // commission is only confirmed once the invoice is marked Paid.
+    // No transaction exists until the sale is closed.
+    expect(await prisma.salesTransaction.findFirst({ where: { submissionId: sub.id } })).toBeNull();
+
+    // Rep attaches the signed quotation, then closes the sale.
+    await prisma.submissionDocument.create({
+      data: { submissionId: sub.id, kind: "Signed", fileKey: TAG + "signed.pdf", fileName: "signed.pdf" },
+    });
+    // Admin may also close (isAdminRole); use the admin session's UUID so
+    // verifiedById/closedById are valid UUIDs.
+    expect((await closeSale(sub.id)).ok).toBe(true);
+
+    // At closure the transaction + ledger are PENDING and the invoice is
+    // OUTSTANDING — commission is only confirmed once the invoice is marked Paid.
     const tx = await prisma.salesTransaction.findFirstOrThrow({ where: { submissionId: sub.id } });
     expect(tx.commissionEligibility).toBe("PendingCollection");
-    const subAfter = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: sub.id }, select: { status: true } });
+    const subAfter = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: sub.id }, select: { status: true, closedAt: true } });
     expect(subAfter.status).toBe("QuotationApproved");
+    expect(subAfter.closedAt).not.toBeNull();
     const invoice = await prisma.invoice.findFirstOrThrow({ where: { transactionId: tx.id } });
     expect(invoice.status).toBe("Outstanding");
     const pendingLine = await prisma.commissionLedger.findFirstOrThrow({ where: { transactionId: tx.id } });

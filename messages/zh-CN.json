@@ -43,6 +43,7 @@
     "recruitment": "招募",
     "associates": "伙伴",
     "teams": "团队",
+    "salesVerify": "销售与核验",
     "transactions": "交易记录",
     "products": "产品与佣金",
     "commission": "佣金",
@@ -529,9 +530,13 @@
       "clientName": "客户姓名",
       "clientContact": "客户联系方式",
       "salesDate": "销售日期",
+      "quoteDate": "报价日期",
       "paymentPlan": "付款方式",
       "deposit": "定金（S$）",
       "numInstallments": "分期期数",
+      "installmentPlan": "分期方案",
+      "months12": "12 个月",
+      "months24": "24 个月",
       "products": "产品",
       "addLine": "添加行",
       "product": "产品",
@@ -683,7 +688,9 @@
       "uploadSigned": "上传签署文件",
       "uploadFailed": "上传失败。",
       "paid": "已付款",
-      "awaitingPayment": "等待付款"
+      "awaitingPayment": "等待付款",
+      "needsSigned": "请上传已签署的报价单以关闭。",
+      "needsSplit": "等待分成审批后方可关闭。"
     },
     "saleDetail": {
       "back": "← 我的销售",
@@ -1068,6 +1075,9 @@
     "addProductLine": "请至少添加一个产品明细。",
     "alreadyProcessed": "已处理",
     "pendingSdApproval": "等待销售总监批准佣金分配。",
+    "quotationNotApproved": "报价单尚未获批生成。",
+    "splitNotApproved": "佣金分配尚未完全批准。",
+    "signedDocRequired": "关闭销售前请上传已签署的报价单。",
     "badMonth": "月份格式无效",
     "quotaLocked": "该配额由更高层级设定，无法修改。",
     "illegalPayoutTransition": "非法的支付状态变更。",
@@ -1151,9 +1161,10 @@
     "failed": "无法设置密码。请检查临时密码后重试。"
   },
   "quotations": {
+    "closeSale": "关闭销售",
     "list": {
       "title": "报价",
-      "subtitle": "已批准分成、待您审核的销售——核对客户与文件后，批准销售员生成报价。",
+      "subtitle": "待您审核的销售——核对客户与文件后，批准销售员生成报价。与分成审批并行进行。",
       "empty": "暂无待批准的报价。",
       "colDate": "日期",
       "colClient": "客户",
@@ -1188,5 +1199,31 @@
       "reasonPlaceholder": "原因（可选）",
       "failed": "操作失败。"
     }
+  },
+  "splitApprovals": {
+    "adminTitle": "分成审批",
+    "adminSubtitle": "销售总监已批准（或已满 3 天自动批准）、待您确认的佣金分成。与报价审批并行进行。",
+    "adminEmpty": "暂无待您确认的分成。",
+    "approve": "批准分成",
+    "failed": "批准失败。",
+    "sdAuto": "自动批准（3 天）",
+    "sdApproved": "总监已批准",
+    "closer": "成交人",
+    "director": "销售总监",
+    "noDirector": "— 无 —",
+    "associate2": "伙伴 2",
+    "associate3": "伙伴 3"
+  },
+  "verify": {
+    "title": "销售与核验",
+    "subtitle": "已关闭的销售——审阅文件并按方案记录收款。",
+    "empty": "暂无已关闭的销售。",
+    "commission": "佣金",
+    "documents": "文件",
+    "noDocuments": "未附任何文件。",
+    "view": "查看",
+    "payments": "收款",
+    "installmentProgress": "已付 {paid}/{total} 期 · 第 {threshold} 期起可发放佣金",
+    "noInvoice": "此销售暂无发票。"
   }
 }

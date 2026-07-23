@@ -43,6 +43,7 @@
     "recruitment": "Recruitment",
     "associates": "Associates",
     "teams": "Teams",
+    "salesVerify": "Sales & Verify",
     "transactions": "Transactions",
     "products": "Products & Com",
     "commission": "Commission",
@@ -529,9 +530,13 @@
       "clientName": "Client name",
       "clientContact": "Client contact",
       "salesDate": "Sales date",
+      "quoteDate": "Quotation date",
       "paymentPlan": "Payment plan",
       "deposit": "Deposit (S$)",
       "numInstallments": "# Installments",
+      "installmentPlan": "Installment plan",
+      "months12": "12 months",
+      "months24": "24 months",
       "products": "Products",
       "addLine": "Add line",
       "product": "Product",
@@ -683,7 +688,9 @@
       "uploadSigned": "Upload signed",
       "uploadFailed": "Upload failed.",
       "paid": "Paid",
-      "awaitingPayment": "Awaiting payment"
+      "awaitingPayment": "Awaiting payment",
+      "needsSigned": "Attach the signed quotation to close.",
+      "needsSplit": "Awaiting split approval to close."
     },
     "saleDetail": {
       "back": "← My Sales",
@@ -1068,6 +1075,9 @@
     "addProductLine": "Add at least one product line.",
     "alreadyProcessed": "Already processed",
     "pendingSdApproval": "Pending SD approval of the commission split.",
+    "quotationNotApproved": "The quotation has not been approved for generation yet.",
+    "splitNotApproved": "The commission split is not fully approved yet.",
+    "signedDocRequired": "Attach the signed quotation before closing the sale.",
     "badMonth": "Bad month",
     "quotaLocked": "This quota was set by a higher authority and can't be changed.",
     "illegalPayoutTransition": "Illegal payout status change.",
@@ -1151,9 +1161,10 @@
     "failed": "Could not set the password. Check your temporary password and try again."
   },
   "quotations": {
+    "closeSale": "Close sale",
     "list": {
       "title": "Quotations",
-      "subtitle": "Split-approved sales awaiting your review — check the client + documents, then approve the rep to generate the quotation.",
+      "subtitle": "Sales awaiting your review — check the client + documents, then approve the rep to generate the quotation. Runs in parallel with split approval.",
       "empty": "Nothing awaiting quotation approval.",
       "colDate": "Date",
       "colClient": "Client",
@@ -1188,5 +1199,31 @@
       "reasonPlaceholder": "Reason (optional)",
       "failed": "Action failed."
     }
+  },
+  "splitApprovals": {
+    "adminTitle": "Split approvals",
+    "adminSubtitle": "Commission splits the Sales Director has approved (or that auto-approved after 3 days), awaiting your sign-off. Runs in parallel with quotation approval.",
+    "adminEmpty": "No splits awaiting your sign-off.",
+    "approve": "Approve split",
+    "failed": "Approval failed.",
+    "sdAuto": "Auto-approved (3-day)",
+    "sdApproved": "SD approved",
+    "closer": "Closer",
+    "director": "Sales Director",
+    "noDirector": "— none —",
+    "associate2": "Associate 2",
+    "associate3": "Associate 3"
+  },
+  "verify": {
+    "title": "Sales & verify",
+    "subtitle": "Closed sales — review the documents and record payment against the plan.",
+    "empty": "No closed sales yet.",
+    "commission": "Commission",
+    "documents": "Documents",
+    "noDocuments": "No documents attached.",
+    "view": "View",
+    "payments": "Payments",
+    "installmentProgress": "{paid}/{total} installments paid · commission at the {threshold}",
+    "noInvoice": "No invoice on this sale."
   }
 }

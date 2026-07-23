@@ -45,6 +45,31 @@ export function pendingSdApproval(
 }
 
 /**
+ * The split director for a submission (23-Jul, issue 2): the director of the
+ * earliest active team (that has a director) the closer belongs to — the "first"
+ * SD when the closer is in several teams. Caller supplies the closer's teams
+ * ordered by creation. Returns null when no directed team applies (callers fall
+ * back to the upline SD via {@link sdApproverId}).
+ */
+export function pickSplitDirectorId(teams: { directorId: string | null }[]): string | null {
+  for (const t of teams) if (t.directorId) return t.directorId;
+  return null;
+}
+
+/**
+ * Whether flow A (split) is fully approved (23-Jul parallel workflow): the SD
+ * step has landed (an explicit SD approval or the 3-day auto-approve) AND a
+ * Business Admin has signed off. This is the split gate a sale must clear before
+ * the associate can close it.
+ */
+export function splitFullyApproved(
+  sub: { sdApprovedAt: Date | null; createdAt: Date; splitAdminApprovedAt: Date | null },
+  now: Date = new Date(),
+): boolean {
+  return isSdApproved(sub, now).approved && sub.splitAdminApprovedAt !== null;
+}
+
+/**
  * Share-com split approval state (16-Jul §4). The team SD approves the split;
  * if it isn't actioned within 3 days of submission it auto-approves. `auto` is
  * true when approval came from the elapsed-time rule rather than an explicit SD
