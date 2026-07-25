@@ -1236,5 +1236,17 @@
     "payments": "收款",
     "installmentProgress": "已付 {paid}/{total} 期 · 第 {threshold} 期起可发放佣金",
     "noInvoice": "此销售暂无发票。"
+  },
+  "assistant": {
+    "title": "门户助手",
+    "open": "打开助手",
+    "close": "关闭",
+    "send": "发送",
+    "placeholder": "询问有关门户的问题…",
+    "greeting": "您好 — 我是您的门户助手。",
+    "greetingHint": "可询问伙伴、团队、销售、审批、佣金或发票等信息。",
+    "disclaimer": "只读 · 仅限管理员 · 答案来自门户实时数据。",
+    "error": "抱歉，出了点问题，请重试。",
+    "forbidden": "该助手仅供管理员使用。"
   }
 }
