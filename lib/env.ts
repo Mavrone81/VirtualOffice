@@ -32,6 +32,13 @@ const schema = z.object({
   COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD: z.coerce.number().int().default(3),
   OVERRIDE_CHAIN_DEPTH: z.coerce.number().int().default(2),
 
+  // Admin AI assistant (chat bubble). Optional — when ANTHROPIC_API_KEY is
+  // unset the assistant endpoint returns a friendly "not configured" message
+  // instead of failing the build/boot. The key is read server-side only and is
+  // never sent to the browser.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default("claude-opus-4-8"),
+
   PAYMENT_GATEWAY_ENABLED: bool.default(false),
   FESTIVE_AI_ENABLED: bool.default(false),
   GST_ENABLED: bool.default(false),
