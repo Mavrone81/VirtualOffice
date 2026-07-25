@@ -1236,5 +1236,17 @@
     "payments": "Payments",
     "installmentProgress": "{paid}/{total} installments paid · commission at the {threshold}",
     "noInvoice": "No invoice on this sale."
+  },
+  "assistant": {
+    "title": "Portal Assistant",
+    "open": "Open assistant",
+    "close": "Close",
+    "send": "Send",
+    "placeholder": "Ask about the portal…",
+    "greeting": "Hi — I'm your portal assistant.",
+    "greetingHint": "Ask me about associates, teams, sales, approvals, commissions or invoices.",
+    "disclaimer": "Read-only · admin only · answers from live portal data.",
+    "error": "Sorry, something went wrong. Please try again.",
+    "forbidden": "The assistant is available to admins only."
   }
 }

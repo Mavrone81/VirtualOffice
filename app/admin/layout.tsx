@@ -3,9 +3,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { OnboardingStage, SubmissionStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { initialsOf, currentPeriod } from "@/lib/utils";
 import { AppShell } from "@/components/shell/app-shell";
+import { ChatBubble } from "@/components/assistant/chat-bubble";
 
 // Authed, per-request data — never prerender at build.
 export const dynamic = "force-dynamic";
@@ -46,6 +47,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <AppShell area="admin" user={user} badges={{ recruit, quotations }} alerts={alerts} period={currentPeriod(locale)}>
       {children}
+      {/* Admin-only AI assistant (server-gated too at /api/assistant). */}
+      {isFullAdmin(session.user.role) && <ChatBubble />}
     </AppShell>
   );
 }
