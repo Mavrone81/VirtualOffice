@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import {
-  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType, SubmissionDocKind,
+  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType, SubmissionDocKind, Designation,
 } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -302,6 +302,44 @@ export async function adminApproveSplit(submissionId: string): Promise<{ ok: boo
   await logAudit({ action: "submission.split_admin_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
   revalidatePath("/admin/split-approvals");
   revalidatePath("/portal/quotations");
+  return { ok: true };
+}
+
+/**
+ * Reassign a submission's split Sales Director (23-Jul, issue 2 add-on). The SD
+ * is defaulted from the closer's team at submission; if it routed to the wrong
+ * director (leave, wrong team) a Business Admin can point it at another SD — but
+ * only while that SD step is still open (the SD hasn't approved, it hasn't
+ * auto-approved, and the sale isn't admin-signed / closed / rejected). Pass null
+ * to clear it (falls through to the 3-day auto + admin sign-off).
+ */
+export async function reassignSplitDirector(submissionId: string, directorId: string | null): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({
+    where: { id: submissionId },
+    select: { status: true, sdApprovedAt: true, splitAdminApprovedAt: true, closedAt: true },
+  });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (sub.status === SubmissionStatus.Rejected || sub.closedAt || sub.splitAdminApprovedAt || sub.sdApprovedAt) {
+    return { ok: false, error: t("alreadyProcessed") };
+  }
+
+  // The target must be an active, approved Sales Director (or null to clear).
+  if (directorId) {
+    const dir = await prisma.associate.findFirst({
+      where: { id: directorId, designation: Designation.SalesDirector, associateStatus: "Active", approvalStatus: "Approved", archivedAt: null },
+      select: { id: true },
+    });
+    if (!dir) return { ok: false, error: t("notADirector") };
+  }
+
+  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { splitDirectorId: directorId } });
+  await logAudit({ action: "submission.split_director_reassigned", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { splitDirectorId: directorId } });
+  revalidatePath("/admin/split-approvals");
+  revalidatePath("/portal/approvals");
   return { ok: true };
 }
 
