@@ -46,4 +46,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
+# Liveness probe against the app's own /api/health (no DB — see that route).
+# Uses node's built-in fetch so the runtime image needs no curl/wget. The
+# start-period covers Next's boot; 3 failed 30s checks (~90s) mark it unhealthy.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 CMD ["node", "server.js"]
