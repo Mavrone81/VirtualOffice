@@ -27,6 +27,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: virtualoffice-app
+    # `unless-stopped` restarts the app on crash/exit and on daemon or host
+    # reboot, but NOT when a running container merely goes unhealthy — Docker
+    # has no such policy. The image ships a HEALTHCHECK (see Dockerfile) and
+    # /root/vo-autoheal.sh on 165 (5-min cron, canonical copy in deploy/) turns
+    # a sustained unhealthy state into a restart.
     restart: unless-stopped
     env_file: .env
     environment:
