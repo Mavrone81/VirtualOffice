@@ -27,11 +27,23 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: virtualoffice-app
-    # `unless-stopped` restarts the app on crash/exit and on daemon or host
-    # reboot, but NOT when a running container merely goes unhealthy — Docker
-    # has no such policy. The image ships a HEALTHCHECK (see Dockerfile) and
-    # /root/vo-autoheal.sh on 165 (5-min cron, canonical copy in deploy/) turns
-    # a sustained unhealthy state into a restart.
+    # Resilience is split across three layers — none of them covers all three
+    # failure modes, which is why all three exist:
+    #
+    #   daemon death/restart  -> `live-restore: true` in 165's
+    #                            /etc/docker/daemon.json. Without it a dockerd
+    #                            crash STOPS every container and `unless-stopped`
+    #                            does NOT bring a *stopped* container back
+    #                            (exactly the 2026-07-29 whole-box outage: all
+    #                            ~52 containers down ~5h).
+    #   crash / exit / reboot -> `restart: unless-stopped` (below).
+    #   wedged but alive      -> HEALTHCHECK (Dockerfile) + /root/vo-autoheal.sh
+    #                            on 165 (5-min cron, canonical copy in deploy/).
+    #                            Docker has no restart-on-unhealthy policy, so
+    #                            the HEALTHCHECK alone is only observational.
+    #
+    # Residual gap: a container that EXITS while the daemon is down is still not
+    # restarted — restart policies aren't evaluated during daemon downtime.
     restart: unless-stopped
     env_file: .env
     environment:
