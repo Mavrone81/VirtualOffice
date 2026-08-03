@@ -9,6 +9,15 @@
 # makes the image's HEALTHCHECK observational on its own — this cron is what
 # turns it into self-healing.
 #
+# SCOPE — this script covers the wedged-but-alive mode ONLY, and deliberately so:
+#   * a container that EXITS is `unless-stopped`'s job;
+#   * a container stopped by a dying dockerd is `live-restore: true`'s job
+#     (/etc/docker/daemon.json on 165, added after the 2026-07-29 outage where a
+#     dockerd panic stopped all ~52 containers and NOTHING self-healed — an
+#     exited container is not "unhealthy", so this script correctly did nothing).
+# An EMPTY /var/log/vo-autoheal.log therefore means the app was never unhealthy.
+# It is the expected result, NOT evidence that the cron is broken.
+#
 # Cron (on 165):  */5 * * * * /root/vo-autoheal.sh >> /var/log/vo-autoheal.log 2>&1
 # Installed copy: /root/vo-autoheal.sh ; canonical copy: this repo's deploy/.
 set -uo pipefail
