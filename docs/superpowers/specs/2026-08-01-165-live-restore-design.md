@@ -1,7 +1,9 @@
 # Design — survive a dockerd death on 165 with `live-restore`
 
 **Date:** 2026-08-01
-**Status:** Approved (brainstorm), pending implementation plan
+**Status:** ✅ ENABLED + verified on 165 (2026-08-03 06:53 UTC / 14:53 SGT).
+⏳ The destructive proof (step 3 below) is **still outstanding** — deferred to a
+low-traffic window, see "Execution log".
 **Owner:** VirtualOffice (change is box-level on 165, driven from this repo's ops backlog)
 
 ## Problem
@@ -150,6 +152,41 @@ killed). This matches BamForm and Ops Dashboard, both already moved to `~/dev`.
 - Moving other projects' builds off 165 into CI — the durable fix for the panic *trigger*
 - A stopped-container watchdog — superseded by this change, minus the residual gap above
 - Any change to `vo-backup.sh`, the healthcheck, or application code
+
+## Execution log
+
+**2026-08-03 06:53 UTC (14:53 SGT) — steps 1 and 2 done, step 3 deferred.**
+
+Preconditions re-verified immediately before the change and all still held:
+`daemon.json` still absent, `LiveRestoreEnabled=false`, swarm inactive,
+`KillMode=process`, client+server both 29.6.0, docker still absent from
+unattended-upgrades. Fleet had grown to **67** containers (from 65 at design
+time), 0 exited, 0 unhealthy; disk 49%; VO app+db healthy, up 4 days.
+
+1. **Baseline captured** — name/state/StartedAt/PID for all 67 containers, on the
+   box at `/root/live-restore-baseline-20260803-065217.txt` (path also written to
+   `/root/.live-restore-baseline-path`). This is what makes step 3 a proof rather
+   than an impression.
+2. **Enabled** — `/etc/docker/daemon.json` created with the single key, installed
+   only after `dockerd --validate --config-file=…` returned `configuration OK`,
+   then applied with `systemctl reload docker`.
+   **Verified a genuine reload, not a restart:** `MainPID` (1129), `NRestarts` (0)
+   and `ExecMainStartTimestamp` (2026-07-29 10:30:06 UTC) were all **unchanged**
+   across it, and the journal logged `"live-restore":true` in the reloaded config.
+   `docker info` now reports **`LiveRestoreEnabled=true`**. Container impact was
+   zero: 67 running / 0 exited / 0 unhealthy, exactly as before.
+3. **Destructive proof — NOT YET RUN.** The design specified the SGT small hours;
+   execution landed at **Monday 14:56 SGT** with ~1,457 nginx requests in the
+   preceding 10 minutes (≈2.4 req/s) across the box's 17 stacks, including another
+   developer's live production app (`mmcafe`, Philippines — same timezone, café
+   peak). Deferred on that basis rather than run against the design's own timing
+   constraint. **Protection is already active either way; what remains outstanding
+   is the confirmation, not the fix.**
+
+⚠ Until step 3 runs, live-restore is **believed-working but unproven on this box** —
+the precise state this spec argues against elsewhere. Do not record the gap as
+closed until the baseline above has been diffed across a real `systemctl restart
+docker`.
 
 ## Records to update on completion
 
