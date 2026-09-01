@@ -1,23 +1,31 @@
 import { format } from "date-fns";
+import { ApprovalStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { VendorStatusToggle } from "./status-toggle";
+import { ReferralApprovalActions } from "./approval-actions";
 import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Vendors · Enshrine Admin" };
+export const metadata = { title: "Referral partnerships · Enshrine Admin" };
 
+// Referral partnership queue (consolidated menu, Sep 2026): pending
+// submissions first for approval; the full registry below.
 export default async function AdminVendorsPage() {
   const t = await getTranslations("vendors");
   const vendors = await prisma.vendorReferral.findMany({
-    orderBy: [{ status: "asc" }, { submittedAt: "desc" }],
+    orderBy: [{ approvalStatus: "asc" }, { submittedAt: "desc" }],
     include: { submittedByAssociate: { select: { fullName: true, associateCode: true } } },
   });
+  const pendingCount = vendors.filter((v) => v.approvalStatus === ApprovalStatus.Pending).length;
 
   return (
     <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader
+        title={t("title")}
+        subtitle={pendingCount > 0 ? t("pendingSubtitle", { count: pendingCount }) : t("subtitle")}
+      />
 
       <Card className="overflow-hidden">
         {vendors.length === 0 ? (
@@ -31,19 +39,29 @@ export default async function AdminVendorsPage() {
                   <th className="px-5 py-3 font-medium">{t("col.type")}</th>
                   <th className="px-5 py-3 font-medium">{t("col.contact")}</th>
                   <th className="px-5 py-3 font-medium">{t("col.submittedBy")}</th>
+                  <th className="px-5 py-3 font-medium">{t("col.approval")}</th>
                   <th className="px-5 py-3 font-medium">{t("col.status")}</th>
                   <th className="px-5 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
                 {vendors.map((v) => (
-                  <tr key={v.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
+                  <tr key={v.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100 align-top">
                     <td className="px-5 py-3">
                       <div className="text-ink">{v.vendorName}</div>
                       {v.remarks && <div className="text-[11px] text-muted-2">{v.remarks}</div>}
-                      {v.agreementFileKey && (
-                        <a href={`/api/files/${v.agreementFileKey}`} target="_blank" rel="noopener" className="text-[11px] text-action hover:underline">📎 {t("agreement")}</a>
+                      {v.rejectReason && (
+                        <div className="text-[11px] text-danger">{t("rejectedBecause", { reason: v.rejectReason })}</div>
                       )}
+                      {v.agreementPdfKey ? (
+                        <a href={`/api/files/${v.agreementPdfKey}`} target="_blank" rel="noopener" className="text-[11px] text-action hover:underline">
+                          {t("viewAgreement")}
+                        </a>
+                      ) : v.agreementFileKey ? (
+                        <a href={`/api/files/${v.agreementFileKey}`} target="_blank" rel="noopener" className="text-[11px] text-action hover:underline">
+                          {t("viewAgreement")}
+                        </a>
+                      ) : null}
                     </td>
                     <td className="px-5 py-3 text-muted">{v.vendorType ?? "—"}</td>
                     <td className="px-5 py-3 text-muted">{v.contact ?? "—"}</td>
@@ -51,8 +69,15 @@ export default async function AdminVendorsPage() {
                       {v.submittedByAssociate ? `${v.submittedByAssociate.fullName} (${v.submittedByAssociate.associateCode})` : "—"}
                       <div className="text-[11px] text-muted-2">{format(v.submittedAt, "dd MMM yyyy")}</div>
                     </td>
+                    <td className="px-5 py-3"><StatusPill status={v.approvalStatus} /></td>
                     <td className="px-5 py-3"><StatusPill status={v.status} /></td>
-                    <td className="px-5 py-3 text-right"><VendorStatusToggle id={v.id} status={v.status} /></td>
+                    <td className="px-5 py-3 text-right">
+                      {v.approvalStatus === ApprovalStatus.Pending ? (
+                        <ReferralApprovalActions id={v.id} />
+                      ) : (
+                        <VendorStatusToggle id={v.id} status={v.status} />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
