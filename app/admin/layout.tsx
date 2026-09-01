@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { OnboardingStage, SubmissionStatus } from "@prisma/client";
+import { ApprovalStatus, OnboardingStage, SubmissionStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!isAdminRole(session.user.role)) redirect("/portal/dashboard");
 
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-  const [recruit, quotations] = await Promise.all([
+  const [recruit, quotations, referrals] = await Promise.all([
     prisma.candidate.count({
       where: { onboardingStage: { in: [OnboardingStage.FormSubmitted, OnboardingStage.SignedPendingApproval] } },
     }),
@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     prisma.salesSubmission.count({
       where: { status: SubmissionStatus.Submitted, OR: [{ sdApprovedAt: { not: null } }, { createdAt: { lte: threeDaysAgo } }] },
     }),
+    prisma.vendorReferral.count({ where: { approvalStatus: ApprovalStatus.Pending } }),
   ]);
 
   const tRoles = await getTranslations("roles");
@@ -45,7 +46,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ];
 
   return (
-    <AppShell area="admin" user={user} badges={{ recruit, quotations }} alerts={alerts} period={currentPeriod(locale)}>
+    <AppShell area="admin" user={user} badges={{ recruit, quotations, referrals }} alerts={alerts} period={currentPeriod(locale)}>
       {children}
       {/* Admin-only AI assistant (server-gated too at /api/assistant). */}
       {isFullAdmin(session.user.role) && <ChatBubble />}

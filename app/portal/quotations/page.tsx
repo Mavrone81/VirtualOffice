@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { format } from "date-fns";
 import { InvoiceStatus, SubmissionStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
@@ -30,6 +31,7 @@ export default async function PortalQuotationsPage() {
         include: {
           documents: { where: { kind: "Signed" }, orderBy: { createdAt: "asc" } },
           transaction: { include: { invoices: true } },
+          ashesAgreement: { select: { status: true } },
         },
       })
     : [];
@@ -65,6 +67,11 @@ export default async function PortalQuotationsPage() {
                           ? <span className="text-[11px] font-medium text-success">✓ {t("quotations.paid")}</span>
                           : <span className="text-[11px] text-muted">{t("quotations.awaitingPayment")}</span>)
                       : <CloseSaleButton id={s.id} ready={closeReady} reason={closeReason} />}
+                    <Link href={`/portal/sales/${s.id}/agreement`} className="text-[12px] font-medium text-action hover:underline">
+                      {s.ashesAgreement?.status === "Signed"
+                        ? t("quotations.agreementSigned")
+                        : t("quotations.fillAgreement")}
+                    </Link>
                     <a href={`/portal/quotations/${s.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] font-medium text-action hover:underline">
                       {t("quotations.downloadQuotation")}
                     </a>

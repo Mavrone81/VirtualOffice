@@ -28,7 +28,7 @@ export default async function PortalDashboard() {
   }
 
   const dlIds = await teamScopeIds(associateId);
-  const [me, downline, mySubmissions, myLedger] = await Promise.all([
+  const [me, downline, mySubmissions, myLedger, myTransactions] = await Promise.all([
     prisma.associate.findUnique({ where: { id: associateId } }),
     prisma.associate.findMany({
       where: { id: { in: dlIds }, NOT: { id: associateId } },
@@ -37,11 +37,19 @@ export default async function PortalDashboard() {
     }),
     prisma.salesSubmission.findMany({ where: { closingAssociateId: associateId }, select: { saleAmount: true, salesDate: true } }),
     prisma.commissionLedger.findMany({ where: { associateId }, select: { amount: true, status: true } }),
+    prisma.salesTransaction.findMany({ where: { closingAssociateId: associateId }, select: { saleAmount: true } }),
   ]);
 
   const mySales = sum(mySubmissions.map((s) => s.saleAmount));
   const myEligible = sum(myLedger.filter((l) => l.status === LedgerStatus.Eligible).map((l) => l.amount));
   const myPending = sum(myLedger.filter((l) => l.status === LedgerStatus.Pending).map((l) => l.amount));
+
+  // Consolidated-menu headline metrics (Sep 2026): transaction value = closed
+  // transactions; gross transacted = every non-cancelled commission line earned
+  // (paid or not); gross received = lines actually paid out.
+  const totalTransactionValue = sum(myTransactions.map((tx) => tx.saleAmount));
+  const grossTransacted = sum(myLedger.filter((l) => l.status !== LedgerStatus.Cancelled).map((l) => l.amount));
+  const grossReceived = sum(myLedger.filter((l) => l.status === LedgerStatus.Paid).map((l) => l.amount));
 
   // Sales targets (16-Jul §3): YTD sales ($ + count) from 1 Jan + this month's quota.
   const now = new Date();
@@ -70,7 +78,13 @@ export default async function PortalDashboard() {
         )}
       </PageHeader>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <StatTile id="transaction-value" label={t("dashboard.totalTransactionValue")} value={formatSGD(totalTransactionValue)} sub={t("dashboard.totalTransactionValueSub")} />
+        <StatTile id="commission-transacted" label={t("dashboard.grossCommissionTransacted")} value={formatSGD(grossTransacted)} sub={t("dashboard.grossCommissionTransactedSub")} />
+        <StatTile id="commission-received" label={t("dashboard.grossCommissionReceived")} value={formatSGD(grossReceived)} sub={t("dashboard.grossCommissionReceivedSub")} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile label={t("dashboard.ytdSales")} value={formatSGD(ytdAmount)} sub={t("dashboard.ytdCount", { count: ytdCount })} />
         <StatTile label={t("dashboard.monthlyQuota")} value={quota ? formatSGD(quota.amount) : t("dashboard.noQuota")} sub={t("dashboard.thisMonth")} />
         <StatTile label={t("dashboard.eligibleCommission")} value={formatSGD(myEligible)} sub={t("dashboard.readyForPayout")} />

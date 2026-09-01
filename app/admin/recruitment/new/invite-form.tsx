@@ -15,9 +15,12 @@ const selectCls =
 export function InviteForm({
   uplines,
   baseUrl,
+  teamOptions,
 }: {
   uplines: { code: string; label: string }[];
   baseUrl: string;
+  /** Non-admin recruiters: the only teams they may recruit into (Sep 2026). */
+  teamOptions?: string[];
 }) {
   const t = useTranslations("recruitment");
   const tc = useTranslations("common");
@@ -28,6 +31,7 @@ export function InviteForm({
   const [copied, setCopied] = useState(false);
   const [f, setF] = useState<InviteInput>({
     fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate",
+    intendedTeam: teamOptions?.length === 1 ? teamOptions[0] : undefined,
   });
   const set = (patch: Partial<InviteInput>) => setF((p) => ({ ...p, ...patch }));
 
@@ -95,7 +99,16 @@ export function InviteForm({
           </div>
           <div>
             <Label htmlFor="team">{t("form.intendedTeam")}</Label>
-            <Input id="team" value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value })} placeholder="e.g. Team Grace" />
+            {teamOptions && teamOptions.length > 0 ? (
+              <select id="team" className={selectCls} value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value })}>
+                {teamOptions.length > 1 && <option value="">{t("form.pickTeam")}</option>}
+                {teamOptions.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            ) : (
+              <Input id="team" value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value })} placeholder="e.g. Team Grace" />
+            )}
           </div>
           <div>
             <Label htmlFor="des">{t("form.intendedDesignation")}</Label>

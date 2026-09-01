@@ -68,7 +68,33 @@
     "myPFile": "My P-File",
     "soon": "soon",
     "quotations": "Quotations",
-    "myQuotations": "My Quotations"
+    "myQuotations": "My Quotations",
+    "groupPerformance": "Personal Performance",
+    "groupRecruitment": "Recruitment",
+    "groupFormsSubmission": "Forms & Submission",
+    "groupMarketing": "Marketing",
+    "groupProducts": "Products & Services",
+    "myDashboard": "My Dashboard",
+    "dashTransactionValue": "Total Transaction Value",
+    "dashCommissionTransacted": "Gross Commission Transacted",
+    "dashCommissionReceived": "Gross Commission Received",
+    "myTransactions": "My Transactions",
+    "transactionList": "Transaction List",
+    "transactionReceived": "Transaction Received",
+    "transactionReceivable": "Transaction Receivable",
+    "associatesList": "Associates List",
+    "directRecruits": "Direct Recruits",
+    "downlineRecruits": "Downline Recruits",
+    "transactionSubmission": "Transaction Submission",
+    "referralSubmission": "Referral Partnership Submission",
+    "referralPartnerList": "Referral Partner List",
+    "referralPartnerships": "Referral Partnerships",
+    "agreements": "Agreements",
+    "flyers": "Flyers",
+    "edm": "EDMs",
+    "customisation": "Customisation",
+    "greetings": "Greetings",
+    "productsCatalogue": "Products"
   },
   "auth": {
     "brand": "Enshrine",
@@ -506,7 +532,13 @@
       "colDesignation": "Designation",
       "colUpline": "Upline",
       "virtualOfficeTitle": "Your virtual office is taking shape",
-      "virtualOfficeBody": "Submitting sales, viewing commissions and payouts, your name card and P-file are coming in the next build. For now you can see your profile and team here."
+      "virtualOfficeBody": "Submitting sales, viewing commissions and payouts, your name card and P-file are coming in the next build. For now you can see your profile and team here.",
+      "totalTransactionValue": "Total Transaction Value",
+      "totalTransactionValueSub": "Across your closed transactions",
+      "grossCommissionTransacted": "Gross Commission Transacted",
+      "grossCommissionTransactedSub": "All commission earned, paid or pending",
+      "grossCommissionReceived": "Gross Commission Received",
+      "grossCommissionReceivedSub": "Commission already paid out to you"
     },
     "sales": {
       "pageTitle": "My sales",
@@ -690,7 +722,9 @@
       "paid": "Paid",
       "awaitingPayment": "Awaiting payment",
       "needsSigned": "Attach the signed quotation to close.",
-      "needsSplit": "Awaiting split approval to close."
+      "needsSplit": "Awaiting split approval to close.",
+      "fillAgreement": "Ashes agreement",
+      "agreementSigned": "✓ Ashes agreement signed"
     },
     "saleDetail": {
       "back": "← My Sales",
@@ -767,7 +801,17 @@
     "companyRetainedLabel": "Company retained",
     "previewEnterNumbers": "Enter numeric values to see the breakdown.",
     "couldNotCreate": "Could not create.",
-    "createProductBtn": "Create product"
+    "createProductBtn": "Create product",
+    "catalogue": {
+      "title": "Products & Services",
+      "subtitle": "What you can transact today",
+      "empty": "No active products right now.",
+      "colCode": "Code",
+      "colName": "Product",
+      "colCategory": "Category",
+      "colCompany": "Company",
+      "colStatus": "Status"
+    }
   },
   "recruitment": {
     "title": "Recruitment",
@@ -807,7 +851,8 @@
       "directUpline": "Direct upline",
       "noneOption": "— None —",
       "createInviteLink": "Create invite link",
-      "couldNotInvite": "Could not create invite."
+      "couldNotInvite": "Could not create invite.",
+      "pickTeam": "Select team…"
     },
     "detail": {
       "headerSubtitle": "{designation} · invited {date}",
@@ -863,6 +908,19 @@
       "confirmCancel": "Confirm cancel",
       "keep": "Keep",
       "cancelFailed": "Could not cancel."
+    },
+    "lists": {
+      "empty": "No associates to show yet.",
+      "colId": "ID",
+      "colName": "Associate",
+      "colDesignation": "Designation",
+      "colTeam": "Team",
+      "colUpline": "Upline",
+      "associatesTitle": "Associates List",
+      "associatesSubtitle": "Associates in your team — you only see your own team",
+      "downlineTitle": "Downline Recruits",
+      "downlineSubtitle": "Everyone recruited under you, at every level",
+      "noProfile": "Your login has no associate profile linked."
     }
   },
   "roles": {
@@ -905,9 +963,17 @@
         "products": "Products",
         "amount": "Amount",
         "closer": "Closer",
-        "eligibility": "Eligibility"
+        "eligibility": "Eligibility",
+        "collected": "Collected",
+        "outstanding": "Outstanding"
       },
-      "agreement": "Agreement ↗"
+      "agreement": "Agreement ↗",
+      "myTitle": "My Transactions",
+      "mySubtitle": "Closed transactions in your view — yours and, for leaders, your team or downline",
+      "receivedTitle": "Transaction Received",
+      "receivedSubtitle": "Transactions with money collected to date",
+      "receivableTitle": "Transaction Receivable",
+      "receivableSubtitle": "Transactions with an outstanding balance still to collect"
     }
   },
   "status": {
@@ -1033,9 +1099,13 @@
       "type": "Type",
       "contact": "Contact",
       "submittedBy": "Submitted by",
-      "status": "Status"
+      "status": "Status",
+      "approval": "Approval"
     },
-    "agreement": "Agreement"
+    "agreement": "Agreement",
+    "pendingSubtitle": "{count} submission(s) awaiting approval",
+    "rejectedBecause": "Rejected: {reason}",
+    "viewAgreement": "View agreement"
   },
   "errors": {
     "invalidInput": "Invalid input.",
@@ -1100,7 +1170,9 @@
     "associateNotFound": "Associate not found.",
     "noLoginToReset": "This associate has no login to reset.",
     "resetLinkInvalid": "This reset link is invalid or has expired.",
-    "associateNoLogin": "This associate has no login yet."
+    "associateNoLogin": "This associate has no login yet.",
+    "teamNotYours": "You can only recruit into your own team.",
+    "teamRequired": "Pick which of your teams the recruit joins."
   },
   "nameCard": {
     "front": "Front",
@@ -1248,5 +1320,114 @@
     "disclaimer": "Read-only · admin only · answers from live portal data.",
     "error": "Sorry, something went wrong. Please try again.",
     "forbidden": "The assistant is available to admins only."
+  },
+  "marketing": {
+    "customisation": {
+      "title": "Customisation",
+      "subtitle": "Personalised marketing collateral",
+      "howTitle": "How to request customisation",
+      "howBody": "Custom marketing collateral (personalised flyers, EDMs, greetings and other designs) is arranged personally. Contact Yiling with what you need and she will advise on options and turnaround.",
+      "feeNote": "Note: customisation work is chargeable — a fee applies."
+    }
+  },
+  "referrals": {
+    "list": {
+      "title": "Referral Partner List",
+      "subtitle": "Every partnership submission, visible to all — check here before approaching a vendor",
+      "newSubmission": "New partnership submission",
+      "empty": "No referral partnerships submitted yet.",
+      "colVendor": "Vendor / Partner",
+      "colType": "Type",
+      "colReferredBy": "Referred by",
+      "colDate": "Date",
+      "colStatus": "Status"
+    },
+    "form": {
+      "title": "Referral Partnership Submission",
+      "subtitle": "Fill the partnership agreement and have the vendor sign on this device",
+      "vendorName": "Vendor / partner name",
+      "vendorType": "Type",
+      "vendorTypePlace": "e.g. pet grooming, vet clinic",
+      "contact": "Contact",
+      "vendorUen": "UEN / NRIC",
+      "vendorAddress": "Registered address",
+      "notes": "Notes",
+      "signerHeading": "Vendor signatory",
+      "signerHint": "Hand the device to the vendor's signatory to complete this section and sign below.",
+      "signerName": "Name",
+      "signerNric": "NRIC / UEN",
+      "signerDesignation": "Designation",
+      "signatureLabel": "Vendor signature",
+      "submit": "Submit for approval",
+      "submitting": "Submitting…",
+      "couldNotSubmit": "Could not submit — try again."
+    },
+    "admin": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "signName": "Company signatory name",
+      "signDesignation": "Designation",
+      "signatureOptional": "Company signature (optional)",
+      "confirmApprove": "Countersign & approve",
+      "confirmReject": "Confirm reject",
+      "rejectReason": "Reason",
+      "cancel": "Cancel"
+    }
+  },
+  "agreements": {
+    "list": {
+      "title": "Agreements",
+      "subtitle": "Storage of Pets Ashes agreements for transactions in your view",
+      "adminSubtitle": "All Storage of Pets Ashes agreements",
+      "empty": "No agreements yet — they are created from an approved sale's Agreement step.",
+      "colClient": "Applicant",
+      "colNiche": "Niche / Unit",
+      "colAmount": "Amount",
+      "colAssociate": "Associate",
+      "colUpdated": "Updated",
+      "colStatus": "Status",
+      "viewPdf": "View PDF",
+      "continue": "Continue",
+      "open": "Open",
+      "legacyNote": "Looking for the per-transaction sale agreement documents?",
+      "legacyLink": "Sales agreements"
+    },
+    "form": {
+      "title": "Storage of Pets Ashes Agreement",
+      "nicheHeading": "Niche & terms",
+      "storageSpace": "Location of storage space",
+      "nicheUnit": "Storage unit (the said niche)",
+      "instalmentDay": "Instalment day of month",
+      "maintenanceYear": "Maintenance fee start year",
+      "additionalTerms": "Additional terms (clause 20)",
+      "petsHeading": "Pet's particulars",
+      "addPet": "Add pet",
+      "removePet": "Remove pet",
+      "petName": "Pet name",
+      "petBreed": "Breed",
+      "petGender": "Gender",
+      "petDob": "Date of birth",
+      "petDismissed": "Date of dismissed",
+      "applicant1Heading": "Applicant's particulars (1)",
+      "applicant2Heading": "Applicant's particulars (2) — optional",
+      "name": "Name",
+      "nric": "NRIC No.",
+      "address": "Address",
+      "contact": "Contact",
+      "email": "Email",
+      "witnessHeading": "Witnesses",
+      "applicantWitnessName": "Applicant witness — name",
+      "applicantWitnessNric": "Applicant witness — NRIC",
+      "companyWitnessName": "Company witness — name",
+      "companyWitnessNric": "Company witness — NRIC",
+      "signHeading": "Applicant signature",
+      "signHint": "Hand the device to the applicant to sign. Signing finalises the agreement PDF into the sale's docket.",
+      "saveDraft": "Save draft",
+      "signAndFinalize": "Sign & finalise",
+      "draftNote": "Draft saved — you can return to finish and sign later.",
+      "signedTitle": "Agreement signed",
+      "signedBody": "This agreement has been signed and filed into the sale's docket.",
+      "viewPdf": "View signed agreement (PDF)"
+    }
   }
 }

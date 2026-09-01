@@ -38,6 +38,29 @@ async function requireRecruiter() {
   return session;
 }
 
+/** Active team names the recruiter belongs to (member or director), falling
+ *  back to their associate profile's free-text team name. */
+async function recruiterTeamNames(associateId: string | null): Promise<string[]> {
+  if (!associateId) return [];
+  const [teams, me] = await Promise.all([
+    prisma.team.findMany({
+      where: { active: true, OR: [{ directorId: associateId }, { members: { some: { associateId } } }] },
+      select: { name: true },
+    }),
+    prisma.associate.findUnique({ where: { id: associateId }, select: { teamName: true } }),
+  ]);
+  const names = teams.map((x) => x.name);
+  if (names.length === 0 && me?.teamName) names.push(me.teamName);
+  return names;
+}
+
+export async function myRecruiterTeams(): Promise<string[]> {
+  const session = await requireRecruiter();
+  if (!session) return [];
+  if (isAdminRole(session.user.role)) return [];
+  return recruiterTeamNames(session.user.associateId ?? null);
+}
+
 // Absolute base URL for links in emails: prefer AUTH_URL, else the request host.
 async function baseUrl(): Promise<string> {
   if (env.AUTH_URL) return env.AUTH_URL.replace(/\/$/, "");
@@ -82,6 +105,20 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   if (!input.fullName?.trim()) return { ok: false, error: t("fullNameRequired") };
   if (!input.email?.trim()) return { ok: false, error: t("emailRequired") };
 
+  // Consolidated-menu rework (Sep 2026): direct recruits go into the
+  // recruiter's OWN team — only a Business Admin can place a candidate into
+  // any team. A recruiter with team memberships must pick one of them; with
+  // none, their associate profile's team name (if any) is used.
+  let intendedTeam = input.intendedTeam?.trim() || null;
+  if (!isAdminRole(session.user.role)) {
+    const ownTeams = await recruiterTeamNames(session.user.associateId ?? null);
+    if (ownTeams.length > 0) {
+      if (intendedTeam && !ownTeams.includes(intendedTeam)) return { ok: false, error: t("teamNotYours") };
+      if (!intendedTeam) intendedTeam = ownTeams.length === 1 ? ownTeams[0] : null;
+      if (!intendedTeam) return { ok: false, error: t("teamRequired") };
+    }
+  }
+
   const upline = input.intendedDirectUplineCode
     ? await prisma.associate.findUnique({ where: { associateCode: input.intendedDirectUplineCode } })
     : null;
@@ -96,7 +133,7 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
       email,
       intendedDesignation: input.intendedDesignation,
       intendedDirectUplineId: upline?.id ?? null,
-      intendedTeam: input.intendedTeam?.trim() || null,
+      intendedTeam,
       commencementDate: input.commencementDate ? new Date(input.commencementDate) : null,
       onboardingToken: token,
       onboardingStage: OnboardingStage.Invited,

@@ -68,7 +68,33 @@
     "myPFile": "我的人事档案",
     "soon": "即将推出",
     "quotations": "报价",
-    "myQuotations": "我的报价"
+    "myQuotations": "我的报价",
+    "groupPerformance": "个人业绩",
+    "groupRecruitment": "招募",
+    "groupFormsSubmission": "表格与提交",
+    "groupMarketing": "市场推广",
+    "groupProducts": "产品与服务",
+    "myDashboard": "我的仪表板",
+    "dashTransactionValue": "交易总额",
+    "dashCommissionTransacted": "累计成交佣金",
+    "dashCommissionReceived": "累计已收佣金",
+    "myTransactions": "我的交易",
+    "transactionList": "交易列表",
+    "transactionReceived": "已收款交易",
+    "transactionReceivable": "应收款交易",
+    "associatesList": "顾问列表",
+    "directRecruits": "直接招募",
+    "downlineRecruits": "下线招募",
+    "transactionSubmission": "交易提交",
+    "referralSubmission": "转介合作提交",
+    "referralPartnerList": "转介伙伴列表",
+    "referralPartnerships": "转介合作",
+    "agreements": "协议",
+    "flyers": "传单",
+    "edm": "电子直邮",
+    "customisation": "定制服务",
+    "greetings": "节日祝福",
+    "productsCatalogue": "产品"
   },
   "auth": {
     "brand": "Enshrine",
@@ -506,7 +532,13 @@
       "colDesignation": "职位",
       "colUpline": "上线",
       "virtualOfficeTitle": "您的虚拟办公室正在建设中",
-      "virtualOfficeBody": "提交销售、查看佣金与发放记录、您的名片和人事档案将在下次版本中上线。目前您可以在此查看您的档案和团队信息。"
+      "virtualOfficeBody": "提交销售、查看佣金与发放记录、您的名片和人事档案将在下次版本中上线。目前您可以在此查看您的档案和团队信息。",
+      "totalTransactionValue": "交易总额",
+      "totalTransactionValueSub": "您已成交交易的总额",
+      "grossCommissionTransacted": "累计成交佣金",
+      "grossCommissionTransactedSub": "全部已产生佣金（含未发放）",
+      "grossCommissionReceived": "累计已收佣金",
+      "grossCommissionReceivedSub": "已发放到您的佣金"
     },
     "sales": {
       "pageTitle": "我的销售",
@@ -690,7 +722,9 @@
       "paid": "已付款",
       "awaitingPayment": "等待付款",
       "needsSigned": "请上传已签署的报价单以关闭。",
-      "needsSplit": "等待分成审批后方可关闭。"
+      "needsSplit": "等待分成审批后方可关闭。",
+      "fillAgreement": "骨灰存放协议",
+      "agreementSigned": "✓ 骨灰存放协议已签署"
     },
     "saleDetail": {
       "back": "← 我的销售",
@@ -767,7 +801,17 @@
     "companyRetainedLabel": "公司留存",
     "previewEnterNumbers": "输入数值以查看明细。",
     "couldNotCreate": "创建失败。",
-    "createProductBtn": "创建产品"
+    "createProductBtn": "创建产品",
+    "catalogue": {
+      "title": "产品与服务",
+      "subtitle": "当前可交易的产品",
+      "empty": "暂无在售产品。",
+      "colCode": "编码",
+      "colName": "产品",
+      "colCategory": "类别",
+      "colCompany": "公司",
+      "colStatus": "状态"
+    }
   },
   "recruitment": {
     "title": "招募",
@@ -807,7 +851,8 @@
       "directUpline": "直属上线",
       "noneOption": "— 无 —",
       "createInviteLink": "创建邀请链接",
-      "couldNotInvite": "无法创建邀请。"
+      "couldNotInvite": "无法创建邀请。",
+      "pickTeam": "选择团队…"
     },
     "detail": {
       "headerSubtitle": "{designation} · 邀请于 {date}",
@@ -863,6 +908,19 @@
       "confirmCancel": "确认取消",
       "keep": "保留",
       "cancelFailed": "无法取消。"
+    },
+    "lists": {
+      "empty": "暂无可显示的顾问。",
+      "colId": "编号",
+      "colName": "顾问",
+      "colDesignation": "职级",
+      "colTeam": "团队",
+      "colUpline": "上线",
+      "associatesTitle": "顾问列表",
+      "associatesSubtitle": "您团队中的顾问——仅显示您自己的团队",
+      "downlineTitle": "下线招募",
+      "downlineSubtitle": "您招募体系下的全部成员（含各层级）",
+      "noProfile": "您的登录账号未关联顾问档案。"
     }
   },
   "roles": {
@@ -905,9 +963,17 @@
         "products": "产品",
         "amount": "金额",
         "closer": "成交人",
-        "eligibility": "可发放"
+        "eligibility": "可发放",
+        "collected": "已收金额",
+        "outstanding": "未收余额"
       },
-      "agreement": "协议 ↗"
+      "agreement": "协议 ↗",
+      "myTitle": "我的交易",
+      "mySubtitle": "您可见的已成交交易——本人及（管理层）团队或下线",
+      "receivedTitle": "已收款交易",
+      "receivedSubtitle": "已有收款进账的交易",
+      "receivableTitle": "应收款交易",
+      "receivableSubtitle": "尚有未收余额的交易"
     }
   },
   "status": {
@@ -1033,9 +1099,13 @@
       "type": "类型",
       "contact": "联系方式",
       "submittedBy": "提交人",
-      "status": "状态"
+      "status": "状态",
+      "approval": "审批"
     },
-    "agreement": "协议"
+    "agreement": "协议",
+    "pendingSubtitle": "{count} 项提交待审批",
+    "rejectedBecause": "已拒绝：{reason}",
+    "viewAgreement": "查看协议"
   },
   "errors": {
     "invalidInput": "输入无效。",
@@ -1100,7 +1170,9 @@
     "associateNotFound": "伙伴未找到。",
     "noLoginToReset": "该伙伴没有可重置的登录账户。",
     "resetLinkInvalid": "此重置链接无效或已过期。",
-    "associateNoLogin": "该伙伴尚未开通登录。"
+    "associateNoLogin": "该伙伴尚未开通登录。",
+    "teamNotYours": "您只能招募到自己的团队。",
+    "teamRequired": "请选择新成员加入您的哪个团队。"
   },
   "nameCard": {
     "front": "正面",
@@ -1248,5 +1320,114 @@
     "disclaimer": "只读 · 仅限管理员 · 答案来自门户实时数据。",
     "error": "抱歉，出了点问题，请重试。",
     "forbidden": "该助手仅供管理员使用。"
+  },
+  "marketing": {
+    "customisation": {
+      "title": "定制服务",
+      "subtitle": "个性化营销物料",
+      "howTitle": "如何申请定制",
+      "howBody": "个性化营销物料（定制传单、电子直邮、节日祝福及其他设计）由专人安排。请联系 Yiling 说明需求，她会告知方案与所需时间。",
+      "feeNote": "注意：定制服务为收费项目。"
+    }
+  },
+  "referrals": {
+    "list": {
+      "title": "转介伙伴列表",
+      "subtitle": "所有合作提交全员可见——接触供应商前请先在此查询",
+      "newSubmission": "新合作提交",
+      "empty": "尚无转介合作提交。",
+      "colVendor": "供应商/伙伴",
+      "colType": "类型",
+      "colReferredBy": "转介人",
+      "colDate": "日期",
+      "colStatus": "状态"
+    },
+    "form": {
+      "title": "转介合作提交",
+      "subtitle": "填写合作协议，并请供应商在本设备上签名",
+      "vendorName": "供应商/伙伴名称",
+      "vendorType": "类型",
+      "vendorTypePlace": "例如宠物美容、兽医诊所",
+      "contact": "联系方式",
+      "vendorUen": "UEN / NRIC",
+      "vendorAddress": "注册地址",
+      "notes": "备注",
+      "signerHeading": "供应商签署人",
+      "signerHint": "请将设备交给供应商签署人填写本部分并在下方签名。",
+      "signerName": "姓名",
+      "signerNric": "NRIC / UEN",
+      "signerDesignation": "职务",
+      "signatureLabel": "供应商签名",
+      "submit": "提交审批",
+      "submitting": "提交中…",
+      "couldNotSubmit": "提交失败——请重试。"
+    },
+    "admin": {
+      "approve": "批准",
+      "reject": "拒绝",
+      "signName": "公司签署人姓名",
+      "signDesignation": "职务",
+      "signatureOptional": "公司签名（可选）",
+      "confirmApprove": "签署并批准",
+      "confirmReject": "确认拒绝",
+      "rejectReason": "原因",
+      "cancel": "取消"
+    }
+  },
+  "agreements": {
+    "list": {
+      "title": "协议",
+      "subtitle": "您可见交易的宠物骨灰存放协议",
+      "adminSubtitle": "全部宠物骨灰存放协议",
+      "empty": "暂无协议——协议在已批准交易的“协议”步骤中创建。",
+      "colClient": "申请人",
+      "colNiche": "龛位/单元",
+      "colAmount": "金额",
+      "colAssociate": "顾问",
+      "colUpdated": "更新时间",
+      "colStatus": "状态",
+      "viewPdf": "查看 PDF",
+      "continue": "继续填写",
+      "open": "打开",
+      "legacyNote": "要查看按交易生成的销售协议文档？",
+      "legacyLink": "销售协议"
+    },
+    "form": {
+      "title": "宠物骨灰存放协议",
+      "nicheHeading": "龛位与条款",
+      "storageSpace": "存放位置",
+      "nicheUnit": "存放单元（该龛位）",
+      "instalmentDay": "每月分期付款日",
+      "maintenanceYear": "维护费起始年份",
+      "additionalTerms": "附加条款（第20条）",
+      "petsHeading": "宠物资料",
+      "addPet": "添加宠物",
+      "removePet": "移除宠物",
+      "petName": "宠物名字",
+      "petBreed": "品种",
+      "petGender": "性别",
+      "petDob": "出生日期",
+      "petDismissed": "离世日期",
+      "applicant1Heading": "申请人资料（1）",
+      "applicant2Heading": "申请人资料（2）——可选",
+      "name": "姓名",
+      "nric": "身份证号",
+      "address": "地址",
+      "contact": "联系方式",
+      "email": "电子邮箱",
+      "witnessHeading": "见证人",
+      "applicantWitnessName": "申请人见证人——姓名",
+      "applicantWitnessNric": "申请人见证人——身份证号",
+      "companyWitnessName": "公司见证人——姓名",
+      "companyWitnessNric": "公司见证人——身份证号",
+      "signHeading": "申请人签名",
+      "signHint": "请将设备交给申请人签名。签署后协议 PDF 将归入该交易档案。",
+      "saveDraft": "保存草稿",
+      "signAndFinalize": "签署并完成",
+      "draftNote": "草稿已保存——可稍后返回完成并签署。",
+      "signedTitle": "协议已签署",
+      "signedBody": "该协议已签署并归入交易档案。",
+      "viewPdf": "查看已签署协议（PDF）"
+    }
   }
 }
