@@ -191,6 +191,11 @@ enum VendorStatus {
   Lapsed
 }
 
+enum AshesAgreementStatus {
+  Draft
+  Signed
+}
+
 // ---------------------------------------------------------------------------
 // Identity / HR
 // ---------------------------------------------------------------------------
@@ -498,9 +503,10 @@ model SalesSubmission {
   remarks            String?
   status             SubmissionStatus @default(Submitted)
 
-  lineItems   SaleLineItem[]
-  transaction SalesTransaction?
-  documents   SubmissionDocument[]
+  lineItems      SaleLineItem[]
+  transaction    SalesTransaction?
+  documents      SubmissionDocument[]
+  ashesAgreement PetsAshesAgreement?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -840,10 +846,92 @@ model VendorReferral {
   status                 VendorStatus @default(Active)
   remarks                String?
 
+  // Consolidated-menu rework (Sep 2026): referral partnership submissions are
+  // visible to EVERYONE (dedupe — an associate checks the Partner list before
+  // approaching a vendor) and require Business Admin approval. Pre-existing
+  // registry rows were backfilled Approved.
+  approvalStatus ApprovalStatus @default(Pending) @map("approval_status")
+  reviewedById   String?        @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?      @map("reviewed_at")
+  rejectReason   String?        @map("reject_reason")
+
+  // Referral & Marketing Partnership Agreement e-form (docs/agreement-templates/
+  // referral-marketing-partnership-agreement.pdf). Vendor signs in person on the
+  // associate's device at submission; the Company countersigns at approval.
+  agreementDate           DateTime? @map("agreement_date") @db.Date
+  vendorUen               String?   @map("vendor_uen")
+  vendorAddress           String?   @map("vendor_address")
+  vendorSignerName        String?   @map("vendor_signer_name")
+  vendorSignerNric        String?   @map("vendor_signer_nric")
+  vendorSignerDesignation String?   @map("vendor_signer_designation")
+  vendorSignatureKey      String?   @map("vendor_signature_key")
+  companySignName         String?   @map("company_sign_name")
+  companySignDesignation  String?   @map("company_sign_designation")
+  companySignatureKey     String?   @map("company_signature_key")
+  companySignedAt         DateTime? @map("company_signed_at")
+  companySignedById       String?   @map("company_signed_by") @db.Uuid
+  agreementPdfKey         String?   @map("agreement_pdf_key")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([approvalStatus])
   @@map("vendor_referrals")
+}
+
+// ---------------------------------------------------------------------------
+// Storage of Pets Ashes Agreement (consolidated-menu rework, Sep 2026).
+// One per sale: after the quotation is signed, the associate fills the
+// application details web form; the data auto-fills this agreement (template
+// docs/agreement-templates/storage-of-pets-ashes-agreement-v2607.pdf), the
+// client signs in person on the associate's device, and the rendered PDF joins
+// the sale's docket.
+// ---------------------------------------------------------------------------
+model PetsAshesAgreement {
+  id           String          @id @default(uuid()) @db.Uuid
+  submissionId String          @unique @map("submission_id") @db.Uuid
+  submission   SalesSubmission @relation(fields: [submissionId], references: [id])
+
+  storageSpaceLocation String? @map("storage_space_location")
+  nicheUnit            String? @map("niche_unit")
+  /// Rows of { name, breed, gender, dob, dateDismissed } (template table, max 10).
+  pets                 Json    @default("[]")
+
+  applicant1Name    String  @map("applicant1_name")
+  applicant1Nric    String? @map("applicant1_nric")
+  applicant1Address String? @map("applicant1_address")
+  applicant1Contact String? @map("applicant1_contact")
+  applicant1Email   String? @map("applicant1_email")
+  applicant2Name    String? @map("applicant2_name")
+  applicant2Nric    String? @map("applicant2_nric")
+  applicant2Address String? @map("applicant2_address")
+  applicant2Contact String? @map("applicant2_contact")
+  applicant2Email   String? @map("applicant2_email")
+
+  amountNumeric        Decimal     @map("amount_numeric") @db.Decimal(14, 2)
+  amountWords          String      @map("amount_words")
+  paymentPlan          PaymentPlan @map("payment_plan")
+  bookingFee           Decimal?    @map("booking_fee") @db.Decimal(14, 2)
+  monthlyInstalment    Decimal?    @map("monthly_instalment") @db.Decimal(14, 2)
+  instalmentDayOfMonth Int?        @map("instalment_day_of_month")
+  maintenanceStartYear Int?        @map("maintenance_start_year")
+  additionalTerms      String?     @map("additional_terms")
+
+  status                AshesAgreementStatus @default(Draft)
+  signedAt              DateTime?            @map("signed_at")
+  applicantSignatureKey String?              @map("applicant_signature_key")
+  applicantWitnessName  String?              @map("applicant_witness_name")
+  applicantWitnessNric  String?              @map("applicant_witness_nric")
+  companyWitnessName    String?              @map("company_witness_name")
+  companyWitnessNric    String?              @map("company_witness_nric")
+  agreementPdfKey       String?              @map("agreement_pdf_key")
+
+  createdById String? @map("created_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("pets_ashes_agreements")
 }
 
 model AuditLog {

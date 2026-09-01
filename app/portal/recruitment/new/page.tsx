@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { InviteForm } from "@/app/admin/recruitment/new/invite-form";
+import { myRecruiterTeams } from "@/server/recruitment/actions";
 import { CancelInviteButton } from "./cancel-invite-button";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function PortalInvitePage() {
     }),
     headers(),
   ]);
+  const teamOptions = await myRecruiterTeams();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
   const baseUrl = env.AUTH_URL ?? (host ? `${proto}://${host}` : "");
@@ -53,6 +55,7 @@ export default async function PortalInvitePage() {
       <PageHeader title={t("new.title")} subtitle={t("new.subtitle")} />
       <InviteForm
         baseUrl={baseUrl}
+        teamOptions={teamOptions}
         uplines={uplines.map((u) => ({ code: u.associateCode, label: `${u.associateCode} · ${u.fullName} (${humanize(u.designation)})` }))}
       />
 
