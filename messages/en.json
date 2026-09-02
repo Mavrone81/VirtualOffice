@@ -76,8 +76,8 @@
     "groupProducts": "Products & Services",
     "myDashboard": "My Dashboard",
     "dashTransactionValue": "Total Transaction Value",
-    "dashCommissionTransacted": "Gross Commission Transacted",
-    "dashCommissionReceived": "Gross Commission Received",
+    "dashCommissionTransacted": "Total Gross Commission Transacted",
+    "dashCommissionReceived": "Total Gross Commission Received",
     "myTransactions": "My Transactions",
     "transactionList": "Transaction List",
     "transactionReceived": "Transaction Received",
@@ -543,9 +543,9 @@
       "virtualOfficeBody": "Submitting sales, viewing commissions and payouts, your name card and P-file are coming in the next build. For now you can see your profile and team here.",
       "totalTransactionValue": "Total Transaction Value",
       "totalTransactionValueSub": "Across your closed transactions",
-      "grossCommissionTransacted": "Gross Commission Transacted",
+      "grossCommissionTransacted": "Total Gross Commission Transacted",
       "grossCommissionTransactedSub": "All commission earned, paid or pending",
-      "grossCommissionReceived": "Gross Commission Received",
+      "grossCommissionReceived": "Total Gross Commission Received",
       "grossCommissionReceivedSub": "Commission already paid out to you"
     },
     "sales": {
