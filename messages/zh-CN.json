@@ -246,7 +246,8 @@
       "revealFailed": "无法显示。",
       "secondUpline": "第二上线",
       "uplineEditHint": "佣金 override 按位置分配——直属上线获得第一级 override，第二上线获得第二级。修改仅影响之后的销售。",
-      "uplineSection": "上线 / 层级"
+      "uplineSection": "上线 / 层级",
+      "edit": "编辑"
     },
     "reset": {
       "newPassword": "✓ 新临时密码：",
@@ -254,6 +255,13 @@
       "resetting": "重置中…",
       "button": "重置密码",
       "couldNotReset": "无法重置。"
+    },
+    "edit": {
+      "title": "编辑 {name}",
+      "save": "保存更改",
+      "couldNotSave": "保存失败——请重试。",
+      "keepBlank": "••••（留空则保持不变）",
+      "uplineNote": "上线在顾问详情页设置。登录邮箱、角色与状态另行管理。"
     }
   },
   "audit": {

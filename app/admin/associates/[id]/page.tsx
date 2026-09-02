@@ -87,6 +87,9 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
   return (
     <>
       <PageHeader title={a.fullName} subtitle={`${humanize(a.designation)} · ${a.associateCode}`}>
+        {canManage && (
+          <Button asChild><Link href={`/admin/associates/${a.id}/edit`}>{t("detail.edit")}</Link></Button>
+        )}
         <Button asChild variant="secondary"><Link href="/admin/associates">{t("detail.allAssociates")}</Link></Button>
       </PageHeader>
 
