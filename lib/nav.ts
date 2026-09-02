@@ -32,7 +32,7 @@ export const adminNav: NavGroup[] = [
   {
     titleKey: "groupPerformance",
     items: [
-      { labelKey: "overview", href: "/admin/dashboard", icon: LayoutDashboard },
+      { labelKey: "myDashboard", href: "/admin/dashboard", icon: LayoutDashboard },
       {
         labelKey: "transactions", icon: Receipt,
         children: [

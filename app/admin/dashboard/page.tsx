@@ -1,6 +1,8 @@
 import { ApprovalStatus, AssociateStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
+import { formatSGD } from "@/lib/money";
+import { dashboardMetrics } from "@/server/dashboard/metrics";
 import { roleLabel } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
@@ -8,25 +10,32 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 
-export const metadata = { title: "Overview · Enshrine Admin" };
+export const metadata = { title: "My Dashboard · Enshrine Admin" };
 
 export default async function AdminDashboard() {
   const t = await getTranslations("adminDashboard");
   const tc = await getTranslations("common");
 
-  const [activeCount, pendingCount, companies, products, associates] = await Promise.all([
+  const [activeCount, pendingCount, companies, products, associates, metrics] = await Promise.all([
     prisma.associate.count({ where: { associateStatus: AssociateStatus.Active } }),
     prisma.associate.count({ where: { approvalStatus: ApprovalStatus.Pending } }),
     prisma.company.count(),
     prisma.product.count(),
     prisma.associate.findMany({ orderBy: { associateCode: "asc" }, include: { directUpline: true } }),
+    dashboardMetrics(null), // Admin: all teams, org-wide
   ]);
 
   return (
     <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader title={t("myDashboardTitle")} subtitle={t("myDashboardSubtitle")} />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <StatTile label={t("totalTransactionValue")} value={formatSGD(metrics.totalTransactionValue)} sub={t("allTeams")} />
+        <StatTile label={t("grossCommissionTransacted")} value={formatSGD(metrics.grossTransacted)} sub={t("allTeams")} />
+        <StatTile label={t("grossCommissionReceived")} value={formatSGD(metrics.grossReceived)} sub={t("allTeams")} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile label={t("statActiveAssociates")} value={activeCount} sub={t("statApprovedActive")} />
         <StatTile label={t("statPendingApproval")} value={pendingCount} sub={t("statAwaitingReview")} />
         <StatTile label={t("statCompanyEntities")} value={companies} sub={t("statInvoiceBrands")} />

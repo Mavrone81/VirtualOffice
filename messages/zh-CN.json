@@ -149,7 +149,13 @@
     "colDesignation": "职称",
     "colUpline": "上级",
     "colApproval": "审批状态",
-    "footerNote": "基础构建 · 已初始化角色：{roles}。销售、佣金及发放模块即将推出。"
+    "footerNote": "基础构建 · 已初始化角色：{roles}。销售、佣金及发放模块即将推出。",
+    "myDashboardTitle": "我的仪表板",
+    "myDashboardSubtitle": "全部团队——全公司业绩",
+    "totalTransactionValue": "交易总额",
+    "grossCommissionTransacted": "累计成交佣金总额",
+    "grossCommissionReceived": "累计已收佣金总额",
+    "allTeams": "全部团队合计"
   },
   "associates": {
     "title": "伙伴总览",
