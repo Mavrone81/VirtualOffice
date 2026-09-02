@@ -335,6 +335,20 @@ export async function submitOnboarding(
     uplineName: upline ? `${upline.fullName} (${upline.associateCode})` : null,
     signedDate: new Date(),
     signatureDataUrl: s.signature,
+    // Official V.2026-04 particulars — filled from the onboarding submission;
+    // fields not collected (nationality, gender, religion) stay blank on the form.
+    businessName: s.businessName?.trim() || null,
+    dateOfBirth: s.dateOfBirth ?? null,
+    maritalStatus: s.maritalStatus ?? null,
+    homeAddress: s.residentialAddress?.trim() || null,
+    commencementDate: c.commencementDate ? c.commencementDate.toISOString().slice(0, 10) : null,
+    spouseConflict: s.spouseConflict ?? null,
+    spouseName: s.spouseConflict ? s.spouseName?.trim() || null : null,
+    spouseCompany: s.spouseConflict ? s.spouseCompany?.trim() || null : null,
+    spouseDesignation: s.spouseConflict ? s.spouseDesignation?.trim() || null : null,
+    emergencyName: s.emergencyContactName?.trim() || null,
+    emergencyContact: s.emergencyContactNumber?.trim() || null,
+    tier1Manager: upline ? `${upline.fullName} (${upline.associateCode})` : null,
   });
   signedAgreementFileKey = `candidates/${c.id}/signed-agreement.pdf`;
   await putObject(signedAgreementFileKey, agreementPdf);
