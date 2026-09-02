@@ -18,8 +18,8 @@ const MUTED = "#6b675e";
 const LINE = "#e6e2d9";
 
 const s = StyleSheet.create({
-  page: { padding: 48, fontSize: 10, color: INK, fontFamily: "Helvetica", lineHeight: 1.55 },
-  head: { borderBottomWidth: 1, borderBottomColor: LINE, paddingBottom: 8, marginBottom: 18 },
+  page: { padding: 48, paddingTop: 118, paddingBottom: 64, fontSize: 10, color: INK, fontFamily: "Helvetica", lineHeight: 1.55 },
+  head: { position: "absolute", top: 40, left: 48, right: 48, borderBottomWidth: 1, borderBottomColor: LINE, paddingBottom: 8 },
   headRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   coName: { fontSize: 15, fontFamily: "Helvetica-Bold", letterSpacing: 2 },
   coEntity: { fontSize: 8, color: MUTED, textAlign: "right", fontFamily: "Helvetica-Oblique" },
@@ -76,7 +76,7 @@ function Footer() {
 }
 
 function Clause({ n, title }: { n: string; title: string }) {
-  return <Text style={s.clauseH}>{n}. {title}</Text>;
+  return <Text style={s.clauseH} minPresenceAhead={44}>{n}. {title}</Text>;
 }
 
 function P({ children }: { children: React.ReactNode }) {
@@ -85,7 +85,7 @@ function P({ children }: { children: React.ReactNode }) {
 
 function B({ children }: { children: React.ReactNode }) {
   return (
-    <View style={s.bullet}>
+    <View style={s.bullet} wrap={false}>
       <Text style={s.bulletDot}>•</Text>
       <Text style={s.bulletText}>{children}</Text>
     </View>
@@ -117,6 +117,7 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
     <Document title="Referral & Marketing Partnership Agreement">
       <Page size="A4" style={s.page}>
         <Head />
+        <Footer />
         <Text style={s.title}>REFERRAL & MARKETING PARTNERSHIP AGREEMENT</Text>
 
         <P>
@@ -150,11 +151,6 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
         <P>2.1 The Company hereby appoints the Vendor as a non-exclusive Referral & Marketing Partner for the promotion and referral of the Company’s services.</P>
         <P>2.2 The Vendor shall be entitled to introduce and refer potential customers to the Company for the Company’s services.</P>
         <P>2.3 Nothing in this Agreement shall be construed as creating any partnership, joint venture, employment, agency, or fiduciary relationship between the Parties.</P>
-        <Footer />
-      </Page>
-
-      <Page size="A4" style={s.page}>
-        <Head />
         <Clause n="3" title="SCOPE OF SERVICES" />
         <P>3.1 The Vendor may:</P>
         <B>introduce prospective customers to the Company;</B>
@@ -187,11 +183,6 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
         <B>pricing;</B>
         <B>service arrangements; and</B>
         <B>contractual terms with customers.</B>
-        <Footer />
-      </Page>
-
-      <Page size="A4" style={s.page}>
-        <Head />
         <Clause n="7" title="CONFIDENTIALITY" />
         <P>7.1 The Vendor shall keep confidential all non-public information relating to the Company, including but not limited to:</P>
         <B>pricing structures;</B>
@@ -227,11 +218,6 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
         <B>the Vendor shall immediately cease using the Company’s marketing materials and branding;</B>
         <B>no further commission shall accrue after the termination date unless otherwise approved by the Company in writing; and</B>
         <B>all confidential information shall remain protected.</B>
-        <Footer />
-      </Page>
-
-      <Page size="A4" style={s.page}>
-        <Head />
         <Clause n="11" title="LIABILITY & INDEMNITY" />
         <P>11.1 The Company shall not be liable for any loss, damage, claim, or expense arising from the Vendor’s acts, omissions, representations, or conduct.</P>
         <P>11.2 The Vendor shall indemnify and hold harmless the Company against any claims, liabilities, damages, costs, or expenses arising from:</P>
@@ -257,6 +243,7 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
         <Text style={s.clauseH}>IN WITNESS WHEREOF</Text>
         <P>The Parties hereto have executed this Agreement on the date first above written.</P>
 
+        <View wrap={false}>
         <View style={s.signBlock}>
           <Text style={s.signTitle}>SIGNED by Enshrine Pets Paradise Pte Ltd</Text>
           <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>: {d(a.companySignName)}</Text></View>
@@ -279,7 +266,7 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
             <Image src={a.vendorSignatureDataUrl} style={s.sigImg} />
           ) : null}
         </View>
-        <Footer />
+        </View>
       </Page>
     </Document>
   );
