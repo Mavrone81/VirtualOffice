@@ -149,7 +149,13 @@
     "colDesignation": "Designation",
     "colUpline": "Upline",
     "colApproval": "Approval",
-    "footerNote": "Foundation build · roles seeded: {roles}. Sales, commission and payout modules are next."
+    "footerNote": "Foundation build · roles seeded: {roles}. Sales, commission and payout modules are next.",
+    "myDashboardTitle": "My Dashboard",
+    "myDashboardSubtitle": "All teams — organisation-wide performance",
+    "totalTransactionValue": "Total Transaction Value",
+    "grossCommissionTransacted": "Total Gross Commission Transacted",
+    "grossCommissionReceived": "Total Gross Commission Received",
+    "allTeams": "Across all teams"
   },
   "associates": {
     "title": "Associate Master",

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isManagerRole } from "@/lib/rbac";
 import { teamScopeIds } from "@/lib/team";
+import { dashboardScopeIds, dashboardMetrics } from "@/server/dashboard/metrics";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
@@ -28,7 +29,7 @@ export default async function PortalDashboard() {
   }
 
   const dlIds = await teamScopeIds(associateId);
-  const [me, downline, mySubmissions, myLedger, myTransactions] = await Promise.all([
+  const [me, downline, mySubmissions, myLedger] = await Promise.all([
     prisma.associate.findUnique({ where: { id: associateId } }),
     prisma.associate.findMany({
       where: { id: { in: dlIds }, NOT: { id: associateId } },
@@ -37,19 +38,16 @@ export default async function PortalDashboard() {
     }),
     prisma.salesSubmission.findMany({ where: { closingAssociateId: associateId }, select: { saleAmount: true, salesDate: true } }),
     prisma.commissionLedger.findMany({ where: { associateId }, select: { amount: true, status: true } }),
-    prisma.salesTransaction.findMany({ where: { closingAssociateId: associateId }, select: { saleAmount: true } }),
   ]);
 
   const mySales = sum(mySubmissions.map((s) => s.saleAmount));
   const myEligible = sum(myLedger.filter((l) => l.status === LedgerStatus.Eligible).map((l) => l.amount));
   const myPending = sum(myLedger.filter((l) => l.status === LedgerStatus.Pending).map((l) => l.amount));
 
-  // Consolidated-menu headline metrics (Sep 2026): transaction value = closed
-  // transactions; gross transacted = every non-cancelled commission line earned
-  // (paid or not); gross received = lines actually paid out.
-  const totalTransactionValue = sum(myTransactions.map((tx) => tx.saleAmount));
-  const grossTransacted = sum(myLedger.filter((l) => l.status !== LedgerStatus.Cancelled).map((l) => l.amount));
-  const grossReceived = sum(myLedger.filter((l) => l.status === LedgerStatus.Paid).map((l) => l.amount));
+  // Consolidated-menu headline metrics (Sep 2026), scoped by role:
+  //  Director → own team · Manager/Asst Mgr → own downline + team · Associate → self.
+  const scopeIds = session ? await dashboardScopeIds(session.user.role, associateId) : [associateId];
+  const { totalTransactionValue, grossTransacted, grossReceived } = await dashboardMetrics(scopeIds);
 
   // Sales targets (16-Jul §3): YTD sales ($ + count) from 1 Jan + this month's quota.
   const now = new Date();
