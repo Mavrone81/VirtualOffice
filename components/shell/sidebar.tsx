@@ -95,6 +95,13 @@ export function Sidebar({
     );
   };
 
+  const badgeEl = (item: NavItem) => {
+    const badge = item.badgeKey ? badges[item.badgeKey] : undefined;
+    return badge ? (
+      <span className="rounded-full bg-action px-1.5 py-0.5 text-[10px] font-semibold text-white">{badge}</span>
+    ) : null;
+  };
+
   const renderBranch = (item: NavItem) => {
     const branchActive = isBranchActive(pathname, item);
     const expanded = branchActive || !!open[item.labelKey];
@@ -106,10 +113,11 @@ export function Sidebar({
     return (
       <li key={item.labelKey}>
         {item.href ? (
-          <div className={`flex items-center ${branchActive ? "" : ""}`}>
+          <div className="flex items-center">
             <Link href={item.href} className={`${headCls} flex-1`} onClick={onClose}>
               <Icon className="h-[18px] w-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
               <span className="flex-1">{t(item.labelKey)}</span>
+              {badgeEl(item)}
             </Link>
             <button
               type="button"
@@ -125,6 +133,7 @@ export function Sidebar({
           <button type="button" aria-expanded={expanded} onClick={toggle} className={headCls}>
             <Icon className="h-[18px] w-[18px] shrink-0 opacity-80" strokeWidth={1.75} />
             <span className="flex-1">{t(item.labelKey)}</span>
+            {badgeEl(item)}
             <ChevronDown className={`h-4 w-4 shrink-0 opacity-60 transition-transform ${expanded ? "rotate-180" : ""}`} strokeWidth={1.75} />
           </button>
         )}
@@ -156,16 +165,24 @@ export function Sidebar({
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 pb-4">
-          {groups.map((group) => (
-            <div key={group.titleKey} className="mb-5">
-              <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/30">
-                {t(group.titleKey)}
+          {groups.map((group) => {
+            // A group that is a single collapsible parent (Recruitment, Forms &
+            // Submission) renders as one expandable tab — no redundant grey
+            // header, since the parent row already carries the section name.
+            const isSection = group.items.length === 1 && !!group.items[0].children;
+            return (
+              <div key={group.titleKey} className="mb-5">
+                {!isSection && (
+                  <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/30">
+                    {t(group.titleKey)}
+                  </div>
+                )}
+                <ul className="space-y-0.5">
+                  {group.items.map((item) => (item.children ? renderBranch(item) : renderLeaf(item)))}
+                </ul>
               </div>
-              <ul className="space-y-0.5">
-                {group.items.map((item) => (item.children ? renderBranch(item) : renderLeaf(item)))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* User */}
