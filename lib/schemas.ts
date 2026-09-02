@@ -119,6 +119,15 @@ export const newAssociateSchema = z.object({
 });
 export type NewAssociateSchemaInput = z.infer<typeof newAssociateSchema>;
 
+// Editing an existing associate (admin). Same core fields as creation minus the
+// uplines (managed by the dedicated UplineEditor with cycle guards), plus an
+// editable joinDate. nric / bankAccountNumber are keep-if-blank on edit — the
+// form never prefills the encrypted values, so an empty field means "unchanged".
+export const updateAssociateSchema = newAssociateSchema
+  .omit({ directUplineCode: true, secondUplineCode: true })
+  .extend({ joinDate: dateStr.optional() });
+export type UpdateAssociateSchemaInput = z.infer<typeof updateAssociateSchema>;
+
 // ---------------------------------------------------------------------------
 // Onboarding — mirrors OnboardingSubmission (server/recruitment/actions.ts).
 // photo/signature BYTES are sniffed by the magic-byte upload task (Phase 1d
