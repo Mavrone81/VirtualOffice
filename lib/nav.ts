@@ -3,7 +3,7 @@ import {
   FileText, Banknote, Megaphone, FolderOpen, Handshake, FileSignature,
   IdCard, FolderLock, Network, ScrollText, ClipboardCheck, Split, FileCheck,
   TrendingUp, Wallet, HandCoins, ListChecks, GitBranch, Mail, Image, Palette,
-  PartyPopper, Store, Sparkles, type LucideIcon,
+  PartyPopper, Store, Sparkles, Landmark, Archive, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
 
@@ -73,9 +73,14 @@ export const adminNav: NavGroup[] = [
   {
     titleKey: "groupFinance",
     items: [
-      { labelKey: "commission", href: "/admin/commission", icon: Calculator },
-      { labelKey: "invoices", href: "/admin/invoices", icon: FileText },
-      { labelKey: "payouts", href: "/admin/payouts", icon: Banknote },
+      {
+        labelKey: "groupFinance", icon: Landmark,
+        children: [
+          { labelKey: "commission", href: "/admin/commission", icon: Calculator },
+          { labelKey: "invoices", href: "/admin/invoices", icon: FileText },
+          { labelKey: "payouts", href: "/admin/payouts", icon: Banknote },
+        ],
+      },
     ],
   },
   {
@@ -85,6 +90,10 @@ export const adminNav: NavGroup[] = [
         labelKey: "groupMarketing", icon: Sparkles,
         children: [
           { labelKey: "nameCard", href: "/admin/name-card", icon: IdCard },
+          { labelKey: "flyers", icon: Image },
+          { labelKey: "edm", icon: Mail },
+          { labelKey: "customisation", icon: Palette },
+          { labelKey: "greetings", icon: PartyPopper },
         ],
       },
     ],
@@ -98,10 +107,15 @@ export const adminNav: NavGroup[] = [
   {
     titleKey: "groupResources",
     items: [
-      { labelKey: "notices", href: "/admin/notices", icon: Megaphone },
-      { labelKey: "documents", href: "/admin/documents", icon: FolderOpen },
-      { labelKey: "auditLog", href: "/admin/audit", icon: ScrollText, roles: ["Admin"] },
-      { labelKey: "uat", href: "/admin/uat", icon: ClipboardCheck, roles: ["Admin"] },
+      {
+        labelKey: "groupResources", icon: Archive,
+        children: [
+          { labelKey: "notices", href: "/admin/notices", icon: Megaphone },
+          { labelKey: "documents", href: "/admin/documents", icon: FolderOpen },
+          { labelKey: "auditLog", href: "/admin/audit", icon: ScrollText, roles: ["Admin"] },
+          { labelKey: "uat", href: "/admin/uat", icon: ClipboardCheck, roles: ["Admin"] },
+        ],
+      },
     ],
   },
 ];
@@ -186,9 +200,14 @@ export const portalNav: NavGroup[] = [
   {
     titleKey: "groupResources",
     items: [
-      { labelKey: "notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
-      { labelKey: "documents", href: "/portal/documents", icon: FolderOpen },
-      { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
+      {
+        labelKey: "groupResources", icon: Archive,
+        children: [
+          { labelKey: "notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
+          { labelKey: "documents", href: "/portal/documents", icon: FolderOpen },
+          { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
+        ],
+      },
     ],
   },
 ];
