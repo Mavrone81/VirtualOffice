@@ -46,19 +46,28 @@ export const adminNav: NavGroup[] = [
   {
     titleKey: "groupRecruitment",
     items: [
-      { labelKey: "recruitment", href: "/admin/recruitment", icon: UserPlus, badgeKey: "recruit" },
-      { labelKey: "associatesList", href: "/admin/associates", icon: Users },
-      { labelKey: "teams", href: "/admin/teams", icon: Network, roles: ["Admin"] },
+      {
+        labelKey: "recruitment", href: "/admin/recruitment", icon: UserPlus, badgeKey: "recruit",
+        children: [
+          { labelKey: "associatesList", href: "/admin/associates", icon: Users },
+          { labelKey: "teams", href: "/admin/teams", icon: Network, roles: ["Admin"] },
+        ],
+      },
     ],
   },
   {
     titleKey: "groupFormsSubmission",
     items: [
-      { labelKey: "quotations", href: "/admin/quotations", icon: BadgeCheck, badgeKey: "quotations" },
-      { labelKey: "splitApprovals", href: "/admin/split-approvals", icon: Split },
-      { labelKey: "salesVerify", href: "/admin/sales/verify", icon: FileCheck },
-      { labelKey: "referralPartnerships", href: "/admin/vendors", icon: Handshake, badgeKey: "referrals" },
-      { labelKey: "agreements", href: "/admin/agreements", icon: FileSignature },
+      {
+        labelKey: "groupFormsSubmission", icon: FileSignature,
+        children: [
+          { labelKey: "quotations", href: "/admin/quotations", icon: BadgeCheck, badgeKey: "quotations" },
+          { labelKey: "splitApprovals", href: "/admin/split-approvals", icon: Split },
+          { labelKey: "salesVerify", href: "/admin/sales/verify", icon: FileCheck },
+          { labelKey: "referralPartnerships", href: "/admin/vendors", icon: Handshake, badgeKey: "referrals" },
+          { labelKey: "agreements", href: "/admin/agreements", icon: FileSignature },
+        ],
+      },
     ],
   },
   {
@@ -121,21 +130,31 @@ export const portalNav: NavGroup[] = [
   {
     titleKey: "groupRecruitment",
     items: [
-      { labelKey: "associatesList", href: "/portal/recruitment/associates", icon: Users },
-      { labelKey: "directRecruits", href: "/portal/recruitment/new", icon: UserPlus, roles: RECRUITER_ROLES },
-      { labelKey: "downlineRecruits", href: "/portal/recruitment/downline", icon: GitBranch },
-      { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
+      {
+        labelKey: "groupRecruitment", icon: Users,
+        children: [
+          { labelKey: "associatesList", href: "/portal/recruitment/associates", icon: Users },
+          { labelKey: "directRecruits", href: "/portal/recruitment/new", icon: UserPlus, roles: RECRUITER_ROLES },
+          { labelKey: "downlineRecruits", href: "/portal/recruitment/downline", icon: GitBranch },
+          { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
+        ],
+      },
     ],
   },
   {
     titleKey: "groupFormsSubmission",
     items: [
-      { labelKey: "transactionSubmission", href: "/portal/sales", icon: Receipt },
-      { labelKey: "myQuotations", href: "/portal/quotations", icon: FileText },
-      { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
-      { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
-      { labelKey: "agreements", href: "/portal/agreements", icon: FileSignature },
-      { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
+      {
+        labelKey: "groupFormsSubmission", icon: FileSignature,
+        children: [
+          { labelKey: "transactionSubmission", href: "/portal/sales", icon: Receipt },
+          { labelKey: "myQuotations", href: "/portal/quotations", icon: FileText },
+          { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
+          { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
+          { labelKey: "agreements", href: "/portal/agreements", icon: FileSignature },
+          { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
+        ],
+      },
     ],
   },
   {
