@@ -205,7 +205,20 @@ export const portalNav: NavGroup[] = [
       },
     ],
   },
-  // Manager/director-only — every child is role-gated, so the whole section is
+  {
+    titleKey: "groupResources",
+    items: [
+      {
+        labelKey: "groupResources", icon: Archive,
+        children: [
+          { labelKey: "notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
+          { labelKey: "documents", href: "/portal/documents", icon: FolderOpen },
+          { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
+        ],
+      },
+    ],
+  },
+  // Directors + admin only — every child is role-gated, so the whole section is
   // hidden from a plain associate (whose view then matches the sketch exactly).
   {
     titleKey: "groupMyTeam",
@@ -213,9 +226,9 @@ export const portalNav: NavGroup[] = [
       {
         labelKey: "groupMyTeam", icon: Network,
         children: [
-          { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
-          { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
-          { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
+          { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: DIRECTOR_ROLES },
+          { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: DIRECTOR_ROLES },
+          { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: DIRECTOR_ROLES },
           { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
         ],
       },

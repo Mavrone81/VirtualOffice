@@ -666,7 +666,13 @@
     "documents": {
       "pageTitle": "文件",
       "pageSubtitle": "与您共享的模板和文件。",
-      "noDocs": "暂无与您共享的文件。"
+      "noDocs": "暂无与您共享的文件。",
+      "templatesHeading": "表格与模板",
+      "templateTag": "空白模板 · PDF",
+      "filedHeading": "已归档文件",
+      "tplAssociate": "顾问协议",
+      "tplReferral": "转介与营销合作协议",
+      "tplAshes": "宠物骨灰存放协议"
     },
     "vendors": {
       "pageTitle": "供应商名录",

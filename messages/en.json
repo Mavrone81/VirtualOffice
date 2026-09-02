@@ -666,7 +666,13 @@
     "documents": {
       "pageTitle": "Documents",
       "pageSubtitle": "Templates and files shared with you.",
-      "noDocs": "No documents shared with you yet."
+      "noDocs": "No documents shared with you yet.",
+      "templatesHeading": "Forms & Templates",
+      "templateTag": "Blank template · PDF",
+      "filedHeading": "Filed Documents",
+      "tplAssociate": "Associate Agreement",
+      "tplReferral": "Referral & Marketing Partnership Agreement",
+      "tplAshes": "Storage of Pets Ashes Agreement"
     },
     "vendors": {
       "pageTitle": "Vendor registry",
