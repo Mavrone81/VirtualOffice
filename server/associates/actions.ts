@@ -12,7 +12,7 @@ import { logAudit } from "@/lib/audit";
 import { decryptPiiAudited, type PiiField } from "@/server/pii";
 import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
-import { newAssociateSchema } from "@/lib/schemas";
+import { newAssociateSchema, updateAssociateSchema } from "@/lib/schemas";
 
 async function requireAdmin() {
   const session = await auth();
@@ -147,6 +147,82 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
   });
   revalidatePath("/admin/associates");
   return { ok: true, code };
+}
+
+export type UpdateAssociateInput = {
+  fullName: string;
+  businessName?: string;
+  mobileNumber?: string;
+  email?: string;
+  nric?: string;
+  dateOfBirth?: string;
+  joinDate?: string;
+  designation: Designation;
+  teamName?: string;
+  recruitingManager?: string;
+  paymentMethod?: "PayNow" | "Bank Transfer";
+  paynowNumber?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+};
+
+// Same "" -> undefined normalization as create, plus joinDate. nric and
+// bankAccountNumber are handled as keep-if-blank (never prefilled), so a blank
+// value must NOT overwrite the stored ciphertext.
+const UPDATE_BLANKABLE: (keyof UpdateAssociateInput)[] = [
+  "businessName", "mobileNumber", "email", "nric", "dateOfBirth", "joinDate",
+  "teamName", "recruitingManager", "paymentMethod", "paynowNumber", "bankName", "bankAccountNumber",
+];
+
+/**
+ * Edit an existing associate's core record (admin). Uplines are intentionally
+ * NOT here — they have cycle guards in {@link updateAssociateUplines}. The
+ * linked user's login email and app_role are also left untouched (account/role
+ * management is separate). nric / bankAccountNumber update only when a new value
+ * is supplied; a blank field keeps the existing encrypted value.
+ */
+export async function updateAssociate(
+  id: string,
+  input: UpdateAssociateInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+
+  const normalized = { ...input };
+  for (const k of UPDATE_BLANKABLE) if (normalized[k] === "") delete normalized[k];
+
+  const parsed = validate(updateAssociateSchema, normalized);
+  if (!parsed.ok) return { ok: false, error: t("invalidInput") };
+  const v = parsed.data;
+
+  const existing = await prisma.associate.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) return { ok: false, error: t("notFound") };
+
+  const data: Record<string, unknown> = {
+    fullName: v.fullName.trim(),
+    businessName: v.businessName?.trim() || null,
+    mobileNumber: v.mobileNumber?.trim() || null,
+    email: v.email?.trim() || null,
+    dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : null,
+    joinDate: v.joinDate ? new Date(v.joinDate) : null,
+    designation: v.designation,
+    teamName: v.teamName?.trim() || null,
+    recruitingManager: v.recruitingManager?.trim() || null,
+    paymentMethod:
+      v.paymentMethod === "Bank Transfer" ? PaymentMethod.BankTransfer
+      : v.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null,
+    paynowNumber: v.paynowNumber?.trim() || null,
+    bankName: v.bankName?.trim() || null,
+  };
+  // keep-if-blank PII: only overwrite when a fresh value was typed
+  if (v.nric) data.nric = encryptPII(v.nric.trim());
+  if (v.bankAccountNumber) data.bankAccountNumber = encryptPII(v.bankAccountNumber.trim());
+
+  await prisma.associate.update({ where: { id }, data });
+  await logAudit({ action: "associate.updated", entityType: "Associate", entityId: id });
+  revalidatePath("/admin/associates");
+  revalidatePath(`/admin/associates/${id}`);
+  return { ok: true };
 }
 
 /**

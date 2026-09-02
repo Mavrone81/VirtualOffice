@@ -246,7 +246,8 @@
       "revealFailed": "Could not reveal.",
       "secondUpline": "Second upline",
       "uplineEditHint": "Overrides are positional — the direct upline earns the Tier-1 override, the second upline the Tier-2. Changing these affects future sales only.",
-      "uplineSection": "Upline / hierarchy"
+      "uplineSection": "Upline / hierarchy",
+      "edit": "Edit"
     },
     "reset": {
       "newPassword": "✓ New temporary password:",
@@ -254,6 +255,13 @@
       "resetting": "Resetting…",
       "button": "Reset password",
       "couldNotReset": "Could not reset."
+    },
+    "edit": {
+      "title": "Edit {name}",
+      "save": "Save changes",
+      "couldNotSave": "Could not save — try again.",
+      "keepBlank": "•••• (leave blank to keep)",
+      "uplineNote": "Uplines are set on the associate's detail page. Login email, role and status are managed separately."
     }
   },
   "audit": {
