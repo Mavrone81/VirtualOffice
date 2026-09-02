@@ -3,7 +3,7 @@ import {
   FileText, Banknote, Megaphone, FolderOpen, Handshake, FileSignature,
   IdCard, FolderLock, Network, ScrollText, ClipboardCheck, Split, FileCheck,
   TrendingUp, Wallet, HandCoins, ListChecks, GitBranch, Mail, Image, Palette,
-  PartyPopper, Store, type LucideIcon,
+  PartyPopper, Store, Sparkles, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
 
@@ -81,7 +81,12 @@ export const adminNav: NavGroup[] = [
   {
     titleKey: "groupMarketing",
     items: [
-      { labelKey: "nameCard", href: "/admin/name-card", icon: IdCard },
+      {
+        labelKey: "groupMarketing", icon: Sparkles,
+        children: [
+          { labelKey: "nameCard", href: "/admin/name-card", icon: IdCard },
+        ],
+      },
     ],
   },
   {
@@ -160,11 +165,16 @@ export const portalNav: NavGroup[] = [
   {
     titleKey: "groupMarketing",
     items: [
-      { labelKey: "nameCard", href: "/portal/name-card", icon: IdCard },
-      { labelKey: "flyers", icon: Image },
-      { labelKey: "edm", icon: Mail },
-      { labelKey: "customisation", href: "/portal/marketing/customisation", icon: Palette },
-      { labelKey: "greetings", icon: PartyPopper },
+      {
+        labelKey: "groupMarketing", icon: Sparkles,
+        children: [
+          { labelKey: "nameCard", href: "/portal/name-card", icon: IdCard },
+          { labelKey: "flyers", icon: Image },
+          { labelKey: "edm", icon: Mail },
+          { labelKey: "customisation", href: "/portal/marketing/customisation", icon: Palette },
+          { labelKey: "greetings", icon: PartyPopper },
+        ],
+      },
     ],
   },
   {
