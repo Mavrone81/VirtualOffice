@@ -76,8 +76,8 @@
     "groupProducts": "产品与服务",
     "myDashboard": "我的仪表板",
     "dashTransactionValue": "交易总额",
-    "dashCommissionTransacted": "累计成交佣金",
-    "dashCommissionReceived": "累计已收佣金",
+    "dashCommissionTransacted": "累计成交佣金总额",
+    "dashCommissionReceived": "累计已收佣金总额",
     "myTransactions": "我的交易",
     "transactionList": "交易列表",
     "transactionReceived": "已收款交易",
@@ -543,9 +543,9 @@
       "virtualOfficeBody": "提交销售、查看佣金与发放记录、您的名片和人事档案将在下次版本中上线。目前您可以在此查看您的档案和团队信息。",
       "totalTransactionValue": "交易总额",
       "totalTransactionValueSub": "您已成交交易的总额",
-      "grossCommissionTransacted": "累计成交佣金",
+      "grossCommissionTransacted": "累计成交佣金总额",
       "grossCommissionTransactedSub": "全部已产生佣金（含未发放）",
-      "grossCommissionReceived": "累计已收佣金",
+      "grossCommissionReceived": "累计已收佣金总额",
       "grossCommissionReceivedSub": "已发放到您的佣金"
     },
     "sales": {

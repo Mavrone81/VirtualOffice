@@ -140,10 +140,6 @@ export const portalNav: NavGroup[] = [
           { labelKey: "transactionReceivable", href: "/portal/transactions/receivable", icon: HandCoins },
         ],
       },
-      { labelKey: "myCommissions", href: "/portal/commissions", icon: Calculator },
-      { labelKey: "myPayouts", href: "/portal/payouts", icon: Banknote },
-      { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
-      { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
     ],
   },
   {
@@ -155,7 +151,6 @@ export const portalNav: NavGroup[] = [
           { labelKey: "associatesList", href: "/portal/recruitment/associates", icon: Users },
           { labelKey: "directRecruits", href: "/portal/recruitment/new", icon: UserPlus, roles: RECRUITER_ROLES },
           { labelKey: "downlineRecruits", href: "/portal/recruitment/downline", icon: GitBranch },
-          { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
         ],
       },
     ],
@@ -167,11 +162,9 @@ export const portalNav: NavGroup[] = [
         labelKey: "groupFormsSubmission", icon: FileSignature,
         children: [
           { labelKey: "transactionSubmission", href: "/portal/sales", icon: Receipt },
-          { labelKey: "myQuotations", href: "/portal/quotations", icon: FileText },
           { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
-          { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
           { labelKey: "agreements", href: "/portal/agreements", icon: FileSignature },
-          { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
+          { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
         ],
       },
     ],
@@ -197,15 +190,33 @@ export const portalNav: NavGroup[] = [
       { labelKey: "productsCatalogue", href: "/portal/products", icon: Store },
     ],
   },
+  // Finance (Sep 2026): Commissions + Payouts relocated here out of Personal
+  // Performance, so the sketch's Personal Performance = My Dashboard + My
+  // Transactions only.
   {
-    titleKey: "groupResources",
+    titleKey: "groupFinance",
     items: [
       {
-        labelKey: "groupResources", icon: Archive,
+        labelKey: "groupFinance", icon: Landmark,
         children: [
-          { labelKey: "notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
-          { labelKey: "documents", href: "/portal/documents", icon: FolderOpen },
-          { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
+          { labelKey: "myCommissions", href: "/portal/commissions", icon: Calculator },
+          { labelKey: "myPayouts", href: "/portal/payouts", icon: Banknote },
+        ],
+      },
+    ],
+  },
+  // Manager/director-only — every child is role-gated, so the whole section is
+  // hidden from a plain associate (whose view then matches the sketch exactly).
+  {
+    titleKey: "groupMyTeam",
+    items: [
+      {
+        labelKey: "groupMyTeam", icon: Network,
+        children: [
+          { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: MANAGER_ROLES },
+          { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
+          { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
+          { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
         ],
       },
     ],
