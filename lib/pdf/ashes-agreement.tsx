@@ -17,8 +17,8 @@ const MUTED = "#6b675e";
 const LINE = "#e6e2d9";
 
 const s = StyleSheet.create({
-  page: { padding: 44, paddingBottom: 58, fontSize: 9, color: INK, fontFamily: "Helvetica", lineHeight: 1.45 },
-  head: { borderBottomWidth: 1, borderBottomColor: LINE, paddingBottom: 8, marginBottom: 14 },
+  page: { padding: 44, paddingTop: 112, paddingBottom: 66, fontSize: 9, color: INK, fontFamily: "Helvetica", lineHeight: 1.45 },
+  head: { position: "absolute", top: 38, left: 44, right: 44, borderBottomWidth: 1, borderBottomColor: LINE, paddingBottom: 8 },
   headRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   coName: { fontSize: 15, fontFamily: "Helvetica-Bold", letterSpacing: 2 },
   coEntity: { fontSize: 8, color: MUTED, textAlign: "right", fontFamily: "Helvetica-Oblique" },
@@ -67,6 +67,12 @@ const s = StyleSheet.create({
 
 const dash = "________________";
 const d = (v: string | null | undefined) => (v && v.trim() ? v : dash);
+const ordinal = (n: number) => {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+};
+const money = (v: string | null) => (v == null ? null : Number(v).toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 function Head() {
   return (
@@ -85,7 +91,10 @@ function Head() {
   );
 }
 
-function Footer({ page }: { page: number }) {
+// No dynamic "Page N of M": react-pdf's Text render-prop does not fire in this
+// setup (tried direct Page child + flattened style, v4.5.1) — same as every
+// other template in lib/pdf, none of which carry page numbers.
+function Footer() {
   return (
     <View style={s.footer} fixed>
       <View style={s.footerRow}>
@@ -95,7 +104,7 @@ function Footer({ page }: { page: number }) {
         <Text style={s.footerText}>Enshrine Afterlife Planner Pte Ltd</Text>
       </View>
       <View style={s.footerRow}>
-        <Text style={s.pageNum}>Page {page} of 3</Text>
+        <Text style={s.pageNum}> </Text>
         <Text style={s.pageNum}>V2607</Text>
       </View>
     </View>
@@ -104,7 +113,7 @@ function Footer({ page }: { page: number }) {
 
 function N({ n, children }: { n: string; children: React.ReactNode }) {
   return (
-    <View style={s.numRow}>
+    <View style={s.numRow} wrap={false}>
       <Text style={s.numCol}>{n}.</Text>
       <Text style={s.numBody}>{children}</Text>
     </View>
@@ -113,7 +122,7 @@ function N({ n, children }: { n: string; children: React.ReactNode }) {
 
 function Sub({ n, children }: { n: string; children: React.ReactNode }) {
   return (
-    <View style={s.subRow}>
+    <View style={s.subRow} wrap={false}>
       <Text style={s.subCol}>({n})</Text>
       <Text style={s.subBody}>{children}</Text>
     </View>
@@ -217,6 +226,7 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
       {/* ------------------------------------------------ Page 1 */}
       <Page size="A4" style={s.page}>
         <Head />
+        <Footer />
         <Text style={s.title}>Storage of Pets Ashes Agreement</Text>
 
         <View style={s.kvRow}>
@@ -242,34 +252,29 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
         <N n="1">
           Enshrine Pets Paradise Pte Ltd (hereinafter known as “the Company”) agrees to let and the Applicant agrees to take Pet
           Ash Storage unit known as <Text style={s.fill}>{d(a.nicheUnit)}</Text> (hereinafter known as “the said niche”) at the amount
-          of <Text style={s.fill}>SINGAPORE DOLLARS {a.amountWords}</Text> (S$<Text style={s.fill}>{a.amountNumeric}</Text>) payable:-
+          of <Text style={s.fill}>SINGAPORE DOLLARS {a.amountWords}</Text> (S$<Text style={s.fill}>{money(a.amountNumeric)}</Text>) payable:-
         </N>
-        <View style={s.checkboxRow}>
+        <View style={s.checkboxRow} wrap={false}>
           <Text style={s.box}>{isFull ? "X" : " "}</Text>
           <Text style={{ flex: 1, fontSize: 9 }}>
             <Text style={s.fill}>Full Payment</Text> upon signing of Storage of Pets Ashes Agreement.
           </Text>
         </View>
-        <View style={s.checkboxRow}>
+        <View style={s.checkboxRow} wrap={false}>
           <Text style={s.box}>{isFull ? " " : "X"}</Text>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 9 }}><Text style={s.fill}>Instalment Payment</Text></Text>
             <Text style={{ fontSize: 9 }}>-   12 Months Interest Free Instalment.</Text>
             <Text style={{ fontSize: 9 }}>
-              -   Booking Fee for the amount of (S$<Text style={s.fill}>{isFull ? dash : d(a.bookingFee)}</Text>) payable upon signing of Storage of Pets Ashes Agreement.
+              -   Booking Fee for the amount of (S$<Text style={s.fill}>{isFull ? dash : (money(a.bookingFee) ?? dash)}</Text>) payable upon signing of Storage of Pets Ashes Agreement.
             </Text>
             <Text style={{ fontSize: 9 }}>
-              -   Subsequent monthly instalment for the amount of (S$<Text style={s.fill}>{isFull ? dash : d(a.monthlyInstalment)}</Text>) payable monthly in advance without
-              deduction whatsoever on the <Text style={s.fill}>{isFull || !a.instalmentDayOfMonth ? "____" : String(a.instalmentDayOfMonth)}</Text> day of each calendar month for a period of 12 calendar months.
+              -   Subsequent monthly instalment for the amount of (S$<Text style={s.fill}>{isFull ? dash : (money(a.monthlyInstalment) ?? dash)}</Text>) payable monthly in advance without
+              deduction whatsoever on the <Text style={s.fill}>{isFull || !a.instalmentDayOfMonth ? "____" : ordinal(a.instalmentDayOfMonth)}</Text> day of each calendar month for a period of 12 calendar months.
             </Text>
           </View>
         </View>
-        <Footer page={1} />
-      </Page>
 
-      {/* ------------------------------------------------ Page 2 */}
-      <Page size="A4" style={s.page}>
-        <Head />
         <N n="2">
           The Applicant agrees to pay the maintenance fee for the Storage of Pet Ashes:-{"\n"}
           <Text style={s.fill}>Annual Maintenance Fee</Text> for the amount of <Text style={s.fill}>S$10.00</Text> starting from{" "}
@@ -304,12 +309,8 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
         <Sub n="ii">posted and addressed to the applicant(s) his registered address in this agreement.</Sub>
         <N n="13">In the event that a niche is repossessed under Clause 10:-</N>
         <Sub n="i">the applicant shall collect the ashes of the dismissed pet from the premise within the period as specified in the notice of repossession. Should he/she fail to do so, the Company may dispose off the ashes without further notice;</Sub>
-        <Footer page={2} />
-      </Page>
+        
 
-      {/* ------------------------------------------------ Page 3 */}
-      <Page size="A4" style={s.page}>
-        <Head />
         <Sub n="ii">an applicant shall not be entitled to any refund of any fees or compensation from the Government or the Company; and</Sub>
         <Sub n="iii">The Company may in its absolute discretion offer an applicant a replacement niche for the storage of ashes in another premise, subject to any new terms and conditions, if applicable.</Sub>
         <N n="14">
@@ -338,7 +339,7 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
           <Text style={s.fill}>{a.signedAt ? format(a.signedAt, "yyyy") : dash}</Text>.
         </Text>
 
-        <View style={s.signBlock}>
+        <View style={s.signBlock} wrap={false}>
           <Text style={s.signTitle}>SIGNED by the Company</Text>
           <Text style={{ fontSize: 8, fontFamily: "Helvetica-Oblique" }}>(With Company stamp affixed where applicable)</Text>
           <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>:  Enshrine Pets Paradise Pte Ltd</Text></View>
@@ -348,7 +349,7 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
           <View style={s.signRow}><Text style={s.signLabel}>NRIC No.</Text><Text style={s.signValue}>: {d(a.companyWitnessNric)}</Text></View>
         </View>
 
-        <View style={s.signBlock}>
+        <View style={s.signBlock} wrap={false}>
           <Text style={s.signTitle}>SIGNED by the Applicant</Text>
           <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>: {d(a.applicant1Name)}</Text></View>
           <View style={s.signRow}><Text style={s.signLabel}>NRIC No.</Text><Text style={s.signValue}>: {d(a.applicant1Nric)}</Text></View>
@@ -360,7 +361,7 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
           <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>: {d(a.applicantWitnessName)}</Text></View>
           <View style={s.signRow}><Text style={s.signLabel}>NRIC No.</Text><Text style={s.signValue}>: {d(a.applicantWitnessNric)}</Text></View>
         </View>
-        <Footer page={3} />
+        
       </Page>
     </Document>
   );
