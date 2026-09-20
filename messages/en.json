@@ -111,7 +111,8 @@
     "signInButton": "Sign in",
     "signingIn": "Signing in…",
     "trouble": "Trouble signing in? Contact your administrator.",
-    "invalidCredentials": "Invalid email or password."
+    "invalidCredentials": "Invalid email or password.",
+    "cardsCaption": "Every associate gets a name card, ready the moment you sign in."
   },
   "account": {
     "pageTitle": "Account",
