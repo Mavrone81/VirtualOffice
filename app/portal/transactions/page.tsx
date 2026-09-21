@@ -1,17 +1,8 @@
-import { getTranslations } from "next-intl/server";
-import { PageHeader } from "@/components/ui/page-header";
-import { TransactionsTable } from "@/components/transactions/transactions-table";
-import { visibleTransactions } from "@/server/transactions/queries";
+import { MyTransactionsView } from "@/components/transactions/my-transactions-view";
 
 export const metadata = { title: "My transactions · Enshrine Portal" };
 
-export default async function PortalTransactionsPage() {
-  const t = await getTranslations("sales");
-  const rows = (await visibleTransactions("list")) ?? [];
-  return (
-    <>
-      <PageHeader title={t("transactions.myTitle")} subtitle={t("transactions.mySubtitle")} />
-      <TransactionsTable rows={rows} />
-    </>
-  );
+// My Transactions (Sep 2026 — A5): one page, three tabs; this is the "list" tab.
+export default function PortalTransactionsPage() {
+  return <MyTransactionsView variant="list" />;
 }
