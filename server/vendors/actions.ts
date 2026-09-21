@@ -94,36 +94,6 @@ export type ReferralSubmissionInput = {
   agreementRead?: boolean;
 };
 
-/**
- * A12 (associate-portal changes, Sep 2026): the vendor must read the actual
- * agreement — with their details filled in — before signing. Renders the same
- * PDF the submission will store, unsigned, for display on the device.
- */
-export async function previewReferralAgreement(
-  input: Omit<ReferralSubmissionInput, "signatureDataUrl" | "agreementRead">,
-): Promise<{ ok: boolean; error?: string; pdfBase64?: string }> {
-  const t = await getTranslations("errors");
-  const session = await auth();
-  if (!session?.user) return { ok: false, error: t("forbidden") };
-  if (!input.vendorName?.trim()) return { ok: false, error: t("vendorNameRequired") };
-  const pdf = await renderReferralAgreementPdfFromData({
-    agreementDate: new Date(),
-    vendorName: input.vendorName.trim(),
-    vendorUen: input.vendorUen?.trim() || null,
-    vendorAddress: input.vendorAddress?.trim() || null,
-    vendorSignerName: input.vendorSignerName?.trim() || null,
-    vendorSignerNric: input.vendorSignerNric?.trim() || null,
-    vendorSignerDesignation: input.vendorSignerDesignation?.trim() || null,
-    vendorSignatureDataUrl: null,
-    vendorSignedDate: null,
-    companySignName: null,
-    companySignDesignation: null,
-    companySignatureDataUrl: null,
-    companySignedAt: null,
-  });
-  return { ok: true, pdfBase64: pdf.toString("base64") };
-}
-
 export async function submitReferralPartnership(
   input: ReferralSubmissionInput,
 ): Promise<{ ok: boolean; error?: string; id?: string }> {

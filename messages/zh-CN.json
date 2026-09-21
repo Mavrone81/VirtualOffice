@@ -1464,13 +1464,12 @@
       "submitting": "提交中…",
       "couldNotSubmit": "提交失败——请重试。",
       "readHeading": "签署前请阅读协议",
-      "readHint": "合作伙伴须在签署前阅读已填入其资料的完整《推荐与营销合作协议》。",
-      "showAgreement": "显示协议",
-      "preparing": "准备中…",
-      "openFull": "全屏打开 ↗",
+      "readHint": "合作伙伴须在签署前阅读已填入其资料的完整《推荐与营销合作协议》。协议将在新标签页中打开——阅读后请返回此页。",
+      "showAgreement": "打开协议",
       "readConfirm": "本人 {name} 已阅读并同意《推荐与营销合作协议》。",
       "fillFirst": "请先填写合作伙伴及签署人资料。",
-      "signLocked": "阅读并确认上方协议后即可签署。"
+      "signLocked": "阅读并确认上方协议后即可签署。",
+      "openAgain": "再次打开协议"
     },
     "admin": {
       "approve": "批准",
