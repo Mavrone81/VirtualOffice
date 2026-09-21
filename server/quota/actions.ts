@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { round2 } from "@/lib/money";
-import { canSetQuota, canOverrideQuota } from "@/lib/quota";
+import { canSetQuota, canOverrideQuota, isTargetPeriod } from "@/lib/quota";
 import { teamScopeIds } from "@/lib/team";
 import { logAudit } from "@/lib/audit";
 
@@ -23,7 +23,8 @@ export async function setQuota(input: {
   const t = await getTranslations("errors");
   const session = await auth();
   if (!session?.user.associateId || !canSetQuota(session.user.role)) return { ok: false, error: t("forbidden") };
-  if (!/^\d{4}-\d{2}$/.test(input.month)) return { ok: false, error: t("badMonth") };
+  // "YYYY-MM" = monthly target, "YYYY" = yearly target (A4).
+  if (!isTargetPeriod(input.month)) return { ok: false, error: t("badMonth") };
 
   const scope = new Set([session.user.associateId, ...(await teamScopeIds(session.user.associateId))]);
   if (!scope.has(input.associateId)) return { ok: false, error: t("forbidden") };
