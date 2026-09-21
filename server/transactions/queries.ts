@@ -28,3 +28,31 @@ export async function visibleTransactions(variant: TransactionVariant): Promise<
   if (variant === "receivable") return rows.filter((r) => r.saleAmount.gt(r.amountCollected));
   return rows;
 }
+
+/**
+ * Portal "My Transactions" rows (associate-portal changes, Sep 2026 — A5).
+ * Same visibility and variant rules as visibleTransactions, plus what the new
+ * columns need: submission date, invoices, and the ledger lines.
+ */
+export async function myTransactionRows(variant: TransactionVariant) {
+  const session = await auth();
+  if (!session?.user) return null;
+
+  const ids = await transactionScopeIds(session.user.role, session.user.associateId ?? null);
+  const rows = await prisma.salesTransaction.findMany({
+    where: ids === null ? {} : { closingAssociateId: { in: ids } },
+    orderBy: { salesDate: "desc" },
+    include: {
+      lineItems: { select: { productName: true } },
+      submission: { select: { createdAt: true } },
+      invoices: { select: { id: true, invoiceNumber: true, amount: true }, orderBy: { createdAt: "asc" } },
+      ledgerLines: { select: { associateId: true, lineType: true, status: true, amount: true } },
+    },
+  });
+
+  if (variant === "received") return rows.filter((r) => r.amountCollected.gt(0));
+  if (variant === "receivable") return rows.filter((r) => r.saleAmount.gt(r.amountCollected));
+  return rows;
+}
+
+export type MyTransactionRow = NonNullable<Awaited<ReturnType<typeof myTransactionRows>>>[number];

@@ -1,17 +1,13 @@
-import Link from "next/link";
 import { LedgerStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isManagerRole } from "@/lib/rbac";
-import { teamScopeIds } from "@/lib/team";
+import { inPeriod, periodKeys, remainingToTarget } from "@/lib/quota";
 import { dashboardScopeIds, dashboardMetrics } from "@/server/dashboard/metrics";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { StatusPill } from "@/components/ui/status-pill";
 import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Dashboard · Enshrine Portal" };
@@ -19,47 +15,43 @@ export const metadata = { title: "Dashboard · Enshrine Portal" };
 export default async function PortalDashboard() {
   const session = await auth();
   const associateId = session?.user.associateId ?? null;
-  const isManager = session ? isManagerRole(session.user.role) : false;
 
   const t = await getTranslations("portal");
-  const tc = await getTranslations("common");
 
   if (!associateId) {
     return <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.noProfile")} />;
   }
 
-  const dlIds = await teamScopeIds(associateId);
-  const [me, downline, mySubmissions, myLedger] = await Promise.all([
-    prisma.associate.findUnique({ where: { id: associateId } }),
-    prisma.associate.findMany({
-      where: { id: { in: dlIds }, NOT: { id: associateId } },
-      orderBy: { associateCode: "asc" },
-      include: { directUpline: true },
-    }),
-    prisma.salesSubmission.findMany({ where: { closingAssociateId: associateId }, select: { saleAmount: true, salesDate: true } }),
-    prisma.commissionLedger.findMany({ where: { associateId }, select: { amount: true, status: true } }),
-  ]);
-
-  const mySales = sum(mySubmissions.map((s) => s.saleAmount));
-  const myEligible = sum(myLedger.filter((l) => l.status === LedgerStatus.Eligible).map((l) => l.amount));
-  const myPending = sum(myLedger.filter((l) => l.status === LedgerStatus.Pending).map((l) => l.amount));
-
   // Consolidated-menu headline metrics (Sep 2026), scoped by role:
   //  Director → own team · Manager/Asst Mgr → own downline + team · Associate → self.
   const scopeIds = session ? await dashboardScopeIds(session.user.role, associateId) : [associateId];
-  const { totalTransactionValue, grossTransacted, grossReceived } = await dashboardMetrics(scopeIds);
 
-  // Sales targets (16-Jul §3): YTD sales ($ + count) from 1 Jan + this month's quota.
-  const now = new Date();
-  const yearStart = new Date(now.getFullYear(), 0, 1);
-  const ytdSubs = mySubmissions.filter((s) => s.salesDate >= yearStart);
-  const ytdAmount = sum(ytdSubs.map((s) => s.saleAmount));
-  const ytdCount = ytdSubs.length;
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const quota = await prisma.salesQuota.findUnique({
-    where: { associateId_month: { associateId, month: thisMonth } },
-    select: { amount: true },
-  });
+  // Targets (A4, Sep 2026): personal monthly + yearly targets, measured in
+  // commission. "Remaining" = target − MY commission received (paid ledger
+  // lines) in that period, by payout month. Replaces the YTD / My sales /
+  // Eligible / Pending / My downline tiles (A3 — downline lives in Recruitment).
+  const { month: thisMonth, year: thisYear } = periodKeys(new Date());
+  const [me, metrics, targets, myPaid] = await Promise.all([
+    prisma.associate.findUnique({ where: { id: associateId } }),
+    dashboardMetrics(scopeIds),
+    prisma.salesQuota.findMany({
+      where: { associateId, month: { in: [thisMonth, thisYear] } },
+      select: { month: true, amount: true },
+    }),
+    prisma.commissionLedger.findMany({
+      where: { associateId, status: LedgerStatus.Paid, payoutMonth: { startsWith: thisYear + "-" } },
+      select: { amount: true, payoutMonth: true },
+    }),
+  ]);
+  const { totalTransactionValue, grossTransacted, grossReceived } = metrics;
+  const monthTarget = targets.find((q) => q.month === thisMonth)?.amount ?? null;
+  const yearTarget = targets.find((q) => q.month === thisYear)?.amount ?? null;
+  const receivedIn = (period: string) =>
+    Number(sum(myPaid.filter((l) => inPeriod(l.payoutMonth, period)).map((l) => l.amount)));
+  const remaining = (target: typeof monthTarget, period: string) =>
+    target === null ? null : remainingToTarget(Number(target), receivedIn(period));
+  const monthRemaining = remaining(monthTarget, thisMonth);
+  const yearRemaining = remaining(yearTarget, thisYear);
 
   const firstName = me?.businessName ?? me?.fullName?.split(/\s+/)[0] ?? "there";
 
@@ -68,13 +60,7 @@ export default async function PortalDashboard() {
       <PageHeader
         title={t("dashboard.welcomeBack", { name: firstName })}
         subtitle={`${humanize(me?.designation)} · ${me?.associateCode} · ${me?.teamName ?? ""}`}
-      >
-        {isManager && downline.length > 0 && (
-          <Button asChild variant="secondary">
-            <Link href="/portal/team">{t("dashboard.viewTeam")}</Link>
-          </Button>
-        )}
-      </PageHeader>
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <StatTile id="transaction-value" label={t("dashboard.totalTransactionValue")} value={formatSGD(totalTransactionValue)} sub={t("dashboard.totalTransactionValueSub")} />
@@ -82,46 +68,12 @@ export default async function PortalDashboard() {
         <StatTile id="commission-received" label={t("dashboard.grossCommissionReceived")} value={formatSGD(grossReceived)} sub={t("dashboard.grossCommissionReceivedSub")} />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label={t("dashboard.ytdSales")} value={formatSGD(ytdAmount)} sub={t("dashboard.ytdCount", { count: ytdCount })} />
-        <StatTile label={t("dashboard.monthlyQuota")} value={quota ? formatSGD(quota.amount) : t("dashboard.noQuota")} sub={t("dashboard.thisMonth")} />
-        <StatTile label={t("dashboard.eligibleCommission")} value={formatSGD(myEligible)} sub={t("dashboard.readyForPayout")} />
-        <StatTile label={t("dashboard.pending")} value={formatSGD(myPending)} sub={t("dashboard.awaitingCollection")} />
-        <StatTile label={t("dashboard.mySales")} value={formatSGD(mySales)} sub={t("dashboard.allSubmitted")} />
-        <StatTile label={t("dashboard.myDownline")} value={downline.length} sub={t("dashboard.associatesInYourTeam")} />
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-[66%]">
+        <StatTile label={t("dashboard.monthlyTarget")} value={monthTarget !== null ? formatSGD(monthTarget) : t("dashboard.noQuota")} sub={t("dashboard.thisMonth")} />
+        <StatTile label={t("dashboard.remainingMonth")} value={monthRemaining !== null ? formatSGD(monthRemaining) : "—"} sub={monthTarget !== null ? t("dashboard.thisMonth") : t("dashboard.setTargetFirst")} />
+        <StatTile label={t("dashboard.yearlyTarget")} value={yearTarget !== null ? formatSGD(yearTarget) : t("dashboard.noQuota")} sub={t("dashboard.thisYear")} />
+        <StatTile label={t("dashboard.remainingYear")} value={yearRemaining !== null ? formatSGD(yearRemaining) : "—"} sub={yearTarget !== null ? t("dashboard.thisYear") : t("dashboard.setTargetFirst")} />
       </div>
-
-      {downline.length > 0 && (
-        <Card className="mt-6 overflow-hidden">
-          <div className="border-b border-line px-5 py-4">
-            <h2 className="font-display text-[18px] text-ink">{t("dashboard.myTeamHeading")}</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
-              <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("dashboard.colId")}</th>
-                  <th className="px-5 py-3 font-medium">{t("dashboard.colAssociate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("dashboard.colDesignation")}</th>
-                  <th className="px-5 py-3 font-medium">{t("dashboard.colUpline")}</th>
-                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {downline.map((a) => (
-                  <tr key={a.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
-                    <td className="px-5 py-3 font-medium text-ink">{a.associateCode}</td>
-                    <td className="px-5 py-3 text-ink">{a.fullName}</td>
-                    <td className="px-5 py-3 text-muted">{humanize(a.designation)}</td>
-                    <td className="px-5 py-3 text-muted">{a.directUpline?.associateCode ?? "—"}</td>
-                    <td className="px-5 py-3"><StatusPill status={a.associateStatus} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
 
       <Card className="mt-6 p-6">
         <h3 className="font-display text-[17px] text-ink">{t("dashboard.virtualOfficeTitle")}</h3>

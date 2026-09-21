@@ -42,11 +42,14 @@ export default async function TeamOverviewPage() {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const canEditQuota = session ? canSetQuota(session.user.role) : false;
+  const thisYear = String(now.getFullYear());
+  // Monthly ("YYYY-MM") and yearly ("YYYY") targets share the table (A4).
   const quotas = await prisma.salesQuota.findMany({
-    where: { associateId: { in: teamIds }, month: thisMonth },
-    select: { associateId: true, amount: true },
+    where: { associateId: { in: teamIds }, month: { in: [thisMonth, thisYear] } },
+    select: { associateId: true, month: true, amount: true },
   });
-  const quotaByAssoc = new Map(quotas.map((q) => [q.associateId, q.amount.toString()]));
+  const quotaByAssoc = new Map(quotas.filter((q) => q.month === thisMonth).map((q) => [q.associateId, q.amount.toString()]));
+  const yearTargetByAssoc = new Map(quotas.filter((q) => q.month === thisYear).map((q) => [q.associateId, q.amount.toString()]));
 
   return (
     <>
@@ -81,6 +84,7 @@ export default async function TeamOverviewPage() {
                   <th className="px-5 py-3 font-medium text-right">{t("overview.colSales")}</th>
                   <th className="px-5 py-3 font-medium text-right">{t("overview.colCommission")}</th>
                   <th className="px-5 py-3 font-medium">{t("overview.colQuota")}</th>
+                  <th className="px-5 py-3 font-medium">{t("overview.colYearTarget")}</th>
                   <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
@@ -98,6 +102,9 @@ export default async function TeamOverviewPage() {
                       <td className="px-5 py-3 text-right text-ink">{formatSGD(memberComm)}</td>
                       <td className="px-5 py-3">
                         <QuotaCell associateId={a.id} month={thisMonth} current={quotaByAssoc.get(a.id) ?? null} canEdit={canEditQuota} />
+                      </td>
+                      <td className="px-5 py-3">
+                        <QuotaCell associateId={a.id} month={thisYear} current={yearTargetByAssoc.get(a.id) ?? null} canEdit={canEditQuota} />
                       </td>
                       <td className="px-5 py-3"><StatusPill status={a.associateStatus} /></td>
                     </tr>

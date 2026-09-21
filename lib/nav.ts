@@ -2,7 +2,7 @@ import {
   LayoutDashboard, UserPlus, Users, BadgeCheck, Receipt, Tags, Calculator,
   FileText, Banknote, Megaphone, FolderOpen, Handshake, FileSignature,
   IdCard, FolderLock, Network, ScrollText, ClipboardCheck, Split, FileCheck,
-  TrendingUp, Wallet, HandCoins, ListChecks, GitBranch, Mail, Image, Palette,
+  TrendingUp, Wallet, HandCoins, ListChecks, Mail, Image, Palette,
   PartyPopper, Store, Sparkles, Landmark, Archive, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
@@ -124,22 +124,10 @@ export const portalNav: NavGroup[] = [
   {
     titleKey: "groupPerformance",
     items: [
-      {
-        labelKey: "myDashboard", href: "/portal/dashboard", icon: LayoutDashboard,
-        children: [
-          { labelKey: "dashTransactionValue", href: "/portal/dashboard#transaction-value", icon: TrendingUp },
-          { labelKey: "dashCommissionTransacted", href: "/portal/dashboard#commission-transacted", icon: Calculator },
-          { labelKey: "dashCommissionReceived", href: "/portal/dashboard#commission-received", icon: Wallet },
-        ],
-      },
-      {
-        labelKey: "myTransactions", icon: Receipt,
-        children: [
-          { labelKey: "transactionList", href: "/portal/transactions", icon: ListChecks },
-          { labelKey: "transactionReceived", href: "/portal/transactions/received", icon: Wallet },
-          { labelKey: "transactionReceivable", href: "/portal/transactions/receivable", icon: HandCoins },
-        ],
-      },
+      // Associate-portal changes (Sep 2026, A1): plain links, no dropdowns.
+      // The three transaction views are tabs on the My Transactions page.
+      { labelKey: "myDashboard", href: "/portal/dashboard", icon: LayoutDashboard },
+      { labelKey: "myTransactions", href: "/portal/transactions", icon: Receipt },
     ],
   },
   {
@@ -147,10 +135,12 @@ export const portalNav: NavGroup[] = [
     items: [
       {
         labelKey: "groupRecruitment", icon: Users,
+        // A8: Recruitment Dashboard (All / Direct / Downline associates) and
+        // Downline Performance; the invite page stays for recruiters.
         children: [
-          { labelKey: "associatesList", href: "/portal/recruitment/associates", icon: Users },
+          { labelKey: "recruitmentDashboard", href: "/portal/recruitment/associates", icon: Users },
+          { labelKey: "downlinePerformance", href: "/portal/recruitment/downline", icon: TrendingUp },
           { labelKey: "directRecruits", href: "/portal/recruitment/new", icon: UserPlus, roles: RECRUITER_ROLES },
-          { labelKey: "downlineRecruits", href: "/portal/recruitment/downline", icon: GitBranch },
         ],
       },
     ],
