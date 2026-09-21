@@ -1003,6 +1003,42 @@
       "receivedSubtitle": "Transactions with money collected to date",
       "receivableTitle": "Transaction Receivable",
       "receivableSubtitle": "Transactions with an outstanding balance still to collect"
+    },
+    "myTxn": {
+      "title": "My Transactions",
+      "subtitle": "Closed transactions in your view — your own share on each",
+      "empty": "No transactions in this view yet.",
+      "download": "{number} ↓",
+      "tab": {
+        "list": "My Transaction List",
+        "received": "My Transaction Received",
+        "receivable": "My Transaction Receivable"
+      },
+      "type": {
+        "full": "Full payment",
+        "installment": "Instalment"
+      },
+      "scheme": {
+        "closer": "Closer",
+        "split": "Split share",
+        "directOverride": "Direct-upline override",
+        "secondOverride": "2nd-upline override",
+        "addOn": "Add-on"
+      },
+      "col": {
+        "sno": "S/No.",
+        "txnId": "Transaction ID",
+        "type": "Transaction type",
+        "description": "Description",
+        "submitted": "Submission date",
+        "price": "Transaction price",
+        "invoiceAmount": "Invoice amount",
+        "scheme": "My scheme",
+        "share": "My comm share",
+        "received": "Nett comm received",
+        "balance": "Balance comm receivable",
+        "invoice": "Invoice"
+      }
     }
   },
   "status": {

@@ -1003,6 +1003,42 @@
       "receivedSubtitle": "已有收款进账的交易",
       "receivableTitle": "应收款交易",
       "receivableSubtitle": "尚有未收余额的交易"
+    },
+    "myTxn": {
+      "title": "我的交易",
+      "subtitle": "您可见的已成交交易——显示您在每笔交易中的份额",
+      "empty": "此视图中暂无交易。",
+      "download": "{number} ↓",
+      "tab": {
+        "list": "我的交易列表",
+        "received": "我的已收交易",
+        "receivable": "我的应收交易"
+      },
+      "type": {
+        "full": "全额付款",
+        "installment": "分期付款"
+      },
+      "scheme": {
+        "closer": "成交人",
+        "split": "分成",
+        "directOverride": "直属上线津贴",
+        "secondOverride": "第二上线津贴",
+        "addOn": "附加"
+      },
+      "col": {
+        "sno": "序号",
+        "txnId": "交易编号",
+        "type": "交易类型",
+        "description": "描述",
+        "submitted": "提交日期",
+        "price": "交易价格",
+        "invoiceAmount": "发票金额",
+        "scheme": "我的方案",
+        "share": "我的佣金份额",
+        "received": "已收净佣金",
+        "balance": "应收佣金余额",
+        "invoice": "发票"
+      }
     }
   },
   "status": {

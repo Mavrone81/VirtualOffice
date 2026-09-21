@@ -1,17 +1,8 @@
-import { getTranslations } from "next-intl/server";
-import { PageHeader } from "@/components/ui/page-header";
-import { TransactionsTable } from "@/components/transactions/transactions-table";
-import { visibleTransactions } from "@/server/transactions/queries";
+import { MyTransactionsView } from "@/components/transactions/my-transactions-view";
 
-export const metadata = { title: "Transaction receivable · Enshrine Portal" };
+export const metadata = { title: "My transactions · Enshrine Portal" };
 
-export default async function PortalTransactionsReceivablePage() {
-  const t = await getTranslations("sales");
-  const rows = (await visibleTransactions("receivable")) ?? [];
-  return (
-    <>
-      <PageHeader title={t("transactions.receivableTitle")} subtitle={t("transactions.receivableSubtitle")} />
-      <TransactionsTable rows={rows} variant="receivable" />
-    </>
-  );
+// My Transactions (Sep 2026 — A5): one page, three tabs; this is the "receivable" tab.
+export default function PortalTransactionsReceivablePage() {
+  return <MyTransactionsView variant="receivable" />;
 }
