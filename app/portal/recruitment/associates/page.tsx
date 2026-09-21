@@ -1,28 +1,10 @@
-import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
-import { teamScopeIds } from "@/lib/team";
-import { PageHeader } from "@/components/ui/page-header";
-import { AssociatesTable } from "@/components/recruitment/associates-table";
-import { getTranslations } from "next-intl/server";
+import { parseTab } from "@/lib/recruitment-view";
+import { RecruitmentView } from "@/components/recruitment/recruitment-view";
 
-export const metadata = { title: "Associates list · Enshrine Portal" };
+export const metadata = { title: "Recruitment dashboard · Enshrine Portal" };
 
-export default async function AssociatesListPage() {
-  const session = await auth();
-  const t = await getTranslations("recruitment");
-  const associateId = session?.user.associateId ?? null;
-  if (!associateId) return <PageHeader title={t("lists.associatesTitle")} subtitle={t("lists.noProfile")} />;
-
-  const ids = await teamScopeIds(associateId);
-  const rows = await prisma.associate.findMany({
-    where: { id: { in: ids }, archivedAt: null },
-    orderBy: { associateCode: "asc" },
-    include: { directUpline: true },
-  });
-  return (
-    <>
-      <PageHeader title={t("lists.associatesTitle")} subtitle={t("lists.associatesSubtitle")} />
-      <AssociatesTable rows={rows} />
-    </>
-  );
+// Recruitment Dashboard (Sep 2026 — A8): All / Direct / Downline associates.
+export default async function RecruitmentDashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string; mgr?: string }> }) {
+  const sp = await searchParams;
+  return <RecruitmentView mode="people" basePath="/portal/recruitment/associates" tab={parseTab(sp.tab)} mgr={sp.mgr ?? null} />;
 }
