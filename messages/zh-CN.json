@@ -574,7 +574,8 @@
       "colProducts": "产品",
       "colAmount": "金额",
       "colPlan": "付款方式",
-      "view": "查看"
+      "view": "查看",
+      "colTxnId": "交易编号"
     },
     "newSale": {
       "pageTitle": "提交销售",
@@ -1280,7 +1281,7 @@
     "downloadImage": "下载图片",
     "preparing": "生成中…",
     "editTitle": "个性化您的名片",
-    "chineseName": "中文姓名",
+    "chineseName": "中文名",
     "cardTitle": "名片职称",
     "cardTitleHint": "显示在姓名下方 —— 例如：礼仪师。默认为您的职级。",
     "saving": "保存中…",
