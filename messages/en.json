@@ -1464,13 +1464,12 @@
       "submitting": "Submitting…",
       "couldNotSubmit": "Could not submit — try again.",
       "readHeading": "Read the agreement before signing",
-      "readHint": "The partner must read the full Referral & Marketing Partnership Agreement, with their details filled in, before signing.",
-      "showAgreement": "Show the agreement",
-      "preparing": "Preparing…",
-      "openFull": "Open full screen ↗",
+      "readHint": "The partner must read the full Referral & Marketing Partnership Agreement, with their details filled in, before signing. It opens in a new tab — read it, then come back here.",
+      "showAgreement": "Open the agreement",
       "readConfirm": "I, {name}, have read and agree to the Referral & Marketing Partnership Agreement.",
       "fillFirst": "Fill in the partner and signatory details first.",
-      "signLocked": "Signing unlocks once the agreement has been read and confirmed above."
+      "signLocked": "Signing unlocks once the agreement has been read and confirmed above.",
+      "openAgain": "Open the agreement again"
     },
     "admin": {
       "approve": "Approve",
