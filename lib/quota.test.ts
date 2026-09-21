@@ -56,5 +56,6 @@ describe("targets (A4)", () => {
     expect(remainingToTarget(5000, 1200)).toBe(3800);
     expect(remainingToTarget(5000, 6000)).toBe(0);
     expect(remainingToTarget(1000.1, 0.05)).toBe(1000.05);
+    expect(remainingToTarget(5000, -3000)).toBe(5000); // bad data can't inflate it
   });
 });
