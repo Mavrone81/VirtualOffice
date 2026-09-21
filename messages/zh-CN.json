@@ -96,7 +96,8 @@
     "greetings": "节日祝福",
     "productsCatalogue": "产品",
     "recruitmentDashboard": "招募概览",
-    "downlinePerformance": "下线业绩"
+    "downlinePerformance": "下线业绩",
+    "docTemplate": "文件模板"
   },
   "auth": {
     "brand": "Enshrine",
@@ -1272,7 +1273,8 @@
     "resetLinkInvalid": "此重置链接无效或已过期。",
     "associateNoLogin": "该伙伴尚未开通登录。",
     "teamNotYours": "您只能招募到自己的团队。",
-    "teamRequired": "请选择新成员加入您的哪个团队。"
+    "teamRequired": "请选择新成员加入您的哪个团队。",
+    "agreementNotRead": "供应商须先阅读协议并勾选确认，方可签署。"
   },
   "nameCard": {
     "front": "正面",
@@ -1460,7 +1462,15 @@
       "signatureLabel": "供应商签名",
       "submit": "提交审批",
       "submitting": "提交中…",
-      "couldNotSubmit": "提交失败——请重试。"
+      "couldNotSubmit": "提交失败——请重试。",
+      "readHeading": "签署前请阅读协议",
+      "readHint": "合作伙伴须在签署前阅读已填入其资料的完整《推荐与营销合作协议》。",
+      "showAgreement": "显示协议",
+      "preparing": "准备中…",
+      "openFull": "全屏打开 ↗",
+      "readConfirm": "本人 {name} 已阅读并同意《推荐与营销合作协议》。",
+      "fillFirst": "请先填写合作伙伴及签署人资料。",
+      "signLocked": "阅读并确认上方协议后即可签署。"
     },
     "admin": {
       "approve": "批准",
@@ -1528,6 +1538,19 @@
       "signedTitle": "协议已签署",
       "signedBody": "该协议已签署并归入交易档案。",
       "viewPdf": "查看已签署协议（PDF）"
+    },
+    "docTemplate": {
+      "title": "文件模板",
+      "subtitle": "按类别下载空白模板",
+      "cat": {
+        "pets": "宠物身后事",
+        "human": "人类身后事"
+      },
+      "tplPetAsh": "宠物骨灰存放协议",
+      "tplReferral": "推荐与营销合作协议",
+      "download": "下载 ↓",
+      "none": "此类别暂无模板。",
+      "signedHeading": "已签署协议"
     }
   }
 }

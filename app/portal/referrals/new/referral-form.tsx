@@ -1,22 +1,27 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { SignaturePad } from "@/app/onboard/[token]/signature-pad";
-import { submitReferralPartnership, type ReferralSubmissionInput } from "@/server/vendors/actions";
+import { previewReferralAgreement, submitReferralPartnership, type ReferralSubmissionInput } from "@/server/vendors/actions";
 import { useTranslations } from "next-intl";
 
-type F = Omit<ReferralSubmissionInput, "signatureDataUrl">;
+type F = Omit<ReferralSubmissionInput, "signatureDataUrl" | "agreementRead">;
 
 /**
  * Referral partnership submission (consolidated menu, Sep 2026): the associate
  * fills the Referral & Marketing Partnership Agreement e-form, hands the
  * device to the vendor to sign, and submits — landing Pending for admin
  * approval on the everyone-visible Partner List.
+ *
+ * A12 (Sep 2026): the vendor can't sign blindly. The signature pad stays
+ * locked until the full agreement — rendered with their details — has been
+ * shown and the vendor ticks that they have read it. Editing any detail after
+ * reading resets that, so what they read is what they sign.
  */
 export function ReferralForm() {
   const router = useRouter();
@@ -27,13 +32,36 @@ export function ReferralForm() {
   const [f, setF] = useState<F>({ vendorName: "", vendorSignerName: "" });
   const set = (patch: Partial<F>) => setF((p) => ({ ...p, ...patch }));
 
-  const canSubmit = !!f.vendorName.trim() && !!f.vendorSignerName.trim() && !!signature && !pending;
+  // A12 read-before-sign state
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [previewing, startPreview] = useTransition();
+  const [read, setRead] = useState(false);
+  const detailsReady = !!f.vendorName.trim() && !!f.vendorSignerName.trim();
+  const canSign = detailsReady && !!pdfUrl && read;
+  const canSubmit = canSign && !!signature && !pending;
+
+  // Any change to the details invalidates what was read.
+  useEffect(() => {
+    setRead(false);
+    setPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return null; });
+    setSignature(null);
+  }, [f.vendorName, f.vendorUen, f.vendorAddress, f.vendorSignerName, f.vendorSignerNric, f.vendorSignerDesignation]);
+
+  function showAgreement() {
+    setError(undefined);
+    startPreview(async () => {
+      const r = await previewReferralAgreement(f);
+      if (!r.ok || !r.pdfBase64) { setError(r.error ?? t("form.couldNotSubmit")); return; }
+      const bytes = Uint8Array.from(atob(r.pdfBase64), (c) => c.charCodeAt(0));
+      setPdfUrl(URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })));
+    });
+  }
 
   function submit() {
     if (!signature) return;
     setError(undefined);
     start(async () => {
-      const r = await submitReferralPartnership({ ...f, signatureDataUrl: signature });
+      const r = await submitReferralPartnership({ ...f, signatureDataUrl: signature, agreementRead: read });
       if (r.ok) router.push("/portal/referrals");
       else setError(r.error ?? t("form.couldNotSubmit"));
     });
@@ -89,9 +117,39 @@ export function ReferralForm() {
               <Input id="sd" value={f.vendorSignerDesignation ?? ""} onChange={(e) => set({ vendorSignerDesignation: e.target.value })} />
             </div>
           </div>
-          <div className="mt-3">
+
+          {/* A12: read the full agreement before signing */}
+          <div className="mt-5 rounded-xl border border-line bg-paper-100 p-4">
+            <h4 className="font-display text-[15px] text-ink">{t("form.readHeading")}</h4>
+            <p className="mt-1 text-[12.5px] text-muted">{t("form.readHint")}</p>
+            {!pdfUrl ? (
+              <Button type="button" variant="secondary" className="mt-3" onClick={showAgreement} disabled={!detailsReady || previewing}>
+                {previewing ? t("form.preparing") : t("form.showAgreement")}
+              </Button>
+            ) : (
+              <>
+                <iframe src={pdfUrl} title={t("form.readHeading")} className="mt-3 h-[70vh] w-full rounded-lg border border-line bg-white" />
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[12.5px]">
+                  <a href={pdfUrl} target="_blank" rel="noopener" className="text-action hover:underline">{t("form.openFull")}</a>
+                </div>
+                <label className="mt-3 flex items-start gap-2.5 text-[13.5px] text-ink">
+                  <input type="checkbox" className="mt-0.5 h-4 w-4" checked={read} onChange={(e) => setRead(e.target.checked)} />
+                  <span>{t("form.readConfirm", { name: f.vendorSignerName.trim() || "—" })}</span>
+                </label>
+              </>
+            )}
+            {!detailsReady && <p className="mt-2 text-[12px] text-muted">{t("form.fillFirst")}</p>}
+          </div>
+
+          <div className="mt-4">
             <Label>{t("form.signatureLabel")}</Label>
-            <SignaturePad onChange={setSignature} />
+            {canSign ? (
+              <SignaturePad onChange={setSignature} />
+            ) : (
+              <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-line text-[13px] text-muted">
+                {t("form.signLocked")}
+              </div>
+            )}
           </div>
         </div>
 
