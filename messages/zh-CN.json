@@ -94,7 +94,9 @@
     "edm": "电子直邮",
     "customisation": "定制服务",
     "greetings": "节日祝福",
-    "productsCatalogue": "产品"
+    "productsCatalogue": "产品",
+    "recruitmentDashboard": "招募概览",
+    "downlinePerformance": "下线业绩"
   },
   "auth": {
     "brand": "Enshrine",
@@ -553,7 +555,13 @@
       "grossCommissionTransacted": "累计成交佣金总额",
       "grossCommissionTransactedSub": "全部已产生佣金（含未发放）",
       "grossCommissionReceived": "累计已收佣金总额",
-      "grossCommissionReceivedSub": "已发放到您的佣金"
+      "grossCommissionReceivedSub": "已发放到您的佣金",
+      "monthlyTarget": "月度目标",
+      "yearlyTarget": "年度目标",
+      "remainingMonth": "距本月目标尚差",
+      "remainingYear": "距本年目标尚差",
+      "thisYear": "本年",
+      "setTargetFirst": "尚未设定目标"
     },
     "sales": {
       "pageTitle": "我的销售",
@@ -1069,9 +1077,10 @@
       "colUpline": "上线",
       "colSales": "销售",
       "colCommission": "佣金",
-      "colQuota": "配额（本月）",
+      "colQuota": "目标（本月）",
       "setQuota": "设定",
-      "save": "保存"
+      "save": "保存",
+      "colYearTarget": "目标（本年）"
     },
     "sales": {
       "pageTitle": "团队销售",

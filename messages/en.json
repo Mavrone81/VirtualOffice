@@ -94,7 +94,9 @@
     "edm": "EDMs",
     "customisation": "Customisation",
     "greetings": "Greetings",
-    "productsCatalogue": "Products"
+    "productsCatalogue": "Products",
+    "recruitmentDashboard": "Recruitment Dashboard",
+    "downlinePerformance": "Downline Performance"
   },
   "auth": {
     "brand": "Enshrine",
@@ -553,7 +555,13 @@
       "grossCommissionTransacted": "Total Gross Commission Transacted",
       "grossCommissionTransactedSub": "All commission earned, paid or pending",
       "grossCommissionReceived": "Total Gross Commission Received",
-      "grossCommissionReceivedSub": "Commission already paid out to you"
+      "grossCommissionReceivedSub": "Commission already paid out to you",
+      "monthlyTarget": "Monthly target",
+      "yearlyTarget": "Yearly target",
+      "remainingMonth": "Remaining to reach this month's target",
+      "remainingYear": "Remaining to reach this year's target",
+      "thisYear": "This year",
+      "setTargetFirst": "No target set yet"
     },
     "sales": {
       "pageTitle": "My sales",
@@ -1069,9 +1077,10 @@
       "colUpline": "Upline",
       "colSales": "Sales",
       "colCommission": "Commission",
-      "colQuota": "Quota (this month)",
+      "colQuota": "Target (this month)",
       "setQuota": "Set",
-      "save": "Save"
+      "save": "Save",
+      "colYearTarget": "Target (this year)"
     },
     "sales": {
       "pageTitle": "Team sales",
