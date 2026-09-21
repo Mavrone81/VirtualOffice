@@ -574,7 +574,8 @@
       "colProducts": "Products",
       "colAmount": "Amount",
       "colPlan": "Plan",
-      "view": "View"
+      "view": "View",
+      "colTxnId": "Transaction ID"
     },
     "newSale": {
       "pageTitle": "Submit a sale",
@@ -1280,7 +1281,7 @@
     "downloadImage": "Download image",
     "preparing": "Preparing…",
     "editTitle": "Personalise your card",
-    "chineseName": "Chinese name",
+    "chineseName": "中文名",
     "cardTitle": "Title on card",
     "cardTitleHint": "Shown under your name — e.g. Funeral Director. Defaults to your designation.",
     "saving": "Saving…",

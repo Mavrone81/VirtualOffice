@@ -45,6 +45,7 @@ export default async function MySalesPage() {
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
+                  <th className="px-5 py-3 font-medium">{t("sales.colTxnId")}</th>
                   <th className="px-5 py-3 font-medium">{t("sales.colDate")}</th>
                   <th className="px-5 py-3 font-medium">{t("sales.colClient")}</th>
                   <th className="px-5 py-3 font-medium">{t("sales.colProducts")}</th>
@@ -57,6 +58,8 @@ export default async function MySalesPage() {
               <tbody>
                 {submissions.map((s) => (
                   <tr key={s.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
+                    {/* A11: the TXN-#### code exists once the sale is closed into a transaction. */}
+                    <td className="px-5 py-3 font-medium text-ink whitespace-nowrap">{s.transaction?.transactionCode ?? <span className="font-normal text-muted">—</span>}</td>
                     <td className="px-5 py-3 text-muted">{format(s.salesDate, "dd MMM yyyy")}</td>
                     <td className="px-5 py-3 text-ink">{s.clientName}</td>
                     <td className="px-5 py-3 text-muted">{s.lineItems.map((l) => l.productName).join(", ")}</td>
