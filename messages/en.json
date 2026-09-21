@@ -950,6 +950,39 @@
       "downlineTitle": "Downline Recruits",
       "downlineSubtitle": "Everyone recruited under you, at every level",
       "noProfile": "Your login has no associate profile linked."
+    },
+    "board": {
+      "peopleTitle": "Recruitment Dashboard",
+      "peopleSubtitle": "Your direct recruits and everyone below them",
+      "performanceTitle": "Downline Performance",
+      "performanceSubtitle": "How your recruits and their teams are performing",
+      "noProfile": "No associate profile is linked to your account.",
+      "notEligible": "You are not eligible for recruitment yet!",
+      "empty": "No associates in this view yet.",
+      "filterByManager": "Downline manager:",
+      "everyone": "Everyone",
+      "tab": {
+        "all": "All Associates",
+        "direct": "Direct Associates",
+        "downline": "Downline Associates"
+      },
+      "perfTab": {
+        "all": "All Associates Performance",
+        "direct": "Direct Associates Performance",
+        "downline": "Downline Associates Performance"
+      },
+      "col": {
+        "id": "ID",
+        "associate": "Associate",
+        "designation": "Designation",
+        "upline": "Upline",
+        "contact": "Contact",
+        "dob": "Date of birth",
+        "transacted": "Total transacted value",
+        "commission": "Total gross commission transacted",
+        "myDirect": "My overriding (direct upline)",
+        "mySecond": "My overriding (2nd upline)"
+      }
     }
   },
   "roles": {

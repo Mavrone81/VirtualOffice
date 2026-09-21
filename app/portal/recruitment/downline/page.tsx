@@ -1,30 +1,11 @@
-import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
-import { downlineIds } from "@/lib/rbac";
-import { PageHeader } from "@/components/ui/page-header";
-import { AssociatesTable } from "@/components/recruitment/associates-table";
-import { getTranslations } from "next-intl/server";
+import { parseTab } from "@/lib/recruitment-view";
+import { RecruitmentView } from "@/components/recruitment/recruitment-view";
 
-export const metadata = { title: "Downline recruits · Enshrine Portal" };
+export const metadata = { title: "Downline performance · Enshrine Portal" };
 
-export default async function DownlineRecruitsPage() {
-  const session = await auth();
-  const t = await getTranslations("recruitment");
-  const associateId = session?.user.associateId ?? null;
-  if (!associateId) return <PageHeader title={t("lists.downlineTitle")} subtitle={t("lists.noProfile")} />;
-
-  const ids = (await downlineIds(associateId)).filter((id) => id !== associateId);
-  const rows = ids.length
-    ? await prisma.associate.findMany({
-        where: { id: { in: ids }, archivedAt: null },
-        orderBy: { associateCode: "asc" },
-        include: { directUpline: true },
-      })
-    : [];
-  return (
-    <>
-      <PageHeader title={t("lists.downlineTitle")} subtitle={t("lists.downlineSubtitle")} />
-      <AssociatesTable rows={rows} />
-    </>
-  );
+// Downline Performance (Sep 2026 — A10): same tabs as the Recruitment Dashboard,
+// with transacted value, gross commission and my override (direct / 2nd upline).
+export default async function DownlinePerformancePage({ searchParams }: { searchParams: Promise<{ tab?: string; mgr?: string }> }) {
+  const sp = await searchParams;
+  return <RecruitmentView mode="performance" basePath="/portal/recruitment/downline" tab={parseTab(sp.tab)} mgr={sp.mgr ?? null} />;
 }
