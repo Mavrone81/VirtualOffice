@@ -153,7 +153,8 @@ export const portalNav: NavGroup[] = [
         children: [
           { labelKey: "transactionSubmission", href: "/portal/sales", icon: Receipt },
           { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
-          { labelKey: "agreements", href: "/portal/agreements", icon: FileSignature },
+          // A13: "Agreements" → "Doc Template" (blank templates to download).
+          { labelKey: "docTemplate", href: "/portal/agreements", icon: FileSignature },
           { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
         ],
       },
@@ -180,21 +181,9 @@ export const portalNav: NavGroup[] = [
       { labelKey: "productsCatalogue", href: "/portal/products", icon: Store },
     ],
   },
-  // Finance (Sep 2026): Commissions + Payouts relocated here out of Personal
-  // Performance, so the sketch's Personal Performance = My Dashboard + My
-  // Transactions only.
-  {
-    titleKey: "groupFinance",
-    items: [
-      {
-        labelKey: "groupFinance", icon: Landmark,
-        children: [
-          { labelKey: "myCommissions", href: "/portal/commissions", icon: Calculator },
-          { labelKey: "myPayouts", href: "/portal/payouts", icon: Banknote },
-        ],
-      },
-    ],
-  },
+  // A16 (Sep 2026): associates no longer get a Finance section — My
+  // Transactions already shows commissions and what has been paid. The
+  // /portal/commissions and /portal/payouts pages still exist (not deleted).
   {
     titleKey: "groupResources",
     items: [
