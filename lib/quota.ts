@@ -52,5 +52,8 @@ export const inPeriod = (payoutMonth: string, period: string): boolean =>
   YEAR_KEY.test(period) ? payoutMonth.startsWith(period + "-") : payoutMonth === period;
 
 export function remainingToTarget(target: number, received: number): number {
-  return Math.max(0, Math.round((target - received) * 100) / 100);
+  // A negative "received" can only come from bad ledger data (e.g. split shares
+  // larger than the closer's net) — never let it push remaining above target.
+  const r = Math.max(0, received);
+  return Math.max(0, Math.round((target - r) * 100) / 100);
 }
