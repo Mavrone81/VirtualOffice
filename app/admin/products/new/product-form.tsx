@@ -27,8 +27,9 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
   const [salesPreview, setSalesPreview] = useState("10000");
   const [f, setF] = useState<ProductInput>({
     productCode: "", productName: "", commissionType: "Percentage",
-    // 16-Jul model: every % is of the SALES AMOUNT (closing 10 / cut pool 2 / SM 5 / SD 3).
-    closingCommPct: "10", companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3",
+    // Every % is of the SALES AMOUNT. Defaults set by Samuel 2026-09-21:
+    // closing 100 / company cut pool 10 / direct-upline 2 / second-upline 1.
+    closingCommPct: "100", companyCutPct: "10", smOverridePct: "2", sdOverridePct: "1",
     companyCutType: "Percentage", smOverrideType: "Percentage", sdOverrideType: "Percentage",
     isExternal: false, effectiveDate: today, defaultCompanyId: companies[0]?.id,
   });
@@ -117,7 +118,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
                 {f.commissionType === "Fixed" ? (
                   <Input id="closing" value={f.closingCommFixed ?? ""} onChange={(e) => set({ closingCommFixed: e.target.value })} placeholder="1000" />
                 ) : (
-                  <Input id="closing" value={f.closingCommPct ?? ""} onChange={(e) => set({ closingCommPct: e.target.value })} placeholder="10" />
+                  <Input id="closing" value={f.closingCommPct ?? ""} onChange={(e) => set({ closingCommPct: e.target.value })} placeholder="100" />
                 )}
               </div>
               <div>

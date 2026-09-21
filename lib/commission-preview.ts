@@ -28,10 +28,17 @@ function amount(base: import("@prisma/client").Prisma.Decimal, f: PreviewField) 
 /**
  * Live product-creation preview (VO_System_Workflows_v7 §6A.2). Every % field
  * computes on the Sales Amount. Mirrors the commission engine's product-level
- * math so the admin sees exactly how a product will pay out:
- *   Net to Closer   = Closing − Company Cut Pool
- *   Company Retained = Sales − Closing − SM Overriding − SD Overriding
- * (Company's total take = Company Retained + Company Cut Pool.)
+ * math (server/commission/engine.ts) so the admin sees exactly what the ledger
+ * will book:
+ *   Net to Closer    = Closing − Company Cut Pool
+ *   Company Retained = Sales − Net to Closer − SM Overriding − SD Overriding
+ * i.e. the company's total take, the same figure the engine writes as the
+ * CompanyRetained line. When Closing is 100% this is exactly
+ * Company Cut Pool − SM Overriding − SD Overriding.
+ *
+ * (It used to be Sales − Closing − overrides, which left the Cut Pool out and
+ * went negative at 100% closing: $10,000 / 10% / 2% / 1% showed −$300 while the
+ * engine booked $700.)
  */
 export function computeProductPreview(i: ProductPreviewInput): ProductPreview {
   const sale = round2(i.salesAmount);
@@ -40,7 +47,7 @@ export function computeProductPreview(i: ProductPreviewInput): ProductPreview {
   const sm = amount(sale, i.smOverride);
   const sd = amount(sale, i.sdOverride);
   const netToCloser = round2(closing.sub(cutPool));
-  const companyRetained = round2(sale.sub(closing).sub(sm).sub(sd));
+  const companyRetained = round2(sale.sub(netToCloser).sub(sm).sub(sd));
   return {
     salesAmount: sale.toString(),
     closing: closing.toString(),
