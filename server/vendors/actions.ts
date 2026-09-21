@@ -90,7 +90,39 @@ export type ReferralSubmissionInput = {
   vendorSignerNric?: string;
   vendorSignerDesignation?: string;
   signatureDataUrl: string; // vendor's on-device signature (PNG data URL)
+  /** A12 (Sep 2026): the vendor confirmed they read the full agreement before signing. */
+  agreementRead?: boolean;
 };
+
+/**
+ * A12 (associate-portal changes, Sep 2026): the vendor must read the actual
+ * agreement — with their details filled in — before signing. Renders the same
+ * PDF the submission will store, unsigned, for display on the device.
+ */
+export async function previewReferralAgreement(
+  input: Omit<ReferralSubmissionInput, "signatureDataUrl" | "agreementRead">,
+): Promise<{ ok: boolean; error?: string; pdfBase64?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: t("forbidden") };
+  if (!input.vendorName?.trim()) return { ok: false, error: t("vendorNameRequired") };
+  const pdf = await renderReferralAgreementPdfFromData({
+    agreementDate: new Date(),
+    vendorName: input.vendorName.trim(),
+    vendorUen: input.vendorUen?.trim() || null,
+    vendorAddress: input.vendorAddress?.trim() || null,
+    vendorSignerName: input.vendorSignerName?.trim() || null,
+    vendorSignerNric: input.vendorSignerNric?.trim() || null,
+    vendorSignerDesignation: input.vendorSignerDesignation?.trim() || null,
+    vendorSignatureDataUrl: null,
+    vendorSignedDate: null,
+    companySignName: null,
+    companySignDesignation: null,
+    companySignatureDataUrl: null,
+    companySignedAt: null,
+  });
+  return { ok: true, pdfBase64: pdf.toString("base64") };
+}
 
 export async function submitReferralPartnership(
   input: ReferralSubmissionInput,
@@ -100,6 +132,7 @@ export async function submitReferralPartnership(
   if (!session?.user) return { ok: false, error: t("forbidden") };
   if (!input.vendorName?.trim()) return { ok: false, error: t("vendorNameRequired") };
   if (!input.vendorSignerName?.trim()) return { ok: false, error: t("allFieldsRequired") };
+  if (input.agreementRead !== true) return { ok: false, error: t("agreementNotRead") };
 
   const signatureBytes = decodeSignature(input.signatureDataUrl);
   if (!signatureBytes) return { ok: false, error: t("signatureInvalid") };

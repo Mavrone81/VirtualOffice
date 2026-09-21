@@ -96,7 +96,8 @@
     "greetings": "Greetings",
     "productsCatalogue": "Products",
     "recruitmentDashboard": "Recruitment Dashboard",
-    "downlinePerformance": "Downline Performance"
+    "downlinePerformance": "Downline Performance",
+    "docTemplate": "Doc Template"
   },
   "auth": {
     "brand": "Enshrine",
@@ -1272,7 +1273,8 @@
     "resetLinkInvalid": "This reset link is invalid or has expired.",
     "associateNoLogin": "This associate has no login yet.",
     "teamNotYours": "You can only recruit into your own team.",
-    "teamRequired": "Pick which of your teams the recruit joins."
+    "teamRequired": "Pick which of your teams the recruit joins.",
+    "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing."
   },
   "nameCard": {
     "front": "Front",
@@ -1460,7 +1462,15 @@
       "signatureLabel": "Vendor signature",
       "submit": "Submit for approval",
       "submitting": "Submitting…",
-      "couldNotSubmit": "Could not submit — try again."
+      "couldNotSubmit": "Could not submit — try again.",
+      "readHeading": "Read the agreement before signing",
+      "readHint": "The partner must read the full Referral & Marketing Partnership Agreement, with their details filled in, before signing.",
+      "showAgreement": "Show the agreement",
+      "preparing": "Preparing…",
+      "openFull": "Open full screen ↗",
+      "readConfirm": "I, {name}, have read and agree to the Referral & Marketing Partnership Agreement.",
+      "fillFirst": "Fill in the partner and signatory details first.",
+      "signLocked": "Signing unlocks once the agreement has been read and confirmed above."
     },
     "admin": {
       "approve": "Approve",
@@ -1528,6 +1538,19 @@
       "signedTitle": "Agreement signed",
       "signedBody": "This agreement has been signed and filed into the sale's docket.",
       "viewPdf": "View signed agreement (PDF)"
+    },
+    "docTemplate": {
+      "title": "Doc Template",
+      "subtitle": "Blank templates to download, by category",
+      "cat": {
+        "pets": "Pets Afterlife",
+        "human": "Human Afterlife"
+      },
+      "tplPetAsh": "Storage of Pet Ash Agreement",
+      "tplReferral": "Referral & Marketing Partnership Agreement",
+      "download": "Download ↓",
+      "none": "No templates in this category yet.",
+      "signedHeading": "Signed agreements"
     }
   }
 }
