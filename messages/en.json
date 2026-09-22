@@ -978,8 +978,6 @@
         "associate": "Associate",
         "designation": "Designation",
         "upline": "Upline",
-        "contact": "Contact",
-        "dob": "Date of birth",
         "transacted": "Total transacted value",
         "commission": "Total gross commission transacted",
         "myDirect": "My overriding (direct upline)",
