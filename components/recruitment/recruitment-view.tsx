@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { format } from "date-fns";
 import { FileSearch } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { LedgerStatus } from "@prisma/client";
@@ -39,10 +38,14 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
   const eligible = canRecruit(session.user.role);
 
   const treeIds = eligible ? await downlineIds(me) : [me];
+  // Only what the tables show — no contact details or date of birth for uplines.
   const tree = await prisma.associate.findMany({
     where: { id: { in: treeIds }, archivedAt: null },
     orderBy: { associateCode: "asc" },
-    include: { directUpline: { select: { associateCode: true } } },
+    select: {
+      id: true, associateCode: true, fullName: true, designation: true, directUplineId: true, associateStatus: true,
+      directUpline: { select: { associateCode: true } },
+    },
   });
   const managers = managerOptions(tree, me);
   const mgrValid = mgr && managers.some((m) => m.id === mgr) ? mgr : null;
@@ -122,11 +125,8 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
                 <th className={th}>{t("col.designation")}</th>
                 {showUpline && <th className={th}>{t("col.upline")}</th>}
                 {mode === "people" ? (
-                  <>
-                    <th className={th}>{t("col.contact")}</th>
-                    <th className={th}>{t("col.dob")}</th>
-                    <th className={th}>{tc("status")}</th>
-                  </>
+                  // Contact + date of birth deliberately NOT shown to uplines (Samuel, 2026-09-22).
+                  <th className={th}>{tc("status")}</th>
                 ) : (
                   <>
                     <th className={`${th} text-right`}>{t("col.transacted")}</th>
@@ -148,15 +148,7 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
                       <td className="px-4 py-3 text-muted">{humanize(a.designation)}</td>
                       {showUpline && <td className="px-4 py-3 text-muted">{a.directUpline?.associateCode ?? "—"}</td>}
                       {mode === "people" ? (
-                        <>
-                          <td className="px-4 py-3 text-muted">
-                            {a.mobileNumber && <div>{a.mobileNumber}</div>}
-                            {a.email && <div className="text-[12px]">{a.email}</div>}
-                            {!a.mobileNumber && !a.email && "—"}
-                          </td>
-                          <td className="px-4 py-3 text-muted whitespace-nowrap">{a.dateOfBirth ? format(a.dateOfBirth, "dd MMM yyyy") : "—"}</td>
-                          <td className="px-4 py-3"><StatusPill status={a.associateStatus} /></td>
-                        </>
+                        <td className="px-4 py-3"><StatusPill status={a.associateStatus} /></td>
                       ) : (
                         <>
                           <td className="px-4 py-3 text-right tabular-nums text-ink">{formatSGD(p?.transacted ?? 0)}</td>
