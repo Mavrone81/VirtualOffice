@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { computeTransactionCommission, type LineInput, type UplineInput, type ComCodeInput, type SplitInput } from "./engine";
 import { reconcileWithSettled } from "./settle";
 import { recomputePendingPayout } from "@/server/payouts/totals";
+import { logAudit } from "@/lib/audit";
 
 type RateSnapshot = {
   commissionType: CommissionType;
@@ -120,7 +121,17 @@ export async function runCommission(transactionId: string): Promise<number> {
   // M5 (option a): lines already settled in an Approved/Paid payout are never deleted
   // or rewritten. Everything else is replaced; for settled commission only the
   // difference is written, as a new line that the next payout run picks up.
-  await prisma.$transaction(async (db) => {
+  const audit = await prisma.$transaction(async (db) => {
+    // Lock before reading (C1): the sale (serialises recomputes of this transaction),
+    // its ledger rows (vs runPayouts attaching them), then every payout they point at
+    // (vs approvals). Same order as runPayouts (ledger, then payout), so no cycle. A
+    // concurrent approval or payout run now waits for this commit and its CAS then
+    // re-checks against what we wrote; if the approval committed first, the locked
+    // read below sees Approved and those lines are treated as settled.
+    await db.$queryRaw`SELECT id FROM sales_transactions WHERE id = ${transactionId}::uuid FOR UPDATE`;
+    await db.$queryRaw`SELECT id FROM commission_ledger WHERE transaction_id = ${transactionId}::uuid FOR UPDATE`;
+    await db.$queryRaw`SELECT id FROM monthly_payouts WHERE id IN (SELECT payout_id FROM commission_ledger WHERE transaction_id = ${transactionId}::uuid) FOR UPDATE`;
+
     const existing = await db.commissionLedger.findMany({
       where: { transactionId },
       include: { payout: { select: { payoutStatus: true } } },
@@ -145,8 +156,23 @@ export async function runCommission(transactionId: string): Promise<number> {
     });
     if (rows.length) await db.commissionLedger.createMany({ data: rows });
     // A Pending payout that held deleted lines is re-derived from what it still holds.
-    for (const id of pendingPayoutIds) await recomputePendingPayout(db, id);
+    const recomputed: { payoutId: string; before: Record<string, string>; after: Record<string, string> }[] = [];
+    for (const id of pendingPayoutIds) {
+      const change = await recomputePendingPayout(db, id);
+      if (change) recomputed.push({ payoutId: id, ...change });
+    }
+    const adjustments = locked.length ? rows.map((r) => ({ associateId: r.associateId, lineType: r.lineType, amount: r.amount.toString(), remarks: (r as { remarks?: string | null }).remarks ?? null })) : [];
+    return { recomputed, adjustments, settledLineIds: locked.map((l) => l.id) };
   });
+
+  // C3: a recompute that moves a Pending payout's total, or writes adjustments against
+  // settled commission, is recorded (actor resolved from the session when there is one).
+  for (const r of audit.recomputed) {
+    await logAudit({ action: "payout.updated", entityType: "MonthlyPayout", entityId: r.payoutId, before: r.before, after: { ...r.after, reason: "commission.recomputed", transactionId } });
+  }
+  if (audit.adjustments.length) {
+    await logAudit({ action: "commission.adjusted", entityType: "SalesTransaction", entityId: transactionId, after: { settledLineIds: audit.settledLineIds, written: audit.adjustments } });
+  }
 
   return lines.length;
 }
