@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { authMock, prismaMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
-    salesSubmission: { findUnique: vi.fn(), update: vi.fn() },
-    saleLineItem: { deleteMany: vi.fn() },
+    salesSubmission: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    saleLineItem: { deleteMany: vi.fn(), createMany: vi.fn() },
     product: { findMany: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -30,7 +30,13 @@ const base: SubmitSaleInput & { id: string } = {
 beforeEach(() => {
   vi.clearAllMocks();
   authMock.mockResolvedValue({ user: { id: "u1", associateId: "a1" } });
-  prismaMock.salesSubmission.findUnique.mockResolvedValue({ closingAssociateId: "a1", status: "Submitted" });
+  prismaMock.salesSubmission.findUnique.mockResolvedValue({
+    closingAssociateId: "a1", status: "Submitted", salesDate: new Date("2026-07-20"), saleAmount: 10000,
+    associate2Id: null, associate2ValueType: null, associate2Value: null,
+    associate3Id: null, associate3ValueType: null, associate3Value: null,
+    sdApprovedAt: null, splitAdminApprovedAt: null,
+    lineItems: [{ productCode: "P1", lineSaleAmount: 10000, selectedComCodes: [{ comCode: "CC1" }] }],
+  });
   prismaMock.product.findMany.mockResolvedValue([
     {
       id: "prod1",
@@ -43,8 +49,10 @@ beforeEach(() => {
     },
   ]);
   prismaMock.saleLineItem.deleteMany.mockResolvedValue({ count: 1 });
-  prismaMock.salesSubmission.update.mockResolvedValue({});
-  prismaMock.$transaction.mockResolvedValue([]);
+  prismaMock.salesSubmission.updateMany.mockResolvedValue({ count: 1 });
+  prismaMock.saleLineItem.createMany.mockResolvedValue({ count: 1 });
+  // interactive transaction: run the callback against the same mocks
+  prismaMock.$transaction.mockImplementation(async (fn: (db: typeof prismaMock) => unknown) => fn(prismaMock));
 });
 
 describe("editSale", () => {
@@ -55,12 +63,15 @@ describe("editSale", () => {
     // old lines are cleared before the recreate
     expect(prismaMock.saleLineItem.deleteMany).toHaveBeenCalledWith({ where: { submissionId: "sub1" } });
 
-    // the update carries the trimmed client name + recomputed sale total
-    const updateArg = prismaMock.salesSubmission.update.mock.calls[0][0];
-    expect(updateArg.where).toEqual({ id: "sub1" });
+    // the update is a compare-and-swap on a still-Submitted sale of this closer, and
+    // carries the trimmed client name + recomputed sale total
+    const updateArg = prismaMock.salesSubmission.updateMany.mock.calls[0][0];
+    expect(updateArg.where).toEqual({ id: "sub1", closingAssociateId: "a1", status: "Submitted" });
     expect(updateArg.data.clientName).toBe("Acme Funerals");
     expect(Number(updateArg.data.saleAmount)).toBe(10000);
-    expect(updateArg.data.lineItems.create).toHaveLength(1);
+    expect(prismaMock.saleLineItem.createMany.mock.calls[0][0].data).toHaveLength(1);
+    // nothing commission-relevant changed, so no approval fields are touched
+    expect(updateArg.data).not.toHaveProperty("sdApprovedAt");
 
     // both writes run inside one $transaction, and the edit is audited
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
