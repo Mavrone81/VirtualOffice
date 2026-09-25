@@ -229,6 +229,27 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
 
 class EditConflict extends Error {}
 
+/**
+ * After a missed approval compare-and-swap: true when someone already approved the
+ * SAME split version (a double click / two approvers at once — idempotent success),
+ * false when the split was edited since the page was rendered.
+ */
+async function sameTermsAlready(id: string, seen: Date | null, step: "sd" | "admin"): Promise<boolean> {
+  const now = await prisma.salesSubmission.findUnique({
+    where: { id }, select: { splitEditedAt: true, sdApprovedAt: true, splitAdminApprovedAt: true },
+  });
+  if (!now) return false;
+  const sameVersion = (now.splitEditedAt?.getTime() ?? null) === (seen?.getTime() ?? null);
+  return sameVersion && (step === "sd" ? now.sdApprovedAt !== null : now.splitAdminApprovedAt !== null);
+}
+
+/** The splitEditedAt an approver's page rendered (ISO string, or null = never edited). */
+function seenAt(v: string | null | undefined): Date | null | "invalid" {
+  if (v === null || v === undefined) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? "invalid" : d;
+}
+
 type SplitSource = {
   salesDate: Date; saleAmount: Prisma.Decimal | string | number;
   associate2Id: string | null; associate2ValueType: ComValueType | null; associate2Value: Prisma.Decimal | string | number | null;
@@ -257,12 +278,15 @@ function splitTerms(s: SplitSource) {
  * Business Admin) approves; after 3 days it auto-approves without this call.
  * Idempotent; only valid while the submission is still Submitted.
  */
-export async function approveSubmissionSplit(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+export async function approveSubmissionSplit(
+  submissionId: string,
+  seenSplitEditedAt: string | null = null,
+): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, closingAssociateId: true, closedAt: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, closingAssociateId: true, closedAt: true, splitEditedAt: true } });
   if (!sub) return { ok: false, error: t("notFound") };
 
   // Approval follows the team (16-Jul §7): a Business Admin, or a Director of a
@@ -284,7 +308,16 @@ export async function approveSubmissionSplit(submissionId: string): Promise<{ ok
   if (sub.status === SubmissionStatus.Rejected || sub.closedAt) return { ok: false, error: t("alreadyProcessed") };
   if (sub.sdApprovedAt) { revalidatePath("/admin/quotations"); return { ok: true }; }
 
-  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id } });
+  // SA-1: approve only the split terms the approver saw. The page sends the
+  // splitEditedAt it rendered; if the closer edited the split since, the approval is
+  // refused (compare-and-swap), so a stale page can't approve terms nobody saw.
+  const seen = seenAt(seenSplitEditedAt);
+  if (seen === "invalid") return { ok: false, error: t("splitChangedReload") };
+  const res = await prisma.salesSubmission.updateMany({
+    where: { id: submissionId, sdApprovedAt: null, splitEditedAt: seen },
+    data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id },
+  });
+  if (res.count === 0) return (await sameTermsAlready(submissionId, seen, "sd")) ? { ok: true } : { ok: false, error: t("splitChangedReload") };
   await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
   revalidatePath("/admin/quotations");
   revalidatePath("/portal/approvals");
@@ -335,7 +368,10 @@ export async function revertSplitApproval(submissionId: string): Promise<{ ok: b
  * system approval so the split's history is complete. Idempotent; only valid
  * while the sale is unclosed (no transaction yet).
  */
-export async function adminApproveSplit(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+export async function adminApproveSplit(
+  submissionId: string,
+  seenSplitEditedAt: string | null = null,
+): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
@@ -353,8 +389,11 @@ export async function adminApproveSplit(submissionId: string): Promise<{ ok: boo
   // straight away (the sdApprovedAt stamp below records it as a system approval).
   if (sub.splitDirectorId && !isSdApproved(sub).approved) return { ok: false, error: t("pendingSdApproval") };
 
-  await prisma.salesSubmission.update({
-    where: { id: submissionId },
+  // SA-1: compare-and-swap on the splitEditedAt the admin's page rendered.
+  const seen = seenAt(seenSplitEditedAt);
+  if (seen === "invalid") return { ok: false, error: t("splitChangedReload") };
+  const res = await prisma.salesSubmission.updateMany({
+    where: { id: submissionId, splitAdminApprovedAt: null, splitEditedAt: seen },
     data: {
       splitAdminApprovedAt: new Date(),
       splitAdminApprovedById: session.user.id,
@@ -362,6 +401,7 @@ export async function adminApproveSplit(submissionId: string): Promise<{ ok: boo
       ...(sub.sdApprovedAt === null ? { sdApprovedAt: new Date() } : {}),
     },
   });
+  if (res.count === 0) return (await sameTermsAlready(submissionId, seen, "admin")) ? { ok: true } : { ok: false, error: t("splitChangedReload") };
 
   if (sub.sdApprovedAt === null) {
     await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: null, after: { auto: true } });

@@ -107,7 +107,7 @@ export default async function PortalApprovalsPage() {
           <p className="px-5 py-10 text-center text-[13px] text-muted">{t("approvals.empty")}</p>
         ) : (
           <div className="divide-y divide-line-200">
-            {subs.map((s) => row(s, <span className="text-[11px] text-muted">{t("approvals.autoIn", { days: daysLeft(s) })}</span>, <ApproveSplitButton id={s.id} />))}
+            {subs.map((s) => row(s, <span className="text-[11px] text-muted">{t("approvals.autoIn", { days: daysLeft(s) })}</span>, <ApproveSplitButton id={s.id} seenSplitEditedAt={s.splitEditedAt?.toISOString() ?? null} />))}
           </div>
         )}
       </Card>
