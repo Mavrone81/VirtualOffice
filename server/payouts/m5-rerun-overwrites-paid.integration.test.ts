@@ -18,12 +18,14 @@ import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit
 import { markInvoicePaid } from "@/server/invoices/actions";
 import { runPayouts, setPayoutStatus } from "./actions";
 import { buildBankFileCsv } from "./bankfile";
+import { runCommission } from "@/server/commission/run";
+import { planPayoutBackfill } from "./backfill-plan";
 
 const TAG = "M5RERUN-";
 const SALE_DATE = "2099-03-10";
 const MONTH = "2099-03";
 const ADMIN = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
-let companyId = "", productId = "", sdId = "", smId = "", closerId = "";
+let companyId = "", productId = "", sdId = "", smId = "", closerId = "", paidPayoutId = "";
 
 async function mkAssoc(code: string, designation: string, direct: string | null, second: string | null) {
   const a = await prisma.associate.create({
@@ -89,8 +91,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   const mine = { associateCode: { startsWith: TAG } };
-  await prisma.monthlyPayout.deleteMany({ where: { associate: mine } });
   await prisma.commissionLedger.deleteMany({ where: { transaction: { closingAssociate: mine } } });
+  await prisma.monthlyPayout.deleteMany({ where: { associate: mine } });
+  await prisma.bankFileBatch.deleteMany({ where: { payoutMonth: MONTH, payouts: { none: {} } } });
   await prisma.invoice.deleteMany({ where: { company: { invoicePrefix: { startsWith: TAG } } } });
   await prisma.saleLineItem.deleteMany({ where: { company: { invoicePrefix: { startsWith: TAG } } } });
   await prisma.salesTransaction.deleteMany({ where: { closingAssociate: mine } });
@@ -108,9 +111,10 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
     who.session = ADMIN;
     expect((await runPayouts(MONTH)).ok).toBe(true);
     const p = await prisma.monthlyPayout.findUniqueOrThrow({
-      where: { associateId_payoutMonth: { associateId: closerId, payoutMonth: MONTH } },
+      where: { associateId_payoutMonth_seq: { associateId: closerId, payoutMonth: MONTH, seq: 0 } },
     });
     expect(Number(p.totalPayable)).toBeCloseTo(800, 2);
+    paidPayoutId = p.id;
     expect((await setPayoutStatus(p.id, "Approved")).ok).toBe(true);
     expect((await setPayoutStatus(p.id, "Paid")).ok).toBe(true);
 
@@ -125,23 +129,113 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
     // Expected: the paid record is immutable (late lines belong in a new/adjustment payout).
     expect(Number(after.totalPayable)).toBeCloseTo(800, 2);
     expect(Number(after.personalCommission)).toBeCloseTo(Number(p.personalCommission), 2);
+
+    // The late 400 goes into a separate Pending adjustment payout for the month.
+    const adj = await prisma.monthlyPayout.findUnique({
+      where: { associateId_payoutMonth_seq: { associateId: closerId, payoutMonth: MONTH, seq: 1 } },
+    });
+    expect(adj?.kind).toBe("Adjustment");
+    expect(adj?.payoutStatus).toBe("Pending");
+    expect(Number(adj?.totalPayable)).toBeCloseTo(400, 2);
+
+    // Re-running again is a no-op: nothing new to settle, nothing rewritten.
+    expect((await runPayouts(MONTH)).ok).toBe(true);
+    const all = await prisma.monthlyPayout.findMany({ where: { associateId: closerId, payoutMonth: MONTH }, orderBy: { seq: "asc" } });
+    expect(all.map((x) => Number(x.totalPayable))).toEqual([800, 400]);
   });
 
-  it("audit for a re-run records per-payout before/after amounts", () => {
-    // The only audit entry runPayouts writes is { month, count }; no before/after
-    // per payout, so an overwrite of a Paid payout is not reconstructable from the trail.
-    const runs = vi.mocked(logAudit).mock.calls.filter(([a]) => a.action === "payouts.run");
-    expect(runs.length).toBeGreaterThan(0);
-    expect(runs.every(([a]) => a.before !== undefined)).toBe(true);
+  it("audit for a re-run records each payout written, with its amounts", () => {
+    // On 0f89098 the only entry is payouts.run { month, count }. Required: one entry per
+    // payout written, with amounts (before/after for an updated Pending payout).
+    const calls = vi.mocked(logAudit).mock.calls.map(([a]) => a);
+    const adj = calls.filter((a) => a.action === "payout.adjustment_created");
+    expect(adj).toHaveLength(1);
+    expect(adj[0].after).toMatchObject({ total: "400.00", seq: 1 });
+    expect(calls.filter((a) => a.action === "payout.updated").every((a) => a.before !== undefined && a.after !== undefined)).toBe(true);
+    // Still-Pending payouts (the SM/SD overrides) legitimately absorb the late lines;
+    // the Paid payout is never written, so it has no update entry.
+    expect(calls.filter((a) => a.action === "payout.updated" && a.entityId === paidPayoutId)).toHaveLength(0);
   });
 
   it("a bank file regenerated after the re-run does not pay an already-Paid payout again", async () => {
     // State from the first case: the payout was Paid at 800, then the re-run rewrote it to 1200.
     // bankfile.ts selects Approved AND Paid payouts, so regenerating the month's file
     // lists the full 1200 for an associate who has already received 800.
-    const csv = await buildBankFileCsv(MONTH, ADMIN.user.id);
+    const { csv } = await buildBankFileCsv(MONTH, ADMIN.user.id);
     const row = csv.split("\r\n").find((r) => r.startsWith(`"${TAG}CL"`));
     expect(row ?? "(no row)").not.toContain("1200.00");
     expect(row).toBeUndefined(); // Paid payouts are settled; they must not be re-listed for payment
+  });
+
+  it("exports each Approved payout exactly once, positive totals only, and can re-download a batch", async () => {
+    const adj = await prisma.monthlyPayout.findUniqueOrThrow({
+      where: { associateId_payoutMonth_seq: { associateId: closerId, payoutMonth: MONTH, seq: 1 } },
+    });
+    who.session = ADMIN;
+    expect((await setPayoutStatus(adj.id, "Approved")).ok).toBe(true);
+
+    const first = await buildBankFileCsv(MONTH, ADMIN.user.id);
+    const mine = (csv: string) => csv.split("\r\n").filter((r) => r.startsWith(`"${TAG}CL"`));
+    expect(mine(first.csv)).toEqual([`"${TAG}CL","CL","","","","400.00","Commission ${MONTH} adj 1"`]);
+    expect(first.batchId).not.toBeNull();
+
+    const again = await buildBankFileCsv(MONTH, ADMIN.user.id);
+    expect(mine(again.csv)).toEqual([]); // already exported
+    const redownload = await buildBankFileCsv(MONTH, ADMIN.user.id, { batchId: first.batchId! });
+    expect(mine(redownload.csv)).toEqual(mine(first.csv));
+  });
+
+  it("refuses to approve a payout whose total is zero or less", async () => {
+    const assoc = await prisma.associate.findUniqueOrThrow({ where: { id: closerId } });
+    const neg = await prisma.monthlyPayout.create({
+      data: {
+        payoutMonth: "2099-12", associateId: closerId, associateName: assoc.fullName, designation: assoc.designation,
+        totalPayable: "-296", personalCommission: "-296",
+      },
+    });
+    who.session = ADMIN;
+    expect(await setPayoutStatus(neg.id, "Approved")).toEqual({ ok: false, error: "payoutNotPositive" });
+  });
+
+  it("recomputing a transaction whose lines are already paid keeps them and writes only the delta", async () => {
+    const tx1 = await prisma.salesTransaction.findFirstOrThrow({ where: { closingAssociateId: closerId }, orderBy: { createdAt: "asc" } });
+    const settledBefore = await prisma.commissionLedger.findMany({ where: { transactionId: tx1.id, payoutId: paidPayoutId } });
+    expect(settledBefore.length).toBeGreaterThan(0);
+
+    // The product's closing rate is corrected from 10% to 12% after the payout went out.
+    const sv = await prisma.commissionStructureVersion.findFirstOrThrow({ where: { productCode: TAG + "P1" } });
+    await prisma.commissionStructureVersion.update({
+      where: { id: sv.id }, data: { rateSnapshot: { ...(sv.rateSnapshot as object), closingCommPct: "12" } as never },
+    });
+    await runCommission(tx1.id);
+
+    const settledAfter = await prisma.commissionLedger.findMany({ where: { transactionId: tx1.id, payoutId: paidPayoutId } });
+    expect(settledAfter.map((l) => [l.id, l.amount.toFixed(2)])).toEqual(settledBefore.map((l) => [l.id, l.amount.toFixed(2)]));
+    const delta = await prisma.commissionLedger.findMany({ where: { transactionId: tx1.id, associateId: closerId, payoutId: null } });
+    expect(delta.map((l) => l.amount.toFixed(2))).toEqual(["200.00"]); // net 1000 now vs 800 settled
+
+    who.session = ADMIN;
+    expect((await runPayouts(MONTH)).ok).toBe(true);
+    const all = await prisma.monthlyPayout.findMany({ where: { associateId: closerId, payoutMonth: MONTH }, orderBy: { seq: "asc" } });
+    expect(all.map((x) => [x.seq, x.payoutStatus, x.totalPayable.toFixed(2)])).toEqual([
+      [0, "Paid", "800.00"], [1, "Approved", "400.00"], [2, "Pending", "200.00"],
+    ]);
+  });
+
+  it("a legacy Paid payout without linked lines blocks re-runs, and the dry-run plan proposes linking it", async () => {
+    // Simulate a payout paid before payout_id existed: detach its lines.
+    const lineIds = (await prisma.commissionLedger.findMany({ where: { payoutId: paidPayoutId }, select: { id: true } })).map((l) => l.id);
+    await prisma.commissionLedger.updateMany({ where: { id: { in: lineIds } }, data: { payoutId: null } });
+
+    who.session = ADMIN;
+    expect(await runPayouts(MONTH)).toEqual({ ok: false, error: "payoutsNotBackfilled" });
+
+    const plan = (await planPayoutBackfill(prisma)).filter((r) => r.payoutId === paidPayoutId);
+    expect(plan).toHaveLength(1);
+    expect(plan[0]).toMatchObject({ action: "attach", payoutTotal: "800.00", linesTotal: "800.00", possiblyOverwritten: false });
+    expect([...plan[0].lineIds].sort()).toEqual([...lineIds].sort());
+
+    // Restore so afterAll's FK-ordered cleanup sees the normal shape.
+    await prisma.commissionLedger.updateMany({ where: { id: { in: lineIds } }, data: { payoutId: paidPayoutId } });
   });
 });
