@@ -136,7 +136,7 @@ export default async function AdminSplitApprovalsPage() {
                 <span className={`text-[11px] ${autoPending ? "text-muted" : "text-success"}`}>
                   {autoPending ? t("sdAuto") : t("sdApproved")} · {t("director")}: {s.splitDirectorId ? nameById.get(s.splitDirectorId) ?? "—" : t("noDirector")}
                 </span>,
-                <AdminApproveSplitButton id={s.id} />,
+                <AdminApproveSplitButton id={s.id} seenSplitEditedAt={s.splitEditedAt?.toISOString() ?? null} />,
               );
             })}
           </div>

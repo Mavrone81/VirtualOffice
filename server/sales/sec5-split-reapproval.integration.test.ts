@@ -141,8 +141,9 @@ describe("SEC-5: split edits vs split approvals", () => {
     expect((await approveQuotation(id)).ok).toBe(true);
     await prisma.submissionDocument.create({ data: { submissionId: id, kind: "Signed", fileKey: TAG + "signed.pdf", fileName: "signed.pdf" } });
     expect(await closeSale(id)).toMatchObject({ ok: false, error: "splitNotApproved" }); // old approvals no longer count
-    expect((await approveSubmissionSplit(id)).ok).toBe(true);
-    expect((await adminApproveSplit(id)).ok).toBe(true);
+    const v = (await prisma.salesSubmission.findUniqueOrThrow({ where: { id }, select: { splitEditedAt: true } })).splitEditedAt!.toISOString();
+    expect((await approveSubmissionSplit(id, v)).ok).toBe(true);
+    expect((await adminApproveSplit(id, v)).ok).toBe(true);
     expect((await closeSale(id)).ok).toBe(true);
     const tx = await prisma.salesTransaction.findFirstOrThrow({ where: { submissionId: id } });
     const a2 = await prisma.commissionLedger.findMany({ where: { transactionId: tx.id, associateId: a2Id } });
@@ -192,8 +193,57 @@ describe("SEC-5: the SD auto-approve clock restarts at a split edit", () => {
     expect(s.sdApprovedAt).toBeNull();
 
     who.session = ADMIN;
-    expect(await adminApproveSplit(id)).toEqual({ ok: false, error: "pendingSdApproval" });
-    expect((await approveSubmissionSplit(id)).ok).toBe(true); // explicit SD re-approval
-    expect((await adminApproveSplit(id)).ok).toBe(true);
+    const v = s.splitEditedAt!.toISOString();
+    expect(await adminApproveSplit(id, v)).toEqual({ ok: false, error: "pendingSdApproval" });
+    expect((await approveSubmissionSplit(id, v)).ok).toBe(true); // explicit SD re-approval
+    expect((await adminApproveSplit(id, v)).ok).toBe(true);
+  });
+});
+
+describe("SA-1: an approval covers only the split version the approver saw", () => {
+  async function editedSale(): Promise<{ id: string; oldView: string | null; newView: string }> {
+    who.session = { user: { associateId: closerId, id: "sess-closer" } };
+    const base = {
+      salesDate: SALE_DATE, clientName: TAG + "SA1", paymentPlan: "Full Payment",
+      lines: [{ productId, lineSaleAmount: 10000, comCodeIds: [] }],
+    };
+    expect((await submitSale({ ...base, associate2: { associateId: a2Id, valueType: "Percentage", value: 10 } } as never)).ok).toBe(true);
+    const id = (await prisma.salesSubmission.findFirstOrThrow({
+      where: { closingAssociateId: closerId, clientName: TAG + "SA1" }, orderBy: { createdAt: "desc" }, select: { id: true },
+    })).id;
+    const oldView = null; // the approver's page rendered the never-edited 10% split
+    expect((await editSale({ ...base, id, associate2: { associateId: a2Id, valueType: "Percentage", value: 90 } } as never)).ok).toBe(true);
+    const newView = (await prisma.salesSubmission.findUniqueOrThrow({ where: { id }, select: { splitEditedAt: true } })).splitEditedAt!.toISOString();
+    await prisma.salesSubmission.update({ where: { id }, data: { clientName: TAG + "SA1-done" } }); // keep later lookups unique
+    return { id, oldView, newView };
+  }
+  const state = (id: string) => prisma.salesSubmission.findUniqueOrThrow({ where: { id }, select: { sdApprovedAt: true, splitAdminApprovedAt: true } });
+
+  it("a stale SD page (rendered before the edit) cannot approve the edited split", async () => {
+    const { id, oldView } = await editedSale();
+    who.session = ADMIN;
+    expect(await approveSubmissionSplit(id, oldView)).toEqual({ ok: false, error: "splitChangedReload" });
+    expect(await approveSubmissionSplit(id)).toEqual({ ok: false, error: "splitChangedReload" }); // no version sent = never-edited view
+    expect((await state(id)).sdApprovedAt).toBeNull();
+  });
+
+  it("a stale admin page cannot sign off the edited split", async () => {
+    const { id, oldView, newView } = await editedSale();
+    who.session = ADMIN;
+    expect((await approveSubmissionSplit(id, newView)).ok).toBe(true);
+    expect(await adminApproveSplit(id, oldView)).toEqual({ ok: false, error: "splitChangedReload" });
+    expect((await state(id)).splitAdminApprovedAt).toBeNull();
+  });
+
+  it("a fresh page approves, and a repeat approval of the same version is idempotent", async () => {
+    const { id, newView } = await editedSale();
+    who.session = ADMIN;
+    expect((await approveSubmissionSplit(id, newView)).ok).toBe(true);
+    expect((await approveSubmissionSplit(id, newView)).ok).toBe(true);
+    expect((await adminApproveSplit(id, newView)).ok).toBe(true);
+    expect((await adminApproveSplit(id, newView)).ok).toBe(true);
+    const s = await state(id);
+    expect(s.sdApprovedAt).not.toBeNull();
+    expect(s.splitAdminApprovedAt).not.toBeNull();
   });
 });
