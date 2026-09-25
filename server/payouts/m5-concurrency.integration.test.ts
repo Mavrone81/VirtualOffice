@@ -96,7 +96,7 @@ async function race() {
   }
   const outcome = results.map((r) => {
     const v = (r as PromiseFulfilledResult<{ ok: boolean; count?: number; error?: string }>).value;
-    return v.ok ? `ok(${v.count})` : v.error;
+    return v.ok ? `ok(${v.count})` : v.error ?? "error";
   });
   // A retry after a conflict settles whatever the losing run left over.
   expect((await runPayouts(MONTH)).ok).toBe(true);
