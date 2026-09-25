@@ -146,8 +146,11 @@ export async function renderStatementPdf(payoutId: string, actorUserId?: string 
   });
   if (!payout) return null;
 
+  // A payout lists the lines it settles (M5). Payouts from before payoutId existed
+  // have none attached until the backfill runs, so they fall back to the month.
+  const attached = await prisma.commissionLedger.count({ where: { payoutId: payout.id } });
   const ledger = await prisma.commissionLedger.findMany({
-    where: { associateId: payout.associateId, payoutMonth: payout.payoutMonth },
+    where: attached ? { payoutId: payout.id } : { associateId: payout.associateId, payoutMonth: payout.payoutMonth },
     include: { transaction: { select: { transactionCode: true, clientName: true } }, lineItem: { select: { productName: true } } },
     orderBy: [{ lineType: "asc" }, { createdAt: "asc" }],
   });
@@ -185,5 +188,6 @@ export async function renderStatementPdf(payoutId: string, actorUserId?: string 
   };
 
   const buffer = await renderToBuffer(<StatementDoc d={d} />);
-  return { buffer, filename: `statement-${payout.associate.associateCode}-${payout.payoutMonth}.pdf` };
+  const suffix = payout.seq > 0 ? `-adj${payout.seq}` : "";
+  return { buffer, filename: `statement-${payout.associate.associateCode}-${payout.payoutMonth}${suffix}.pdf` };
 }
