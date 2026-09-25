@@ -25,6 +25,8 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/storage", () => ({
   getObject: vi.fn(async (key: string) => Buffer.from(key)),
   contentTypeForKey: () => "application/octet-stream",
+  // SEC-11 serves objects through objectResponseHeaders; headers are not under test here.
+  objectResponseHeaders: () => ({ "Content-Type": "application/octet-stream" }),
 }));
 
 import { GET } from "@/app/api/files/[...key]/route";

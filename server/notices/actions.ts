@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
+import { assertDocumentUpload } from "@/lib/file-type";
 import { putObject, deleteObject } from "@/lib/storage";
 
 const MAX_BYTES = 15_000_000;
@@ -18,10 +19,17 @@ async function requireAdmin() {
   return session;
 }
 
-async function storeUpload(prefix: string, file: File): Promise<string> {
+/** Stores a checked upload; null = not an allowed type (SEC-11). */
+async function storeUpload(prefix: string, file: File): Promise<string | null> {
+  const bytes = Buffer.from(await file.arrayBuffer());
+  try {
+    assertDocumentUpload(bytes, file.name);
+  } catch {
+    return null;
+  }
   const safeName = file.name.replace(/[^\w.\-]/g, "_").slice(-80) || "file";
   const key = `${prefix}/${randomUUID()}/${safeName}`;
-  await putObject(key, Buffer.from(await file.arrayBuffer()));
+  await putObject(key, bytes);
   return key;
 }
 
@@ -47,6 +55,7 @@ export async function createNotice(input: NoticeInput): Promise<{ ok: boolean; e
   if (input.attachment && input.attachment.size > 0) {
     if (input.attachment.size > MAX_BYTES) return { ok: false, error: t("fileTooLarge") };
     attachmentFileKey = await storeUpload("notices", input.attachment);
+    if (!attachmentFileKey) return { ok: false, error: t("invalidFileType") };
   }
 
   const notice = await prisma.notice.create({
