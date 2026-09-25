@@ -239,6 +239,12 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
     expect(plan[0]).toMatchObject({ action: "attach", payoutTotal: "800.00", linesTotal: "800.00", possiblyOverwritten: false });
     expect([...plan[0].lineIds].sort()).toEqual([...lineIds].sort());
 
+    // A Paid payout rewritten after its paid date (the M5 signature) is never auto-linked:
+    // its lines add up to the rewritten total, not to what was actually paid.
+    await prisma.$executeRaw`UPDATE monthly_payouts SET updated_at = paid_date + interval '10 days' WHERE id = ${paidPayoutId}::uuid`;
+    const flagged = (await planPayoutBackfill(prisma)).find((r) => r.payoutId === paidPayoutId);
+    expect(flagged).toMatchObject({ action: "manual-overwritten", possiblyOverwritten: true });
+
     // Restore so afterAll's FK-ordered cleanup sees the normal shape.
     await prisma.commissionLedger.updateMany({ where: { id: { in: lineIds } }, data: { payoutId: paidPayoutId } });
   });
