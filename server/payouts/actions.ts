@@ -150,7 +150,8 @@ const ALLOWED_PAYOUT_TRANSITIONS: Partial<Record<PayoutStatus, PayoutStatus>> = 
 
 export async function setPayoutStatus(payoutId: string, status: "Approved" | "Paid"): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await getAdminPrincipal())) return { ok: false, error: t("forbidden") };
+  const principal = await getAdminPrincipal();
+  if (!principal) return { ok: false, error: t("forbidden") };
 
   const cur = await prisma.monthlyPayout.findUnique({ where: { id: payoutId }, select: { payoutStatus: true, totalPayable: true } });
   if (!cur) return { ok: false, error: t("notFound") };
@@ -162,32 +163,41 @@ export async function setPayoutStatus(payoutId: string, status: "Approved" | "Pa
   // Zero/negative payouts are never approved for payment (M5; e.g. TXN-0003's −$296).
   if (target === PayoutStatus.Approved && cur.totalPayable.lte(0)) return { ok: false, error: t("payoutNotPositive") };
 
-  // Compare-and-swap on the current status closes the TOCTOU window between the
-  // read above and this write: if a concurrent transition already moved the row,
-  // the where matches nothing and we reject rather than double-process (e.g. two
-  // clicks both marking the same payout Paid).
+  // Compare-and-swap on the status AND the total read above closes the TOCTOU window
+  // between that read and this write: if a concurrent transition moved the row, or a
+  // recompute changed the total (C2), the where matches nothing and we reject rather
+  // than approve a figure nobody checked (or double-process two clicks on Paid).
   const result = await prisma.monthlyPayout.updateMany({
-    where: { id: payoutId, payoutStatus: cur.payoutStatus },
+    where: { id: payoutId, payoutStatus: cur.payoutStatus, totalPayable: cur.totalPayable },
     data: {
       payoutStatus: target,
       paidDate: status === "Paid" ? new Date() : undefined,
     },
   });
   if (result.count === 0) return { ok: false, error: t("illegalPayoutTransition") };
-  await logAudit({ action: `payout.${status}`, entityType: "MonthlyPayout", entityId: payoutId });
+  await logAudit({
+    action: `payout.${status}`, entityType: "MonthlyPayout", entityId: payoutId, actorUserId: principal.userId,
+    before: { status: cur.payoutStatus, total: cur.totalPayable.toFixed(2) },
+    after: { status: target, total: cur.totalPayable.toFixed(2) },
+  });
   revalidatePath("/admin/payouts");
   return { ok: true };
 }
 
 export async function approveAllPayouts(month: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await getAdminPrincipal())) return { ok: false, error: t("forbidden") };
-  await prisma.monthlyPayout.updateMany({
+  const principal = await getAdminPrincipal();
+  if (!principal) return { ok: false, error: t("forbidden") };
+  const approved = await prisma.monthlyPayout.updateManyAndReturn({
     // Zero/negative payouts stay Pending for a human to resolve (never exported).
     where: { payoutMonth: month, payoutStatus: PayoutStatus.Pending, totalPayable: { gt: 0 } },
     data: { payoutStatus: PayoutStatus.Approved },
+    select: { id: true, totalPayable: true },
   });
-  await logAudit({ action: "payouts.approve_all", entityType: "MonthlyPayout", entityId: month, after: { month } });
+  await logAudit({
+    action: "payouts.approve_all", entityType: "MonthlyPayout", entityId: month, actorUserId: principal.userId,
+    after: { month, count: approved.length, payouts: approved.map((p) => ({ id: p.id, total: p.totalPayable.toFixed(2) })) },
+  });
   revalidatePath("/admin/payouts");
   return { ok: true };
 }

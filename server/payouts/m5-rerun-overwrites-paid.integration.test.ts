@@ -213,6 +213,10 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
     expect(settledAfter.map((l) => [l.id, l.amount.toFixed(2)])).toEqual(settledBefore.map((l) => [l.id, l.amount.toFixed(2)]));
     const delta = await prisma.commissionLedger.findMany({ where: { transactionId: tx1.id, associateId: closerId, payoutId: null } });
     expect(delta.map((l) => l.amount.toFixed(2))).toEqual(["200.00"]); // net 1000 now vs 800 settled
+    // C3: the recompute that wrote an adjustment against settled commission is audited.
+    const adjusted = vi.mocked(logAudit).mock.calls.map(([a]) => a).filter((a) => a.action === "commission.adjusted" && a.entityId === tx1.id);
+    expect(adjusted).toHaveLength(1);
+    expect(JSON.stringify(adjusted[0].after)).toContain('"amount":"200"');
 
     who.session = ADMIN;
     expect((await runPayouts(MONTH)).ok).toBe(true);
