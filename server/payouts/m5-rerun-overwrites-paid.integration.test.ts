@@ -17,6 +17,7 @@ import { logAudit } from "@/lib/audit";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
 import { runPayouts, setPayoutStatus } from "./actions";
+import { buildBankFileCsv } from "./bankfile";
 
 const TAG = "M5RERUN-";
 const SALE_DATE = "2099-03-10";
@@ -132,5 +133,15 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
     const runs = vi.mocked(logAudit).mock.calls.filter(([a]) => a.action === "payouts.run");
     expect(runs.length).toBeGreaterThan(0);
     expect(runs.every(([a]) => a.before !== undefined)).toBe(true);
+  });
+
+  it("a bank file regenerated after the re-run does not pay an already-Paid payout again", async () => {
+    // State from the first case: the payout was Paid at 800, then the re-run rewrote it to 1200.
+    // bankfile.ts selects Approved AND Paid payouts, so regenerating the month's file
+    // lists the full 1200 for an associate who has already received 800.
+    const csv = await buildBankFileCsv(MONTH, ADMIN.user.id);
+    const row = csv.split("\r\n").find((r) => r.startsWith(`"${TAG}CL"`));
+    expect(row ?? "(no row)").not.toContain("1200.00");
+    expect(row).toBeUndefined(); // Paid payouts are settled; they must not be re-listed for payment
   });
 });
