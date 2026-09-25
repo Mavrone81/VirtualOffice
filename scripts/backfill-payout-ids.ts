@@ -3,7 +3,8 @@
  * ledger lines attached (payouts made before commission_ledger.payout_id existed),
  * which lines it would be linked to, and flags anything that needs a human.
  *
- * It CANNOT write: the Prisma client below rejects every write operation, and there
+ * It CANNOT write: the Prisma client below only lets read operations through (no
+ * model writes, no raw SQL), the runbook runs it in a read-only DB session, and there
  * is no apply mode. Linking is a separate, reviewed change that needs Samuel's go
  * because it touches production data.
  *
@@ -14,15 +15,18 @@
 import { PrismaClient } from "@prisma/client";
 import { planPayoutBackfill } from "@/server/payouts/backfill-plan";
 
-const WRITE_OPS = new Set([
-  "create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn",
-  "upsert", "delete", "deleteMany", "executeRaw", "executeRawUnsafe", "$executeRaw", "$executeRawUnsafe",
+// Allowlist, not blocklist: only these read operations reach the database. Every
+// other operation — model writes and ALL raw SQL ($queryRaw can run UPDATE … RETURNING)
+// — is refused. Run it in a DB-enforced read-only session as well (see the runbook:
+// DATABASE_URL …&options=-c%20default_transaction_read_only%3Don).
+const READ_OPS = new Set([
+  "findUnique", "findUniqueOrThrow", "findFirst", "findFirstOrThrow", "findMany", "count", "aggregate", "groupBy",
 ]);
 
 const readOnly = new PrismaClient().$extends({
   query: {
     $allOperations({ operation, args, query }) {
-      if (WRITE_OPS.has(operation)) throw new Error(`backfill-payout-ids is read-only; refused ${operation}`);
+      if (!READ_OPS.has(operation)) throw new Error(`backfill-payout-ids is read-only; refused ${operation}`);
       return query(args);
     },
   },
