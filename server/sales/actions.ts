@@ -194,7 +194,7 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
   const splitChanged = JSON.stringify(before) !== JSON.stringify(after);
   const hadApproval = !!existing.sdApprovedAt || !!existing.splitAdminApprovedAt;
   const clearApprovals = splitChanged
-    ? { sdApprovedAt: null, sdApprovedById: null, splitAdminApprovedAt: null, splitAdminApprovedById: null }
+    ? { sdApprovedAt: null, sdApprovedById: null, splitAdminApprovedAt: null, splitAdminApprovedById: null, splitEditedAt: new Date() }
     : {};
 
   try {
@@ -342,7 +342,7 @@ export async function adminApproveSplit(submissionId: string): Promise<{ ok: boo
 
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
-    select: { status: true, sdApprovedAt: true, createdAt: true, splitAdminApprovedAt: true, splitDirectorId: true, closedAt: true },
+    select: { status: true, sdApprovedAt: true, createdAt: true, splitEditedAt: true, splitAdminApprovedAt: true, splitDirectorId: true, closedAt: true },
   });
   if (!sub) return { ok: false, error: t("notFound") };
   if (sub.status === SubmissionStatus.Rejected || sub.closedAt) return { ok: false, error: t("alreadyProcessed") };

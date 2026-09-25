@@ -161,3 +161,39 @@ describe("SEC-5: split edits vs split approvals", () => {
     expect(s.splitAdminApprovedAt).not.toBeNull();
   });
 });
+
+describe("SEC-5: the SD auto-approve clock restarts at a split edit", () => {
+  it("an old sale's edited split waits for the SD again instead of auto-approving", async () => {
+    who.session = { user: { associateId: closerId, id: "sess-closer" } };
+    expect((await submitSale({
+      salesDate: SALE_DATE, clientName: TAG + "Old", paymentPlan: "Full Payment",
+      lines: [{ productId, lineSaleAmount: 10000, comCodeIds: [] }],
+      associate2: { associateId: a2Id, valueType: "Percentage", value: 10 },
+    } as never)).ok).toBe(true);
+    const id = (await prisma.salesSubmission.findFirstOrThrow({
+      where: { closingAssociateId: closerId, clientName: TAG + "Old" }, select: { id: true },
+    })).id;
+    // Four days old and with an SD assigned: the SD step has auto-approved.
+    await prisma.salesSubmission.update({
+      where: { id }, data: { createdAt: new Date(Date.now() - 4 * 24 * 3600 * 1000), splitDirectorId: sdId },
+    });
+    who.session = ADMIN;
+    expect((await adminApproveSplit(id)).ok).toBe(true);
+
+    // The closer changes the split: both approvals are cleared and the SD clock restarts.
+    who.session = { user: { associateId: closerId, id: "sess-closer" } };
+    expect((await editSale({
+      id, salesDate: SALE_DATE, clientName: TAG + "Old", paymentPlan: "Full Payment",
+      lines: [{ productId, lineSaleAmount: 10000, comCodeIds: [] }],
+      associate2: { associateId: a2Id, valueType: "Percentage", value: 60 },
+    } as never)).ok).toBe(true);
+    const s = await prisma.salesSubmission.findUniqueOrThrow({ where: { id }, select: { splitEditedAt: true, sdApprovedAt: true } });
+    expect(s.splitEditedAt).not.toBeNull();
+    expect(s.sdApprovedAt).toBeNull();
+
+    who.session = ADMIN;
+    expect(await adminApproveSplit(id)).toEqual({ ok: false, error: "pendingSdApproval" });
+    expect((await approveSubmissionSplit(id)).ok).toBe(true); // explicit SD re-approval
+    expect((await adminApproveSplit(id)).ok).toBe(true);
+  });
+});
