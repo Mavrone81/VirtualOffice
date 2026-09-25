@@ -65,3 +65,23 @@ const EXT_FOR_IMAGE: Record<string, string> = {
 export function imageExt(mime: string): string | null {
   return EXT_FOR_IMAGE[mime] ?? null;
 }
+
+// Types a browser may render in place. Everything else is forced to download.
+const INLINE_SAFE = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"]);
+
+/**
+ * Response headers for serving a stored object (SEC-11). Never let the browser
+ * sniff a different type than the one we declare (the app sets this itself
+ * rather than relying on the proxy), and only render images/PDF inline.
+ */
+export function objectResponseHeaders(key: string, opts: { filename?: string; cacheControl: string }): Record<string, string> {
+  const type = contentTypeForKey(key);
+  const disposition = INLINE_SAFE.has(type) ? "inline" : "attachment";
+  const name = (opts.filename ?? key.split("/").pop() ?? "file").replace(/[^\w.\-]/g, "_");
+  return {
+    "Content-Type": type,
+    "Content-Disposition": `${disposition}; filename="${name}"`,
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": opts.cacheControl,
+  };
+}

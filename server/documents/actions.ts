@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { putObject, deleteObject } from "@/lib/storage";
+import { assertDocumentUpload } from "@/lib/file-type";
 
 async function requireAdmin() {
   const session = await auth();
@@ -44,9 +45,16 @@ export async function uploadDocument(input: DocumentUpload): Promise<{ ok: boole
   }
   if (input.assignment === "Team" && !input.assignedTeam?.trim()) return { ok: false, error: t("teamNameRequired") };
 
+  const bytes = Buffer.from(await input.file.arrayBuffer());
+  try {
+    assertDocumentUpload(bytes, input.file.name);
+  } catch {
+    return { ok: false, error: t("invalidFileType") };
+  }
+
   const safeName = input.file.name.replace(/[^\w.\-]/g, "_").slice(-80) || "document";
   const key = `documents/${randomUUID()}/${safeName}`;
-  await putObject(key, Buffer.from(await input.file.arrayBuffer()));
+  await putObject(key, bytes);
 
   const doc = await prisma.document.create({
     data: {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { canManageSignedInvoice } from "@/lib/invoice-access";
-import { getObject, contentTypeForKey } from "@/lib/storage";
+import { getObject, objectResponseHeaders } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +26,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   return new NextResponse(new Uint8Array(data), {
     status: 200,
-    headers: {
-      "Content-Type": contentTypeForKey(invoice.signedPdfFileKey),
-      "Content-Disposition": `inline; filename="signed-${invoice.invoiceNumber}.pdf"`,
-      "Cache-Control": "private, max-age=60",
-    },
+    headers: objectResponseHeaders(invoice.signedPdfFileKey, {
+      filename: `signed-${invoice.invoiceNumber}.pdf`,
+      cacheControl: "private, max-age=60",
+    }),
   });
 }
