@@ -523,7 +523,8 @@
     "bankFileError": "无法生成银行代发文件。",
     "cancel": "取消",
     "approve": "批准",
-    "markPaid": "标记已付"
+    "markPaid": "标记已付",
+    "adjustment": "调整 {seq}"
   },
   "portal": {
     "dashboard": {
@@ -640,7 +641,8 @@
       "colOverride": "越级佣金",
       "colAddon": "附加佣金",
       "colTotal": "合计",
-      "statement": "对账单 ↗"
+      "statement": "对账单 ↗",
+      "adjustment": "调整 {seq}"
     },
     "invoices": {
       "pageTitle": "我的发票",

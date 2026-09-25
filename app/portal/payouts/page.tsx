@@ -16,7 +16,7 @@ export default async function MyPayoutsPage() {
   const tc = await getTranslations("common");
 
   const payouts = associateId
-    ? await prisma.monthlyPayout.findMany({ where: { associateId }, orderBy: { payoutMonth: "desc" } })
+    ? await prisma.monthlyPayout.findMany({ where: { associateId }, orderBy: [{ payoutMonth: "desc" }, { seq: "asc" }] })
     : [];
 
   return (
@@ -42,7 +42,10 @@ export default async function MyPayoutsPage() {
               <tbody>
                 {payouts.map((p) => (
                   <tr key={p.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
-                    <td className="px-5 py-3 font-medium text-ink">{p.payoutMonth}</td>
+                    <td className="px-5 py-3 font-medium text-ink">
+                      {p.payoutMonth}
+                      {p.seq > 0 && <span className="ml-2 rounded-full font-normal bg-gold/10 px-2 py-0.5 text-[11px] text-gold">{t("payouts.adjustment", { seq: p.seq })}</span>}
+                    </td>
                     <td className="px-5 py-3 text-muted">{formatSGD(p.personalCommission)}</td>
                     <td className="px-5 py-3 text-muted">{formatSGD(p.overrideCommission)}</td>
                     <td className="px-5 py-3 text-muted">{formatSGD(p.addonCommission)}</td>
