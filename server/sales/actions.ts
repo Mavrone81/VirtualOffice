@@ -152,41 +152,104 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
   const session = await auth();
   if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
 
-  const existing = await prisma.salesSubmission.findUnique({ where: { id: input.id }, select: { closingAssociateId: true, status: true } });
+  const existing = await prisma.salesSubmission.findUnique({
+    where: { id: input.id },
+    select: {
+      closingAssociateId: true, status: true, salesDate: true, saleAmount: true,
+      associate2Id: true, associate2ValueType: true, associate2Value: true,
+      associate3Id: true, associate3ValueType: true, associate3Value: true,
+      sdApprovedAt: true, splitAdminApprovedAt: true,
+      lineItems: { select: { productCode: true, lineSaleAmount: true, selectedComCodes: true } },
+    },
+  });
   if (!existing) return { ok: false, error: t("notFound") };
   if (existing.closingAssociateId !== session.user.associateId) return { ok: false, error: t("forbidden") };
   if (existing.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
   const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
+  const next = {
+    salesDate: new Date(validInput.salesDate),
+    quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
+    clientName: validInput.clientName.trim(),
+    clientContact: validInput.clientContact?.trim() || null,
+    saleAmount,
+    paymentPlan: validInput.paymentPlan === "Installment" ? PaymentPlan.Installment : PaymentPlan.FullPayment,
+    deposit: validInput.deposit ? round2(validInput.deposit) : null,
+    installmentCount: validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null,
+    associate2Id: validInput.associate2?.associateId ?? null,
+    associate2ValueType: validInput.associate2 ? (validInput.associate2.valueType as ComValueType) : null,
+    associate2Value: validInput.associate2 ? round2(validInput.associate2.value) : null,
+    associate3Id: validInput.associate3?.associateId ?? null,
+    associate3ValueType: validInput.associate3 ? (validInput.associate3.valueType as ComValueType) : null,
+    associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
+  };
 
-  await prisma.$transaction([
-    prisma.saleLineItem.deleteMany({ where: { submissionId: input.id } }),
-    prisma.salesSubmission.update({
-      where: { id: input.id },
-      data: {
-        salesDate: new Date(validInput.salesDate),
-        quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
-        clientName: validInput.clientName.trim(),
-        clientContact: validInput.clientContact?.trim() || null,
-        saleAmount,
-        paymentPlan: validInput.paymentPlan === "Installment" ? PaymentPlan.Installment : PaymentPlan.FullPayment,
-        deposit: validInput.deposit ? round2(validInput.deposit) : null,
-        installmentCount: validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null,
-        associate2Id: validInput.associate2?.associateId ?? null,
-        associate2ValueType: validInput.associate2 ? (validInput.associate2.valueType as ComValueType) : null,
-        associate2Value: validInput.associate2 ? round2(validInput.associate2.value) : null,
-        associate3Id: validInput.associate3?.associateId ?? null,
-        associate3ValueType: validInput.associate3 ? (validInput.associate3.valueType as ComValueType) : null,
-        associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
-        lineItems: { create: lineData },
-      },
-    }),
-  ]);
+  // SEC-5 / M2: the split approvals (SD + Business Admin) were given for a specific
+  // split on specific amounts. If anything that feeds the commission split changes —
+  // the split parties/values, the lines (product, amount, add-on codes) or the sales
+  // date (which picks the rate version) — those approvals no longer cover the sale
+  // and are cleared, so flow A must be approved again before it can close.
+  const before = splitTerms(existing);
+  const after = splitTerms({ ...next, lineItems: lineData });
+  const splitChanged = JSON.stringify(before) !== JSON.stringify(after);
+  const hadApproval = !!existing.sdApprovedAt || !!existing.splitAdminApprovedAt;
+  const clearApprovals = splitChanged
+    ? { sdApprovedAt: null, sdApprovedById: null, splitAdminApprovedAt: null, splitAdminApprovedById: null }
+    : {};
 
-  await logAudit({ action: "sale.edited", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id });
+  try {
+    await prisma.$transaction(async (db) => {
+      // Compare-and-swap: only a still-Submitted sale of this closer is edited, so an
+      // approval of the quotation landing after the read above can't be edited past.
+      const res = await db.salesSubmission.updateMany({
+        where: { id: input.id, closingAssociateId: session.user.associateId!, status: SubmissionStatus.Submitted },
+        data: { ...next, ...clearApprovals },
+      });
+      if (res.count !== 1) throw new EditConflict();
+      await db.saleLineItem.deleteMany({ where: { submissionId: input.id } });
+      await db.saleLineItem.createMany({ data: lineData.map((l) => ({ ...l, submissionId: input.id })) });
+    });
+  } catch (e) {
+    if (e instanceof EditConflict) return { ok: false, error: t("alreadyProcessed") };
+    throw e;
+  }
+
+  await logAudit({
+    action: "sale.edited", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id,
+    before, after: { ...after, splitChanged, approvalsCleared: splitChanged && hadApproval },
+  });
   revalidatePath("/portal/sales");
   revalidatePath(`/portal/sales/${input.id}`);
+  if (splitChanged && hadApproval) {
+    revalidatePath("/portal/approvals");
+    revalidatePath("/admin/split-approvals");
+  }
   return { ok: true };
+}
+
+class EditConflict extends Error {}
+
+type SplitSource = {
+  salesDate: Date; saleAmount: Prisma.Decimal | string | number;
+  associate2Id: string | null; associate2ValueType: ComValueType | null; associate2Value: Prisma.Decimal | string | number | null;
+  associate3Id: string | null; associate3ValueType: ComValueType | null; associate3Value: Prisma.Decimal | string | number | null;
+  lineItems: { productCode: string; lineSaleAmount: Prisma.Decimal | string | number; selectedComCodes?: unknown }[];
+};
+
+/** The commission-relevant terms of a sale, normalised so before/after compare exactly (and audit cleanly). */
+function splitTerms(s: SplitSource) {
+  const money = (v: Prisma.Decimal | string | number | null) => (v === null ? null : D(v).toFixed(2));
+  const codes = (c: unknown) =>
+    (Array.isArray(c) ? c : []).map((x) => String((x as { comCode?: unknown }).comCode ?? "")).sort();
+  return {
+    salesDate: format(s.salesDate, "yyyy-MM-dd"),
+    saleAmount: money(s.saleAmount),
+    associate2: s.associate2Id ? { id: s.associate2Id, type: s.associate2ValueType, value: money(s.associate2Value) } : null,
+    associate3: s.associate3Id ? { id: s.associate3Id, type: s.associate3ValueType, value: money(s.associate3Value) } : null,
+    lines: s.lineItems
+      .map((l) => ({ product: l.productCode, amount: money(l.lineSaleAmount), codes: codes(l.selectedComCodes) }))
+      .sort((a, b) => (a.product + a.amount).localeCompare(b.product + b.amount)),
+  };
 }
 
 /**
@@ -199,7 +262,7 @@ export async function approveSubmissionSplit(submissionId: string): Promise<{ ok
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, closingAssociateId: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, sdApprovedAt: true, closingAssociateId: true, closedAt: true } });
   if (!sub) return { ok: false, error: t("notFound") };
 
   // Approval follows the team (16-Jul §7): a Business Admin, or a Director of a
@@ -214,7 +277,11 @@ export async function approveSubmissionSplit(submissionId: string): Promise<{ ok
   }
   if (!allowed) return { ok: false, error: t("forbidden") };
 
-  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+  // Flow A (split) runs in parallel with flow B (quotation), so the SD step stays
+  // open until the sale closes — same window as adminApproveSplit. This matters when
+  // an edit cleared the split approvals after the quotation was already approved
+  // (SEC-5): the SD must still be able to re-approve rather than wait for the 3-day auto.
+  if (sub.status === SubmissionStatus.Rejected || sub.closedAt) return { ok: false, error: t("alreadyProcessed") };
   if (sub.sdApprovedAt) { revalidatePath("/admin/quotations"); return { ok: true }; }
 
   await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id } });
