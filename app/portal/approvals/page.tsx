@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { sdAutoDaysLeft } from "@/lib/approval";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -14,7 +15,6 @@ import { RevertSplitButton } from "./revert-split-button";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Split approvals · Enshrine Portal" };
 
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 function fmtShare(type: ComValueType | null, value: { toString(): string } | null): string {
   if (type == null || value == null) return "";
@@ -56,8 +56,7 @@ export default async function PortalApprovalsPage() {
   const nameById = new Map(extras.map((a) => [a.id, a.fullName]));
   const now = Date.now();
 
-  const daysLeft = (s: (typeof subs)[number]) =>
-    Math.max(0, Math.ceil((s.createdAt.getTime() + THREE_DAYS_MS - now) / (24 * 60 * 60 * 1000)));
+  const daysLeft = (s: (typeof subs)[number]) => sdAutoDaysLeft(s, now);
 
   const row = (s: (typeof subs)[number], meta: React.ReactNode, action: React.ReactNode) => (
     <div key={s.id} className="px-5 py-4">
