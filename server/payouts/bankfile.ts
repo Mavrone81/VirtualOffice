@@ -14,6 +14,21 @@ import { decryptPiiAudited } from "@/server/pii";
  * re-listed. Pass `batchId` to re-download an earlier batch (same rows, no new
  * selection). Returns the CSV plus the batch and payout ids for the audit trail.
  */
+// CSV/spreadsheet formula injection (W4-GIRO): names, bank names and PayNow
+// numbers are associate-supplied free text, and Accounts opens this file in a
+// spreadsheet. A cell starting with = + - @ (or a tab/CR) would be evaluated as a
+// formula, so it is neutralised with a leading apostrophe. A plain phone number
+// such as "+65 9123 4567" is data, not a formula, and is left untouched so the
+// bank upload still gets the real PayNow number.
+const FORMULA_START = /^[=+\-@\t\r]/;
+const PLAIN_PHONE = /^\+\d[\d ]*$/;
+
+export function csvCell(value: unknown): string {
+  let s = String(value ?? "");
+  if (FORMULA_START.test(s) && !PLAIN_PHONE.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 export async function buildBankFileCsv(
   month: string,
   actorUserId?: string | null,
@@ -70,7 +85,7 @@ export async function buildBankFileCsv(
 
   const total = payouts.reduce((s, p) => s.add(p.totalPayable), new Prisma.Decimal(0));
   return {
-    csv: rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n"),
+    csv: rows.map((r) => r.map(csvCell).join(",")).join("\r\n"),
     batchId,
     payoutIds: payouts.map((p) => p.id),
     total: total.toFixed(2),

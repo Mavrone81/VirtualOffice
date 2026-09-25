@@ -70,7 +70,9 @@ function BankFileButton({ month }: { month: string }) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `giro-payout-${month}.csv`;
+      // Keep the server's name (it carries the batch id / REPRINT marker).
+      const cd = res.headers.get("content-disposition") ?? "";
+      a.download = cd.match(/filename="([^"]+)"/)?.[1] ?? `giro-payout-${month}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
