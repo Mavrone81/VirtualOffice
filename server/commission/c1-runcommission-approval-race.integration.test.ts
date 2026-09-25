@@ -19,6 +19,7 @@ vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) =>
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
@@ -125,9 +126,9 @@ describe("C1: runCommission vs a concurrent payout approval", () => {
     let approval: Promise<{ ok: boolean; error?: string }> = Promise.resolve({ ok: false });
     let approvalState = "not-fired";
     const orig = prisma.$transaction.bind(prisma) as (...a: unknown[]) => Promise<unknown>;
-    const spy = vi.spyOn(prisma, "$transaction").mockImplementationOnce(((fn: (db: any) => Promise<unknown>, opts?: unknown) =>
-      orig(async (db: any) => {
-        const real = db.commissionLedger.findMany.bind(db.commissionLedger);
+    const spy = vi.spyOn(prisma, "$transaction").mockImplementationOnce(((fn: (db: Prisma.TransactionClient) => Promise<unknown>, opts?: unknown) =>
+      orig(async (db: Prisma.TransactionClient) => {
+        const real = db.commissionLedger.findMany.bind(db.commissionLedger) as (...a: unknown[]) => Promise<unknown>;
         let fired = false;
         const wrapped = new Proxy(db.commissionLedger, { get(t, k) {
           if (k === "findMany") return async (...a: unknown[]) => { const r = await real(...a);
@@ -137,8 +138,8 @@ describe("C1: runCommission vs a concurrent payout approval", () => {
               approvalState = await Promise.race([approval.then(() => "committed-in-window"), sleep(APPROVAL_WINDOW_MS).then(() => "blocked")]);
             }
             return r; };
-          return (t as any)[k]; } });
-        const dbProxy = new Proxy(db, { get(t, k) { return k === "commissionLedger" ? wrapped : (t as any)[k]; } });
+          return Reflect.get(t, k); } });
+        const dbProxy = new Proxy(db, { get(t, k) { return k === "commissionLedger" ? wrapped : Reflect.get(t, k); } });
         return fn(dbProxy);
       }, opts)) as never);
     await runCommission(tx.id);
