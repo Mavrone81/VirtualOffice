@@ -45,7 +45,26 @@ async function main() {
   console.log(`  attach (lines sum exactly to payout total): ${count("attach")}`);
   console.log(`  manual — lines do not sum to payout total: ${count("manual-mismatch")}`);
   console.log(`  manual — no candidate lines found:         ${count("manual-no-lines")}`);
-  console.log(`  Paid and written after paid date (possible M5 overwrite): ${rows.filter((r) => r.possiblyOverwritten).length}`);
+  console.log(`  manual — Paid but rewritten after paid date (M5 overwrite): ${count("manual-overwritten")}`);
+  console.log(`  manual — total zero or negative:           ${count("manual-non-positive")}`);
+
+  // Per month: what the apply step would link, and the totals it must leave unchanged.
+  // Linking never changes an amount, so "after" = "before" for every payout total;
+  // the apply step re-prints this table from the DB after committing and must match.
+  console.log("");
+  console.log("  month    payouts  payout_total  attach  lines_to_link  lines_total  manual");
+  const months = [...new Set(rows.map((r) => r.payoutMonth))].sort();
+  for (const m of months) {
+    const mr = rows.filter((r) => r.payoutMonth === m);
+    const sum = (xs: string[]) => xs.reduce((a, x) => a + Math.round(Number(x) * 100), 0) / 100;
+    const att = mr.filter((r) => r.action === "attach");
+    console.log(
+      `  ${m}  ${String(mr.length).padStart(7)}  ${sum(mr.map((r) => r.payoutTotal)).toFixed(2).padStart(12)}` +
+        `  ${String(att.length).padStart(6)}  ${String(att.reduce((a, r) => a + r.lineIds.length, 0)).padStart(13)}` +
+        `  ${sum(att.map((r) => r.linesTotal)).toFixed(2).padStart(11)}  ${String(mr.length - att.length).padStart(6)}`,
+    );
+  }
+  console.log("");
   for (const r of rows) {
     console.log(
       `  ${r.payoutMonth} ${r.payoutId} ${r.status} payout=${r.payoutTotal} lines=${r.linesTotal} n=${r.lineIds.length} -> ${r.action}` +
