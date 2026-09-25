@@ -5,7 +5,9 @@ import type { NextAuthConfig } from "next-auth";
 // DB lookup lives in auth.ts (Node runtime only).
 export const authConfig = {
   pages: { signIn: "/login" },
-  session: { strategy: "jwt" },
+  // Explicit, shorter than the 30-day default (SEC-2). Shared with middleware,
+  // which also re-issues the session cookie.
+  session: { strategy: "jwt", maxAge: 12 * 60 * 60 },
   providers: [],
   callbacks: {
     jwt({ token, user }) {
