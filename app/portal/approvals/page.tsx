@@ -40,7 +40,9 @@ export default async function PortalApprovalsPage() {
 
   const include = { closingAssociate: true, lineItems: true } as const;
   const [subs, approvedSubs] = await Promise.all([
-    prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "asc" }, include }),
+    // Pending SD approval stays open until the sale closes (same window as the admin
+    // step): an edit can clear approvals after the quotation was approved (SEC-5).
+    prisma.salesSubmission.findMany({ where: { status: { in: [SubmissionStatus.Submitted, SubmissionStatus.QuotationApproved] }, sdApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "asc" }, include }),
     // SD-approved but the admin hasn't signed off yet — revertable until then.
     prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: { not: null }, splitAdminApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "desc" }, include }),
   ]);
