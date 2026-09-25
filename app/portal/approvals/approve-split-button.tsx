@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { approveSubmissionSplit } from "@/server/sales/actions";
 
 // SD approves a submission's share-com split (16-Jul §4). Idempotent server-side.
-export function ApproveSplitButton({ id }: { id: string }) {
+// seenSplitEditedAt: the split version this page rendered (SA-1); a newer edit makes the
+// server refuse with "reload".
+export function ApproveSplitButton({ id, seenSplitEditedAt }: { id: string; seenSplitEditedAt: string | null }) {
   const t = useTranslations("portal");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string>();
@@ -19,7 +21,7 @@ export function ApproveSplitButton({ id }: { id: string }) {
         onClick={() =>
           start(async () => {
             setErr(undefined);
-            const r = await approveSubmissionSplit(id);
+            const r = await approveSubmissionSplit(id, seenSplitEditedAt);
             if (!r.ok) setErr(r.error ?? t("approvals.failed"));
           })
         }

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { authMock, prismaMock, runCommissionMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
-    salesSubmission: { findUnique: vi.fn(), update: vi.fn() },
+    salesSubmission: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     $transaction: vi.fn(),
   },
   runCommissionMock: vi.fn(),
@@ -23,6 +23,7 @@ const OLD = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000); // 4 days ago → pa
 beforeEach(() => {
   vi.clearAllMocks();
   prismaMock.salesSubmission.update.mockResolvedValue({});
+  prismaMock.salesSubmission.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.$transaction.mockResolvedValue("tx-1");
   runCommissionMock.mockResolvedValue(1);
 });
@@ -35,7 +36,7 @@ describe("adminApproveSplit", () => {
     });
     const r = await adminApproveSplit("s1");
     expect(r.ok).toBe(true);
-    const arg = prismaMock.salesSubmission.update.mock.calls[0][0];
+    const arg = prismaMock.salesSubmission.updateMany.mock.calls[0][0];
     expect(arg.data.splitAdminApprovedById).toBe("u1");
     expect(arg.data.splitAdminApprovedAt).toBeInstanceOf(Date);
   });
@@ -47,7 +48,7 @@ describe("adminApproveSplit", () => {
     });
     const r = await adminApproveSplit("s1");
     expect(r.ok).toBe(true);
-    expect(prismaMock.salesSubmission.update.mock.calls[0][0].data.sdApprovedAt).toBeInstanceOf(Date);
+    expect(prismaMock.salesSubmission.updateMany.mock.calls[0][0].data.sdApprovedAt).toBeInstanceOf(Date);
   });
 
   it("refuses before the SD step (no explicit approval, not yet 3 days)", async () => {
@@ -58,7 +59,7 @@ describe("adminApproveSplit", () => {
     const r = await adminApproveSplit("s1");
     expect(r.ok).toBe(false);
     expect(r.error).toBe("pendingSdApproval");
-    expect(prismaMock.salesSubmission.update).not.toHaveBeenCalled();
+    expect(prismaMock.salesSubmission.updateMany).not.toHaveBeenCalled();
   });
 
   it("lets the admin sign off immediately when no SD is assigned", async () => {
@@ -69,7 +70,7 @@ describe("adminApproveSplit", () => {
     const r = await adminApproveSplit("s1");
     expect(r.ok).toBe(true);
     // records the SD step as a system stamp since there was no SD to act.
-    expect(prismaMock.salesSubmission.update.mock.calls[0][0].data.sdApprovedAt).toBeInstanceOf(Date);
+    expect(prismaMock.salesSubmission.updateMany.mock.calls[0][0].data.sdApprovedAt).toBeInstanceOf(Date);
   });
 
   it("is idempotent once already admin-approved", async () => {
@@ -79,7 +80,7 @@ describe("adminApproveSplit", () => {
     });
     const r = await adminApproveSplit("s1");
     expect(r.ok).toBe(true);
-    expect(prismaMock.salesSubmission.update).not.toHaveBeenCalled();
+    expect(prismaMock.salesSubmission.updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects a non-admin", async () => {
