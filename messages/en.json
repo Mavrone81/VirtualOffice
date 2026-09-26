@@ -523,7 +523,8 @@
     "bankFileError": "Could not generate the bank file.",
     "cancel": "Cancel",
     "approve": "Approve",
-    "markPaid": "Mark paid"
+    "markPaid": "Mark paid",
+    "adjustment": "Adjustment {seq}"
   },
   "portal": {
     "dashboard": {
@@ -640,7 +641,8 @@
       "colOverride": "Override",
       "colAddon": "Add-on",
       "colTotal": "Total",
-      "statement": "Statement ↗"
+      "statement": "Statement ↗",
+      "adjustment": "Adjustment {seq}"
     },
     "invoices": {
       "pageTitle": "My invoices",
@@ -1251,6 +1253,9 @@
     "badMonth": "Bad month",
     "quotaLocked": "This quota was set by a higher authority and can't be changed.",
     "illegalPayoutTransition": "Illegal payout status change.",
+    "payoutNotPositive": "A payout with a total of zero or less cannot be approved.",
+    "payoutsNotBackfilled": "This month has approved or paid payouts that are not linked to their commission lines yet. Run the payout backfill before re-running payouts.",
+    "payoutRunConflict": "Payouts changed while this run was in progress. Please try again.",
     "reauthFailed": "Password confirmation failed.",
     "titleRequired": "Title is required.",
     "messageBodyRequired": "Message body is required.",

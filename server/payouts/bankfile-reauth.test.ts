@@ -7,7 +7,9 @@ vi.mock("@/server/access", () => ({
   getAdminPrincipal: async () => ({ userId: "admin1", role: "Admin" }),
 }));
 vi.mock("@/lib/reauth", () => ({ reauth: vi.fn(async () => state.reauthOk) }));
-vi.mock("@/server/payouts/bankfile", () => ({ buildBankFileCsv: vi.fn(async () => "CSVDATA") }));
+vi.mock("@/server/payouts/bankfile", () => ({
+  buildBankFileCsv: vi.fn(async () => ({ csv: "CSVDATA", batchId: "b1", payoutIds: ["p1"], total: "100.00" })),
+}));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -31,7 +33,11 @@ describe("generateBankFile reauth gate", () => {
     state.reauthOk = true;
     const r = await generateBankFile("2026-07", "correct");
     expect(r).toEqual({ ok: true, csv: "CSVDATA" });
-    expect(buildBankFileCsv).toHaveBeenCalledWith("2026-07", "admin1");
+    expect(buildBankFileCsv).toHaveBeenCalledWith("2026-07", "admin1", { batchId: undefined });
     expect(logAudit).toHaveBeenCalledOnce();
+    // M5: the audit names the batch and exactly which payouts were exported.
+    expect(vi.mocked(logAudit).mock.calls[0][0]).toMatchObject({
+      action: "payout.bankfile_generated", entityId: "b1", after: { month: "2026-07", batchId: "b1", payoutIds: ["p1"], total: "100.00" },
+    });
   });
 });
