@@ -50,9 +50,17 @@ export async function submitVendor(input: VendorInput): Promise<{ ok: boolean; e
   let agreementFileKey: string | null = null;
   if (input.agreement && input.agreement.size > 0) {
     if (input.agreement.size > MAX_BYTES) return { ok: false, error: t("fileTooLarge") };
-    const safeName = input.agreement.name.replace(/[^\w.\-]/g, "_").slice(-80) || "agreement";
-    agreementFileKey = `vendors/${randomUUID()}/${safeName}`;
-    await putObject(agreementFileKey, Buffer.from(await input.agreement.arrayBuffer()));
+    const bytes = Buffer.from(await input.agreement.arrayBuffer());
+    let kind: "pdf" | "png" | "jpeg";
+    try {
+      kind = assertUpload(bytes, ["pdf", "png", "jpeg"]); // SEC-11: any signed-in user can call this
+    } catch {
+      return { ok: false, error: t("invalidFileType") };
+    }
+    // Name the object by its sniffed type, so it is served as what it really is.
+    const base = input.agreement.name.replace(/\.[^.]*$/, "").replace(/[^\w.\-]/g, "_").slice(-60) || "agreement";
+    agreementFileKey = `vendors/${randomUUID()}/${base}.${kind === "jpeg" ? "jpg" : kind}`;
+    await putObject(agreementFileKey, bytes);
   }
 
   const vendor = await prisma.vendorReferral.create({
