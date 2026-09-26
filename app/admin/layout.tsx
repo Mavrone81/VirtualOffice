@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { sdAutoElapsedWhere } from "@/lib/approval";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ApprovalStatus, OnboardingStage, SubmissionStatus } from "@prisma/client";
 import { auth } from "@/auth";
@@ -23,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     }),
     // Awaiting quotation approval = split-approved (Director or 3-day auto).
     prisma.salesSubmission.count({
-      where: { status: SubmissionStatus.Submitted, OR: [{ sdApprovedAt: { not: null } }, { createdAt: { lte: threeDaysAgo } }] },
+      where: { status: SubmissionStatus.Submitted, OR: [{ sdApprovedAt: { not: null } }, sdAutoElapsedWhere(threeDaysAgo)] },
     }),
     prisma.vendorReferral.count({ where: { approvalStatus: ApprovalStatus.Pending } }),
   ]);

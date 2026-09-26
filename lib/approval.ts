@@ -35,8 +35,29 @@ export function sdApproverId(closer: CloserChain): string | null {
  * neither an explicit SD approval nor the 3-day auto-approve has landed. With no
  * SD above the closer there is no approver, so verification is not blocked.
  */
+/** The SD step's clock (SEC-5): it restarts when an edit changed the split terms. */
+type SdClock = { sdApprovedAt: Date | null; createdAt: Date; splitEditedAt?: Date | null };
+
+export function sdClockStart(sub: { createdAt: Date; splitEditedAt?: Date | null }): Date {
+  return sub.splitEditedAt ?? sub.createdAt;
+}
+
+/** Days left before the SD step auto-approves (0 = already elapsed). */
+export function sdAutoDaysLeft(sub: { createdAt: Date; splitEditedAt?: Date | null }, now: number = Date.now()): number {
+  return Math.max(0, Math.ceil((sdClockStart(sub).getTime() + THREE_DAYS_MS - now) / (24 * 60 * 60 * 1000)));
+}
+
+/** Prisma `where` fragments for the same rule, given cutoff = now − 3 days. */
+export function sdAutoElapsedWhere(cutoff: Date) {
+  return { OR: [{ splitEditedAt: null, createdAt: { lte: cutoff } }, { splitEditedAt: { lte: cutoff } }] };
+}
+export function sdAutoPendingWhere(cutoff: Date) {
+  return { OR: [{ splitEditedAt: null, createdAt: { gt: cutoff } }, { splitEditedAt: { gt: cutoff } }] };
+}
+export const SD_AUTO_APPROVE_MS = THREE_DAYS_MS;
+
 export function pendingSdApproval(
-  sub: { sdApprovedAt: Date | null; createdAt: Date },
+  sub: SdClock,
   closer: CloserChain,
   now: Date = new Date(),
 ): boolean {
@@ -63,7 +84,7 @@ export function pickSplitDirectorId(teams: { directorId: string | null }[]): str
  * the associate can close it.
  */
 export function splitFullyApproved(
-  sub: { sdApprovedAt: Date | null; createdAt: Date; splitAdminApprovedAt: Date | null },
+  sub: SdClock & { splitAdminApprovedAt: Date | null },
   now: Date = new Date(),
 ): boolean {
   return isSdApproved(sub, now).approved && sub.splitAdminApprovedAt !== null;
@@ -76,10 +97,10 @@ export function splitFullyApproved(
  * action (surfaced in the UI + logged as a system-actor approval).
  */
 export function isSdApproved(
-  sub: { sdApprovedAt: Date | null; createdAt: Date },
+  sub: SdClock,
   now: Date = new Date(),
 ): { approved: boolean; auto: boolean } {
   if (sub.sdApprovedAt) return { approved: true, auto: false };
-  const auto = now.getTime() - sub.createdAt.getTime() >= THREE_DAYS_MS;
+  const auto = now.getTime() - sdClockStart(sub).getTime() >= THREE_DAYS_MS;
   return { approved: auto, auto };
 }
