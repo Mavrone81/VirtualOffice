@@ -103,6 +103,12 @@ jobs:
   deploy:
     needs: build-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # SEC-8: bind the prod deploy to the GitHub Environment "production", so Samuel can add
+    # required reviewers (a technical gate for his go) and move SSH_* into environment secrets.
+    # Until he does, behaviour is unchanged: the environment is auto-created with no rules,
+    # and repository secrets still resolve inside the job (environment secrets only override
+    # same-named repo secrets).
+    environment: production
     runs-on: ubuntu-latest
     permissions:
       contents: read
