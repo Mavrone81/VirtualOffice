@@ -1,4 +1,4 @@
-import { PayoutStatus } from "@prisma/client";
+import { Prisma, PayoutStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { decryptPiiAudited } from "@/server/pii";
 
@@ -7,13 +7,44 @@ import { decryptPiiAudited } from "@/server/pii";
  * only. Decrypts the bank account for the file (a C3-PII access — the caller
  * must be Admin/Accounts). The exact bank GIRO layout is TBC; this CSV is the
  * portable interim format.
+ *
+ * M5 — each payout is exported exactly once: the file takes only Approved payouts
+ * with a positive total that are not yet in a bank-file batch, and stamps them
+ * into a new BankFileBatch in the same transaction. Paid payouts are never
+ * re-listed. Pass `batchId` to re-download an earlier batch (same rows, no new
+ * selection). Returns the CSV plus the batch and payout ids for the audit trail.
  */
-export async function buildBankFileCsv(month: string, actorUserId?: string | null): Promise<string> {
-  const payouts = await prisma.monthlyPayout.findMany({
-    where: { payoutMonth: month, payoutStatus: { in: [PayoutStatus.Approved, PayoutStatus.Paid] } },
-    include: { associate: true },
-    orderBy: { associateName: "asc" },
-  });
+export async function buildBankFileCsv(
+  month: string,
+  actorUserId?: string | null,
+  opts: { batchId?: string } = {},
+): Promise<{ csv: string; batchId: string | null; payoutIds: string[]; total: string }> {
+  let batchId: string | null = opts.batchId ?? null;
+
+  if (!batchId) {
+    batchId = await prisma.$transaction(async (db) => {
+      const candidates = await db.monthlyPayout.findMany({
+        where: { payoutMonth: month, payoutStatus: PayoutStatus.Approved, bankFileBatchId: null, totalPayable: { gt: 0 } },
+        select: { id: true },
+      });
+      if (candidates.length === 0) return null;
+      const batch = await db.bankFileBatch.create({ data: { payoutMonth: month, generatedById: actorUserId ?? null } });
+      // Compare-and-swap: only payouts still unexported and Approved are stamped.
+      await db.monthlyPayout.updateMany({
+        where: { id: { in: candidates.map((c) => c.id) }, bankFileBatchId: null, payoutStatus: PayoutStatus.Approved },
+        data: { bankFileBatchId: batch.id },
+      });
+      return batch.id;
+    });
+  }
+
+  const payouts = batchId
+    ? await prisma.monthlyPayout.findMany({
+        where: { bankFileBatchId: batchId, payoutMonth: month },
+        include: { associate: true },
+        orderBy: [{ associateName: "asc" }, { seq: "asc" }],
+      })
+    : [];
 
   const header = ["AssociateCode", "Name", "Method", "PayNow/Account", "Bank", "Amount(SGD)", "Reference"];
   const rows = [header];
@@ -33,9 +64,15 @@ export async function buildBankFileCsv(month: string, actorUserId?: string | nul
       account,
       p.bankName ?? "",
       p.totalPayable.toFixed(2),
-      `Commission ${month}`,
+      p.seq > 0 ? `Commission ${month} adj ${p.seq}` : `Commission ${month}`,
     ]);
   }
 
-  return rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const total = payouts.reduce((s, p) => s.add(p.totalPayable), new Prisma.Decimal(0));
+  return {
+    csv: rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n"),
+    batchId,
+    payoutIds: payouts.map((p) => p.id),
+    total: total.toFixed(2),
+  };
 }

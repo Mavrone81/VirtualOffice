@@ -29,7 +29,7 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Prom
 
   const payouts = await prisma.monthlyPayout.findMany({
     where: { payoutMonth: month },
-    orderBy: { totalPayable: "desc" },
+    orderBy: [{ totalPayable: "desc" }, { seq: "asc" }],
   });
 
   const totalPayable = sum(payouts.map((p) => p.totalPayable));
@@ -80,7 +80,10 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Prom
               <tbody>
                 {payouts.map((p) => (
                   <tr key={p.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
-                    <td className="px-5 py-3 text-ink">{p.associateName}</td>
+                    <td className="px-5 py-3 text-ink">
+                      {p.associateName}
+                      {p.seq > 0 && <span className="ml-2 rounded-full bg-gold/10 px-2 py-0.5 text-[11px] text-gold">{t("adjustment", { seq: p.seq })}</span>}
+                    </td>
                     <td className="px-5 py-3 text-muted">{humanize(p.designation)}</td>
                     <td className="px-5 py-3 text-muted">{formatSGD(p.personalCommission)}</td>
                     <td className="px-5 py-3 text-muted">{formatSGD(p.overrideCommission)}</td>

@@ -8,8 +8,9 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const month = String(form.get("month") ?? "");
   const password = String(form.get("password") ?? "");
+  const batchId = form.get("batchId") ? String(form.get("batchId")) : undefined;
 
-  const result = await generateBankFile(month, password);
+  const result = await generateBankFile(month, password, batchId);
   if (!result.ok) {
     // forbidden / badMonth / reauthFailed — all authorization/precondition
     // failures; the client shows the message inline.
