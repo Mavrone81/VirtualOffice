@@ -2,6 +2,7 @@ import { SubmissionStatus, ComValueType, Designation, AssociateStatus, ApprovalS
 import { format } from "date-fns";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
+import { sdAutoDaysLeft, sdAutoElapsedWhere, sdAutoPendingWhere, SD_AUTO_APPROVE_MS } from "@/lib/approval";
 import { formatSGD } from "@/lib/money";
 import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
@@ -12,7 +13,7 @@ import { ReassignDirector } from "./reassign-director";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Split approvals · Enshrine Admin" };
 
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+const THREE_DAYS_MS = SD_AUTO_APPROVE_MS;
 
 function fmtShare(type: ComValueType | null, value: { toString(): string } | null): string {
   if (type == null || value == null) return "";
@@ -20,7 +21,7 @@ function fmtShare(type: ComValueType | null, value: { toString(): string } | nul
 }
 
 type Row = {
-  id: string; clientName: string; saleAmount: unknown; salesDate: Date; createdAt: Date; paymentPlan: string;
+  id: string; clientName: string; saleAmount: unknown; salesDate: Date; createdAt: Date; splitEditedAt: Date | null; paymentPlan: string;
   sdApprovedAt: Date | null; splitDirectorId: string | null;
   associate2Id: string | null; associate2ValueType: ComValueType | null; associate2Value: unknown;
   associate3Id: string | null; associate3ValueType: ComValueType | null; associate3Value: unknown;
@@ -49,12 +50,12 @@ export default async function AdminSplitApprovalsPage() {
     }),
     // Still waiting on a real SD who hasn't acted, before the 3-day auto — reassignable.
     prisma.salesSubmission.findMany({
-      where: { status: openStatus, closedAt: null, splitAdminApprovedAt: null, sdApprovedAt: null, splitDirectorId: { not: null }, createdAt: { gt: threeDaysAgo } },
+      where: { status: openStatus, closedAt: null, splitAdminApprovedAt: null, sdApprovedAt: null, splitDirectorId: { not: null }, AND: [sdAutoPendingWhere(threeDaysAgo)] },
       orderBy: { createdAt: "asc" }, include,
     }),
     // SD cleared (explicit / 3-day auto) or no SD assigned — awaiting admin sign-off.
     prisma.salesSubmission.findMany({
-      where: { status: openStatus, closedAt: null, splitAdminApprovedAt: null, OR: [{ sdApprovedAt: { not: null } }, { createdAt: { lte: threeDaysAgo } }, { splitDirectorId: null }] },
+      where: { status: openStatus, closedAt: null, splitAdminApprovedAt: null, OR: [{ sdApprovedAt: { not: null } }, sdAutoElapsedWhere(threeDaysAgo), { splitDirectorId: null }] },
       orderBy: { createdAt: "asc" }, include,
     }),
   ]);
@@ -68,7 +69,7 @@ export default async function AdminSplitApprovalsPage() {
   const nameById = new Map(extras.map((a) => [a.id, a.fullName]));
   const dirs = directors.map((d) => ({ id: d.id, name: d.fullName }));
 
-  const daysLeft = (s: Row) => Math.max(0, Math.ceil((s.createdAt.getTime() + THREE_DAYS_MS - Date.now()) / (24 * 60 * 60 * 1000)));
+  const daysLeft = (s: Row) => sdAutoDaysLeft(s);
 
   const row = (s: Row, meta: React.ReactNode, action: React.ReactNode) => (
     <div key={s.id} className="px-5 py-4">
@@ -135,7 +136,7 @@ export default async function AdminSplitApprovalsPage() {
                 <span className={`text-[11px] ${autoPending ? "text-muted" : "text-success"}`}>
                   {autoPending ? t("sdAuto") : t("sdApproved")} · {t("director")}: {s.splitDirectorId ? nameById.get(s.splitDirectorId) ?? "—" : t("noDirector")}
                 </span>,
-                <AdminApproveSplitButton id={s.id} />,
+                <AdminApproveSplitButton id={s.id} seenSplitEditedAt={s.splitEditedAt?.toISOString() ?? null} />,
               );
             })}
           </div>

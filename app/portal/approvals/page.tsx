@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { sdAutoDaysLeft } from "@/lib/approval";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -14,7 +15,6 @@ import { RevertSplitButton } from "./revert-split-button";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Split approvals · Enshrine Portal" };
 
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 function fmtShare(type: ComValueType | null, value: { toString(): string } | null): string {
   if (type == null || value == null) return "";
@@ -40,7 +40,9 @@ export default async function PortalApprovalsPage() {
 
   const include = { closingAssociate: true, lineItems: true } as const;
   const [subs, approvedSubs] = await Promise.all([
-    prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "asc" }, include }),
+    // Pending SD approval stays open until the sale closes (same window as the admin
+    // step): an edit can clear approvals after the quotation was approved (SEC-5).
+    prisma.salesSubmission.findMany({ where: { status: { in: [SubmissionStatus.Submitted, SubmissionStatus.QuotationApproved] }, sdApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "asc" }, include }),
     // SD-approved but the admin hasn't signed off yet — revertable until then.
     prisma.salesSubmission.findMany({ where: { status: SubmissionStatus.Submitted, sdApprovedAt: { not: null }, splitAdminApprovedAt: null, closedAt: null, ...splitFilter }, orderBy: { createdAt: "desc" }, include }),
   ]);
@@ -54,8 +56,7 @@ export default async function PortalApprovalsPage() {
   const nameById = new Map(extras.map((a) => [a.id, a.fullName]));
   const now = Date.now();
 
-  const daysLeft = (s: (typeof subs)[number]) =>
-    Math.max(0, Math.ceil((s.createdAt.getTime() + THREE_DAYS_MS - now) / (24 * 60 * 60 * 1000)));
+  const daysLeft = (s: (typeof subs)[number]) => sdAutoDaysLeft(s, now);
 
   const row = (s: (typeof subs)[number], meta: React.ReactNode, action: React.ReactNode) => (
     <div key={s.id} className="px-5 py-4">
@@ -106,7 +107,7 @@ export default async function PortalApprovalsPage() {
           <p className="px-5 py-10 text-center text-[13px] text-muted">{t("approvals.empty")}</p>
         ) : (
           <div className="divide-y divide-line-200">
-            {subs.map((s) => row(s, <span className="text-[11px] text-muted">{t("approvals.autoIn", { days: daysLeft(s) })}</span>, <ApproveSplitButton id={s.id} />))}
+            {subs.map((s) => row(s, <span className="text-[11px] text-muted">{t("approvals.autoIn", { days: daysLeft(s) })}</span>, <ApproveSplitButton id={s.id} seenSplitEditedAt={s.splitEditedAt?.toISOString() ?? null} />))}
           </div>
         )}
       </Card>
