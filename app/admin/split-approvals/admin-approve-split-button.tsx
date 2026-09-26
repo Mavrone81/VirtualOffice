@@ -8,7 +8,8 @@ import { adminApproveSplit } from "@/server/sales/actions";
 
 // Business Admin signs off a commission split (23-Jul parallel workflow, flow A
 // step 2). Idempotent server-side.
-export function AdminApproveSplitButton({ id }: { id: string }) {
+// seenSplitEditedAt: the split version this page rendered (SA-1).
+export function AdminApproveSplitButton({ id, seenSplitEditedAt }: { id: string; seenSplitEditedAt: string | null }) {
   const t = useTranslations("splitApprovals");
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -22,7 +23,7 @@ export function AdminApproveSplitButton({ id }: { id: string }) {
         onClick={() =>
           start(async () => {
             setErr(undefined);
-            const r = await adminApproveSplit(id);
+            const r = await adminApproveSplit(id, seenSplitEditedAt);
             if (r.ok) router.refresh();
             else setErr(r.error ?? t("failed"));
           })

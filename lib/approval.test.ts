@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Designation } from "@prisma/client";
-import { isSdApproved, sdApproverId, pendingSdApproval } from "./approval";
+import { isSdApproved, sdApproverId, pendingSdApproval, sdAutoDaysLeft } from "./approval";
 
 const now = new Date("2026-07-18T12:00:00Z");
 const daysAgo = (n: number) => new Date(now.getTime() - n * 24 * 60 * 60 * 1000);
@@ -60,5 +60,20 @@ describe("pendingSdApproval", () => {
   });
   it("is NEVER pending when there is no SD approver in the chain", () => {
     expect(pendingSdApproval({ sdApprovedAt: null, createdAt: daysAgo(1) }, noSd, now)).toBe(false);
+  });
+});
+
+describe("SD clock restarts at a split edit (SEC-5)", () => {
+  const day = 24 * 3600 * 1000;
+  const now = new Date("2026-09-25T12:00:00Z");
+  const old = new Date(now.getTime() - 5 * day);
+  it("counts from createdAt when never edited", () => {
+    expect(isSdApproved({ sdApprovedAt: null, createdAt: old }, now)).toEqual({ approved: true, auto: true });
+  });
+  it("counts from splitEditedAt when the split was edited", () => {
+    const edited = new Date(now.getTime() - 1 * day);
+    expect(isSdApproved({ sdApprovedAt: null, createdAt: old, splitEditedAt: edited }, now).approved).toBe(false);
+    expect(sdAutoDaysLeft({ createdAt: old, splitEditedAt: edited }, now.getTime())).toBe(2);
+    expect(isSdApproved({ sdApprovedAt: null, createdAt: old, splitEditedAt: new Date(now.getTime() - 3 * day) }, now).approved).toBe(true);
   });
 });

@@ -1248,6 +1248,7 @@
     "pendingSdApproval": "等待销售总监批准佣金分配。",
     "quotationNotApproved": "报价单尚未获批生成。",
     "splitNotApproved": "佣金分配尚未完全批准。",
+    "splitChangedReload": "打开页面后此佣金分配已被修改。请重新加载查看最新分配后再批准。",
     "signedDocRequired": "关闭销售前请上传已签署的报价单。",
     "notADirector": "该伙伴不是在职的销售总监。",
     "badMonth": "月份格式无效",

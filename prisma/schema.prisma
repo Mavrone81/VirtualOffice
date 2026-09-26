@@ -500,6 +500,9 @@ model SalesSubmission {
   sdApprovedById         String?          @map("sd_approved_by") @db.Uuid
   splitAdminApprovedAt   DateTime?        @map("split_admin_approved_at")
   splitAdminApprovedById String?          @map("split_admin_approved_by") @db.Uuid
+  // SEC-5: when an edit last changed the commission split terms (and cleared the
+  // split approvals). The SD's 3-day auto-approve counts from here, not createdAt.
+  splitEditedAt          DateTime?        @map("split_edited_at")
   // Closure (23-Jul): the associate closes the sale once the quotation is signed
   // and the split is fully approved — that mints the transaction/ledger/invoice.
   closedAt               DateTime?        @map("closed_at")
