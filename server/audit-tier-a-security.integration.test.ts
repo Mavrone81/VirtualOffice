@@ -44,7 +44,6 @@ afterAll(async () => {
   await prisma.commissionStructureVersion.deleteMany({ where: { productId } });
   await prisma.product.deleteMany({ where: { id: productId } });
   await prisma.user.deleteMany({ where: { id: userId } });
-  await prisma.auditLog.deleteMany({ where: { entityId: { in: [assocId, userId, productId] } } });
   await prisma.associate.deleteMany({ where: { id: { in: [assocId, uplineId] } } });
   await removeAuditFault();
 });
