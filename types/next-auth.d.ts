@@ -25,5 +25,7 @@ declare module "next-auth/jwt" {
     role: AppRole;
     associateId: string | null;
     mustResetPassword: boolean;
+    /** Epoch ms of the last live-state revalidation (lib/session-refresh.ts). */
+    chk?: number;
   }
 }
