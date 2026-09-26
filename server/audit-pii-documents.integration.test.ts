@@ -43,7 +43,6 @@ beforeAll(async () => {
 });
 afterEach(clearAuditFaults);
 afterAll(async () => {
-  await prisma.auditLog.deleteMany({ where: { entityId: { in: [vendorId, docId] } } });
   await prisma.document.deleteMany({ where: { id: docId } });
   await prisma.pFileDocument.deleteMany({ where: { id: pfileDocId } });
   await prisma.pFile.deleteMany({ where: { id: pFileId } });

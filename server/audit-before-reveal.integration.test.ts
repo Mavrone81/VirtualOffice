@@ -40,7 +40,6 @@ afterEach(clearAuditFaults);
 afterAll(async () => {
   await prisma.monthlyPayout.deleteMany({ where: { associateId: assocId } });
   await prisma.bankFileBatch.deleteMany({ where: { payoutMonth: { startsWith: "2197-" } } });
-  await prisma.auditLog.deleteMany({ where: { entityId: assocId } });
   await prisma.associate.deleteMany({ where: { id: assocId } });
   await removeAuditFault();
 });
@@ -124,7 +123,6 @@ describe("SEC-12 backfill (Tier A per row)", () => {
     await applyNricEncryptBackfill(prisma, null);
     expect((await prisma.vendorReferral.findUniqueOrThrow({ where: { id: v.id } })).vendorSignerNric?.startsWith("v1:")).toBe(true);
     expect(await prisma.auditLog.count({ where: { action: "pii.nric_encrypted", entityId: v.id } })).toBe(1);
-    await prisma.auditLog.deleteMany({ where: { entityId: v.id } });
     await prisma.vendorReferral.delete({ where: { id: v.id } });
   });
 });
