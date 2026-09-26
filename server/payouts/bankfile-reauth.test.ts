@@ -32,7 +32,7 @@ describe("generateBankFile reauth gate", () => {
   it("returns the CSV and writes an audit row on the correct password", async () => {
     state.reauthOk = true;
     const r = await generateBankFile("2026-07", "correct");
-    expect(r).toEqual({ ok: true, csv: "CSVDATA" });
+    expect(r).toEqual({ ok: true, csv: "CSVDATA", batchId: "b1", reprint: false });
     expect(buildBankFileCsv).toHaveBeenCalledWith("2026-07", "admin1", { batchId: undefined });
     expect(logAudit).toHaveBeenCalledOnce();
     // M5: the audit names the batch and exactly which payouts were exported.

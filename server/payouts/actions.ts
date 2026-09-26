@@ -22,7 +22,7 @@ export async function generateBankFile(
   month: string,
   password: string,
   batchId?: string,
-): Promise<{ ok: true; csv: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; csv: string; batchId: string | null; reprint: boolean } | { ok: false; error: string }> {
   const t = await getTranslations("errors");
   const principal = await getAdminPrincipal();
   if (!principal) return { ok: false, error: t("forbidden") };
@@ -38,7 +38,7 @@ export async function generateBankFile(
     after: { month, batchId: file.batchId, payoutIds: file.payoutIds, total: file.total },
     actorUserId: principal.userId,
   });
-  return { ok: true, csv: file.csv };
+  return { ok: true, csv: file.csv, batchId: file.batchId, reprint: !!batchId };
 }
 
 /**
