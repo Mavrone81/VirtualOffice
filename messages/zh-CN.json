@@ -523,7 +523,8 @@
     "bankFileError": "无法生成银行代发文件。",
     "cancel": "取消",
     "approve": "批准",
-    "markPaid": "标记已付"
+    "markPaid": "标记已付",
+    "adjustment": "调整 {seq}"
   },
   "portal": {
     "dashboard": {
@@ -640,7 +641,8 @@
       "colOverride": "越级佣金",
       "colAddon": "附加佣金",
       "colTotal": "合计",
-      "statement": "对账单 ↗"
+      "statement": "对账单 ↗",
+      "adjustment": "调整 {seq}"
     },
     "invoices": {
       "pageTitle": "我的发票",
@@ -1251,6 +1253,9 @@
     "badMonth": "月份格式无效",
     "quotaLocked": "该配额由更高层级设定，无法修改。",
     "illegalPayoutTransition": "非法的支付状态变更。",
+    "payoutNotPositive": "总额为零或负数的支付无法批准。",
+    "payoutsNotBackfilled": "本月有已批准或已支付的支付记录尚未关联到佣金明细。请先执行支付回填，再重新运行支付。",
+    "payoutRunConflict": "运行期间支付记录已发生变化，请重试。",
     "reauthFailed": "密码确认失败。",
     "titleRequired": "标题为必填项。",
     "messageBodyRequired": "消息内容为必填项。",
