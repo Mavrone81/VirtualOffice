@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
-import { getObject, contentTypeForKey } from "@/lib/storage";
+import { getObject, objectResponseHeaders } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +31,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const filename = doc.fileKey.split("/").pop() || "document";
   return new NextResponse(new Uint8Array(data), {
     status: 200,
-    headers: {
-      "Content-Type": contentTypeForKey(doc.fileKey),
-      "Content-Disposition": `inline; filename="${filename}"`,
-      "Cache-Control": "private, max-age=60",
-    },
+    headers: objectResponseHeaders(doc.fileKey, { filename, cacheControl: "private, max-age=60" }),
   });
 }
