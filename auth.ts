@@ -4,12 +4,31 @@ import { verify } from "@node-rs/argon2";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { checkRateLimit, recordFailure, recordSuccess } from "@/lib/rate-limit";
+import { revalidateToken, type LiveUser } from "@/lib/session-refresh";
 import { authConfig } from "./auth.config";
 
 const creds = z.object({ email: z.string().min(1), password: z.string().min(1) });
 
+async function loadLiveUser(userId: string): Promise<LiveUser | null> {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { isActive: true, role: true, associateId: true, mustResetPassword: true },
+  });
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
+  callbacks: {
+    ...authConfig.callbacks,
+    // Node-runtime only (middleware keeps the edge-safe base callback): mint the
+    // claims at sign-in, then re-check the user's live state on later calls so a
+    // deactivated/demoted user loses access within REVALIDATE_MS (SEC-2).
+    async jwt(params) {
+      const token = await authConfig.callbacks.jwt(params);
+      if (params.user) return { ...token, chk: Date.now() };
+      return revalidateToken(token, loadLiveUser);
+    },
+  },
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
