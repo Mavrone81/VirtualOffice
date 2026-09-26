@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { fileKeyFromSegments } from "@/lib/file-key";
 import { getObject, contentTypeForKey } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
 
   const { key: segments } = await params;
-  const key = segments.map((s) => decodeURIComponent(s)).join("/");
+  // Segments arrive already decoded once by Next; validate, never re-decode (SEC-1).
+  const key = fileKeyFromSegments(segments);
+  if (!key) return new NextResponse("Bad request", { status: 400 });
 
   // Admins/Accounts may read any object. Associates may read objects under their
   // own associate namespace, plus documents on a sale they closed (their
