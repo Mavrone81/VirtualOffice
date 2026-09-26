@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { fileKeyFromSegments } from "@/lib/file-key";
-import { getObject, contentTypeForKey } from "@/lib/storage";
+import { getObject, objectResponseHeaders } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +37,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
 
   return new NextResponse(new Uint8Array(data), {
     status: 200,
-    headers: {
-      "Content-Type": contentTypeForKey(key),
-      "Cache-Control": "private, max-age=300",
-    },
+    headers: objectResponseHeaders(key, { cacheControl: "private, max-age=300" }),
   });
 }
