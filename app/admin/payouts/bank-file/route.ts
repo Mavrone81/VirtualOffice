@@ -16,10 +16,14 @@ export async function POST(req: NextRequest) {
     // failures; the client shows the message inline.
     return new Response(result.error, { status: 403 });
   }
+  // A re-download of an earlier batch is marked REPRINT so it can't be mistaken for
+  // a new payment run; every file names its batch for traceability (W4-GIRO).
+  const batch = result.batchId ? `-batch-${result.batchId.slice(0, 8)}` : "";
+  const filename = `giro-payout-${month}${batch}${result.reprint ? "-REPRINT" : ""}.csv`;
   return new Response(result.csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="giro-payout-${month}.csv"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }
