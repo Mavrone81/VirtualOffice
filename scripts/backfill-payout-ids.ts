@@ -9,8 +9,10 @@
  * because it touches production data.
  *
  * Output contains ids and amounts only — no names or other personal data.
- *   pnpm tsx scripts/backfill-payout-ids.ts            # summary + one line per payout
- *   pnpm tsx scripts/backfill-payout-ids.ts --json     # machine-readable
+ *   DATABASE_URL="<url>&options=-c%20default_transaction_read_only%3Don" \
+ *     pnpm tsx scripts/backfill-payout-ids.ts            # summary + one line per payout
+ *   (…same…) pnpm tsx scripts/backfill-payout-ids.ts --json   # machine-readable
+ * It aborts unless the session reports transaction_read_only = on.
  */
 import { PrismaClient } from "@prisma/client";
 import { planPayoutBackfill } from "@/server/payouts/backfill-plan";
@@ -32,8 +34,29 @@ const readOnly = new PrismaClient().$extends({
   },
 });
 
+/**
+ * Pre-flight (R1): refuse to run unless the DB session itself is read-only, i.e. the
+ * URL carries options=-c default_transaction_read_only=on. Checked on a plain client
+ * BEFORE the allowlisted one is used, so a mis-typed URL never reaches the plan.
+ */
+async function assertReadOnlySession(): Promise<void> {
+  const base = new PrismaClient();
+  try {
+    const [row] = await base.$queryRaw<{ transaction_read_only: string }[]>`SHOW transaction_read_only`;
+    if (row?.transaction_read_only !== "on") {
+      throw new Error(
+        `DB session is not read-only (transaction_read_only=${row?.transaction_read_only ?? "?"}). ` +
+          "Append options=-c%20default_transaction_read_only%3Don to DATABASE_URL (with & if it already has a ?).",
+      );
+    }
+  } finally {
+    await base.$disconnect();
+  }
+}
+
 async function main() {
   if (process.argv.includes("--apply")) throw new Error("No apply mode: this script is a dry run only.");
+  await assertReadOnlySession();
   const rows = await planPayoutBackfill(readOnly as unknown as PrismaClient);
 
   if (process.argv.includes("--json")) {
