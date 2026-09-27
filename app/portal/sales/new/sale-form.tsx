@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { submitSale, editSale } from "@/server/sales/actions";
 import { PercentAmountInput } from "@/components/ui/percent-amount-input";
+import { INSTALLMENT_MONTHS } from "@/lib/installment-months";
 import { useTranslations } from "next-intl";
 
 export type FormProduct = {
@@ -157,8 +158,9 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
               <div>
                 <Label htmlFor="ic">{t("saleForm.installmentPlan")}</Label>
                 <select id="ic" value={installmentCount} onChange={(e) => setInstallmentCount(e.target.value)} className={selectCls}>
-                  <option value="12">{t("saleForm.months12")}</option>
-                  <option value="24">{t("saleForm.months24")}</option>
+                  {INSTALLMENT_MONTHS.map((n) => (
+                    <option key={n} value={n}>{t("saleForm.monthsCount", { count: n })}</option>
+                  ))}
                 </select>
               </div>
             </>
