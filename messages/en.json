@@ -625,7 +625,17 @@
       "remainingMonth": "Remaining to reach this month's target",
       "remainingYear": "Remaining to reach this year's target",
       "thisYear": "This year",
-      "setTargetFirst": "No target set yet"
+      "setTargetFirst": "No target set yet",
+      "rankCaption": "Based on commission received · daily ranking, {year}",
+      "rankUpdated": "Updated {date}",
+      "band": {
+        "top1": "Top 1%",
+        "top5": "Top 5%",
+        "top10": "Top 10%",
+        "top25": "Top 25%",
+        "top50": "Top 50%",
+        "rest": "The Rest"
+      }
     },
     "sales": {
       "pageTitle": "My sales",
