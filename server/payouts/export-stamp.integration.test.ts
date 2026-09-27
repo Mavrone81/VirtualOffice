@@ -43,7 +43,15 @@ async function cleanup() {
   const batches = (await prisma.bankFileBatch.findMany({ where: { payoutMonth: { in: MONTHS } }, select: { id: true } })).map((b) => b.id);
   await prisma.monthlyPayout.deleteMany({ where: { associateName: { startsWith: TAG } } });
   await prisma.bankFileBatch.deleteMany({ where: { id: { in: batches } } });
-  await prisma.auditLog.deleteMany({ where: { entityId: { in: [...MONTHS, ...batches, ...Object.values(ids)] } } });
+  // audit_log is append-only (DB trigger) — deleting from it is refused, and
+  // leftover rows here are correct, not a leak: this file's audit reads are
+  // keyed on `batches`/`ids` values (fresh @default(uuid()) per run), so a
+  // later run's assertions can never match an earlier run's orphaned rows.
+  // NOT true of the month strings in MONTHS (A/B/C/D, module constants) —
+  // an audit row keyed on one of those accumulates under the same entityId
+  // forever. Harmless today (nothing filters on a month-keyed entityId); a
+  // future assertion that does would need its own isolation, not this
+  // property (DevSecOps review, 2026-09-27).
   await prisma.associate.deleteMany({ where: { associateCode: { startsWith: TAG } } });
 }
 
