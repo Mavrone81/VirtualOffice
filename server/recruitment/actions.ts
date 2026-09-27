@@ -31,7 +31,7 @@ async function requireAdmin() {
   return session;
 }
 
-// Recruitment invite is open to SAM and above (16-Jul RBAC matrix §A).
+// Recruitment invite is Manager and above (A9, the project owner 2026-09-26 — see lib/rbac canRecruit).
 async function requireRecruiter() {
   const session = await auth();
   if (!session || !canRecruit(session.user.role)) return null;
