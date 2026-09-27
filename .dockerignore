@@ -2,7 +2,6 @@ node_modules
 .next
 .git
 .github
-HR System for COM service
 *.mp4
 *.mov
 *.wav
