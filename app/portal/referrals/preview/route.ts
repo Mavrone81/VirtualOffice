@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { renderReferralAgreementPdfFromData } from "@/lib/pdf/referral-agreement";
+import { isSameOrigin } from "@/lib/same-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
  * Read-only — renders a document, stores nothing.
  */
 export async function POST(req: Request) {
+  // U1: same-origin only (route handlers don't get Next's server-action Origin check).
+  if (!isSameOrigin(req)) return new NextResponse("Forbidden", { status: 403 });
   const session = await auth();
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
 
