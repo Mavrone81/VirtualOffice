@@ -1,0 +1,74 @@
+name: Security
+
+# Dependency advisory scan, deliberately in its own workflow so it can never
+# interfere with the CI/CD pipeline in ci-cd.yml (test → build-push → deploy).
+# A vulnerable transitive dep is not a reason to block a release deploy.
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays 01:00 UTC (09:00 SGT) — catches advisories published against deps
+    # we never touched, which is how 20 of them accumulated unnoticed between
+    # the SEC-7 bump and the 2026-09-27 re-scan.
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # `pnpm audit` at high+critical. Reads pnpm-lock.yaml directly, so there is no
+  # install step and the job finishes in seconds.
+  #
+  # NON-BLOCKING until 2026-10-11 (see `continue-on-error` below): the first two
+  # weeks are for tuning the level and clearing the current backlog, not for
+  # wedging anyone's PR. After that date, remove the `continue-on-error` line and
+  # the job gates PRs.
+  #
+  # EXPECTED RED until the dev-only dependency bumps land: at the time this job
+  # was added, `--audit-level high` reports advisories that are all dev- or
+  # build-time (eslint, vitest/vite, prisma CLI toolchains) or in code paths the
+  # app never calls. None of them reaches the production image, which copies only
+  # `.next/standalone`, `public` and `.next/static`. Do not chase the red mark —
+  # read the job summary.
+  # ---------------------------------------------------------------------------
+  audit:
+    name: Dependency advisories (high + critical)
+    runs-on: ubuntu-latest
+    continue-on-error: true # REMOVE on/after 2026-10-11 to make this blocking (DevSecOps)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: pnpm audit
+        run: |
+          set -o pipefail
+          # Tee the report into the job summary so a reviewer sees what fired
+          # without opening the log; the exit code still decides pass/fail.
+          pnpm audit --audit-level high 2>&1 | tee audit.txt || failed=1
+          {
+            echo "## Dependency advisories (high + critical)"
+            echo
+            if [ "${failed:-0}" = "0" ]; then
+              echo "No high or critical advisories against \`pnpm-lock.yaml\`."
+            else
+              echo "\`pnpm audit --audit-level high\` reported advisories."
+              echo "Triage by **reachability**, not severity alone: most hits are in the"
+              echo "dev/build toolchain and never reach the production image, which copies"
+              echo "only \`.next/standalone\`, \`public\` and \`.next/static\`."
+            fi
+            echo
+            echo '```'
+            cat audit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${failed:-0}"
