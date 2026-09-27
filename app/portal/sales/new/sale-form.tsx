@@ -107,7 +107,10 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
       const res = isEdit
         ? await editSale({ id: submissionId!, ...base })
         : await submitSale({ ...base, documents });
-      if (res.ok) router.push(isEdit ? `/portal/sales/${submissionId}` : "/portal/sales");
+      // B-S6: a sale with a split exception opens its detail page, which shows the warning.
+      const newId = (res as { id?: string }).id;
+      const warned = !!(res as { warning?: unknown }).warning;
+      if (res.ok) router.push(isEdit ? `/portal/sales/${submissionId}` : warned && newId ? `/portal/sales/${newId}` : "/portal/sales");
       else setError(res.error ?? t("saleForm.couldNotSubmit"));
     });
   }
