@@ -465,29 +465,29 @@ model CommissionStructureVersion {
 // Sales: submission (header) -> line items -> transaction
 // ---------------------------------------------------------------------------
 model SalesSubmission {
-  id                     String           @id @default(uuid()) @db.Uuid
-  salesDate              DateTime         @map("sales_date") @db.Date
-  clientName             String           @map("client_name")
-  clientContact          String?          @map("client_contact")
-  saleAmount             Decimal          @map("sale_amount") @db.Decimal(14, 2)
-  paymentPlan            PaymentPlan      @map("payment_plan")
-  deposit                Decimal?         @db.Decimal(14, 2)
-  installmentCount       Int?             @map("installment_count")
-  amountCollected        Decimal          @default(0) @map("amount_collected") @db.Decimal(14, 2)
-  closingAssociateId     String           @map("closing_associate_id") @db.Uuid
-  closingAssociate       Associate        @relation("SubmissionCloser", fields: [closingAssociateId], references: [id])
+  id                         String           @id @default(uuid()) @db.Uuid
+  salesDate                  DateTime         @map("sales_date") @db.Date
+  clientName                 String           @map("client_name")
+  clientContact              String?          @map("client_contact")
+  saleAmount                 Decimal          @map("sale_amount") @db.Decimal(14, 2)
+  paymentPlan                PaymentPlan      @map("payment_plan")
+  deposit                    Decimal?         @db.Decimal(14, 2)
+  installmentCount           Int?             @map("installment_count")
+  amountCollected            Decimal          @default(0) @map("amount_collected") @db.Decimal(14, 2)
+  closingAssociateId         String           @map("closing_associate_id") @db.Uuid
+  closingAssociate           Associate        @relation("SubmissionCloser", fields: [closingAssociateId], references: [id])
   // Flow-3 Net-to-Closer split. Associate 1 = closingAssociate (submitter);
   // Associate 2 / 3 each get a % of Net-to-Closer or an absolute amount. Plain
   // UUID columns (no FK relation) — the ledger row carries the payable relation.
-  associate2Id           String?          @map("associate2_id") @db.Uuid
-  associate2ValueType    ComValueType?    @map("associate2_value_type")
-  associate2Value        Decimal?         @map("associate2_value") @db.Decimal(14, 4)
-  associate3Id           String?          @map("associate3_id") @db.Uuid
-  associate3ValueType    ComValueType?    @map("associate3_value_type")
-  associate3Value        Decimal?         @map("associate3_value") @db.Decimal(14, 4)
+  associate2Id               String?          @map("associate2_id") @db.Uuid
+  associate2ValueType        ComValueType?    @map("associate2_value_type")
+  associate2Value            Decimal?         @map("associate2_value") @db.Decimal(14, 4)
+  associate3Id               String?          @map("associate3_id") @db.Uuid
+  associate3ValueType        ComValueType?    @map("associate3_value_type")
+  associate3Value            Decimal?         @map("associate3_value") @db.Decimal(14, 4)
   // Date of quotation (23-Jul parallel workflow): filled by the rep up front, at
   // submission — drives the generated quotation.
-  quoteDate              DateTime?        @map("quote_date") @db.Date
+  quoteDate                  DateTime?        @map("quote_date") @db.Date
   // Split approval (23-Jul, two-step + parallel to quotation generation). The
   // split's SD is defaulted to the closer's team director at submission
   // (splitDirectorId; the first team's director when several) and is
@@ -495,21 +495,31 @@ model SalesSubmission {
   // calendar days after submission — sdApprovedById null for that system actor),
   // then a Business Admin signs off (splitAdminApprovedAt). Runs in parallel with
   // quotation-generation approval (which advances `status`), not before it.
-  splitDirectorId        String?          @map("split_director_id") @db.Uuid
-  sdApprovedAt           DateTime?        @map("sd_approved_at")
-  sdApprovedById         String?          @map("sd_approved_by") @db.Uuid
-  splitAdminApprovedAt   DateTime?        @map("split_admin_approved_at")
-  splitAdminApprovedById String?          @map("split_admin_approved_by") @db.Uuid
+  splitDirectorId            String?          @map("split_director_id") @db.Uuid
+  sdApprovedAt               DateTime?        @map("sd_approved_at")
+  sdApprovedById             String?          @map("sd_approved_by") @db.Uuid
+  splitAdminApprovedAt       DateTime?        @map("split_admin_approved_at")
+  splitAdminApprovedById     String?          @map("split_admin_approved_by") @db.Uuid
   // SEC-5: when an edit last changed the commission split terms (and cleared the
   // split approvals). The SD's 3-day auto-approve counts from here, not createdAt.
-  splitEditedAt          DateTime?        @map("split_edited_at")
+  splitEditedAt              DateTime?        @map("split_edited_at")
+  // B-S6 (Samuel 2026-09-26: warn, don't block): a split that pushes any commission line
+  // below zero is allowed, but needs a Business Admin "split exception" before it can close.
+  // The approval covers the exact negative lines it saw (snapshot) and the split version it
+  // was given for; any split edit or a worse recompute at close voids it.
+  splitExceptionRequired     Boolean          @default(false) @map("split_exception_required")
+  splitExceptionApprovedAt   DateTime?        @map("split_exception_approved_at")
+  splitExceptionApprovedById String?          @map("split_exception_approved_by") @db.Uuid
+  splitExceptionReason       String?          @map("split_exception_reason")
+  splitExceptionSnapshot     Json?            @map("split_exception_snapshot")
+  splitExceptionVersion      DateTime?        @map("split_exception_version")
   // Closure (23-Jul): the associate closes the sale once the quotation is signed
   // and the split is fully approved — that mints the transaction/ledger/invoice.
-  closedAt               DateTime?        @map("closed_at")
-  closedById             String?          @map("closed_by") @db.Uuid
-  invoiceFileKey         String?          @map("invoice_file_key")
-  remarks                String?
-  status                 SubmissionStatus @default(Submitted)
+  closedAt                   DateTime?        @map("closed_at")
+  closedById                 String?          @map("closed_by") @db.Uuid
+  invoiceFileKey             String?          @map("invoice_file_key")
+  remarks                    String?
+  status                     SubmissionStatus @default(Submitted)
 
   lineItems      SaleLineItem[]
   transaction    SalesTransaction?
