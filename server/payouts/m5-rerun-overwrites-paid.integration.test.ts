@@ -232,7 +232,12 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
     await prisma.commissionLedger.updateMany({ where: { id: { in: lineIds } }, data: { payoutId: null } });
 
     who.session = ADMIN;
-    expect(await runPayouts(MONTH)).toEqual({ ok: false, error: "payoutsNotBackfilled" });
+    // M5-CF rev 5: the guard is per associate, not whole-run — this associate is
+    // blocked and skipped (count 0 for them), not the whole run refused.
+    const guarded = await runPayouts(MONTH);
+    expect(guarded.ok).toBe(true);
+    if (!guarded.ok) throw new Error("unreachable");
+    expect(guarded.blockedAssociateIds).toContain(closerId);
 
     const plan = (await planPayoutBackfill(prisma)).filter((r) => r.payoutId === paidPayoutId);
     expect(plan).toHaveLength(1);
