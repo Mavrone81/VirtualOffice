@@ -3,6 +3,7 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { getObject } from "@/lib/storage";
+import { readNric } from "@/server/pii";
 
 // ---------------------------------------------------------------------------
 // Storage of Pets Ashes Agreement (consolidated menu, Sep 2026). Faithful
@@ -382,6 +383,16 @@ export async function renderAshesAgreementPdf(agreementId: string): Promise<{ bu
     if (buf) applicantSignatureDataUrl = `data:image/png;base64,${buf.toString("base64")}`;
   }
 
+  // SEC-12: decrypt (or, during the transition, tolerate still-plaintext legacy
+  // rows) — never a raw column pass-through.
+  const subjectType = "PetsAshesAgreement" as const;
+  const [applicant1Nric, applicant2Nric, applicantWitnessNric, companyWitnessNric] = await Promise.all([
+    readNric({ blob: a.applicant1Nric, field: "applicant1Nric", subjectType, subjectId: a.id }),
+    readNric({ blob: a.applicant2Nric, field: "applicant2Nric", subjectType, subjectId: a.id }),
+    readNric({ blob: a.applicantWitnessNric, field: "applicantWitnessNric", subjectType, subjectId: a.id }),
+    readNric({ blob: a.companyWitnessNric, field: "companyWitnessNric", subjectType, subjectId: a.id }),
+  ]);
+
   const buffer = await renderToBuffer(
     <AgreementDoc
       a={{
@@ -389,12 +400,12 @@ export async function renderAshesAgreementPdf(agreementId: string): Promise<{ bu
         nicheUnit: a.nicheUnit,
         pets: (a.pets as AshesPet[]) ?? [],
         applicant1Name: a.applicant1Name,
-        applicant1Nric: a.applicant1Nric,
+        applicant1Nric,
         applicant1Address: a.applicant1Address,
         applicant1Contact: a.applicant1Contact,
         applicant1Email: a.applicant1Email,
         applicant2Name: a.applicant2Name,
-        applicant2Nric: a.applicant2Nric,
+        applicant2Nric,
         applicant2Address: a.applicant2Address,
         applicant2Contact: a.applicant2Contact,
         applicant2Email: a.applicant2Email,
@@ -409,9 +420,9 @@ export async function renderAshesAgreementPdf(agreementId: string): Promise<{ bu
         signedAt: a.signedAt,
         applicantSignatureDataUrl,
         applicantWitnessName: a.applicantWitnessName,
-        applicantWitnessNric: a.applicantWitnessNric,
+        applicantWitnessNric,
         companyWitnessName: a.companyWitnessName,
-        companyWitnessNric: a.companyWitnessNric,
+        companyWitnessNric,
       }}
     />,
   );
