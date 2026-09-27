@@ -65,3 +65,23 @@ export async function totalGrossCommissionPaid(): Promise<ReturnType<typeof sum>
   });
   return sum(paid.map((p) => p.totalPayable));
 }
+
+/**
+ * A4/A-3: one associate's ledger lines settled in a Paid payout, bucketed by
+ * the month the PAYOUT was paid (not the line's own payoutMonth, which is the
+ * sale's earning month) — the "My Dashboard" target/remaining tiles need
+ * "received this month/year" (lib/quota.ts inPeriod). With M5-CF catch-up a
+ * line can earn in one month and settle in a later one, so filtering/bucketing
+ * on the line's own payoutMonth undercounts: a July-earned line paid out in
+ * October must reduce October's remaining, not July's (Architect review,
+ * reviews/commissions-paid-derived-architect-review.md). Same Paid-payout
+ * derivation as dashboardMetrics/lib/my-share.ts, just keyed on the payout's
+ * month instead.
+ */
+export async function receivedInYear(associateId: string, year: string) {
+  const lines = await prisma.commissionLedger.findMany({
+    where: { associateId, payout: { payoutStatus: PayoutStatus.Paid, payoutMonth: { startsWith: `${year}-` } } },
+    select: { amount: true, payout: { select: { payoutMonth: true } } },
+  });
+  return lines.map((l) => ({ amount: l.amount, payoutMonth: l.payout!.payoutMonth }));
+}

@@ -613,8 +613,6 @@
       "colAssociate": "Associate",
       "colDesignation": "Designation",
       "colUpline": "Upline",
-      "virtualOfficeTitle": "Your virtual office is taking shape",
-      "virtualOfficeBody": "Submitting sales, viewing commissions and payouts, your name card and P-file are coming in the next build. For now you can see your profile and team here.",
       "totalTransactionValue": "Total Transaction Value",
       "totalTransactionValueSub": "Across your closed transactions",
       "grossCommissionTransacted": "Total Gross Commission Transacted",
