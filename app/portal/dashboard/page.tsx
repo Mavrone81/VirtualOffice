@@ -1,13 +1,11 @@
-import { LedgerStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { inPeriod, periodKeys, remainingToTarget } from "@/lib/quota";
-import { dashboardScopeIds, dashboardMetrics } from "@/server/dashboard/metrics";
+import { dashboardScopeIds, dashboardMetrics, receivedInYear } from "@/server/dashboard/metrics";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
-import { Card } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Dashboard · Enshrine Portal" };
@@ -27,9 +25,9 @@ export default async function PortalDashboard() {
   const scopeIds = session ? await dashboardScopeIds(session.user.role, associateId) : [associateId];
 
   // Targets (A4, Sep 2026): personal monthly + yearly targets, measured in
-  // commission. "Remaining" = target − MY commission received (paid ledger
-  // lines) in that period, by payout month. Replaces the YTD / My sales /
-  // Eligible / Pending / My downline tiles (A3 — downline lives in Recruitment).
+  // commission. "Remaining" = target − MY commission received in that period,
+  // by payout month. Replaces the YTD / My sales / Eligible / Pending / My
+  // downline tiles (A3 — downline lives in Recruitment).
   const { month: thisMonth, year: thisYear } = periodKeys(new Date());
   const [me, metrics, targets, myPaid] = await Promise.all([
     prisma.associate.findUnique({ where: { id: associateId } }),
@@ -38,10 +36,7 @@ export default async function PortalDashboard() {
       where: { associateId, month: { in: [thisMonth, thisYear] } },
       select: { month: true, amount: true },
     }),
-    prisma.commissionLedger.findMany({
-      where: { associateId, status: LedgerStatus.Paid, payoutMonth: { startsWith: thisYear + "-" } },
-      select: { amount: true, payoutMonth: true },
-    }),
+    receivedInYear(associateId, thisYear),
   ]);
   const { totalTransactionValue, grossTransacted, grossReceived } = metrics;
   const monthTarget = targets.find((q) => q.month === thisMonth)?.amount ?? null;
@@ -74,13 +69,6 @@ export default async function PortalDashboard() {
         <StatTile label={t("dashboard.yearlyTarget")} value={yearTarget !== null ? formatSGD(yearTarget) : t("dashboard.noQuota")} sub={t("dashboard.thisYear")} />
         <StatTile label={t("dashboard.remainingYear")} value={yearRemaining !== null ? formatSGD(yearRemaining) : "—"} sub={yearTarget !== null ? t("dashboard.thisYear") : t("dashboard.setTargetFirst")} />
       </div>
-
-      <Card className="mt-6 p-6">
-        <h3 className="font-display text-[17px] text-ink">{t("dashboard.virtualOfficeTitle")}</h3>
-        <p className="mt-1.5 max-w-xl text-[13px] text-muted">
-          {t("dashboard.virtualOfficeBody")}
-        </p>
-      </Card>
     </>
   );
 }
