@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { isFullAdmin } from "@/lib/rbac";
 import { env } from "@/lib/env";
 import { buildSystemContext } from "@/server/assistant/system-context";
+import { isSameOrigin } from "@/lib/same-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ Rules:
 - This is sensitive business data shown only to admins. Never reveal bank details or other decrypted personal information (the snapshot never includes them).`;
 
 export async function POST(req: Request): Promise<Response> {
+  // U1: same-origin only; route handlers don't get Next's server-action Origin check.
+  if (!isSameOrigin(req)) return new Response("Forbidden", { status: 403 });
   const session = await auth();
   if (!session?.user || !isFullAdmin(session.user.role)) {
     return new Response("Forbidden", { status: 403 });
