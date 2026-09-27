@@ -1,19 +1,25 @@
 import { InvoiceStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { formatSGD } from "@/lib/money";
+import { isFullAdmin } from "@/lib/rbac";
+import { findSettledReasons } from "@/server/invoices/settled-check";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
-import { MarkPaidButton } from "./mark-paid-button";
+import { MarkPaidButton, UnmarkButton } from "./mark-paid-button";
 
 export const metadata = { title: "Invoices & installments · Enshrine Admin" };
 
 export default async function InvoicesPage() {
   const t = await getTranslations("invoices");
   const tc = await getTranslations("common");
+  const session = await auth();
+  const canUnmark = !!session?.user && isFullAdmin(session.user.role);
   const threshold = env.COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD;
+
   const [plans, invoices] = await Promise.all([
     prisma.installmentPlan.findMany({
       include: { transaction: { include: { closingAssociate: true } }, schedule: { orderBy: { sequence: "asc" } } },
@@ -22,11 +28,14 @@ export default async function InvoicesPage() {
     prisma.invoice.findMany({ include: { company: true, transaction: true }, orderBy: { createdAt: "desc" }, take: 50 }),
   ]);
 
+  const transactionIds = [...new Set([...plans.map((p) => p.transactionId), ...invoices.map((i) => i.transactionId)])];
+  const settledReasons = canUnmark ? await findSettledReasons(transactionIds) : new Map();
+
   return (
     <>
       <PageHeader
         title={t("title")}
-        subtitle={t("subtitle", { threshold: ordinal(threshold) })}
+        subtitle={t("subtitle", { threshold })}
       />
 
       <Card className="overflow-hidden">
@@ -63,8 +72,15 @@ export default async function InvoicesPage() {
                       >
                         <span className="text-muted">#{s.sequence}</span>
                         <span className="font-medium text-ink">{formatSGD(s.dueAmount)}</span>
-                        {s.paid && <span className="text-[11px] font-medium text-success">{t("paidMark")}</span>}
-                        <MarkPaidButton id={s.id} kind="installment" paid={s.paid} />
+                        {s.paid ? (
+                          <>
+                            <span className="text-[11px] font-medium text-success">{t("paidMark")}</span>
+                            <a href={`/admin/invoices/installments/${s.id}/ack`} target="_blank" rel="noopener" className="text-[11px] text-action hover:underline">{t("viewAck")}</a>
+                            <UnmarkButton id={s.id} kind="installment" canUnmark={canUnmark} blockedReason={settledReasons.get(p.transactionId)} />
+                          </>
+                        ) : (
+                          <MarkPaidButton id={s.id} kind="installment" />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -116,7 +132,13 @@ export default async function InvoicesPage() {
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-3">
                         <a href={`/admin/invoices/${inv.id}/pdf`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">{t("pdfLink")}</a>
-                        {inv.status !== InvoiceStatus.Cancelled && <MarkPaidButton id={inv.id} kind="invoice" paid={inv.status === InvoiceStatus.Paid} />}
+                        {inv.status === InvoiceStatus.Paid && (
+                          <a href={`/admin/invoices/${inv.id}/ack`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">{t("viewAck")}</a>
+                        )}
+                        {inv.status === InvoiceStatus.Outstanding && <MarkPaidButton id={inv.id} kind="invoice" />}
+                        {inv.status === InvoiceStatus.Paid && (
+                          <UnmarkButton id={inv.id} kind="invoice" canUnmark={canUnmark} blockedReason={settledReasons.get(inv.transactionId)} />
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -128,10 +150,4 @@ export default async function InvoicesPage() {
       </Card>
     </>
   );
-}
-
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
 }
