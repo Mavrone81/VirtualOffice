@@ -10,11 +10,11 @@ export const UAT_SECTIONS: UatSection[] = [
   {
     idx: "01", title: "Login & access smoke checks", tag: "Do first",
     cases: [
-      { id: "1.1", who: "BA", action: "Log in as admin@enshrine.sg.", expect: "Lands on the Admin dashboard. Nav shows Recruitment, Associates, Teams, Sales Verify, Transactions, Products, Commission, Invoices, Payouts, Notices, Documents, Vendors, Name Card, Audit Log.", go: "/login" },
-      { id: "1.2", who: "ACC", action: "Log in as accounts@enshrine.sg.", expect: "Lands in the Admin area; finance sections (Invoices, Payouts, Transactions) visible. Teams and Audit Log are NOT shown.", go: "/login" },
-      { id: "1.3", who: "SD", action: "Log in as sylvia.lee.cx@gmail.com.", expect: "Portal dashboard. Nav has My Office (incl. My Invoices), My Team (Overview / Sales / Commissions, Recruitment, Split Approvals), Resources.", go: "/login" },
-      { id: "1.4", who: "SM", action: "Log in as franceskoohk@gmail.com.", expect: "Portal dashboard. My Team shows Recruitment but NOT Split Approvals (SD-only).", go: "/login" },
-      { id: "1.5", who: "SA", action: "Log in as uma.devi.jennifer@gmail.com.", expect: "Portal dashboard. My Office incl. My Invoices. No My Team items, no Recruitment, no Split Approvals.", go: "/login" },
+      { id: "1.1", who: "BA", action: "Log in as admin@example.com.", expect: "Lands on the Admin dashboard. Nav shows Recruitment, Associates, Teams, Sales Verify, Transactions, Products, Commission, Invoices, Payouts, Notices, Documents, Vendors, Name Card, Audit Log.", go: "/login" },
+      { id: "1.2", who: "ACC", action: "Log in as accounts@example.com.", expect: "Lands in the Admin area; finance sections (Invoices, Payouts, Transactions) visible. Teams and Audit Log are NOT shown.", go: "/login" },
+      { id: "1.3", who: "SD", action: "Log in as daniel.tan@example.com.", expect: "Portal dashboard. Nav has My Office (incl. My Invoices), My Team (Overview / Sales / Commissions, Recruitment, Split Approvals), Resources.", go: "/login" },
+      { id: "1.4", who: "SM", action: "Log in as michelle.lim@example.com.", expect: "Portal dashboard. My Team shows Recruitment but NOT Split Approvals (SD-only).", go: "/login" },
+      { id: "1.5", who: "SA", action: "Log in as ravi.kumar@example.com.", expect: "Portal dashboard. My Office incl. My Invoices. No My Team items, no Recruitment, no Split Approvals.", go: "/login" },
       { id: "1.6", who: "SA / BA", action: "As an SA visit /admin/dashboard; as BA visit /portal/dashboard.", expect: "SA is redirected away; BA is redirected to the admin dashboard.", go: "/admin/dashboard" },
       { id: "1.7", who: "SA", action: "Manually visit /portal/approvals and /portal/recruitment/new.", expect: "Both bounce to the Portal dashboard — the pages are not shown.", go: "/portal/approvals" },
       { id: "1.8", who: "ACC", action: "As Accounts, visit /admin/audit.", expect: "Redirected to the admin dashboard (audit is Business-Admin only).", go: "/admin/audit" },
@@ -36,15 +36,15 @@ export const UAT_SECTIONS: UatSection[] = [
   },
   {
     idx: "03", title: "Sales, split approval & verification", tag: "SD split approval",
-    note: "Setup — read first. The SD who approves a split is the closer's second upline (direct upline earns the SM override, the one above earns the SD override), so this needs a 3-level chain SD → SM → SA. The seeded data is mostly 2-level: first onboard a new associate under SM Frances Koo (EN0007) — Frances reports to SD Sylvia (EN0001) — and run 3.2–3.5 as that associate. Sylvia (sylvia.lee.cx@gmail.com) is the approving SD.",
+    note: "Setup — read first. The SD who approves a split is the closer's second upline (direct upline earns the SM override, the one above earns the SD override), so this needs a 3-level chain SD → SM → SA. The seeded data is mostly 2-level: first onboard a new associate under SM Michelle Lim (EN0007) — Michelle reports to SD Daniel (EN0001) — and run 3.2–3.5 as that associate. Daniel (daniel.tan@example.com) is the approving SD.",
     cases: [
       { id: "3.1", who: "SA", action: "My Sales → Submit sale. Client, date, a product line + amount (e.g. $10,000), Full payment. Submit.", expect: "Appears in My Sales as Submitted.", go: "/portal/sales/new" },
-      { id: "3.2", who: "SA*", action: "As the new SA under Frances, submit a sale with Associate 2 at 25% and Associate 3 at an absolute $100.", expect: "Accepted; the split is recorded.", go: "/portal/sales/new" },
-      { id: "3.3", who: "SD", action: "As SD Sylvia, open Split Approvals (/portal/approvals).", expect: "The 3.2 submission is listed with Associate 1/2/3 and an 'auto-approves in Nd' note. The sidebar Split Approvals badge shows a count.", go: "/portal/approvals" },
+      { id: "3.2", who: "SA*", action: "As the new SA under Michelle, submit a sale with Associate 2 at 25% and Associate 3 at an absolute $100.", expect: "Accepted; the split is recorded.", go: "/portal/sales/new" },
+      { id: "3.3", who: "SD", action: "As SD Daniel, open Split Approvals (/portal/approvals).", expect: "The 3.2 submission is listed with Associate 1/2/3 and an 'auto-approves in Nd' note. The sidebar Split Approvals badge shows a count.", go: "/portal/approvals" },
       { id: "3.4", who: "SD", action: "Click Approve split.", expect: "Row leaves the pending list; badge count drops.", go: "/portal/approvals" },
       { id: "3.5", who: "BA", action: "Sales Verify: try a NOT-yet-approved split, then the approved one.", expect: "Unapproved is blocked ('pending SD approval'); the approved one verifies into a Transaction.", go: "/admin/sales/verify" },
       { id: "3.6", who: "BA", action: "Find a submission older than 3 days with no SD action.", expect: "Business Admin can verify it without explicit SD approval (auto-approved by elapsed time).", go: "/admin/sales/verify" },
-      { id: "3.7", who: "SA", action: "Watch: as an SA with no second upline (e.g. Jennifer under SD EN0002), submit a sale.", expect: "No SD sees it in Split Approvals; a BA can only verify after the 3-day auto-approve. Flag if this blocks a real same-day sale.", go: "/portal/sales/new" },
+      { id: "3.7", who: "SA", action: "Watch: as an SA with no second upline (e.g. Ravi under SD EN0002), submit a sale.", expect: "No SD sees it in Split Approvals; a BA can only verify after the 3-day auto-approve. Flag if this blocks a real same-day sale.", go: "/portal/sales/new" },
     ],
   },
   {
@@ -114,14 +114,21 @@ export const UAT_CASE_IDS = new Set(UAT_SECTIONS.flatMap((s) => s.cases.map((c) 
 // Seeded test accounts shown to the tester so they can log in per role. All
 // share one password (dev/UAT seed).
 export type UatAccount = { role: string; login: string; who: string };
-export const UAT_PASSWORD = "Enshrine#2026";
+// SEC-3: shown directly to the UAT tester (they need it to log in), so
+// hiding it behind an env var wouldn't add security here — this file is
+// imported by a "use client" component (app/uat/uat-runner.tsx), and a
+// plain (non-NEXT_PUBLIC_) process.env reference in client code isn't
+// reliably populated at runtime anyway. The actual fix is that this must
+// never be the real shared secret. Keep in sync with prisma/seed.ts's
+// SEED_PASSWORD when seeding a real environment.
+export const UAT_PASSWORD = "Seed-Dev-Only#1";
 export const UAT_ACCOUNTS: UatAccount[] = [
-  { role: "Business Admin", login: "admin@enshrine.sg", who: "Full admin — products, teams, audit" },
-  { role: "Accounts", login: "accounts@enshrine.sg", who: "Finance sub-role" },
-  { role: "Sales Director", login: "sylvia.lee.cx@gmail.com", who: "Sylvia Lee · EN0001 · Sylvia Lee Division" },
-  { role: "Sales Director", login: "petafterlifesg@gmail.com", who: "Vincent Lim · EN0002 · Vincent Lim Division" },
-  { role: "Sales Manager", login: "franceskoohk@gmail.com", who: "Frances Koo · EN0007 (under EN0001)" },
-  { role: "Sales Associate", login: "uma.devi.jennifer@gmail.com", who: "Jennifer RK · EN0003 (under EN0002)" },
-  { role: "Sales Associate", login: "johnlee@mobilebellator.com", who: "John Lee · EN0004 (under EN0002)" },
-  { role: "Sales Associate", login: "limwailee8200@gmail.com", who: "Lim Wai Lee · EN0005 (under EN0002)" },
+  { role: "Business Admin", login: "admin@example.com", who: "Full admin — products, teams, audit" },
+  { role: "Accounts", login: "accounts@example.com", who: "Finance sub-role" },
+  { role: "Sales Director", login: "daniel.tan@example.com", who: "Daniel Tan · EN0001 · Daniel Tan Division" },
+  { role: "Sales Director", login: "kevin.ong@example.com", who: "Kevin Ong · EN0002 · Kevin Ong Division" },
+  { role: "Sales Manager", login: "michelle.lim@example.com", who: "Michelle Lim · EN0007 (under EN0001)" },
+  { role: "Sales Associate", login: "ravi.kumar@example.com", who: "Ravi Kumar · EN0003 (under EN0002)" },
+  { role: "Sales Associate", login: "wei.ling.ng@example.com", who: "Wei Ling Ng · EN0004 (under EN0002)" },
+  { role: "Sales Associate", login: "priya.nair@example.com", who: "Priya Nair · EN0005 (under EN0002)" },
 ];

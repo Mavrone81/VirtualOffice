@@ -17,18 +17,18 @@
 
 ## Test accounts
 
-All accounts share the password **`Enshrine#2026`**. Log in at `/login` with the **email** as the username.
+All accounts share the password **`<seed password — see prisma/seed.ts SEED_PASSWORD, or ask a teammate>`**. Log in at `/login` with the **email** as the username.
 
 | Role | Login (email) | Name / Code | Notes |
 |------|---------------|-------------|-------|
-| Business Admin | `admin@enshrine.sg` | Admin | Full admin — products, teams, audit |
-| Accounts | `accounts@enshrine.sg` | Accounts | Finance sub-role |
-| Sales Director (SD) | `sylvia.lee.cx@gmail.com` | Sylvia Lee · EN0001 · *Sylvia Lee Division* | Directs a division; has a downline |
-| Sales Director (SD) | `petafterlifesg@gmail.com` | Vincent Lim · EN0002 · *Vincent Lim Division* | Directs the division with 3 associates |
-| Sales Manager (SM) | `franceskoohk@gmail.com` | Frances Koo · EN0007 | Under EN0001 |
-| Sales Associate (SA) | `uma.devi.jennifer@gmail.com` | Jennifer RK · EN0003 | Under EN0002 |
-| Sales Associate (SA) | `johnlee@mobilebellator.com` | John Lee · EN0004 | Under EN0002 |
-| Sales Associate (SA) | `limwailee8200@gmail.com` | Lim Wai Lee · EN0005 | Under EN0002 |
+| Business Admin | `admin@example.com` | Admin | Full admin — products, teams, audit |
+| Accounts | `accounts@example.com` | Accounts | Finance sub-role |
+| Sales Director (SD) | `daniel.tan@example.com` | Daniel Tan · EN0001 · *Daniel Tan Division* | Directs a division; has a downline |
+| Sales Director (SD) | `kevin.ong@example.com` | Kevin Ong · EN0002 · *Kevin Ong Division* | Directs the division with 3 associates |
+| Sales Manager (SM) | `michelle.lim@example.com` | Michelle Lim · EN0007 | Under EN0001 |
+| Sales Associate (SA) | `ravi.kumar@example.com` | Ravi Kumar · EN0003 | Under EN0002 |
+| Sales Associate (SA) | `wei.ling.ng@example.com` | Wei Ling Ng · EN0004 | Under EN0002 |
+| Sales Associate (SA) | `priya.nair@example.com` | Priya Nair · EN0005 | Under EN0002 |
 
 > If a login is rejected, a Business Admin can reset it from **Admin → Associates → (person) → Reset password**. Report it as a finding either way.
 
@@ -38,11 +38,11 @@ All accounts share the password **`Enshrine#2026`**. Log in at `/login` with the
 
 Goal: every role logs in, lands on the right home, and sees only the navigation it should.
 
-- [ ] **TC-1.1 — Business Admin login.** Log in as `admin@enshrine.sg`. **Expect:** lands on the **Admin dashboard**. Left nav shows Recruitment, Associates, **Teams**, Sales Verify, Transactions, Products, Commission, Invoices, Payouts, Notices, Documents, Vendors, Name Card, **Audit Log**.
-- [ ] **TC-1.2 — Accounts login.** Log in as `accounts@enshrine.sg`. **Expect:** lands in the **Admin** area. Finance sections (Invoices, Payouts, Transactions) are visible. **Teams** and **Audit Log** are **NOT** shown (Business-Admin only).
-- [ ] **TC-1.3 — Sales Director login.** Log in as `sylvia.lee.cx@gmail.com`. **Expect:** lands on the **Portal dashboard** (not admin). Nav shows *My Office* (Dashboard, My Sales, My Commissions, My Payouts, **My Invoices**), *My Team* (Team Overview, Team Sales, Team Commissions, **Recruitment**, **Split Approvals**), and Resources.
-- [ ] **TC-1.4 — Sales Manager login.** Log in as `franceskoohk@gmail.com`. **Expect:** Portal dashboard. *My Team* shows **Recruitment** but **NOT Split Approvals** (SD-only).
-- [ ] **TC-1.5 — Sales Associate login.** Log in as `uma.devi.jennifer@gmail.com`. **Expect:** Portal dashboard. *My Office* is present (incl. **My Invoices**). No *My Team* items, **no Recruitment, no Split Approvals**.
+- [ ] **TC-1.1 — Business Admin login.** Log in as `admin@example.com`. **Expect:** lands on the **Admin dashboard**. Left nav shows Recruitment, Associates, **Teams**, Sales Verify, Transactions, Products, Commission, Invoices, Payouts, Notices, Documents, Vendors, Name Card, **Audit Log**.
+- [ ] **TC-1.2 — Accounts login.** Log in as `accounts@example.com`. **Expect:** lands in the **Admin** area. Finance sections (Invoices, Payouts, Transactions) are visible. **Teams** and **Audit Log** are **NOT** shown (Business-Admin only).
+- [ ] **TC-1.3 — Sales Director login.** Log in as `daniel.tan@example.com`. **Expect:** lands on the **Portal dashboard** (not admin). Nav shows *My Office* (Dashboard, My Sales, My Commissions, My Payouts, **My Invoices**), *My Team* (Team Overview, Team Sales, Team Commissions, **Recruitment**, **Split Approvals**), and Resources.
+- [ ] **TC-1.4 — Sales Manager login.** Log in as `michelle.lim@example.com`. **Expect:** Portal dashboard. *My Team* shows **Recruitment** but **NOT Split Approvals** (SD-only).
+- [ ] **TC-1.5 — Sales Associate login.** Log in as `ravi.kumar@example.com`. **Expect:** Portal dashboard. *My Office* is present (incl. **My Invoices**). No *My Team* items, **no Recruitment, no Split Approvals**.
 - [ ] **TC-1.6 — Admin cannot reach portal / associate cannot reach admin.** As an **SA**, manually visit `/admin/dashboard` → **Expect:** redirected away (to portal/login). As **Business Admin**, visit `/portal/dashboard` → **Expect:** redirected to the admin dashboard.
 - [ ] **TC-1.7 — Direct-URL guard (RBAC).** As an **SA**, manually visit `/portal/approvals` and `/portal/recruitment/new`. **Expect:** bounced to the Portal dashboard (not shown the page).
 - [ ] **TC-1.8 — Audit log is Business-Admin only.** As **Accounts**, visit `/admin/audit`. **Expect:** redirected to the admin dashboard (no access).
@@ -53,7 +53,7 @@ Goal: every role logs in, lands on the right home, and sees only the navigation 
 
 ## Section 2 — Recruitment & onboarding  *(incl. #12 portal invite, (b) application fields)*
 
-- [ ] **TC-2.1 — Portal invite by a manager (#12).** As **SD** (`sylvia.lee.cx@gmail.com`), go to **Recruitment** (`/portal/recruitment/new`). Fill name, email, mobile, intended designation, and submit. **Expect:** success; an onboarding link is produced. *(Copy the onboarding link for TC-2.3.)*
+- [ ] **TC-2.1 — Portal invite by a manager (#12).** As **SD** (`daniel.tan@example.com`), go to **Recruitment** (`/portal/recruitment/new`). Fill name, email, mobile, intended designation, and submit. **Expect:** success; an onboarding link is produced. *(Copy the onboarding link for TC-2.3.)*
 - [ ] **TC-2.2 — Admin invite still works.** As **Business Admin**, go to Recruitment → invite a candidate. **Expect:** same success + onboarding link.
 - [ ] **TC-2.3 — Onboarding form: marital status + spouse conflict (b).** Open the onboarding link from TC-2.1 in a fresh window. In *Your details*:
   - **Marital status** dropdown is present (Single / Married / Divorced / Widowed).
@@ -68,15 +68,15 @@ Goal: every role logs in, lands on the right home, and sees only the navigation 
 
 ## Section 3 — Sales submission, split approval & verification  *(incl. #8 SD approval)*
 
-> **Setup — read first.** The **SD** who approves a split is the closer's **second upline** (direct upline earns the SM override, the one above earns the SD override). This needs a **3-level chain: SD → SM → SA.** The seeded data is mostly 2-level, so first create the chain: in **Section 2**, onboard a new associate under **SM Frances Koo (EN0007)** — Frances reports to **SD Sylvia Lee (EN0001)**, so the new associate's *second upline* is Sylvia. Run TC-3.2–3.5 as that new associate; **Sylvia (`sylvia.lee.cx@gmail.com`) is the approving SD.**
+> **Setup — read first.** The **SD** who approves a split is the closer's **second upline** (direct upline earns the SM override, the one above earns the SD override). This needs a **3-level chain: SD → SM → SA.** The seeded data is mostly 2-level, so first create the chain: in **Section 2**, onboard a new associate under **SM Michelle Lim (EN0007)** — Michelle reports to **SD Daniel Tan (EN0001)**, so the new associate's *second upline* is Daniel. Run TC-3.2–3.5 as that new associate; **Daniel (`daniel.tan@example.com`) is the approving SD.**
 
-- [ ] **TC-3.1 — Submit a sale.** As any **SA** (e.g. `uma.devi.jennifer@gmail.com`), go to **My Sales → Submit sale** (`/portal/sales/new`). Enter client, sale date, a product line + amount (e.g. $10,000), payment plan **Full payment**. Submit. **Expect:** appears in *My Sales* as **Submitted**.
-- [ ] **TC-3.2 — Sale with an Associate 2 / 3 split.** As the **new SA under Frances Koo** (see Setup), submit a sale and add **Associate 2** (pick a colleague) with e.g. **25%**, and **Associate 3** with an absolute **$100**. **Expect:** accepted; the split is recorded.
-- [ ] **TC-3.3 — SD sees pending split approval (#8).** As the team **SD Sylvia** (`sylvia.lee.cx@gmail.com`), open **Split Approvals** (`/portal/approvals`). **Expect:** the TC-3.2 submission is listed with Associate 1 (closer), Associate 2, Associate 3 and an "auto-approves in Nd" note. The sidebar **Split Approvals badge** shows a count.
+- [ ] **TC-3.1 — Submit a sale.** As any **SA** (e.g. `ravi.kumar@example.com`), go to **My Sales → Submit sale** (`/portal/sales/new`). Enter client, sale date, a product line + amount (e.g. $10,000), payment plan **Full payment**. Submit. **Expect:** appears in *My Sales* as **Submitted**.
+- [ ] **TC-3.2 — Sale with an Associate 2 / 3 split.** As the **new SA under Michelle Lim** (see Setup), submit a sale and add **Associate 2** (pick a colleague) with e.g. **25%**, and **Associate 3** with an absolute **$100**. **Expect:** accepted; the split is recorded.
+- [ ] **TC-3.3 — SD sees pending split approval (#8).** As the team **SD Daniel** (`daniel.tan@example.com`), open **Split Approvals** (`/portal/approvals`). **Expect:** the TC-3.2 submission is listed with Associate 1 (closer), Associate 2, Associate 3 and an "auto-approves in Nd" note. The sidebar **Split Approvals badge** shows a count.
 - [ ] **TC-3.4 — Approve the split.** Click **Approve split**. **Expect:** the row disappears from the pending list and the badge count drops.
 - [ ] **TC-3.5 — Business Admin verify is gated on SD approval.** As **Business Admin**, go to **Sales Verify** (`/admin/sales/verify`). Try to verify a submission whose split has **NOT** yet been SD-approved. **Expect:** blocked with a "pending SD approval" message. Verify the TC-3.4 (approved) one → **Expect:** succeeds, becomes a **Transaction**.
 - [ ] **TC-3.6 — 3-day auto-approve (spot check, optional).** Note any submission older than 3 days with no SD action. **Expect:** Business Admin can verify it even without an explicit SD approval (auto-approved by elapsed time).
-- [ ] **TC-3.7 — Watch: 2-level closer (no second upline).** As an **SA with no second upline** (e.g. `uma.devi.jennifer@gmail.com`, directly under SD EN0002), submit a sale. **Expect / flag:** no SD will see it in Split Approvals; a Business Admin can only verify it after the **3-day** auto-approve. **Report this** if it blocks a real same-day sale — confirm it's acceptable behaviour.
+- [ ] **TC-3.7 — Watch: 2-level closer (no second upline).** As an **SA with no second upline** (e.g. `ravi.kumar@example.com`, directly under SD EN0002), submit a sale. **Expect / flag:** no SD will see it in Split Approvals; a Business Admin can only verify it after the **3-day** auto-approve. **Report this** if it blocks a real same-day sale — confirm it's acceptable behaviour.
 
 ---
 
