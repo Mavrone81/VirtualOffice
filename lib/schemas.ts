@@ -24,11 +24,15 @@ const dateStr = z.string().trim().min(1).max(32);
 // Human-issued code (e.g. associate code "EN0001").
 const code = z.string().trim().min(1).max(20);
 // A Net-to-Closer split share (% of net or an absolute amount) for Associate 2/3.
-const splitShare = z.object({
-  associateId: id,
-  valueType: z.enum(["Percentage", "Absolute"]),
-  value: z.number().finite().nonnegative().max(100_000_000),
-});
+// A percentage share can't exceed 100% of net (SEC-6); an absolute share is
+// bounded against the real Net-to-Closer server-side (server/commission/split-bounds.ts).
+const splitShare = z
+  .object({
+    associateId: id,
+    valueType: z.enum(["Percentage", "Absolute"]),
+    value: z.number().finite().nonnegative().max(100_000_000),
+  })
+  .refine((s) => s.valueType !== "Percentage" || s.value <= 100, { message: "splitPercentTooHigh", path: ["value"] });
 
 // ---------------------------------------------------------------------------
 // Sales — mirrors SubmitSaleInput (server/sales/actions.ts)
@@ -57,6 +61,17 @@ export const saleSchema = z
     // Flow-3 Net-to-Closer split (optional).
     associate2: splitShare.optional(),
     associate3: splitShare.optional(),
+  })
+  // SEC-6: the percentage shares together can't exceed 100% of net, and the two
+  // partners must be different people.
+  .refine(
+    (d) =>
+      (d.associate2?.valueType === "Percentage" ? d.associate2.value : 0) +
+        (d.associate3?.valueType === "Percentage" ? d.associate3.value : 0) <= 100,
+    { message: "splitPercentTooHigh", path: ["associate3"] },
+  )
+  .refine((d) => !d.associate2 || !d.associate3 || d.associate2.associateId !== d.associate3.associateId, {
+    message: "splitPartyInvalid", path: ["associate3"],
   })
   .refine(
     (d) => d.paymentPlan !== "Installment" || (d.installmentCount !== undefined && d.installmentCount >= 1),
