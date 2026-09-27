@@ -1,20 +1,27 @@
 import { format } from "date-fns";
 import { LedgerStatus, PayoutStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { formatSGD, sum } from "@/lib/money";
 import { humanize } from "@/lib/labels";
+import { isFullAdmin } from "@/lib/rbac";
+import { previewPayoutRun } from "@/server/payouts/actions";
+import { classifyPreviewPlans } from "@/lib/payout-preview";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill } from "@/components/ui/status-pill";
-import { RunPayoutsBar, PayoutRowActions } from "./payout-actions";
+import { PayoutRowActions, BankFileButton } from "./payout-actions";
+import { RunPayoutsBar } from "./run-payouts-bar";
+import { PreviewPanel } from "./preview-panel";
 
 export const metadata = { title: "Payouts · Enshrine Admin" };
 
 export default async function PayoutsPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const t = await getTranslations("payouts");
   const tc = await getTranslations("common");
+  const session = await auth();
 
   const sp = await searchParams;
   let month = sp.month;
@@ -27,14 +34,28 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Prom
     month = latest?.payoutMonth ?? format(new Date(), "yyyy-MM");
   }
 
-  const payouts = await prisma.monthlyPayout.findMany({
-    where: { payoutMonth: month },
-    orderBy: [{ totalPayable: "desc" }, { seq: "asc" }],
-  });
+  const [payouts, preview] = await Promise.all([
+    prisma.monthlyPayout.findMany({
+      where: { payoutMonth: month },
+      orderBy: [{ totalPayable: "desc" }, { seq: "asc" }],
+    }),
+    previewPayoutRun(month),
+  ]);
 
   const totalPayable = sum(payouts.map((p) => p.totalPayable));
   const totalPaid = sum(payouts.filter((p) => p.payoutStatus === PayoutStatus.Paid).map((p) => p.totalPayable));
   const pendingCount = payouts.filter((p) => p.payoutStatus === PayoutStatus.Pending).length;
+
+  const previewOk = preview.ok;
+  const plans = previewOk ? preview.plans : [];
+  const blockedIds = previewOk ? preview.blockedAssociateIds : [];
+  const { willBePaid, carriedForward, total: runTotal } = classifyPreviewPlans(plans);
+
+  const blockedAssociates = blockedIds.length
+    ? await prisma.associate.findMany({ where: { id: { in: blockedIds } }, select: { id: true, fullName: true } })
+    : [];
+
+  const canReconcile = !!session?.user && isFullAdmin(session.user.role);
 
   return (
     <>
@@ -45,7 +66,21 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Prom
         </form>
       </PageHeader>
 
-      <div className="mb-5"><RunPayoutsBar month={month} /></div>
+      {!previewOk && <p className="mb-4 text-[13px] text-danger">{preview.error}</p>}
+
+      <PreviewPanel month={month} plans={plans} blockedAssociates={blockedAssociates} canReconcile={canReconcile} />
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <RunPayoutsBar
+          month={month}
+          total={runTotal.toString()}
+          payCount={willBePaid.length}
+          hasWork={plans.length > 0}
+          carriedCount={carriedForward.length}
+          blockedCount={blockedAssociates.length}
+        />
+        <BankFileButton month={month} />
+      </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile label={t("statTotalPayable")} value={formatSGD(totalPayable)} sub={month} />
