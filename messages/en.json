@@ -529,7 +529,47 @@
     "cancel": "Cancel",
     "approve": "Approve",
     "markPaid": "Mark paid",
-    "adjustment": "Adjustment {seq}"
+    "adjustment": "Adjustment {seq}",
+    "preview": {
+      "action": "Preview",
+      "headline": "This run will pay out {amount} to {count} associates",
+      "empty": "Nothing to pay out for {month}.",
+      "willBePaid": "Will be paid",
+      "broughtForward": "Brought forward from earlier months: {count} lines, {amount}",
+      "carriedSection": "Carried forward — nothing paid this run",
+      "carriedForward": "Total is {amount} or less. Carries forward automatically to next month.",
+      "heldSection": "Held — nothing paid or carried this run",
+      "heldNotCarried": "Total is {amount} or less. This will stay pending — it won't be paid or carried automatically.",
+      "blockedSection": "Awaiting reconciliation — not included in this run",
+      "blockedReason": "An older payout for this associate needs a human check before the system can pay them again.",
+      "reconcileAction": "Reconcile",
+      "flagSection": "Needs attention — leavers with money still owed",
+      "flagInactive": "(no longer active)",
+      "flagBalance": "Carried balance: {amount}",
+      "flagNote": "This isn't paid automatically. Recover manually."
+    },
+    "run": {
+      "buttonWithTotal": "Run payouts — {amount} to {count} associates",
+      "confirmTitle": "Run payouts for {month}?",
+      "confirmCarriedNote": "{count} associates are carried forward automatically — nothing paid to them this run.",
+      "confirmBlockedNote": "{count, plural, one {# associate is} other {# associates are}} still awaiting reconciliation and skipped this run.",
+      "success": "Paid {count} associates for {month}.",
+      "conflict": "This changed while you were viewing it. Try again.",
+      "reloadPreview": "Reload preview",
+      "policyUnavailable": "Payouts can't run right now — contact support."
+    },
+    "reconcile": {
+      "title": "Reconcile {associate}'s older payout",
+      "instructions": "This payout was for {amount}. Tick which of the lines below it actually paid, based on your bank records.",
+      "reasonRequired": "Reason (required)",
+      "differenceNote": "Ticked lines total {ticked} — {diff} short of the payout's {total}. Type the difference and why:",
+      "differenceAmount": "Difference amount",
+      "differenceReason": "Reason for the difference (required)",
+      "confirm": "Confirm reconciliation",
+      "alreadyProcessed": "Already reconciled.",
+      "notFound": "This payout couldn't be found. It may have already been handled.",
+      "illegalTransition": "This payout can't be reconciled — it may already have linked lines."
+    }
   },
   "portal": {
     "dashboard": {
@@ -1288,7 +1328,10 @@
     "customTitleTooLong": "Card title must be {max} characters or fewer.",
     "teamNotYours": "You can only recruit into your own team.",
     "teamRequired": "Pick which of your teams the recruit joins.",
-    "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing."
+    "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing.",
+    "payoutPolicyNotImplemented": "This payout policy isn't available yet. Please contact an administrator.",
+    "legacyDifferenceRequired": "A re-typed difference is required and must match the actual gap between the linked lines and the payout total.",
+    "legacyDifferenceMismatch": "The re-typed difference doesn't match the gap between the linked lines and the payout total."
   },
   "nameCard": {
     "front": "Front",
