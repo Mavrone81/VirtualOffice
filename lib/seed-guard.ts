@@ -1,37 +1,25 @@
-// SEC-3/SEC-4: refuse to seed anything that isn't provably local unless the
-// caller supplies a real SEED_PASSWORD — the fallback default in
-// prisma/seed.ts is public (it's committed in this repo). Pure/testable on
-// purpose: prisma/seed.ts is a script, not covered by vitest's include
-// globs, so the decision logic lives here instead.
+// SEC-3/SEC-4: prisma/seed.ts has no hardcoded password of its own — the
+// caller must always supply a real SEED_PASSWORD, in every environment,
+// dev included. Pure/testable on purpose: prisma/seed.ts is a script, not
+// covered by vitest's include globs, so the decision logic lives here
+// instead.
 //
-// DevSecOps review (reviews/seed-guard-devsecops-review.md, G1): an earlier
-// version keyed this on NODE_ENV=production, but the documented prod seed
-// path (docker-compose.prod.yml's builder/migrator target) never sets
-// NODE_ENV — that failed OPEN. This is an allow-list for the fallback (only
-// when DATABASE_URL is provably local), not a block-list for production, so
-// it fails closed regardless of what NODE_ENV is or isn't set to. NODE_ENV
-// is still checked too, belt-and-braces, but the DB host is what matters.
-const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+// DevSecOps review follow-up: an earlier version allow-listed a public
+// fallback default for provably-local DATABASE_URLs (G1/G2). That fallback
+// is gone — it bought local convenience at the cost of a shared password
+// value sitting in a public repo, and a developer who wants that
+// convenience can put SEED_PASSWORD in their own .env.local (see
+// .env.example). This is now unconditional: no password, no seed, anywhere.
 export const MIN_SEED_PASSWORD_LENGTH = 12;
 
-export function seedGuardError(env: { nodeEnv?: string; databaseUrl?: string; seedPassword?: string }): string | null {
-  // A password was explicitly supplied (empty string doesn't count — that's
-  // "nothing supplied", not a real override; G2) — enforce a length floor
-  // regardless of whether the target looks local, so a weak override can't
-  // slip through either way.
-  if (env.seedPassword && env.seedPassword.length < MIN_SEED_PASSWORD_LENGTH) {
+export function seedGuardError(env: { seedPassword?: string }): string | null {
+  // Empty string doesn't count as supplied — that's "nothing set", not a
+  // real override (G2).
+  if (!env.seedPassword) {
+    return "SEED_PASSWORD is required — set it in your shell (or .env, see .env.example) before running the seed script.";
+  }
+  if (env.seedPassword.length < MIN_SEED_PASSWORD_LENGTH) {
     return `SEED_PASSWORD must be at least ${MIN_SEED_PASSWORD_LENGTH} characters.`;
   }
-  if (env.seedPassword) return null;
-  if (env.nodeEnv !== "production" && isLocalDatabaseUrl(env.databaseUrl)) return null;
-  return "SEED_PASSWORD must be set unless seeding a local database — the fallback default is public.";
-}
-
-function isLocalDatabaseUrl(url: string | undefined): boolean {
-  if (!url) return false; // no DATABASE_URL at all is not itself proof of a local target — fail closed
-  try {
-    return LOCAL_HOSTNAMES.has(new URL(url).hostname);
-  } catch {
-    return false;
-  }
+  return null;
 }
