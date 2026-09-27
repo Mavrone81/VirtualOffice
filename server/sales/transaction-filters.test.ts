@@ -50,6 +50,18 @@ describe("transactionWhere — B-3 query builder", () => {
     });
   });
 
+  it("productCodes (B-2: a resolved product category) narrows to any line item with one of those codes", () => {
+    expect(transactionWhere({ productCodes: ["FUN-BASE", "PET-CREMATE"] })).toEqual({
+      AND: [{ lineItems: { some: { productCode: { in: ["FUN-BASE", "PET-CREMATE"] } } } }],
+    });
+  });
+
+  it("txnId (B-2) narrows to a case-insensitive transactionCode prefix match", () => {
+    expect(transactionWhere({ txnId: "TXN-004" })).toEqual({
+      AND: [{ transactionCode: { startsWith: "TXN-004", mode: "insensitive" } }],
+    });
+  });
+
   it("combined filters AND together, one clause per active filter", () => {
     const from = new Date("2026-01-01T00:00:00.000Z");
     const to = new Date("2027-01-01T00:00:00.000Z");
@@ -126,5 +138,21 @@ describe("parseTransactionSearch — validates URL query params before they reac
   it("product is passed through as a plain trimmed string (not a UUID column, no format check needed)", () => {
     expect(parseTransactionSearch({ product: "  FUN-BASE  " }).product).toBe("FUN-BASE");
     expect(parseTransactionSearch({ product: "" }).product).toBeUndefined();
+  });
+
+  it("txnId (B-2) is trimmed and passed through; empty/whitespace-only is dropped", () => {
+    expect(parseTransactionSearch({ txnId: "  TXN-004  " }).txnId).toBe("TXN-004");
+    expect(parseTransactionSearch({ txnId: "" }).txnId).toBeUndefined();
+    expect(parseTransactionSearch({ txnId: "   " }).txnId).toBeUndefined();
+  });
+
+  it("txnId longer than the cap is truncated, not rejected outright (still narrows, just to a longer prefix than anything real)", () => {
+    const long = "T".repeat(100);
+    expect(parseTransactionSearch({ txnId: long }).txnId).toHaveLength(40);
+  });
+
+  it("category (B-2) is passed through as a plain trimmed string — the page resolves it to productCodes", () => {
+    expect(parseTransactionSearch({ category: "  Funeral  " }).category).toBe("Funeral");
+    expect(parseTransactionSearch({ category: "" }).category).toBeUndefined();
   });
 });
