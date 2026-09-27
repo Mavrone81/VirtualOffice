@@ -31,6 +31,26 @@ COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 CMD ["pnpm", "prisma", "migrate", "deploy"]
 
+# --- tools (one-off admin scripts: backfill dry runs / applies) ---
+# Built and pushed by CI as virtualoffice-tools:<git sha>, and run on 165 only via
+# deploy/vo-run-tool.sh — never built on the shared box. Contains the scripts and
+# the lib/server/prisma sources they import, tsx and a generated Prisma client:
+# no Next build, no .env (.dockerignore), and NO secrets or placeholder secrets in
+# ENV. Every value a script needs is passed at run time, one allow-listed variable
+# at a time, by the wrapper.
+FROM base AS tools
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json pnpm-lock.yaml tsconfig.json ./
+COPY prisma ./prisma
+RUN pnpm prisma generate
+COPY lib ./lib
+COPY server ./server
+COPY scripts ./scripts
+RUN addgroup -S tools && adduser -S -G tools tools
+USER tools
+ENTRYPOINT ["node_modules/.bin/tsx"]
+
 # --- runtime (standalone) ---
 FROM base AS runner
 ENV NODE_ENV=production
