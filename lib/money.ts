@@ -29,6 +29,11 @@ export function eq(a: Numeric, b: Numeric): boolean {
   return D(a).equals(D(b));
 }
 
+/** Clamp v into [min, max] (inclusive). */
+export function clamp(v: Numeric, min: Numeric, max: Numeric): Prisma.Decimal {
+  return Prisma.Decimal.max(D(min), Prisma.Decimal.min(D(v), D(max)));
+}
+
 /** "1234.5" -> "1,234.50" */
 export function formatSGD(v: Numeric): string {
   return (
