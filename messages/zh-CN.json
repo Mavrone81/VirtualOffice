@@ -724,7 +724,9 @@
       "approvedTitle": "已批准 —— 等待管理员",
       "approvedTag": "您已批准",
       "revert": "撤回",
-      "revertFailed": "无法撤回。"
+      "revertFailed": "无法撤回。",
+      "exceptionBadge": "分配超过净佣金 — 需管理员批准例外",
+      "exceptionBadgeApproved": "例外已获管理员批准"
     },
     "notices": {
       "pageTitle": "公告",
@@ -835,7 +837,9 @@
       "invoice": "发票",
       "invoicePending": "发票将在付款后可用。",
       "signedDocs": "签署文件",
-      "noSigned": "暂无签署文件。"
+      "noSigned": "暂无签署文件。",
+      "splitExceptionPending": "此分配超过净佣金，会产生负数佣金。须由业务管理员批准此例外后才能成交。",
+      "splitExceptionApproved": "业务管理员已批准此分配例外。成交时将按所示记录负数佣金。"
     },
     "editSale": {
       "pageTitle": "编辑销售",
@@ -1301,7 +1305,12 @@
     "pendingSdApproval": "等待销售总监批准佣金分配。",
     "quotationNotApproved": "报价单尚未获批生成。",
     "splitNotApproved": "佣金分配尚未完全批准。",
+    "splitExceptionReasonRequired": "请填写批准此分配例外的原因（5–500个字符）。",
+    "splitExceptionRequired": "此笔销售会产生负数佣金。须由业务管理员批准分配例外（并填写原因）后才能成交。",
     "splitChangedReload": "打开页面后此佣金分配已被修改。请重新加载查看最新分配后再批准。",
+    "splitPartyInvalid": "每位分配伙伴必须是不同的在职同事（不能是您本人）。",
+    "splitPercentTooHigh": "分配百分比合计不能超过净佣金的100%。",
+    "splitExceedsNet": "此分配超过净佣金，会导致某笔佣金为负数。该笔销售仍可继续，但须由业务管理员批准此分配例外后才能成交。",
     "signedDocRequired": "关闭销售前请上传已签署的报价单。",
     "notADirector": "该伙伴不是在职的销售总监。",
     "badMonth": "月份格式无效",
@@ -1340,7 +1349,8 @@
     "agreementNotRead": "供应商须先阅读协议并勾选确认，方可签署。",
     "payoutPolicyNotImplemented": "该薪酬政策尚未实现，请联系管理员。",
     "legacyDifferenceRequired": "需要重新输入差额，且必须与已关联行项目和薪酬总额之间的实际差额一致。",
-    "legacyDifferenceMismatch": "重新输入的差额与已关联行项目和薪酬总额之间的差额不一致。"
+    "legacyDifferenceMismatch": "重新输入的差额与已关联行项目和薪酬总额之间的差额不一致。",
+    "splitFiguresChanged": "打开页面后数额已变动（例如费率已更新）。请重新查看各项后再批准。"
   },
   "nameCard": {
     "front": "正面",
@@ -1464,7 +1474,15 @@
     "director": "销售总监",
     "noDirector": "— 无 —",
     "associate2": "伙伴 2",
-    "associate3": "伙伴 3"
+    "associate3": "伙伴 3",
+    "sectionExceptions": "分配例外 — 需业务管理员批准",
+    "exceptionsHint": "以下销售会产生负数佣金（分配超过净佣金）。须由业务管理员填写原因批准例外后才能成交。批准仅适用于列出的佣金行；任何分配修改或成交时数额更差都须重新批准。",
+    "exceptionBadge": "分配例外",
+    "exceptionReasonPlaceholder": "批准原因（必填）",
+    "exceptionApprove": "批准例外",
+    "exceptionSplitApprovedBy": "分配已由 {who} 批准",
+    "exceptionSplitNotYetApproved": "分配本身尚未获管理员批准",
+    "exceptionBadgeApproved": "例外已批准"
   },
   "verify": {
     "title": "销售与核验",

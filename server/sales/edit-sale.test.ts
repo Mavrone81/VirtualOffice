@@ -14,6 +14,8 @@ vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// The SEC-6 Net-to-Closer bound has its own tests (split-bounds.test.ts, sec6-split-bounds.integration.test.ts).
+vi.mock("@/server/commission/split-bounds", () => ({ splitBoundViolations: vi.fn(async () => []) }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { editSale, type SubmitSaleInput } from "@/server/sales/actions";

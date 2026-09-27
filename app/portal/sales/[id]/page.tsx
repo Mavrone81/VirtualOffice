@@ -59,6 +59,12 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
         </span>
       </PageHeader>
 
+      {s.splitExceptionRequired && (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-[13px] ${s.splitExceptionApprovedAt ? "border-line bg-paper-100 text-ink" : "border-danger/40 bg-danger/5 text-danger"}`}>
+          {s.splitExceptionApprovedAt ? t("saleDetail.splitExceptionApproved") : t("saleDetail.splitExceptionPending")}
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card className="p-5">
