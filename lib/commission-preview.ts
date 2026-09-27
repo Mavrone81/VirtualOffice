@@ -58,3 +58,8 @@ export function computeProductPreview(i: ProductPreviewInput): ProductPreview {
     companyRetained: companyRetained.toString(),
   };
 }
+
+/** True once the overrides eat into the cut pool enough that company retained goes negative (B-10). */
+export function isOverAllocated(preview: ProductPreview): boolean {
+  return Number(preview.companyRetained) < 0;
+}

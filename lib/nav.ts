@@ -168,7 +168,7 @@ export const portalNav: NavGroup[] = [
           { labelKey: "nameCard", href: "/portal/name-card", icon: IdCard },
           { labelKey: "flyers", icon: Image },
           { labelKey: "edm", icon: Mail },
-          { labelKey: "customisation", href: "/portal/marketing/customisation", icon: Palette },
+          { labelKey: "chineseNameMenu", href: "/portal/marketing/customisation", icon: Palette },
           { labelKey: "greetings", icon: PartyPopper },
         ],
       },
