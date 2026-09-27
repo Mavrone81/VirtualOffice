@@ -1276,6 +1276,8 @@
     "noLoginToReset": "该伙伴没有可重置的登录账户。",
     "resetLinkInvalid": "此重置链接无效或已过期。",
     "associateNoLogin": "该伙伴尚未开通登录。",
+    "chineseNameTooLong": "中文名不能超过 {max} 个字符。",
+    "customTitleTooLong": "名片职称不能超过 {max} 个字符。",
     "teamNotYours": "您只能招募到自己的团队。",
     "teamRequired": "请选择新成员加入您的哪个团队。",
     "agreementNotRead": "供应商须先阅读协议并勾选确认，方可签署。",
@@ -1295,7 +1297,8 @@
     "save": "保存",
     "saved": "✓ 已保存",
     "subtitle": "您的 Enshrine 电子名片。个性化后即可分享二维码或下载。",
-    "adminSection": "名片职称"
+    "adminSection": "名片",
+    "lastEditedBy": "最后由 {admin} 于 {date} 编辑"
   },
   "reset": {
     "forgotTitle": "重置密码",

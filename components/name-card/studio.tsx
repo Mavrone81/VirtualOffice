@@ -1,13 +1,15 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { updateNameCard } from "@/server/name-card/actions";
+import { updateNameCard, updateAssociateNameCard } from "@/server/name-card/actions";
+import { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX } from "@/lib/name-card-limits";
 
 const FRONT = "/namecard/card-front-blank.png";
 const BACK = "/namecard/card-back.jpg";
@@ -31,8 +33,19 @@ const socialCircle: React.CSSProperties = {
   width: 22, height: 22, borderRadius: "50%", background: "#2e5aa0",
 };
 
-export function NameCardStudio({ data, editable, canEditTitle = false }: { data: CardData; editable: boolean; canEditTitle?: boolean }) {
+export function NameCardStudio({
+  data, editable, canEditTitle = false, associateId, lastEditedBy,
+}: {
+  data: CardData;
+  editable: boolean;
+  canEditTitle?: boolean;
+  // B-8: when set, this is an admin editing ANOTHER associate's card — saves
+  // go through the audited admin action instead of the self-service one.
+  associateId?: string;
+  lastEditedBy?: { name: string; date: string } | null;
+}) {
   const t = useTranslations("nameCard");
+  const router = useRouter();
   const frontRef = useRef<HTMLDivElement>(null);
   const [side, setSide] = useState<"front" | "back">("front");
   const [busy, setBusy] = useState(false);
@@ -42,6 +55,7 @@ export function NameCardStudio({ data, editable, canEditTitle = false }: { data:
   const [chineseName, setChineseName] = useState(data.chineseName);
   const [customTitle, setCustomTitle] = useState(data.title);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function toFrontPng(): Promise<string> {
     const { toPng } = await import("html-to-image");
@@ -78,12 +92,20 @@ export function NameCardStudio({ data, editable, canEditTitle = false }: { data:
 
   function save() {
     setSaved(false);
+    setError(null);
     start(async () => {
-      await updateNameCard({
+      const payload = {
         chineseName: editable ? chineseName : undefined,
         customTitle: canEditTitle ? customTitle : undefined,
-      });
+      };
+      const r = associateId ? await updateAssociateNameCard(associateId, payload) : await updateNameCard(payload);
+      if (!r.ok) {
+        setError(r.error ?? null);
+        return;
+      }
       setSaved(true);
+      // Admin-edit-any: re-fetch the server-rendered "last edited by" line.
+      if (associateId) router.refresh();
       setTimeout(() => setSaved(false), 2000);
     });
   }
@@ -156,19 +178,31 @@ export function NameCardStudio({ data, editable, canEditTitle = false }: { data:
           <div className="space-y-4">
             {editable && (
               <div>
-                <Label htmlFor="cn">{t("chineseName")}</Label>
-                <Input id="cn" value={chineseName} onChange={(e) => setChineseName(e.target.value)} placeholder="张三" />
+                <div className="flex items-baseline justify-between">
+                  <Label htmlFor="cn">{t("chineseName")}</Label>
+                  <span className="text-[11px] text-muted-2">{chineseName.length}/{NAME_CARD_CHINESE_NAME_MAX}</span>
+                </div>
+                <Input id="cn" value={chineseName} maxLength={NAME_CARD_CHINESE_NAME_MAX} onChange={(e) => setChineseName(e.target.value)} placeholder="张三" />
               </div>
             )}
             {canEditTitle && (
               <div>
-                <Label htmlFor="ct">{t("cardTitle")}</Label>
-                <Input id="ct" value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} />
+                <div className="flex items-baseline justify-between">
+                  <Label htmlFor="ct">{t("cardTitle")}</Label>
+                  <span className="text-[11px] text-muted-2">{customTitle.length}/{NAME_CARD_CUSTOM_TITLE_MAX}</span>
+                </div>
+                <Input id="ct" value={customTitle} maxLength={NAME_CARD_CUSTOM_TITLE_MAX} onChange={(e) => setCustomTitle(e.target.value)} />
                 <p className="mt-1 text-[12px] text-muted-2">{t("cardTitleHint")}</p>
               </div>
             )}
             <Button onClick={save} disabled={pending}>{pending ? t("saving") : t("save")}</Button>
+            {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
             {saved && <p className="text-[13px] text-success">{t("saved")}</p>}
+            {lastEditedBy && (
+              <p className="text-[12px] text-muted-2">
+                {t("lastEditedBy", { admin: lastEditedBy.name, date: lastEditedBy.date })}
+              </p>
+            )}
           </div>
         </Card>
       )}

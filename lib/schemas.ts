@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX } from "./name-card-limits";
+
+export { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX };
 
 // Centralized input-validation schemas for the write-side server actions
 // (Phase 1d §4.2). Each schema mirrors — field-for-field — the existing input
@@ -127,6 +130,22 @@ export const updateAssociateSchema = newAssociateSchema
   .omit({ directUplineCode: true, secondUplineCode: true })
   .extend({ joinDate: dateStr.optional() });
 export type UpdateAssociateSchemaInput = z.infer<typeof updateAssociateSchema>;
+
+// ---------------------------------------------------------------------------
+// Name card (B-8) — chineseName/customTitle print on a fixed-layout card
+// (components/name-card/studio.tsx), so length is capped well short of
+// anything that could overflow it or break its PNG export (architect review
+// Low note 1; DevLead review). chineseName renders in one centered line at a
+// fixed font size — much less room than the title line, hence the tighter cap.
+// The limits themselves live in ./name-card-limits (see the re-export above)
+// so the client editor and the server action share one source of truth for
+// matching maxLength/counters and a specific tooLong error (UIUX review)
+// instead of a generic one.
+// ---------------------------------------------------------------------------
+export const nameCardSchema = z.object({
+  chineseName: z.string().trim().max(NAME_CARD_CHINESE_NAME_MAX).optional(),
+  customTitle: z.string().trim().max(NAME_CARD_CUSTOM_TITLE_MAX).optional(),
+});
 
 // ---------------------------------------------------------------------------
 // Onboarding — mirrors OnboardingSubmission (server/recruitment/actions.ts).
