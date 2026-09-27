@@ -31,7 +31,50 @@ const DIRECT = new RegExp(IDENT + String.raw`\s*[:=]\s*(["'\`])([^"'\`\n]*)\2`, 
 // below, so this shape — the one this scan exists for — never fired once.
 // Caught 2026-09-27 while closing the line-break bypass; a fallback hit is now
 // proved to fail (see reviews/ci-credential-shape-linebreak-fix.md).
-const FALLBACK = new RegExp(IDENT + String.raw`\s*[:=][^;\n]*?(?:\?\?|\|\|)\s*(["'\`])([^"'\`\n]*)\2`, "gi");
+// 🔴 The gap between IDENT and the fallback operator refuses to cross a STATEMENT
+// KEYWORD or a brace — it is not merely "anything but ; and newline" (2026-09-27).
+// Why: `[^;\n]*?` treats an ESCAPED `\n` inside a string literal as ordinary text,
+// so on a single physical line reading
+//     const apiTok<>en = getToken()  then an ESCAPED newline  then  const greeting = name ?? "friend"
+// (written with a <> break on purpose: spelled out in full, this comment is itself a
+//  credential-shaped line and the scanner flags its own documentation. It did exactly
+//  that on the first attempt at this fix, which is the same trap the self-test samples
+//  are assembled from constants to avoid.)
+// the window ran from `apiToken =` all the way to a LATER statement's literal and
+// reported `apiToken` as assigned "friend". A false RED, which is the worse
+// direction: it fires on any file that embeds code as DATA — a matcher's own test
+// fixtures first of all — and a gate that goes red over test fixtures gets switched
+// off. Found when exactly those fixtures landed on main (PR #37); they were fixtures
+// *I* had asked another member to add for this same defect class in THEIR matcher,
+// while my own scanner never got the fix I prescribed. The keyword list is the fix I
+// gave them, applied here at last.
+// (A paragraph here used to describe an "accepted narrowing" for inline functions and
+// object literals. It was removed with the guards that caused it — those shapes match
+// again, which is correct. It was ALSO the third case today of this file's own prose
+// tripping this file's own scan: spelled out in full, an example of the pattern a
+// detector looks for IS that pattern. Examples in this file are assembled from
+// character constants, or not written out at all, for exactly that reason.)
+// 🔴 The gap excludes a literal BACKSLASH, and that single exclusion IS the fix —
+// established by mutation, not by reasoning. An escaped newline written as backslash-n
+// inside a string literal is ordinary text to `[^;\n]*?`, so the window ran from an
+// identifier past an embedded statement boundary and reported a LATER statement's
+// literal as assigned to an EARLIER identifier. A false RED, the worse direction: it
+// fires on any file that embeds code as DATA — a matcher's own fixtures first of all —
+// and a gate that goes red over test fixtures gets switched off. It reached main in
+// PR #37, on fixtures this reviewer had asked another member to add for the SAME defect
+// class in THEIR matcher, while this scanner never got the fix prescribed to them.
+//
+// 🔴 What was tried and REMOVED, because it was measured to do nothing: a statement-
+// keyword lookahead (`(?!\b(?:const|let|…)\b)`) and a brace exclusion. Four mutations:
+// dropping the backslash exclusion breaks 2 of the 18 claims; dropping the keyword
+// guard, the braces, or BOTH breaks none. They were unproven guards that also cost real
+// false negatives (a fallback whose left side holds an inline function or object
+// literal would stop matching). A guard seen only green may be matching nothing —
+// so it went. NOTE: the keyword guard is still the right fix for the OTHER matcher it
+// was prescribed for; it is redundant HERE, not wrong there.
+// 🔴 Do not "harden" this back into a keyword list without a claim that fails without it.
+const GAP = String.raw`[^;\n\\]*?`;
+const FALLBACK = new RegExp(IDENT + String.raw`\s*[:=]` + GAP + String.raw`(?:\?\?|\|\|)\s*(["'\`])([^"'\`\n]*)\2`, "gi");
 
 // Skipped by rule rather than by allow-list entry — an allow-list should hold
 // decisions, not arithmetic:
@@ -188,6 +231,7 @@ const FAKE = "changeme-local-only"; // 19 chars: over MIN_PASSWORD_LENGTH
 const EQ = " = ";
 const COLON = ": ";
 const Q = String.fromCharCode(34);
+const BS = String.fromCharCode(92);
 const SELF_TEST_CASES = [
   ["direct assignment", `const SEED_PASSWORD${EQ}${Q}${FAKE}${Q};`, ["SEED_PASSWORD"]],
   ["object key", `const cfg = { token${COLON}${Q}${FAKE}${Q} };`, ["token"]],
@@ -202,6 +246,22 @@ const SELF_TEST_CASES = [
   ["bare env reference", `const SEED_PASSWORD${EQ}process.env.SEED_PASSWORD;`, []],
   ["function call", `const secret${EQ}derive();`, []],
   ["no window joins across a finished statement", `const tokenValue${EQ}compute();\nconst label${EQ}${Q}Password${Q};`, []],
+  // 🔴 The three shapes that got past this scan onto main (2026-09-27, PR #37): an
+  // ESCAPED newline inside a string literal — i.e. code embedded as DATA, which is what
+  // a matcher's own fixtures look like. `[^;\n]*?` saw the escape as ordinary text and
+  // attributed a LATER statement's literal to an EARLIER identifier. A false RED, and
+  // false reds are what get a gate switched off. The `\b` keyword guard alone did NOT
+  // fix it (the escape's trailing `n` abuts the keyword, so there is no word boundary);
+  // excluding the backslash is the part that does. Assembled from BS/EQ/Q so these
+  // samples are not themselves credential-shaped lines in this file.
+  ["escaped newline: later ?? literal not attributed to an earlier identifier",
+   `const apiToken${EQ}getToken()${BS}nconst greeting${EQ}name ?? ${Q}friend${Q};`, []],
+  ["escaped newline + comment: later || literal not attributed backwards",
+   `let secret${EQ}load()${BS}n// unrelated${BS}nconst msg${EQ}x || ${Q}hello${Q};`, []],
+  ["escaped newline into a function body: literal not attributed backwards",
+   `const tokenStore${EQ}init()${BS}nfunction f() { return y || ${Q}z${Q}; }`, []],
+  ["a REAL newline between the same two statements still does not match",
+   `const apiToken${EQ}getToken()\nconst greeting${EQ}name ?? ${Q}friend${Q};`, []],
   ["no window joins into a call argument list", `const passwordThing${EQ}String(\n  ${Q}${FAKE}${Q},\n);`, []],
 ];
 if (process.argv.includes("--self-test")) {
