@@ -17,9 +17,10 @@ import { CancelInviteButton } from "./cancel-invite-button";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Invite candidate · Enshrine Portal" };
 
-// Portal-side recruitment (16-Jul #12): a manager (SAM+) invites a candidate
-// from their own office. Same action + form as the admin surface, reachable by
-// the people who actually recruit. Non-recruiters are bounced to the dashboard.
+// Portal-side recruitment (16-Jul #12): a Manager and above (A9) invites a
+// candidate from their own office. Same action + form as the admin surface,
+// reachable by the people who actually recruit. Non-recruiters (incl. Sales
+// Assistant Manager) are bounced to the dashboard.
 export default async function PortalInvitePage() {
   const session = await auth();
   if (!session || !canRecruit(session.user.role)) redirect("/portal/dashboard");

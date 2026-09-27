@@ -1,6 +1,10 @@
 import { AppRole, Designation } from "@prisma/client";
 import { prisma } from "./db";
 
+// Prisma-free (nav.ts imports this without pulling Prisma into the client
+// bundle) — see lib/roles.ts.
+export { RECRUITER_ROLES, canRecruit } from "./roles";
+
 // Where each role lands after login.
 export const ROLE_HOME: Record<AppRole, string> = {
   Admin: "/admin/dashboard",
@@ -30,10 +34,6 @@ export const isAdminRole = (r: AppRole): boolean => ADMIN_ROLES.includes(r);
 
 /** True only for the full "Business Admin" — not the Accounts role. */
 export const isFullAdmin = (r: AppRole): boolean => r === "Admin";
-
-// Recruitment (invite candidate) is open to SAM and above (RBAC matrix §A).
-export const RECRUITER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector", "Admin"];
-export const canRecruit = (r: AppRole): boolean => RECRUITER_ROLES.includes(r);
 
 /**
  * Fine-grained capabilities where Admin and Accounts diverge. Both roles share
