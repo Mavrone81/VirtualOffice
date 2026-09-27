@@ -1,10 +1,15 @@
 import type { NextRequest } from "next/server";
 import { generateBankFile } from "@/server/payouts/actions";
+import { isSameOrigin } from "@/lib/same-origin";
 
 // POST only. The GIRO bulk-payout file is money leaving the business, so it can
 // no longer be pulled with a bare GET link + a session cookie — the caller must
 // re-enter their password, which generateBankFile verifies and audits.
 export async function POST(req: NextRequest) {
+  // U1: a route handler doesn't get Next's server-action Origin check, so a
+  // cross-site form could POST here with the admin's cookie. Refuse before reading
+  // the body, so no password attempt (and no reauth audit/rate-limit hit) happens.
+  if (!isSameOrigin(req)) return new Response("forbidden", { status: 403 });
   const form = await req.formData();
   const month = String(form.get("month") ?? "");
   const password = String(form.get("password") ?? "");
