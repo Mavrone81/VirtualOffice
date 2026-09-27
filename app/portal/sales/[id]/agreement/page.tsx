@@ -9,6 +9,7 @@ import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { AshesAgreementForm } from "./agreement-form";
 import type { AshesPet } from "@/lib/pdf/ashes-agreement";
+import { readNric } from "@/server/pii";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Storage of Pets Ashes Agreement · Enshrine Portal" };
@@ -32,6 +33,16 @@ export default async function AshesAgreementPage({ params }: { params: Promise<{
   if (sub.status !== SubmissionStatus.QuotationApproved) redirect("/portal/quotations");
 
   const a = sub.ashesAgreement;
+  // SEC-12: decrypt for the edit-form prefill (or tolerate still-plaintext
+  // legacy rows during the transition) — never a raw column pass-through.
+  const [applicant1Nric, applicant2Nric, applicantWitnessNric, companyWitnessNric] = a
+    ? await Promise.all([
+        readNric({ blob: a.applicant1Nric, field: "applicant1Nric", subjectType: "PetsAshesAgreement", subjectId: a.id, actorUserId: session.user.id }),
+        readNric({ blob: a.applicant2Nric, field: "applicant2Nric", subjectType: "PetsAshesAgreement", subjectId: a.id, actorUserId: session.user.id }),
+        readNric({ blob: a.applicantWitnessNric, field: "applicantWitnessNric", subjectType: "PetsAshesAgreement", subjectId: a.id, actorUserId: session.user.id }),
+        readNric({ blob: a.companyWitnessNric, field: "companyWitnessNric", subjectType: "PetsAshesAgreement", subjectId: a.id, actorUserId: session.user.id }),
+      ])
+    : [null, null, null, null];
   return (
     <>
       <PageHeader
@@ -49,12 +60,12 @@ export default async function AshesAgreementPage({ params }: { params: Promise<{
             nicheUnit: a?.nicheUnit ?? sub.lineItems.map((l) => l.productName).join(", "),
             pets: ((a?.pets as AshesPet[] | undefined) ?? []).length ? (a?.pets as AshesPet[]) : [{}],
             applicant1Name: a?.applicant1Name ?? sub.clientName,
-            applicant1Nric: a?.applicant1Nric ?? "",
+            applicant1Nric: applicant1Nric ?? "",
             applicant1Address: a?.applicant1Address ?? "",
             applicant1Contact: a?.applicant1Contact ?? sub.clientContact ?? "",
             applicant1Email: a?.applicant1Email ?? "",
             applicant2Name: a?.applicant2Name ?? "",
-            applicant2Nric: a?.applicant2Nric ?? "",
+            applicant2Nric: applicant2Nric ?? "",
             applicant2Address: a?.applicant2Address ?? "",
             applicant2Contact: a?.applicant2Contact ?? "",
             applicant2Email: a?.applicant2Email ?? "",
@@ -62,9 +73,9 @@ export default async function AshesAgreementPage({ params }: { params: Promise<{
             maintenanceStartYear: a?.maintenanceStartYear ?? new Date().getFullYear() + 1,
             additionalTerms: a?.additionalTerms ?? "",
             applicantWitnessName: a?.applicantWitnessName ?? "",
-            applicantWitnessNric: a?.applicantWitnessNric ?? "",
+            applicantWitnessNric: applicantWitnessNric ?? "",
             companyWitnessName: a?.companyWitnessName ?? "",
-            companyWitnessNric: a?.companyWitnessNric ?? "",
+            companyWitnessNric: companyWitnessNric ?? "",
           }}
         />
       </div>
