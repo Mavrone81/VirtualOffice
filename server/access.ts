@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { downlineIds, isAdminRole } from "@/lib/rbac";
+import { downlineIds, isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { resolveScope, type Principal } from "@/lib/access";
 
 /** Resolve the current request's Principal from the Auth.js session. */
@@ -16,4 +16,10 @@ export async function getPrincipal(): Promise<Principal | null> {
 export async function getAdminPrincipal(): Promise<Principal | null> {
   const p = await getPrincipal();
   return p && isAdminRole(p.role) ? p : null;
+}
+
+/** The principal iff it is Business Admin specifically (not Accounts), else null. */
+export async function getFullAdminPrincipal(): Promise<Principal | null> {
+  const p = await getPrincipal();
+  return p && isFullAdmin(p.role) ? p : null;
 }
