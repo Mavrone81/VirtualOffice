@@ -378,7 +378,7 @@
   },
   "invoices": {
     "title": "Invoices & installments",
-    "subtitle": "Record collections — commission becomes payable at the {threshold} installment.",
+    "subtitle": "Record collections — commission becomes payable at the {threshold, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} installment.",
     "installmentPlans": "Installment plans",
     "noInstallmentPlans": "No installment plans yet.",
     "installmentProgress": "Total {total} · {paid}/{threshold} paid",
@@ -407,7 +407,8 @@
     },
     "viewAck": "View acknowledgement",
     "markUnpaidReason": "Reason (required)",
-    "markUnpaidBlocked": "Can't un-mark — commission from this sale is already approved or paid out.",
+    "markUnpaidConfirm": "Confirm",
+    "ackRequired": "A payment acknowledgement is required.",
     "ackUploadError": "That file couldn't be uploaded — {reason}."
   },
   "notices": {
@@ -654,8 +655,7 @@
       "deposit": "Deposit (S$)",
       "numInstallments": "# Installments",
       "installmentPlan": "Installment plan",
-      "months12": "12 months",
-      "months24": "24 months",
+      "monthsCount": "{count, plural, one {# month} other {# months}}",
       "products": "Products",
       "addLine": "Add line",
       "product": "Product",
