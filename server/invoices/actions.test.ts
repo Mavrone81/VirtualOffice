@@ -17,6 +17,7 @@ import { prisma } from "@/lib/db";
 import { markInvoicePaid, markInvoiceUnpaid, markInstallmentPaid, markInstallmentUnpaid } from "./actions";
 import { visibleTransactions } from "@/server/transactions/queries";
 import { logAudit } from "@/lib/audit";
+import { fakePdfFile } from "@/lib/test-fixtures";
 
 const TAG = "A0AMT-";
 const ADMIN = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
@@ -69,7 +70,7 @@ describe("markInvoicePaid / markInvoiceUnpaid — amountCollected", () => {
       data: { transactionId: tx.id, companyId, invoiceNumber: TAG + "INV1", amount: 1000, status: "Outstanding" as never },
     });
 
-    expect((await markInvoicePaid(invoice.id, { method: "Bank" as never })).ok).toBe(true);
+    expect((await markInvoicePaid(invoice.id, fakePdfFile(), { method: "Bank" as never })).ok).toBe(true);
     let row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("1000.00");
 
@@ -82,16 +83,16 @@ describe("markInvoicePaid / markInvoiceUnpaid — amountCollected", () => {
 
     // A repeat mark-paid on an already-Paid invoice is refused (a double-click,
     // not a fresh payment) and must not double-count.
-    expect(await markInvoicePaid(invoice.id, { method: "Bank" as never })).toEqual({ ok: false, error: "alreadyProcessed" });
+    expect(await markInvoicePaid(invoice.id, fakePdfFile(), { method: "Bank" as never })).toEqual({ ok: false, error: "alreadyProcessed" });
     row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("1000.00");
 
-    expect((await markInvoiceUnpaid(invoice.id)).ok).toBe(true);
+    expect((await markInvoiceUnpaid(invoice.id, "test reason")).ok).toBe(true);
     row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("0.00");
 
     // Refused the other way too.
-    expect(await markInvoiceUnpaid(invoice.id)).toEqual({ ok: false, error: "alreadyProcessed" });
+    expect(await markInvoiceUnpaid(invoice.id, "test reason")).toEqual({ ok: false, error: "alreadyProcessed" });
     row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("0.00");
   });
@@ -105,11 +106,11 @@ describe("markInvoicePaid / markInvoiceUnpaid — amountCollected", () => {
     const inv2 = await prisma.invoice.create({ data: { transactionId: tx.id, companyId, invoiceNumber: TAG + "INV2B", amount: 300, status: "Outstanding" as never } });
 
     vi.mocked(logAudit).mockClear();
-    const r1 = await markInvoicePaid(inv1.id);
+    const r1 = await markInvoicePaid(inv1.id, fakePdfFile());
     expect(r1.ok).toBe(true);
     expect(r1.overCollected).toBeUndefined(); // 500 of 500 — not over yet
 
-    const r2 = await markInvoicePaid(inv2.id);
+    const r2 = await markInvoicePaid(inv2.id, fakePdfFile());
     expect(r2.ok).toBe(true);
     expect(r2.overCollected).toBe(true); // 800 raw > 500 sale — flagged, not hidden
     const row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
@@ -122,7 +123,7 @@ describe("markInvoicePaid / markInvoiceUnpaid — amountCollected", () => {
     });
 
     // Unwinding the second (unclamped) invoice must not push it negative.
-    expect((await markInvoiceUnpaid(inv2.id)).ok).toBe(true);
+    expect((await markInvoiceUnpaid(inv2.id, "test reason")).ok).toBe(true);
     const row2 = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(Number(row2.amountCollected)).toBeGreaterThanOrEqual(0);
   });
@@ -131,14 +132,14 @@ describe("markInvoicePaid / markInvoiceUnpaid — amountCollected", () => {
     who.session = ADMIN;
     const tx = await mkTransaction("INV3", 1000);
     const invA = await prisma.invoice.create({ data: { transactionId: tx.id, companyId, invoiceNumber: TAG + "INV3A", amount: 700, status: "Outstanding" as never } });
-    expect((await markInvoicePaid(invA.id)).ok).toBe(true);
+    expect((await markInvoicePaid(invA.id, fakePdfFile())).ok).toBe(true);
 
     // Simulate legacy drift: something (a past bug, a manual fix) left the
     // stored column wrong, disagreeing with the actual paid invoices.
     await prisma.salesTransaction.update({ where: { id: tx.id }, data: { amountCollected: 0 } });
 
     const invB = await prisma.invoice.create({ data: { transactionId: tx.id, companyId, invoiceNumber: TAG + "INV3B", amount: 200, status: "Outstanding" as never } });
-    expect((await markInvoicePaid(invB.id)).ok).toBe(true);
+    expect((await markInvoicePaid(invB.id, fakePdfFile())).ok).toBe(true);
 
     // A naive +200 on the corrupted 0 would read 200.00. Recomputing from the
     // actual paid invoices (700 + 200) corrects invA's contribution too.
@@ -158,7 +159,7 @@ describe("a lock-wait timeout (P2028) saves nothing, and a retry succeeds", () =
       .mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError("Transaction timed out", { code: "P2028", clientVersion: "6" }));
     vi.mocked(logAudit).mockClear();
 
-    const r = await markInvoicePaid(invoice.id);
+    const r = await markInvoicePaid(invoice.id, fakePdfFile());
     expect(r).toEqual({ ok: false, error: "recomputeBusy" });
     expect(spy).toHaveBeenCalledOnce();
 
@@ -170,7 +171,7 @@ describe("a lock-wait timeout (P2028) saves nothing, and a retry succeeds", () =
     expect(logAudit).not.toHaveBeenCalled();
 
     // The mock was one-shot ($transaction now behaves normally again) — a retry succeeds.
-    const retry = await markInvoicePaid(invoice.id);
+    const retry = await markInvoicePaid(invoice.id, fakePdfFile());
     expect(retry.ok).toBe(true);
     const txRetried = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(txRetried.amountCollected.toFixed(2)).toBe("1000.00");
@@ -185,15 +186,15 @@ describe("markInstallmentPaid / markInstallmentUnpaid — amountCollected", () =
     const s1 = await prisma.installmentSchedule.create({ data: { planId: plan.id, sequence: 1, dueAmount: 300, paid: false } });
     const s2 = await prisma.installmentSchedule.create({ data: { planId: plan.id, sequence: 2, dueAmount: 300, paid: false } });
 
-    expect((await markInstallmentPaid(s1.id)).ok).toBe(true);
+    expect((await markInstallmentPaid(s1.id, fakePdfFile())).ok).toBe(true);
     let row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("300.00");
 
-    expect((await markInstallmentPaid(s2.id)).ok).toBe(true);
+    expect((await markInstallmentPaid(s2.id, fakePdfFile())).ok).toBe(true);
     row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("600.00");
 
-    expect((await markInstallmentUnpaid(s1.id)).ok).toBe(true);
+    expect((await markInstallmentUnpaid(s1.id, "test reason")).ok).toBe(true);
     row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("300.00");
   });

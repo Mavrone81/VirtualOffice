@@ -16,6 +16,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
+import { fakePdfFile } from "@/lib/test-fixtures";
 import { runPayouts, setPayoutStatus } from "./actions";
 import { buildBankFileCsv } from "./bankfile";
 import { runCommission } from "@/server/commission/run";
@@ -59,7 +60,7 @@ async function paidSale(amount: number) {
   expect((await closeSale(sub.id)).ok).toBe(true);
   const tx = await prisma.salesTransaction.findFirstOrThrow({ where: { submissionId: sub.id } });
   const inv = await prisma.invoice.findFirstOrThrow({ where: { transactionId: tx.id } });
-  expect((await markInvoicePaid(inv.id, { method: "Bank", reference: TAG + amount })).ok).toBe(true);
+  expect((await markInvoicePaid(inv.id, fakePdfFile(), { method: "Bank", reference: TAG + amount })).ok).toBe(true);
 }
 
 beforeAll(async () => {
