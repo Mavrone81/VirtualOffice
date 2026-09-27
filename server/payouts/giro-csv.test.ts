@@ -75,7 +75,7 @@ describe("bank-file route filename (W4-GIRO)", () => {
     const { POST } = await import("@/app/admin/payouts/bank-file/route");
     const body = new FormData();
     for (const [k, v] of Object.entries(fields)) body.set(k, v);
-    const res = await POST(new Request("http://local/admin/payouts/bank-file", { method: "POST", body }) as never);
+    const res = await POST(new Request("http://local/admin/payouts/bank-file", { method: "POST", body, headers: { host: "local", origin: "http://local" } }) as never);
     return res.headers.get("content-disposition");
   };
 
