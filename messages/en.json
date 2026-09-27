@@ -1278,7 +1278,8 @@
     "associateNoLogin": "This associate has no login yet.",
     "teamNotYours": "You can only recruit into your own team.",
     "teamRequired": "Pick which of your teams the recruit joins.",
-    "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing."
+    "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing.",
+    "recomputeBusy": "Something else is updating this transaction right now. Please try again in a moment."
   },
   "nameCard": {
     "front": "Front",
