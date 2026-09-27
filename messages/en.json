@@ -1276,6 +1276,8 @@
     "noLoginToReset": "This associate has no login to reset.",
     "resetLinkInvalid": "This reset link is invalid or has expired.",
     "associateNoLogin": "This associate has no login yet.",
+    "chineseNameTooLong": "Chinese name must be {max} characters or fewer.",
+    "customTitleTooLong": "Card title must be {max} characters or fewer.",
     "teamNotYours": "You can only recruit into your own team.",
     "teamRequired": "Pick which of your teams the recruit joins.",
     "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing.",
@@ -1295,7 +1297,8 @@
     "save": "Save",
     "saved": "✓ Saved",
     "subtitle": "Your Enshrine digital name card. Personalise it, then share the QR or download it.",
-    "adminSection": "Name card title"
+    "adminSection": "Name Card",
+    "lastEditedBy": "Last edited by {admin} on {date}"
   },
   "reset": {
     "forgotTitle": "Reset your password",
