@@ -1257,6 +1257,7 @@
     "payoutNotPositive": "A payout with a total of zero or less cannot be approved.",
     "payoutsNotBackfilled": "This month has approved or paid payouts that are not linked to their commission lines yet. Run the payout backfill before re-running payouts.",
     "payoutRunConflict": "Payouts changed while this run was in progress. Please try again.",
+    "recomputeBusy": "System busy — the payment was NOT recorded. Please try again.",
     "reauthFailed": "Password confirmation failed.",
     "titleRequired": "Title is required.",
     "messageBodyRequired": "Message body is required.",
@@ -1280,8 +1281,7 @@
     "customTitleTooLong": "Card title must be {max} characters or fewer.",
     "teamNotYours": "You can only recruit into your own team.",
     "teamRequired": "Pick which of your teams the recruit joins.",
-    "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing.",
-    "recomputeBusy": "Something else is updating this transaction right now. Please try again in a moment."
+    "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing."
   },
   "nameCard": {
     "front": "Front",
