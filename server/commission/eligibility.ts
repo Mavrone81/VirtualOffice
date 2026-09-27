@@ -1,76 +1,55 @@
-import { CommissionEligibility, PaymentPlan, InvoiceStatus, Prisma } from "@prisma/client";
+import { CommissionEligibility, PaymentPlan, InvoiceStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { runCommissionTx, auditRunResult, COMMISSION_TX_OPTIONS } from "./run";
 
 /**
- * Recompute a transaction's commission eligibility from its collections, then
- * re-run the engine (idempotent) so ledger lines flip Pending<->Eligible.
+ * The transactional body of a recompute: lock, read, decide eligibility, write
+ * if changed, then re-run the engine (idempotent) so ledger lines flip
+ * Pending<->Eligible in the SAME transaction as the eligibility write (R-4) —
+ * eligibility and the ledger can never disagree.
  * - Full Payment: Eligible once its invoice(s) are Paid.
- * - Installment: Eligible once >= threshold installments are paid (default 3rd).
+ * - Installment: Eligible once >= threshold REAL installments are paid
+ *   (default 3rd) — the deposit (sequence 0, Samuel Q9) is the entry fee, not
+ *   one of the N installments, so it never counts toward the threshold.
  *
- * R-4: the eligibility read+write and the ledger recompute now happen in ONE
- * transaction (runCommissionTx's own FOR UPDATE lock is the first statement),
- * so eligibility and the ledger can never disagree — a concurrent recompute
- * either hasn't started yet (blocks on the lock) or has already committed
- * (this read sees it), never a stale snapshot from before it.
+ * Callers that already hold the FOR UPDATE lock on this sales_transactions row
+ * (A-0's unified mark-paid/unpaid transaction) pass their own `db` — the lock
+ * below is then re-entrant (a no-op re-acquire of a lock this same DB
+ * transaction already holds). A caller with no existing transaction should go
+ * through `recomputeEligibility` instead, which opens one and audits after.
  */
-export async function recomputeEligibility(transactionId: string): Promise<CommissionEligibility> {
-  const result = await prisma.$transaction(async (db) => {
-    await db.$queryRaw`SELECT id FROM sales_transactions WHERE id = ${transactionId}::uuid FOR UPDATE`;
-    const tx = await db.salesTransaction.findUniqueOrThrow({
+export async function recomputeEligibilityTx(db: Prisma.TransactionClient, transactionId: string) {
+  await db.$queryRaw`SELECT id FROM sales_transactions WHERE id = ${transactionId}::uuid FOR UPDATE`;
+  const tx = await db.salesTransaction.findUniqueOrThrow({
+    where: { id: transactionId },
+    include: { installmentPlan: { include: { schedule: true } }, invoices: true },
+  });
+
+  let eligibility: CommissionEligibility;
+  if (tx.paymentPlan === PaymentPlan.FullPayment) {
+    const allPaid = tx.invoices.length > 0 && tx.invoices.every((i) => i.status === InvoiceStatus.Paid);
+    eligibility = allPaid ? CommissionEligibility.Eligible : CommissionEligibility.PendingCollection;
+  } else {
+    const threshold = env.COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD;
+    const paidCount = tx.installmentPlan?.schedule.filter((s) => s.paid && s.sequence > 0).length ?? 0;
+    eligibility =
+      paidCount >= threshold ? CommissionEligibility.Eligible : CommissionEligibility.PendingCollection;
+  }
+
+  if (eligibility !== tx.commissionEligibility) {
+    await db.salesTransaction.update({
       where: { id: transactionId },
-      include: { installmentPlan: { include: { schedule: true } }, invoices: true },
+      data: { commissionEligibility: eligibility },
     });
-
-    let eligibility: CommissionEligibility;
-    if (tx.paymentPlan === PaymentPlan.FullPayment) {
-      const allPaid = tx.invoices.length > 0 && tx.invoices.every((i) => i.status === InvoiceStatus.Paid);
-      eligibility = allPaid ? CommissionEligibility.Eligible : CommissionEligibility.PendingCollection;
-    } else {
-      const threshold = env.COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD;
-      const paidCount = tx.installmentPlan?.schedule.filter((s) => s.paid).length ?? 0;
-      eligibility =
-        paidCount >= threshold ? CommissionEligibility.Eligible : CommissionEligibility.PendingCollection;
-    }
-
-    if (eligibility !== tx.commissionEligibility) {
-      await db.salesTransaction.update({
-        where: { id: transactionId },
-        data: { commissionEligibility: eligibility },
-      });
-    }
-    const run = await runCommissionTx(db, transactionId);
-    return { eligibility, run };
-  }, COMMISSION_TX_OPTIONS);
-
-  await auditRunResult(transactionId, result.run);
-  return result.eligibility;
+  }
+  const run = await runCommissionTx(db, transactionId);
+  return { eligibility, run };
 }
 
-/**
- * recomputeEligibility wrapped so a lock-wait timeout (P2028 — R-4's tx can genuinely
- * wait behind another recompute) is reported instead of thrown.
- *
- * Contract for the caller (Backend, A-0): this must NOT be read as "the payment wasn't
- * recorded" — mark-paid/unpaid already committed its own row update before calling this,
- * and that write must still be audited on the `deferred` path. The caller should:
- *   1. still return ok:true from the mark-paid/unpaid action (the payment IS recorded);
- *   2. surface a soft warning (the `errors.recomputeBusy` i18n key) rather than an error;
- *   3. audit the row change either way, with a `recomputeDeferred: true` marker when this
- *      returns `deferred`;
- *   4. make a REPEAT call to the mark-paid/unpaid action re-run this recompute even
- *      when the row is already in its target state (i.e. no CAS on "already Paid" that
- *      would skip straight past the recompute) — deferred eligibility only clears once
- *      this succeeds.
- */
-export async function recomputeEligibilityOrDeferred(
-  transactionId: string,
-): Promise<{ deferred: false; eligibility: CommissionEligibility } | { deferred: true }> {
-  try {
-    return { deferred: false, eligibility: await recomputeEligibility(transactionId) };
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2028") return { deferred: true };
-    throw e;
-  }
+/** Thin wrapper for callers outside an existing transaction. */
+export async function recomputeEligibility(transactionId: string): Promise<CommissionEligibility> {
+  const result = await prisma.$transaction((db) => recomputeEligibilityTx(db, transactionId), COMMISSION_TX_OPTIONS);
+  await auditRunResult(transactionId, result.run);
+  return result.eligibility;
 }

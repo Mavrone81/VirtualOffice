@@ -10,7 +10,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { isSdApproved, sdApproverId, pickSplitDirectorId, splitFullyApproved } from "@/lib/approval";
-import { D, round2, sum } from "@/lib/money";
+import { D, round2, sum, ZERO } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
 import { validate } from "@/lib/validate";
@@ -589,9 +589,26 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
           installmentCount: sub.installmentCount,
         },
       });
-      const per = round2(D(sub.saleAmount).sub(D(sub.deposit ?? 0)).div(sub.installmentCount));
+      // A-0b: the per-installment amount is rounded to 2dp, so it won't divide
+      // the remaining balance exactly (e.g. 10,000/3 = 33.33... x3 = 99.99,
+      // 1¢ short). The last installment absorbs whatever rounding leaves over
+      // so the schedule always sums to exactly (sale − deposit).
+      const remaining = D(sub.saleAmount).sub(D(sub.deposit ?? 0));
+      // Deposit row (Samuel, Q9): sequence 0, so Accounts marks it paid with
+      // the B-7 payment acknowledgement like any other installment — that's
+      // what makes amountCollected (A-0) count the deposit as collected. It is
+      // NOT one of the N installments (see eligibility.ts's `sequence > 0`
+      // threshold filter) — it's the entry fee, not progress toward the
+      // installment count.
+      if (D(sub.deposit ?? 0).gt(0)) {
+        await db.installmentSchedule.create({ data: { planId: plan.id, sequence: 0, dueAmount: round2(D(sub.deposit ?? 0)), paid: false } });
+      }
+      const per = round2(remaining.div(sub.installmentCount));
+      let running = ZERO;
       for (let i = 1; i <= sub.installmentCount; i++) {
-        await db.installmentSchedule.create({ data: { planId: plan.id, sequence: i, dueAmount: per, paid: false } });
+        const dueAmount = i === sub.installmentCount ? round2(remaining.sub(running)) : per;
+        running = running.add(dueAmount);
+        await db.installmentSchedule.create({ data: { planId: plan.id, sequence: i, dueAmount, paid: false } });
       }
     }
 
