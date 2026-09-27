@@ -6,6 +6,7 @@ import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
+import { ProfileBandCard } from "@/components/dashboard/profile-band-card";
 import { getTranslations } from "next-intl/server";
 
 export const metadata = { title: "Dashboard · Enshrine Portal" };
@@ -56,6 +57,14 @@ export default async function PortalDashboard() {
         title={t("dashboard.welcomeBack", { name: firstName })}
         subtitle={`${humanize(me?.designation)} · ${me?.associateCode} · ${me?.teamName ?? ""}`}
       />
+
+      <div className="mb-4">
+        <ProfileBandCard
+          name={me?.businessName ?? me?.fullName ?? ""}
+          designation={humanize(me?.designation)}
+          associateId={associateId}
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <StatTile id="transaction-value" label={t("dashboard.totalTransactionValue")} value={formatSGD(totalTransactionValue)} sub={t("dashboard.totalTransactionValueSub")} />

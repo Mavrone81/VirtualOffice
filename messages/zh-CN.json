@@ -625,7 +625,17 @@
       "remainingMonth": "距本月目标尚差",
       "remainingYear": "距本年目标尚差",
       "thisYear": "本年",
-      "setTargetFirst": "尚未设定目标"
+      "setTargetFirst": "尚未设定目标",
+      "rankCaption": "根据商佣收款 · 每日排名，{year}",
+      "rankUpdated": "更新于 {date}",
+      "band": {
+        "top1": "前 1%",
+        "top5": "前 5%",
+        "top10": "前 10%",
+        "top25": "前 25%",
+        "top50": "前 50%",
+        "rest": "其余"
+      }
     },
     "sales": {
       "pageTitle": "我的销售",
