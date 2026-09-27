@@ -112,16 +112,11 @@ export const UAT_TOTAL = UAT_SECTIONS.reduce((n, s) => n + s.cases.length, 0);
 export const UAT_CASE_IDS = new Set(UAT_SECTIONS.flatMap((s) => s.cases.map((c) => c.id)));
 
 // Seeded test accounts shown to the tester so they can log in per role. All
-// share one password (dev/UAT seed).
+// share one password — whatever SEED_PASSWORD was set to when this
+// environment was seeded (prisma/seed.ts requires it; no fallback value
+// exists to display here, so /uat points the tester at whoever ran the
+// seed instead of a literal).
 export type UatAccount = { role: string; login: string; who: string };
-// SEC-3: shown directly to the UAT tester (they need it to log in), so
-// hiding it behind an env var wouldn't add security here — this file is
-// imported by a "use client" component (app/uat/uat-runner.tsx), and a
-// plain (non-NEXT_PUBLIC_) process.env reference in client code isn't
-// reliably populated at runtime anyway. The actual fix is that this must
-// never be the real shared secret. Keep in sync with prisma/seed.ts's
-// SEED_PASSWORD when seeding a real environment.
-export const UAT_PASSWORD = "Seed-Dev-Only#1";
 export const UAT_ACCOUNTS: UatAccount[] = [
   { role: "Business Admin", login: "admin@example.com", who: "Full admin — products, teams, audit" },
   { role: "Accounts", login: "accounts@example.com", who: "Finance sub-role" },
