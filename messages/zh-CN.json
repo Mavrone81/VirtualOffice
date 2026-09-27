@@ -529,7 +529,47 @@
     "cancel": "取消",
     "approve": "批准",
     "markPaid": "标记已付",
-    "adjustment": "调整 {seq}"
+    "adjustment": "调整 {seq}",
+    "preview": {
+      "action": "预览",
+      "headline": "本次发放将支付 {amount}，共 {count} 位经纪人",
+      "empty": "{month} 没有需要发放的款项。",
+      "willBePaid": "将予发放",
+      "broughtForward": "从之前月份结转：{count} 条明细，{amount}",
+      "carriedSection": "结转 — 本次不发放",
+      "carriedForward": "总额为 {amount} 或更低。将自动结转至下月。",
+      "heldSection": "保留 — 本次既不发放也不结转",
+      "heldNotCarried": "总额为 {amount} 或更低。将保持待处理状态 — 不会自动发放或结转。",
+      "blockedSection": "待核对 — 本次未包含",
+      "blockedReason": "该经纪人有一笔旧的发放记录，需要人工核对后系统才能再次向其付款。",
+      "reconcileAction": "核对",
+      "flagSection": "需关注 — 已离职但仍有欠款",
+      "flagInactive": "（已不在职）",
+      "flagBalance": "结转余额：{amount}",
+      "flagNote": "此款项不会自动发放，需人工追收。"
+    },
+    "run": {
+      "buttonWithTotal": "执行发放 — {amount}，{count} 位经纪人",
+      "confirmTitle": "确认为 {month} 执行发放？",
+      "confirmCarriedNote": "{count} 位经纪人的款项将自动结转 — 本次不予发放。",
+      "confirmBlockedNote": "{count} 位经纪人仍待核对，本次将跳过。",
+      "success": "已为 {month} 向 {count} 位经纪人完成发放。",
+      "conflict": "查看期间数据已发生变化，请重试。",
+      "reloadPreview": "重新加载预览",
+      "policyUnavailable": "目前无法执行发放 — 请联系技术支持。"
+    },
+    "reconcile": {
+      "title": "核对 {associate} 的旧发放记录",
+      "instructions": "此笔发放金额为 {amount}。请根据银行记录，勾选其实际支付的明细。",
+      "reasonRequired": "原因（必填）",
+      "differenceNote": "已勾选明细合计 {ticked} — 比发放金额 {total} 少 {diff}。请输入差额及原因：",
+      "differenceAmount": "差额",
+      "differenceReason": "差额原因（必填）",
+      "confirm": "确认核对",
+      "alreadyProcessed": "已完成核对。",
+      "notFound": "未找到此发放记录，可能已被处理。",
+      "illegalTransition": "此发放记录无法核对 — 可能已关联明细。"
+    }
   },
   "portal": {
     "dashboard": {
@@ -1288,7 +1328,10 @@
     "customTitleTooLong": "名片职称不能超过 {max} 个字符。",
     "teamNotYours": "您只能招募到自己的团队。",
     "teamRequired": "请选择新成员加入您的哪个团队。",
-    "agreementNotRead": "供应商须先阅读协议并勾选确认，方可签署。"
+    "agreementNotRead": "供应商须先阅读协议并勾选确认，方可签署。",
+    "payoutPolicyNotImplemented": "该薪酬政策尚未实现，请联系管理员。",
+    "legacyDifferenceRequired": "需要重新输入差额，且必须与已关联行项目和薪酬总额之间的实际差额一致。",
+    "legacyDifferenceMismatch": "重新输入的差额与已关联行项目和薪酬总额之间的差额不一致。"
   },
   "nameCard": {
     "front": "正面",
