@@ -1,134 +1,71 @@
-import { Designation, CommissionType, LedgerLineType } from "@prisma/client";
+import { Suspense } from "react";
+import { LedgerLineType } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
-import { computeLineCommission, type LedgerLineResult } from "@/server/commission/engine";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { FilterBar, type FilterField } from "@/components/ui/filter-bar";
+import { EmptyState } from "@/components/ui/empty-state";
+import { computeProductBreakdown } from "@/server/commission/product-breakdown";
+import { productSalesByPeriod } from "@/server/commission/product-sales";
+import { ledgerWhere, parseLedgerSearch, type LedgerSearch } from "@/server/commission/ledger-filters";
+import { resolvePeriod, PERIODS, type Period } from "@/lib/period";
+import { ProductBreakdownTable } from "./product-breakdown-table";
+import { SalesChart } from "./sales-chart";
 
-export const metadata = { title: "Commission · Enshrine Admin" };
+export const metadata = { title: "Commission Dashboard · Enshrine Admin" };
 
-const upline = {
-  directUpline: { associateId: "sm", designation: Designation.SalesManager, eligible: true },
-  secondUpline: { associateId: "sd", designation: Designation.SalesDirector, eligible: true },
-};
-// 16-Jul model: every % is of the SALES AMOUNT.
-const rates = { companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3" };
-const closer = { associateId: "closer", designation: Designation.SalesAssociate };
+type Search = LedgerSearch & { period?: string; chartFrom?: string; chartTo?: string };
 
-function row(lines: LedgerLineResult[], type: LedgerLineType, id?: string) {
-  return lines.find((l) => l.lineType === type && (id === undefined || l.associateId === id));
-}
-
-async function Preview({
-  title,
-  subtitle,
-  sale,
-  result,
-}: {
-  title: string;
-  subtitle: string;
-  sale: string;
-  result: ReturnType<typeof computeLineCommission>;
-}) {
+export default async function CommissionPage({ searchParams }: { searchParams: Promise<Search> }) {
   const t = await getTranslations("commission");
-  const { lines, reconciles } = result;
-  const personal = row(lines, LedgerLineType.Personal)!;
-  const sm = row(lines, LedgerLineType.Override, "sm")!;
-  const sd = row(lines, LedgerLineType.Override, "sd")!;
-  const retained = row(lines, LedgerLineType.CompanyRetained)!;
+  const tf = await getTranslations("filters");
+  const tc = await getTranslations("common");
+  const tStatus = await getTranslations("status");
 
-  const items = [
-    { label: t("saleAmount"), value: formatSGD(sale), muted: true },
-    { label: t("netToCloser"), value: formatSGD(personal.amount), accent: "ink" },
-    { label: t("smOverride"), value: formatSGD(sm.amount), accent: "action" },
-    { label: t("sdOverride"), value: formatSGD(sd.amount), accent: "action" },
-    { label: t("companyRetained"), value: formatSGD(retained.amount), muted: true },
+  const rawSp = await searchParams;
+  const ledgerSp = parseLedgerSearch(rawSp);
+  const period: Period = rawSp.period && (PERIODS as string[]).includes(rawSp.period) ? (rawSp.period as Period) : "month";
+  const { from: chartFrom, to: chartTo } = resolvePeriod(period, new Date(), { from: rawSp.chartFrom, to: rawSp.chartTo });
+
+  const [products, ledger, associates, salesRows] = await Promise.all([
+    prisma.product.findMany({ where: { archivedAt: null }, orderBy: { productCode: "asc" } }),
+    prisma.commissionLedger.findMany({
+      where: ledgerWhere(ledgerSp),
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { transaction: true, lineItem: true },
+    }),
+    prisma.associate.findMany({ select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
+    productSalesByPeriod(chartFrom, chartTo),
+  ]);
+
+  const breakdownRows = products.map(computeProductBreakdown);
+  const ledgerFiltersActive = Boolean(rawSp.associate || rawSp.lineType || rawSp.from || rawSp.to);
+
+  const ledgerFields: FilterField[] = [
+    { type: "select", key: "associate", label: tf("associate"), options: associates.map((a) => ({ value: a.id, label: a.fullName })) },
+    {
+      type: "select", key: "lineType", label: tf("lineType"),
+      options: Object.values(LedgerLineType).map((lt) => ({ value: lt, label: tStatus(lt) })),
+    },
+    { type: "date-range", fromKey: "from", toKey: "to", labelFrom: tf("dateFrom"), labelTo: tf("dateTo") },
   ];
 
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-display text-[18px] text-ink">{title}</h3>
-          <p className="text-[12px] text-muted">{subtitle}</p>
-        </div>
-        {reconciles && (
-          <span className="rounded-full bg-success-50 px-2.5 py-1 text-[11px] font-medium text-success">
-            {t("reconciles")}
-          </span>
-        )}
-      </div>
-      <div className="mt-4 divide-y divide-line-200">
-        {items.map((it) => (
-          <div key={it.label} className="flex items-center justify-between py-2 text-[13px]">
-            <span className={it.muted ? "text-muted" : "text-body"}>{it.label}</span>
-            <span
-              className={
-                it.accent === "action"
-                  ? "font-medium text-action"
-                  : it.accent === "ink"
-                    ? "font-display text-[16px] text-ink"
-                    : "text-body"
-              }
-            >
-              {it.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-const LINE_TONE: Record<string, "info" | "success" | "neutral" | "warn"> = {
-  Personal: "success",
-  Override: "info",
-  AddOn: "warn",
-  CompanyRetained: "neutral",
-  ExternalPayable: "neutral",
-};
-
-export default async function CommissionPage() {
-  const t = await getTranslations("commission");
-  const tc = await getTranslations("common");
-
-  const ledger = await prisma.commissionLedger.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: { transaction: true, lineItem: true },
-  });
-
-  const percentage = computeLineCommission({
-    lineItemId: "demo-pct", ...rates, ...upline, closer, comCodes: [], isExternal: false,
-    commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
-  });
-  const fixed = computeLineCommission({
-    lineItemId: "demo-fixed", ...rates, ...upline, closer, comCodes: [], isExternal: false,
-    commissionType: CommissionType.Fixed, lineSaleAmount: "3800", closingCommFixed: "500",
-  });
+  const LINE_TONE: Record<string, "info" | "success" | "neutral" | "warn"> = {
+    Personal: "success", Override: "info", AddOn: "warn", CompanyRetained: "neutral", ExternalPayable: "neutral",
+  };
 
   return (
     <>
-      <PageHeader
-        title={t("title")}
-        subtitle={t("subtitle")}
-      />
+      <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Preview
-          title={t("percentageProduct")}
-          subtitle={t("percentageProductSubtitle")}
-          sale="10000"
-          result={percentage}
-        />
-        <Preview
-          title={t("fixedProduct")}
-          subtitle={t("fixedProductSubtitle")}
-          sale="3800"
-          result={fixed}
-        />
+      <ProductBreakdownTable rows={breakdownRows} />
+
+      <div className="mt-6">
+        <SalesChart rows={salesRows} period={period} />
       </div>
 
       <Card className="mt-6 overflow-hidden">
@@ -136,10 +73,19 @@ export default async function CommissionPage() {
           <h3 className="font-display text-[18px] text-ink">{t("ledgerTitle")}</h3>
           <span className="text-[12px] text-muted">{t("ledgerLines", { count: ledger.length })}</span>
         </div>
+
+        <div className="px-5 pt-4">
+          <Suspense fallback={null}>
+            <FilterBar fields={ledgerFields} clearAllLabel={tf("clearAll")} />
+          </Suspense>
+        </div>
+
         {ledger.length === 0 ? (
-          <p className="px-5 py-10 text-center text-[13px] text-muted">
-            {t("ledgerEmpty")}
-          </p>
+          ledgerFiltersActive ? (
+            <EmptyState message={t("ledgerEmptyFiltered")} />
+          ) : (
+            <p className="px-5 py-10 text-center text-[13px] text-muted">{t("ledgerEmpty")}</p>
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
@@ -148,8 +94,8 @@ export default async function CommissionPage() {
                   <th className="px-5 py-3 font-medium">{t("colTxn")}</th>
                   <th className="px-5 py-3 font-medium">{t("colAssociate")}</th>
                   <th className="px-5 py-3 font-medium">{t("colLineType")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colBasis")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colAmount")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colGross")}</th>
+                  <th className="px-5 py-3 font-medium">{t("colNett")}</th>
                   <th className="px-5 py-3 font-medium">{tc("status")}</th>
                 </tr>
               </thead>
@@ -171,6 +117,7 @@ export default async function CommissionPage() {
             </table>
           </div>
         )}
+        <p className="border-t border-line px-5 py-3 text-[11px] text-muted-2">{t("grossNettHint")}</p>
       </Card>
     </>
   );
