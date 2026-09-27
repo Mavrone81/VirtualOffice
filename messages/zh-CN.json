@@ -47,7 +47,11 @@
     "periodQuarter": "本季度",
     "periodYear": "本年度",
     "periodCustom": "自定义时段",
-    "clearAll": "清除所有筛选"
+    "clearAll": "清除所有筛选",
+    "txnId": "交易编号",
+    "category": "产品类别",
+    "saleDateFrom": "成交日期（从）",
+    "saleDateTo": "成交日期（至）"
   },
   "nav": {
     "groupOperations": "运营",
@@ -1506,15 +1510,21 @@
   },
   "verify": {
     "title": "销售与核验",
-    "subtitle": "已关闭的销售——审阅文件并按方案记录收款。",
+    "subtitle": "已成交的销售——审阅文件及收款状态。标记已付/未付请前往发票页面。",
     "empty": "暂无已关闭的销售。",
+    "emptyFiltered": "没有符合筛选条件的交易。",
     "commission": "佣金",
     "documents": "文件",
     "noDocuments": "未附任何文件。",
     "view": "查看",
     "payments": "收款",
     "installmentProgress": "已付 {paid}/{total} 期 · 第 {threshold} 期起可发放佣金",
-    "noInvoice": "此销售暂无发票。"
+    "noInvoice": "此销售暂无发票。",
+    "pagination": {
+      "showing": "显示第 {from}–{to} 项，共 {total} 项",
+      "prev": "‹ 上一页",
+      "next": "下一页 ›"
+    }
   },
   "assistant": {
     "title": "门户助手",
