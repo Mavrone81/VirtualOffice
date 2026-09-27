@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
+import { auditTx } from "@/lib/audit";
 
 // Google-Contacts-compatible CSV: Approved AND status in {Active, Terminated} (PRD §6.9).
 export async function GET() {
@@ -17,6 +18,13 @@ export async function GET() {
     },
     orderBy: { associateCode: "asc" },
   });
+
+  // Tier A (PII export): recorded before any row is written out — no record, no file.
+  try {
+    await auditTx(prisma, { action: "pii.exported", entityType: "Associate", entityId: null, actorUserId: session.user.id, after: { export: "contacts", rows: rows.length, fields: ["fullName", "email", "mobileNumber", "dateOfBirth"] } });
+  } catch {
+    return new Response("Temporarily unavailable — please try again", { status: 503 });
+  }
 
   const header = ["Associate ID", "Full Name", "Designation", "Email", "Mobile", "Date of Birth", "Status"];
   const lines = [header];

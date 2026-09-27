@@ -18,6 +18,13 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
         where.id === SUB ? { closingAssociateId: ALICE } : null),
     },
+    // Audit reliability: the route asks whether a key is an NRIC-bearing agreement
+    // (server/documents/pii-documents.ts); none of these test objects is.
+    petsAshesAgreement: { findFirst: vi.fn(async () => null) },
+    vendorReferral: { findFirst: vi.fn(async () => null) },
+    pFileDocument: { findFirst: vi.fn(async () => null) },
+    // associates/<id>/… is PII-bearing (fail-safe): its download is recorded first.
+    auditLog: { create: vi.fn(async () => ({})) },
   },
 }));
 // getObject echoes the key it was asked to read, so a test can see exactly

@@ -17,7 +17,7 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -143,7 +143,7 @@ describe("C1: runCommission vs a concurrent payout approval", () => {
         const dbProxy = new Proxy(db, { get(t, k) { return k === "commissionLedger" ? wrapped : Reflect.get(t, k); } });
         return fn(dbProxy);
       }, opts)) as never);
-    await runCommission(tx.id);
+    await runCommission(tx.id, null);
     spy.mockRestore();
     const approvalResult = await approval;
     console.log("interleaved approval:", approvalState, JSON.stringify(approvalResult));
