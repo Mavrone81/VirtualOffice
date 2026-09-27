@@ -63,6 +63,9 @@ export default async function PortalApprovalsPage() {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-[13px]">
           <span className="font-medium text-ink">{s.clientName}</span>
+          {s.splitExceptionRequired && (s.splitExceptionApprovedAt
+            ? <span className="ml-2 rounded-full bg-paper-100 px-2 py-0.5 text-[11px] text-muted">{t("approvals.exceptionBadgeApproved")}</span>
+            : <span className="ml-2 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] text-danger">{t("approvals.exceptionBadge")}</span>)}
           <span className="text-muted"> · {formatSGD(s.saleAmount)} · {format(s.salesDate, "d MMM yyyy")}</span>
         </div>
         <div className="flex items-center gap-3">{meta}{action}</div>

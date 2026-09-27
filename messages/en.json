@@ -724,7 +724,9 @@
       "approvedTitle": "Approved — awaiting admin",
       "approvedTag": "Approved by you",
       "revert": "Revert",
-      "revertFailed": "Could not revert."
+      "revertFailed": "Could not revert.",
+      "exceptionBadge": "Split exceeds net — needs admin exception",
+      "exceptionBadgeApproved": "Exception approved by admin"
     },
     "notices": {
       "pageTitle": "Notices",
@@ -835,7 +837,9 @@
       "invoice": "Invoice",
       "invoicePending": "Invoice available once paid.",
       "signedDocs": "Signed documents",
-      "noSigned": "No signed documents."
+      "noSigned": "No signed documents.",
+      "splitExceptionPending": "This split is larger than the Net-to-Closer, so a commission line would go below zero. A Business Admin must approve this exception before the sale can close.",
+      "splitExceptionApproved": "A Business Admin has approved this split exception. The negative commission line will be booked as shown when the sale closes."
     },
     "editSale": {
       "pageTitle": "Edit sale",
@@ -1301,7 +1305,12 @@
     "pendingSdApproval": "Pending SD approval of the commission split.",
     "quotationNotApproved": "The quotation has not been approved for generation yet.",
     "splitNotApproved": "The commission split is not fully approved yet.",
+    "splitExceptionReasonRequired": "Enter a reason for approving this split exception (5–500 characters).",
+    "splitExceptionRequired": "This sale books a commission line below zero. A Business Admin must approve the split exception (with a reason) before it can close.",
     "splitChangedReload": "This split was changed after you opened the page. Reload to see the current split before approving.",
+    "splitPartyInvalid": "Each split partner must be a different, active associate (not yourself).",
+    "splitPercentTooHigh": "Split percentages can't add up to more than 100% of Net-to-Closer.",
+    "splitExceedsNet": "This split is larger than the Net-to-Closer, so a commission line would go below zero. The sale can still go ahead, but a Business Admin must approve this split exception before it can close.",
     "signedDocRequired": "Attach the signed quotation before closing the sale.",
     "notADirector": "That associate is not an active Sales Director.",
     "badMonth": "Bad month",
@@ -1340,7 +1349,8 @@
     "agreementNotRead": "The vendor must read the agreement and tick the confirmation before signing.",
     "payoutPolicyNotImplemented": "This payout policy isn't available yet. Please contact an administrator.",
     "legacyDifferenceRequired": "A re-typed difference is required and must match the actual gap between the linked lines and the payout total.",
-    "legacyDifferenceMismatch": "The re-typed difference doesn't match the gap between the linked lines and the payout total."
+    "legacyDifferenceMismatch": "The re-typed difference doesn't match the gap between the linked lines and the payout total.",
+    "splitFiguresChanged": "The figures changed since you opened this page (e.g. rates were updated). Please review the lines again before approving."
   },
   "nameCard": {
     "front": "Front",
@@ -1464,7 +1474,15 @@
     "director": "Sales Director",
     "noDirector": "— none —",
     "associate2": "Associate 2",
-    "associate3": "Associate 3"
+    "associate3": "Associate 3",
+    "sectionExceptions": "Split exceptions — Business Admin approval needed",
+    "exceptionsHint": "These sales book a commission line below zero (the split is larger than the Net-to-Closer). They can only close once a Business Admin approves the exception with a reason. The approval covers exactly these lines; any split edit, or a worse figure at closing, needs a new approval.",
+    "exceptionBadge": "Split exception",
+    "exceptionReasonPlaceholder": "Reason for approving (required)",
+    "exceptionApprove": "Approve exception",
+    "exceptionSplitApprovedBy": "Split admin-approved by {who}",
+    "exceptionSplitNotYetApproved": "The split itself is not admin-approved yet",
+    "exceptionBadgeApproved": "Exception approved"
   },
   "verify": {
     "title": "Sales & verify",

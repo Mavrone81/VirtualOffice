@@ -1,26 +1,13 @@
 import { format } from "date-fns";
-import { CommissionType, Designation, LedgerLineType, LedgerStatus, ComValueType, PayoutStatus, Prisma } from "@prisma/client";
+import { Designation, LedgerLineType, LedgerStatus, PayoutStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { computeTransactionCommission, type LineInput, type UplineInput, type ComCodeInput, type SplitInput } from "./engine";
+import { computeTransactionCommission, type LineInput, type UplineInput, type SplitInput } from "./engine";
+import { toLineInput, toSplit, toUpline } from "./inputs";
 import { reconcileWithSettled } from "./settle";
 import { recomputePendingPayout } from "@/server/payouts/totals";
 import { logAudit } from "@/lib/audit";
 
 type Db = Prisma.TransactionClient | typeof prisma;
-
-type RateSnapshot = {
-  commissionType: CommissionType;
-  closingCommPct?: string | null;
-  closingCommFixed?: string | null;
-  companyCutPct: string;
-  companyCutType?: ComValueType | null;
-  smOverridePct: string;
-  smOverrideType?: ComValueType | null;
-  sdOverridePct: string;
-  sdOverrideType?: ComValueType | null;
-  isExternal: boolean;
-  externalCompanyRetainedPct?: string | null;
-};
 
 type RunResult = {
   lineCount: number;
@@ -48,9 +35,6 @@ export type CommissionParties = {
  * of runCommissionTx.
  */
 export async function loadCommissionParties(db: Db, tx: TxForParties): Promise<CommissionParties> {
-  const toSplit = (
-    id: string | null, vt: ComValueType | null, value: Prisma.Decimal | null,
-  ): SplitInput | null => (id && vt ? { associateId: id, valueType: vt, value: value ?? "0" } : null);
   const associate2 = toSplit(tx.submission.associate2Id, tx.submission.associate2ValueType, tx.submission.associate2Value);
   const associate3 = toSplit(tx.submission.associate3Id, tx.submission.associate3ValueType, tx.submission.associate3Value);
 
@@ -60,17 +44,6 @@ export async function loadCommissionParties(db: Db, tx: TxForParties): Promise<C
   const uplines = await db.associate.findMany({ where: { id: { in: relatedIds } } });
   const upById = new Map(uplines.map((u) => [u.id, u]));
 
-  const toUpline = (id: string | null): UplineInput => {
-    if (!id) return null;
-    const u = upById.get(id);
-    if (!u) return null;
-    return {
-      associateId: u.id,
-      designation: u.designation,
-      eligible: u.approvalStatus === "Approved" && u.associateStatus === "Active",
-    };
-  };
-
   const nameOf = (id: string | null): { name: string | null; designation: Designation | null } => {
     if (!id) return { name: null, designation: null };
     if (id === tx.closingAssociateId) return { name: tx.closingAssociate.fullName, designation: tx.closingAssociate.designation };
@@ -79,8 +52,8 @@ export async function loadCommissionParties(db: Db, tx: TxForParties): Promise<C
   };
 
   return {
-    directUpline: toUpline(tx.directUplineId),
-    secondUpline: toUpline(tx.secondUplineId),
+    directUpline: toUpline(tx.directUplineId ? upById.get(tx.directUplineId) : null),
+    secondUpline: toUpline(tx.secondUplineId ? upById.get(tx.secondUplineId) : null),
     associate2,
     associate3,
     eligible: tx.commissionEligibility === "Eligible",
@@ -126,33 +99,15 @@ export async function runCommissionTx(db: Db, transactionId: string): Promise<Ru
   // instead; everything below only depends on this shape, not on where it came from.
   const { directUpline, secondUpline, associate2, associate3, eligible, nameOf } = await loadCommissionParties(db, tx);
 
-  const lineInputs: LineInput[] = tx.lineItems.map((li) => {
-    const rs = (li.structureVersion?.rateSnapshot ?? {}) as unknown as RateSnapshot;
-    const comCodes: ComCodeInput[] = Array.isArray(li.selectedComCodes)
-      ? (li.selectedComCodes as unknown as ComCodeInput[])
-      : [];
-    return {
-      lineItemId: li.id,
-      commissionType: li.commissionType,
-      lineSaleAmount: li.lineSaleAmount,
-      closingCommPct: rs.closingCommPct ?? null,
-      closingCommFixed: rs.closingCommFixed ?? null,
-      companyCutPct: rs.companyCutPct ?? "0",
-      companyCutType: rs.companyCutType ?? ComValueType.Percentage,
-      smOverridePct: rs.smOverridePct ?? "0",
-      smOverrideType: rs.smOverrideType ?? ComValueType.Percentage,
-      sdOverridePct: rs.sdOverridePct ?? "0",
-      sdOverrideType: rs.sdOverrideType ?? ComValueType.Percentage,
-      isExternal: li.isExternal,
-      externalCompanyRetainedPct: rs.externalCompanyRetainedPct ?? null,
-      comCodes,
+  const lineInputs: LineInput[] = tx.lineItems.map((li) =>
+    toLineInput(li, li.structureVersion?.rateSnapshot, {
       closer: { associateId: tx.closingAssociateId, designation: tx.closingAssociate.designation },
       directUpline,
       secondUpline,
       associate2,
       associate3,
-    };
-  });
+    }),
+  );
 
   const { lines } = computeTransactionCommission(lineInputs);
   const payoutMonth = format(tx.salesDate, "yyyy-MM");
