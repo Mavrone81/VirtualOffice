@@ -9,7 +9,10 @@ export type CardContact = {
 };
 
 function esc(v: string): string {
-  return v.replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n");
+  // Escape structural chars first, then fold every line ending (\n, \r\n, or a
+  // bare \r) to the vCard line-continuation escape — a lone \r left unescaped
+  // would otherwise break the line (B-8 architect review, Low note 1).
+  return v.replace(/([,;\\])/g, "\\$1").replace(/\r\n?|\n/g, "\\n");
 }
 
 export function buildVCard(c: CardContact): string {

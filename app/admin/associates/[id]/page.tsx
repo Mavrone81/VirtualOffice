@@ -2,17 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { FileText } from "lucide-react";
+import QRCode from "qrcode";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isFullAdmin } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
+import { buildVCard } from "@/lib/vcard";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { NameCardStudio } from "@/components/name-card/studio";
 import { ResetPasswordButton } from "./reset-password";
-import { CardTitleEditor } from "./card-title-editor";
 import { RevealPii } from "./reveal-pii";
 import { UplineEditor } from "./upline-editor";
 
@@ -44,6 +46,8 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 export default async function AdminAssociateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("associates");
   const tCard = await getTranslations("nameCard");
+  const tStatus = await getTranslations("status");
+  const tRoles = await getTranslations("roles");
   const session = await auth();
   // Resetting a login (user management) and editing another associate's card
   // are Admin-only; Accounts can view the associate but not these controls.
@@ -54,7 +58,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
     include: {
       directUpline: { select: { associateCode: true, fullName: true } },
       secondUpline: { select: { associateCode: true, fullName: true } },
-      user: { select: { email: true, isActive: true, nameCards: { select: { customTitle: true }, take: 1 } } },
+      user: { select: { id: true, email: true, isActive: true, nameCards: { select: { chineseName: true, customTitle: true }, take: 1 } } },
       pFile: { include: { documents: { orderBy: { filedAt: "desc" } } } },
     },
   });
@@ -83,6 +87,31 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
 
   // NRIC + bank account are revealed on demand (audited on click), not here.
   const payoutDetail = a.paymentMethod === "PayNow" ? a.paynowNumber : a.bankName;
+
+  // B-8: this associate's name card, editable in full by an admin, and the
+  // "who/when" of the last admin edit (full before/after detail lives in the
+  // Audit Log itself — this is just the one-line summary the spec asks for).
+  const card = a.user?.nameCards[0] ?? null;
+  let lastEditedBy: { name: string; date: string } | null = null;
+  if (a.user && canManage) {
+    const lastEdit = await prisma.auditLog.findFirst({
+      where: { entityType: "NameCard", entityId: a.id, action: "name_card.updated_by_admin" },
+      orderBy: { createdAt: "desc" },
+      select: { actorUserId: true, createdAt: true },
+    });
+    if (lastEdit) {
+      const actor = lastEdit.actorUserId
+        ? await prisma.user.findUnique({ where: { id: lastEdit.actorUserId }, select: { role: true, associate: { select: { fullName: true } } } })
+        : null;
+      lastEditedBy = {
+        name: actor?.associate?.fullName ?? tRoles(actor?.role ?? "Admin"),
+        date: format(lastEdit.createdAt, "dd MMM yyyy"),
+      };
+    }
+  }
+  const cardTitle = card?.customTitle || tStatus(a.designation);
+  const cardVcf = buildVCard({ fullName: a.fullName, businessName: a.businessName, title: cardTitle, mobile: a.mobileNumber, email: a.email, associateCode: a.associateCode });
+  const cardQr = a.user ? await QRCode.toDataURL(cardVcf, { margin: 1, width: 240, color: { dark: "#1a1f2b", light: "#ffffff" } }) : null;
 
   return (
     <>
@@ -205,13 +234,6 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
             </Card>
           )}
 
-          {a.user && canManage && (
-            <Card className="p-5">
-              <h2 className="mb-3 font-display text-[16px] text-ink">{tCard("adminSection")}</h2>
-              <CardTitleEditor associateId={a.id} initial={a.user.nameCards[0]?.customTitle ?? ""} />
-            </Card>
-          )}
-
           <Card className="p-5">
             <h2 className="mb-3 font-display text-[16px] text-ink">{t("detail.pfileSection")}</h2>
             {!a.pFile || a.pFile.documents.length === 0 ? (
@@ -233,6 +255,21 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
           </Card>
         </div>
       </div>
+
+      {/* B-8: full card editor (English name/email/HP are read-only here — they
+          come from the profile above; this section only owns the card fields). */}
+      {a.user && canManage && cardQr && (
+        <Card className="mt-4 p-5">
+          <h2 className="mb-4 font-display text-[16px] text-ink">{tCard("adminSection")}</h2>
+          <NameCardStudio
+            associateId={a.id}
+            editable
+            canEditTitle
+            lastEditedBy={lastEditedBy}
+            data={{ chineseName: card?.chineseName ?? "", englishName: a.fullName, title: cardTitle, hp: a.mobileNumber, email: a.email, qrDataUrl: cardQr }}
+          />
+        </Card>
+      )}
     </>
   );
 }
