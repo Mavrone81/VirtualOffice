@@ -5,7 +5,7 @@
 // (needs DATABASE_URL); fake data only, cleaned up.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { isTransactionSettled, findSettledTransactionIds } from "./settled-check";
+import { isTransactionSettled, findSettledTransactionIds, findSettledReasons } from "./settled-check";
 
 const TAG = "B7SETTLED-";
 let companyId = "", closerId = "", secondId = "";
@@ -69,14 +69,39 @@ describe("findSettledTransactionIds agrees with isTransactionSettled per id", ()
     // 3. No ledger line at all, or a Pending-only payout -> not settled.
     const txClear = await mkTransaction("CLEAR");
 
-    const ids = [txLinked.id, txLegacy.id, txClear.id];
+    // 4. BOTH apply at once: a line linked to an Approved payout for
+    // (closer, month), AND a SEPARATE unlinked Paid payout for that exact
+    // (closer, month) with no lines of its own. Linked must win.
+    const txBoth = await mkTransaction("BOTH");
+    const bothMonth = nextMonth();
+    const bothPayout1 = await prisma.monthlyPayout.create({
+      data: { payoutMonth: bothMonth, associateId: closerId, seq: 0, kind: "Regular" as never, associateName: "Closer", designation: "SalesAssociate" as never, payoutStatus: "Approved" as never, totalPayable: 100 },
+    });
+    await prisma.commissionLedger.create({
+      data: { transactionId: txBoth.id, payoutMonth: bothMonth, associateId: closerId, associateName: "Closer", lineType: "Personal" as never, basisAmount: 100, amount: 100, eligibility: "Eligible" as never, status: "Eligible" as never, payoutId: bothPayout1.id },
+    });
+    await prisma.monthlyPayout.create({
+      data: { payoutMonth: bothMonth, associateId: closerId, seq: 1, kind: "Adjustment" as never, associateName: "Closer", designation: "SalesAssociate" as never, payoutStatus: "Paid" as never, totalPayable: 50 },
+    });
+
+    const ids = [txLinked.id, txLegacy.id, txClear.id, txBoth.id];
     const [individually, batch] = await Promise.all([
       Promise.all(ids.map((id) => isTransactionSettled(prisma, id))),
       findSettledTransactionIds(ids),
     ]);
 
-    expect(individually).toEqual([true, true, false]);
-    expect(batch).toEqual(new Set([txLinked.id, txLegacy.id]));
+    expect(individually).toEqual([true, true, false, true]);
+    expect(batch).toEqual(new Set([txLinked.id, txLegacy.id, txBoth.id]));
+
+    // findSettledReasons: the specific reason per id, matching refuseIfSettled's
+    // own error keys and check order (linked wins when both apply).
+    const reasons = await findSettledReasons(ids);
+    expect(reasons.get(txLinked.id)).toBe("payoutAlreadyApprovedOrPaid");
+    expect(reasons.get(txLegacy.id)).toBe("legacyReconciliationPending");
+    expect(reasons.has(txClear.id)).toBe(false);
+    expect(reasons.get(txBoth.id)).toBe("payoutAlreadyApprovedOrPaid"); // linked wins
+    // findSettledTransactionIds is just the reasons map's key set.
+    expect(new Set(reasons.keys())).toEqual(batch);
   });
 
   it("agrees across ~20 mixed transactions and two associates (the fixed-3-query path)", async () => {
