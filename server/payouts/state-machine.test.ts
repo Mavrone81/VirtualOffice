@@ -1,12 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
 const payout = { current: "Paid" as string, updatedCount: 1, total: "100" };
-vi.mock("@/lib/db", () => ({ prisma: {
-  monthlyPayout: {
-    findUnique: vi.fn(async () => ({ id: "p1", payoutStatus: payout.current, totalPayable: new Prisma.Decimal(payout.total) })),
-    updateMany: vi.fn(async () => ({ count: payout.updatedCount })),
-  },
-}}));
+// B-7: setPayoutStatus now runs inside prisma.$transaction (locking every
+// sales_transaction this payout's lines belong to first). `tx` IS the same
+// mock object as `prisma` here — a Prisma.TransactionClient has the same
+// model-delegate shape as PrismaClient, so existing assertions against
+// prisma.monthlyPayout.updateMany still see the calls made via `db`.
+vi.mock("@/lib/db", () => {
+  const prismaMock = {
+    monthlyPayout: {
+      findUnique: vi.fn(async () => ({ id: "p1", payoutStatus: payout.current, totalPayable: new Prisma.Decimal(payout.total) })),
+      updateMany: vi.fn(async () => ({ count: payout.updatedCount })),
+    },
+    $queryRaw: vi.fn(async () => []),
+    $transaction: vi.fn(async (fn: (db: unknown) => unknown) => fn(prismaMock)),
+  };
+  return { prisma: prismaMock };
+});
 vi.mock("@/server/access", () => ({ getAdminPrincipal: async () => ({ userId: "u1", role: "Admin" }) }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));

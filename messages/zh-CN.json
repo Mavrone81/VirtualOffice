@@ -389,8 +389,14 @@
       "bank": "银行",
       "reference": "参考编号",
       "confirm": "确认已付款",
-      "cancel": "取消"
-    }
+      "cancel": "取消",
+      "ackLabel": "付款证明（必填）",
+      "ackHint": "PDF、JPG 或 PNG"
+    },
+    "viewAck": "查看付款证明",
+    "markUnpaidReason": "原因（必填）",
+    "markUnpaidBlocked": "无法取消标记 — 此笔交易的佣金已批准或已发放。",
+    "ackUploadError": "文件上传失败 — {reason}。"
   },
   "notices": {
     "title": "公告",
@@ -1304,6 +1310,9 @@
     "payoutNotPositive": "总额为零或负数的支付无法批准。",
     "payoutsNotBackfilled": "本月有已批准或已支付的支付记录尚未关联到佣金明细。请先执行支付回填，再重新运行支付。",
     "payoutRunConflict": "运行期间支付记录已发生变化，请重试。",
+    "payoutAlreadyApprovedOrPaid": "无法取消标记 — 此笔交易的佣金已批准或已发放。",
+    "legacyReconciliationPending": "无法取消标记 — 该伙伴在此月份有一笔较早的支付记录尚待核对。",
+    "reasonRequired": "请填写原因。",
     "recomputeBusy": "系统繁忙 — 付款未被记录，请重试。",
     "reauthFailed": "密码确认失败。",
     "titleRequired": "标题为必填项。",
