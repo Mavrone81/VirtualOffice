@@ -93,6 +93,7 @@
     "flyers": "传单",
     "edm": "电子直邮",
     "customisation": "定制服务",
+    "chineseNameMenu": "中文名",
     "greetings": "节日祝福",
     "productsCatalogue": "产品",
     "recruitmentDashboard": "招募概览",
@@ -833,6 +834,7 @@
     "netToCloserLabel": "成交者净得",
     "companyRetainedLabel": "公司留存",
     "previewEnterNumbers": "输入数值以查看明细。",
+    "overAllocatedWarning": "直属上线与第二上线的 override 合计超过公司抽成奖池 —— 公司留存将为负数。",
     "couldNotCreate": "创建失败。",
     "createProductBtn": "创建产品",
     "catalogue": {
@@ -1433,7 +1435,7 @@
   },
   "marketing": {
     "customisation": {
-      "title": "定制服务",
+      "title": "中文名",
       "subtitle": "个性化营销物料",
       "howTitle": "如何申请定制",
       "howBody": "个性化营销物料（定制传单、电子直邮、节日祝福及其他设计）由专人安排。请联系 Yiling 说明需求，她会告知方案与所需时间。",
