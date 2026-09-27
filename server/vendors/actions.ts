@@ -10,6 +10,7 @@ import { isAdminRole } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { putObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
+import { encryptNric, LooksLikeEncryptedError } from "@/lib/crypto";
 import { renderReferralAgreementPdfFromData } from "@/lib/pdf/referral-agreement";
 
 const MAX_BYTES = 15_000_000;
@@ -115,6 +116,16 @@ export async function submitReferralPartnership(
   const signatureBytes = decodeSignature(input.signatureDataUrl);
   if (!signatureBytes) return { ok: false, error: t("signatureInvalid") };
 
+  // SEC-12: encrypted at rest. The PDF below still gets the plaintext value
+  // (the vendor's own just-submitted input, not a DB read).
+  let vendorSignerNricEncrypted: string | null;
+  try {
+    vendorSignerNricEncrypted = encryptNric(input.vendorSignerNric);
+  } catch (e) {
+    if (e instanceof LooksLikeEncryptedError) return { ok: false, error: t("invalidInput") };
+    throw e;
+  }
+
   const now = new Date();
   const id = randomUUID();
   const signatureKey = `vendors/${id}/vendor-signature.png`;
@@ -154,7 +165,7 @@ export async function submitReferralPartnership(
       vendorUen: input.vendorUen?.trim() || null,
       vendorAddress: input.vendorAddress?.trim() || null,
       vendorSignerName: input.vendorSignerName.trim(),
-      vendorSignerNric: input.vendorSignerNric?.trim() || null,
+      vendorSignerNric: vendorSignerNricEncrypted,
       vendorSignerDesignation: input.vendorSignerDesignation?.trim() || null,
       vendorSignatureKey: signatureKey,
       agreementPdfKey: pdfKey,

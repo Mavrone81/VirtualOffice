@@ -3,6 +3,7 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { getObject } from "@/lib/storage";
+import { readNric } from "@/server/pii";
 
 // ---------------------------------------------------------------------------
 // Referral & Marketing Partnership Agreement (consolidated menu, Sep 2026).
@@ -289,6 +290,11 @@ export async function renderReferralAgreementPdf(vendorReferralId: string): Prom
     return buf ? `data:image/png;base64,${buf.toString("base64")}` : null;
   };
 
+  // SEC-12: decrypt (or, during the transition, tolerate still-plaintext legacy rows).
+  const vendorSignerNric = await readNric({
+    blob: v.vendorSignerNric, field: "vendorSignerNric", subjectType: "VendorReferral", subjectId: v.id,
+  });
+
   const buffer = await renderToBuffer(
     <AgreementDoc
       a={{
@@ -297,7 +303,7 @@ export async function renderReferralAgreementPdf(vendorReferralId: string): Prom
         vendorUen: v.vendorUen,
         vendorAddress: v.vendorAddress,
         vendorSignerName: v.vendorSignerName,
-        vendorSignerNric: v.vendorSignerNric,
+        vendorSignerNric,
         vendorSignerDesignation: v.vendorSignerDesignation,
         vendorSignatureDataUrl: await toDataUrl(v.vendorSignatureKey),
         vendorSignedDate: v.submittedAt,
