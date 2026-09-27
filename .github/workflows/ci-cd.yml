@@ -46,9 +46,12 @@ jobs:
       PII_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
     steps:
       - uses: actions/checkout@v4
+      # No `version:` on purpose: pnpm/action-setup@v4 reads `packageManager` from
+      # package.json, the single source of truth. Passing BOTH makes the action
+      # throw "Multiple versions of pnpm specified" — it compares them as strings
+      # (`packageManager.replace('pnpm@','') !== version`), so `pnpm@9.15.0` vs
+      # `version: 9` is a mismatch, not a match.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
