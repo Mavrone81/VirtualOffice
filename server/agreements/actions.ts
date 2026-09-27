@@ -13,6 +13,7 @@ import { assertUpload } from "@/lib/file-type";
 import { amountToWords } from "@/lib/amount-words";
 import { renderAshesAgreementPdf } from "@/lib/pdf/ashes-agreement";
 import type { AshesPet } from "@/lib/pdf/ashes-agreement";
+import { encryptNric, LooksLikeEncryptedError } from "@/lib/crypto";
 
 // ---------------------------------------------------------------------------
 // Storage of Pets Ashes Agreement (consolidated menu, Sep 2026). Pipeline:
@@ -88,17 +89,29 @@ export async function saveAshesAgreement(
       ? sub.saleAmount.minus(sub.deposit ?? 0).div(sub.installmentCount)
       : null;
 
+  // SEC-12: the 4 NRIC fields are encrypted at rest.
+  let applicant1Nric: string | null, applicant2Nric: string | null, applicantWitnessNric: string | null, companyWitnessNric: string | null;
+  try {
+    applicant1Nric = encryptNric(input.applicant1Nric);
+    applicant2Nric = encryptNric(input.applicant2Nric);
+    applicantWitnessNric = encryptNric(input.applicantWitnessNric);
+    companyWitnessNric = encryptNric(input.companyWitnessNric);
+  } catch (e) {
+    if (e instanceof LooksLikeEncryptedError) return { ok: false, error: t("invalidInput") };
+    throw e;
+  }
+
   const data = {
     storageSpaceLocation: input.storageSpaceLocation?.trim() || null,
     nicheUnit: input.nicheUnit?.trim() || null,
     pets,
     applicant1Name: input.applicant1Name.trim(),
-    applicant1Nric: input.applicant1Nric?.trim() || null,
+    applicant1Nric,
     applicant1Address: input.applicant1Address?.trim() || null,
     applicant1Contact: input.applicant1Contact?.trim() || null,
     applicant1Email: input.applicant1Email?.trim() || null,
     applicant2Name: input.applicant2Name?.trim() || null,
-    applicant2Nric: input.applicant2Nric?.trim() || null,
+    applicant2Nric,
     applicant2Address: input.applicant2Address?.trim() || null,
     applicant2Contact: input.applicant2Contact?.trim() || null,
     applicant2Email: input.applicant2Email?.trim() || null,
@@ -112,9 +125,9 @@ export async function saveAshesAgreement(
     maintenanceStartYear: input.maintenanceStartYear ?? new Date().getFullYear() + 1,
     additionalTerms: input.additionalTerms?.trim() || null,
     applicantWitnessName: input.applicantWitnessName?.trim() || null,
-    applicantWitnessNric: input.applicantWitnessNric?.trim() || null,
+    applicantWitnessNric,
     companyWitnessName: input.companyWitnessName?.trim() || null,
-    companyWitnessNric: input.companyWitnessNric?.trim() || null,
+    companyWitnessNric,
   };
 
   const agreement = sub.ashesAgreement
