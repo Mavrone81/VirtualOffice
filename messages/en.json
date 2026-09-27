@@ -31,6 +31,17 @@
     "allCaughtUp": "You're all caught up.",
     "saved": "Saved"
   },
+  "filters": {
+    "designation": "Designation",
+    "team": "Team",
+    "teamNoDownline": "No downline associates",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "product": "Product",
+    "eligibility": "Eligibility",
+    "closer": "Closer",
+    "clearAll": "Clear all filters"
+  },
   "nav": {
     "groupOperations": "Operations",
     "groupFinance": "Finance",
@@ -159,6 +170,7 @@
     "subtitle": "The HR system of record — hierarchy, approval, status.",
     "exportContacts": "⤓ Export contacts",
     "newAssociate": "+ New associate",
+    "emptyFiltered": "No associates match these filters.",
     "col": {
       "id": "ID",
       "associate": "Associate",
@@ -1014,6 +1026,7 @@
       "title": "Sales transactions",
       "subtitle": "The verified, official record of confirmed sales.",
       "empty": "No verified transactions yet — verify a submission to create one.",
+      "emptyFiltered": "No transactions match these filters.",
       "col": {
         "txnId": "Txn ID",
         "date": "Date",
