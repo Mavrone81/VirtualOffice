@@ -24,6 +24,7 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 import { prisma } from "@/lib/db";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
+import { fakePdfFile } from "@/lib/test-fixtures";
 import { runCommission } from "./run";
 
 const TAG = "R4RACE-";
@@ -100,7 +101,7 @@ describe("R-4: runCommission stale-read race", () => {
     const runBOnce = () => {
       if (!bStarted) {
         who.session = ADMIN;
-        bStarted = markInvoicePaid(inv.id, { method: "Bank", reference: TAG + "pay" });
+        bStarted = markInvoicePaid(inv.id, fakePdfFile(), { method: "Bank", reference: TAG + "pay" });
       }
       return bStarted;
     };

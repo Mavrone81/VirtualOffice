@@ -18,6 +18,7 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { prisma } from "@/lib/db";
 import { markInvoicePaid, markInvoiceUnpaid } from "@/server/invoices/actions";
+import { fakePdfFile } from "@/lib/test-fixtures";
 import { recomputeAmountCollected } from "@/server/transactions/amount-collected";
 import { COMMISSION_TX_OPTIONS } from "@/server/commission/run";
 import { logAudit } from "@/lib/audit";
@@ -116,8 +117,8 @@ describe(`amountCollected stress: ${ROUNDS} rounds of concurrent mark/unmark/rec
         const auditCountBefore = vi.mocked(logAudit).mock.calls.length;
         const results = await Promise.allSettled(
           ops.map((op) => {
-            if (op.kind === "pay") return markInvoicePaid(op.invoiceId!);
-            if (op.kind === "unpay") return markInvoiceUnpaid(op.invoiceId!);
+            if (op.kind === "pay") return markInvoicePaid(op.invoiceId!, fakePdfFile());
+            if (op.kind === "unpay") return markInvoiceUnpaid(op.invoiceId!, "stress test unmark");
             return recomputeOnly(transactionId);
           }),
         );
