@@ -1,8 +1,8 @@
-import { LedgerStatus } from "@prisma/client";
+import { PayoutStatus } from "@prisma/client";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
-import { formatSGD, sum } from "@/lib/money";
+import { formatSGD } from "@/lib/money";
 import { humanize } from "@/lib/labels";
+import { myCommissionsSummary } from "@/server/dashboard/my-commissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -18,18 +18,9 @@ export default async function MyCommissionsPage() {
   const t = await getTranslations("portal");
   const tc = await getTranslations("common");
 
-  const ledger = associateId
-    ? await prisma.commissionLedger.findMany({
-        where: { associateId },
-        include: { transaction: true },
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      })
-    : [];
-
-  const eligible = sum(ledger.filter((l) => l.status === LedgerStatus.Eligible).map((l) => l.amount));
-  const pending = sum(ledger.filter((l) => l.status === LedgerStatus.Pending).map((l) => l.amount));
-  const paid = sum(ledger.filter((l) => l.status === LedgerStatus.Paid).map((l) => l.amount));
+  const { ledger, eligible, pending, paid } = associateId
+    ? await myCommissionsSummary(associateId)
+    : { ledger: [], eligible: 0, pending: 0, paid: 0 };
 
   return (
     <>
@@ -63,7 +54,8 @@ export default async function MyCommissionsPage() {
                     <td className="px-5 py-3 text-muted">{humanize(l.lineType)}{l.comCode ? ` · ${l.comCode}` : ""}</td>
                     <td className="px-5 py-3 text-muted">{l.payoutMonth}</td>
                     <td className="px-5 py-3 font-medium text-ink">{formatSGD(l.amount)}</td>
-                    <td className="px-5 py-3"><StatusPill status={l.status} /></td>
+                    {/* Derived, same as the Paid tile (R-6): a settled line keeps LedgerStatus.Eligible, so show the payout's status when it's actually Paid rather than the stale raw status. */}
+                    <td className="px-5 py-3"><StatusPill status={l.payout?.payoutStatus === PayoutStatus.Paid ? PayoutStatus.Paid : l.status} /></td>
                   </tr>
                 ))}
               </tbody>
