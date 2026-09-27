@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { PercentAmountInput } from "@/components/ui/percent-amount-input";
 import { createProduct, type ProductInput } from "@/server/products/actions";
-import { computeProductPreview } from "@/lib/commission-preview";
+import { computeProductPreview, isOverAllocated } from "@/lib/commission-preview";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -27,9 +27,10 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
   const [salesPreview, setSalesPreview] = useState("10000");
   const [f, setF] = useState<ProductInput>({
     productCode: "", productName: "", commissionType: "Percentage",
-    // Every % is of the SALES AMOUNT. Defaults set by the project owner 2026-09-21:
-    // closing 100 / company cut pool 10 / direct-upline 2 / second-upline 1.
-    closingCommPct: "100", companyCutPct: "10", smOverridePct: "2", sdOverridePct: "1",
+    // Every % is of the SALES AMOUNT. Defaults set by the project owner 2026-09-26 (B-10):
+    // closing 100 / company cut pool 10 / direct-upline 3 / second-upline 2.
+    // Initial form values only — existing products keep whatever they were saved with.
+    closingCommPct: "100", companyCutPct: "10", smOverridePct: "3", sdOverridePct: "2",
     companyCutType: "Percentage", smOverrideType: "Percentage", sdOverrideType: "Percentage",
     isExternal: false, effectiveDate: today, defaultCompanyId: companies[0]?.id,
   });
@@ -178,6 +179,9 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
                 </dl>
               ) : (
                 <p className="text-[12px] text-muted-2">{t("previewEnterNumbers")}</p>
+              )}
+              {preview && isOverAllocated(preview) && (
+                <p className="mt-3 rounded-lg bg-danger-50 px-3 py-2 text-[12px] text-danger">{t("overAllocatedWarning")}</p>
               )}
             </div>
           </>
