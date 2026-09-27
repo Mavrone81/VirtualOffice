@@ -9,6 +9,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { AdminApproveSplitButton } from "./admin-approve-split-button";
 import { ReassignDirector } from "./reassign-director";
+import { SplitExceptionForm } from "./split-exception-form";
+import { splitBoundViolations } from "@/server/commission/split-bounds";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Split approvals · Enshrine Admin" };
@@ -22,7 +24,7 @@ function fmtShare(type: ComValueType | null, value: { toString(): string } | nul
 
 type Row = {
   id: string; clientName: string; saleAmount: unknown; salesDate: Date; createdAt: Date; splitEditedAt: Date | null; paymentPlan: string;
-  sdApprovedAt: Date | null; splitDirectorId: string | null;
+  sdApprovedAt: Date | null; splitDirectorId: string | null; splitExceptionRequired: boolean; splitExceptionApprovedAt: Date | null;
   associate2Id: string | null; associate2ValueType: ComValueType | null; associate2Value: unknown;
   associate3Id: string | null; associate3ValueType: ComValueType | null; associate3Value: unknown;
   closingAssociate: { fullName: string };
@@ -60,6 +62,25 @@ export default async function AdminSplitApprovalsPage() {
     }),
   ]);
 
+  // B-S6: sales whose split books a negative commission line and still need the Business
+  // Admin's split exception. Lines are computed live (the engine is the authority).
+  const exceptionSubs = await prisma.salesSubmission.findMany({
+    where: { splitExceptionRequired: true, splitExceptionApprovedAt: null, closedAt: null, status: { not: SubmissionStatus.Rejected } },
+    orderBy: { createdAt: "asc" },
+    include: { closingAssociate: { select: { fullName: true } }, lineItems: true },
+  });
+  const exceptions = await Promise.all(exceptionSubs.map(async (s) => ({
+    s,
+    lines: await splitBoundViolations(prisma, {
+      salesDate: s.salesDate, closingAssociateId: s.closingAssociateId, lines: s.lineItems,
+      associate2Id: s.associate2Id, associate2ValueType: s.associate2ValueType, associate2Value: s.associate2Value,
+      associate3Id: s.associate3Id, associate3ValueType: s.associate3ValueType, associate3Value: s.associate3Value,
+    }),
+  })));
+  const approverIds = [...new Set(exceptionSubs.map((s) => s.splitAdminApprovedById).filter((x): x is string => !!x))];
+  const approvers = approverIds.length ? await prisma.user.findMany({ where: { id: { in: approverIds } }, select: { id: true, email: true } }) : [];
+  const approverById = new Map(approvers.map((u) => [u.id, u.email]));
+
   const extraIds = [
     ...new Set([...awaitingSd, ...awaitingAdmin].flatMap((s) => [s.associate2Id, s.associate3Id, s.splitDirectorId]).filter((x): x is string => !!x)),
   ];
@@ -77,6 +98,9 @@ export default async function AdminSplitApprovalsPage() {
         <div className="text-[13px]">
           <span className="font-medium text-ink">{s.clientName}</span>
           <span className="text-muted"> · {formatSGD(s.saleAmount as never)} · {format(s.salesDate, "d MMM yyyy")}</span>
+          {s.splitExceptionRequired && (s.splitExceptionApprovedAt
+            ? <span className="ml-2 rounded-full bg-paper-100 px-2 py-0.5 text-[11px] text-muted">{t("exceptionBadgeApproved")}</span>
+            : <span className="ml-2 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] text-danger">{t("exceptionBadge")}</span>)}
         </div>
         <div className="flex items-center gap-3">{meta}{action}</div>
       </div>
@@ -107,6 +131,36 @@ export default async function AdminSplitApprovalsPage() {
   return (
     <>
       <PageHeader title={t("adminTitle")} subtitle={t("adminSubtitle")} />
+
+      {exceptions.length > 0 && (
+        <Card className="mb-6 overflow-hidden border-danger/40">
+          <div className="border-b border-line px-5 py-3 font-display text-[15px] text-ink">{t("sectionExceptions")}</div>
+          <p className="px-5 pt-3 text-[12.5px] text-muted">{t("exceptionsHint")}</p>
+          <div className="divide-y divide-line">
+            {exceptions.map(({ s, lines }) => (
+              <div key={s.id} className="px-5 py-4">
+                <div className="text-[13px]">
+                  <span className="font-medium text-ink">{s.clientName}</span>
+                  <span className="text-muted"> · {formatSGD(s.saleAmount)} · {format(s.salesDate, "d MMM yyyy")} · {t("closer")}: {s.closingAssociate.fullName}</span>
+                </div>
+                <ul className="mt-2 space-y-0.5 text-[12.5px]">
+                  {lines.map((l, i) => (
+                    <li key={i} className="text-danger">
+                      {l.productCode} · {humanize(l.lineType)}{l.associateId === s.closingAssociateId ? ` (${t("closer")})` : ""}: {formatSGD(l.amount)}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-[11.5px] text-muted">
+                  {s.splitAdminApprovedById
+                    ? t("exceptionSplitApprovedBy", { who: approverById.get(s.splitAdminApprovedById) ?? "—" })
+                    : t("exceptionSplitNotYetApproved")}
+                </p>
+                <SplitExceptionForm id={s.id} seenSplitEditedAt={s.splitEditedAt?.toISOString() ?? null} seenLines={lines} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {awaitingSd.length > 0 && (
         <Card className="mb-6 overflow-hidden">

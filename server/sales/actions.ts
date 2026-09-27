@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import {
   Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType, SubmissionDocKind, Designation,
+  AssociateStatus, ApprovalStatus,
 } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -13,6 +14,7 @@ import { isSdApproved, sdApproverId, pickSplitDirectorId, splitFullyApproved } f
 import { D, round2, sum, ZERO } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
+import { splitBoundViolations, snapshotCovers, sameViolations, type SplitBoundViolation } from "@/server/commission/split-bounds";
 import { validate } from "@/lib/validate";
 import { saleSchema } from "@/lib/schemas";
 import { addSubmissionDocuments } from "@/server/documents/submission-docs";
@@ -71,15 +73,53 @@ async function resolveSaleLines(lines: { productId: string; lineSaleAmount: numb
   return { lineData, saleAmount: sum(lineData.map((l) => l.lineSaleAmount)) };
 }
 
-export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string }> {
+/** The submission's split columns from the validated input. */
+function splitColumns(
+  a2?: { associateId: string; valueType: string; value: number },
+  a3?: { associateId: string; valueType: string; value: number },
+) {
+  return {
+    associate2Id: a2?.associateId ?? null, associate2ValueType: a2 ? (a2.valueType as ComValueType) : null, associate2Value: a2 ? round2(a2.value) : null,
+    associate3Id: a3?.associateId ?? null, associate3ValueType: a3 ? (a3.valueType as ComValueType) : null, associate3Value: a3 ? round2(a3.value) : null,
+  };
+}
+
+/** Validation codes from saleSchema refinements that have their own message. */
+const SALE_ERROR_CODES = new Set(["splitPercentTooHigh", "splitPartyInvalid"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * SEC-6: a split partner must be a real, active, approved, non-archived associate
+ * other than the closer (the UI only offered those; the server never checked).
+ */
+async function splitPartiesError(
+  closerId: string,
+  a2?: { associateId: string } | null,
+  a3?: { associateId: string } | null,
+): Promise<"splitPartyInvalid" | null> {
+  const ids = [a2?.associateId, a3?.associateId].filter((x): x is string => !!x);
+  if (ids.length === 0) return null;
+  if (ids.includes(closerId) || new Set(ids).size !== ids.length || !ids.every((i) => UUID_RE.test(i))) return "splitPartyInvalid";
+  const ok = await prisma.associate.count({
+    where: { id: { in: ids }, associateStatus: AssociateStatus.Active, approvalStatus: ApprovalStatus.Approved, archivedAt: null },
+  });
+  return ok === ids.length ? null : "splitPartyInvalid";
+}
+
+/** A sale that books a negative commission line (B-S6): allowed, but flagged for a split exception. */
+export type SplitWarning = { code: "splitExceedsNet"; lines: SplitBoundViolation[] };
+
+export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string; id?: string; warning?: SplitWarning }> {
   const t = await getTranslations("errors");
   const v = validate(saleSchema, input);
-  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  if (!v.ok) return { ok: false, error: t(v.code && SALE_ERROR_CODES.has(v.code) ? v.code : "invalidInput") };
   const validInput = v.data;
 
   const session = await auth();
   if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
   const closerId = session.user.associateId;
+  const partyError = await splitPartiesError(closerId, validInput.associate2, validInput.associate3);
+  if (partyError) return { ok: false, error: t(partyError) };
 
   // Split director defaults to the closer's team director (23-Jul, issue 2): the
   // earliest active directed team the closer belongs to (the "first" SD when in
@@ -103,6 +143,13 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 
   const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
 
+  // B-S6 (the project owner: warn, don't block): a split that would book any commission line below
+  // zero is ALLOWED, but flagged — it needs a Business Admin split exception before closing.
+  const violations = await splitBoundViolations(prisma, {
+    salesDate: new Date(validInput.salesDate), closingAssociateId: closerId, lines: lineData,
+    ...splitColumns(validInput.associate2, validInput.associate3),
+  });
+
   const created = await prisma.salesSubmission.create({
     select: { id: true },
     data: {
@@ -124,9 +171,13 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
       associate3ValueType: validInput.associate3 ? (validInput.associate3.valueType as ComValueType) : null,
       associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
       status: SubmissionStatus.Submitted,
+      splitExceptionRequired: violations.length > 0,
       lineItems: { create: lineData },
     },
   });
+  if (violations.length) {
+    await logAudit({ action: "split.exception_flagged", entityType: "SalesSubmission", entityId: created.id, actorUserId: session.user.id, after: { lines: violations } });
+  }
 
   // Optional supporting documents (freeform) — never fail the sale over a doc.
   if (input.documents?.length) {
@@ -135,7 +186,8 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 
   revalidatePath("/portal/sales");
   revalidatePath("/admin/quotations");
-  return { ok: true };
+  if (violations.length) revalidatePath("/admin/split-approvals");
+  return violations.length ? { ok: true, id: created.id, warning: { code: "splitExceedsNet", lines: violations } } : { ok: true, id: created.id };
 }
 
 /**
@@ -143,10 +195,10 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
  * may change client / line / split details until an admin has approved it.
  * Rebuilds the line items + total; supporting documents are managed separately.
  */
-export async function editSale(input: SubmitSaleInput & { id: string }): Promise<{ ok: boolean; error?: string }> {
+export async function editSale(input: SubmitSaleInput & { id: string }): Promise<{ ok: boolean; error?: string; warning?: SplitWarning }> {
   const t = await getTranslations("errors");
   const v = validate(saleSchema, input);
-  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  if (!v.ok) return { ok: false, error: t(v.code && SALE_ERROR_CODES.has(v.code) ? v.code : "invalidInput") };
   const validInput = v.data;
 
   const session = await auth();
@@ -158,13 +210,15 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
       closingAssociateId: true, status: true, salesDate: true, saleAmount: true,
       associate2Id: true, associate2ValueType: true, associate2Value: true,
       associate3Id: true, associate3ValueType: true, associate3Value: true,
-      sdApprovedAt: true, splitAdminApprovedAt: true,
+      sdApprovedAt: true, splitAdminApprovedAt: true, splitExceptionApprovedAt: true,
       lineItems: { select: { productCode: true, lineSaleAmount: true, selectedComCodes: true } },
     },
   });
   if (!existing) return { ok: false, error: t("notFound") };
   if (existing.closingAssociateId !== session.user.associateId) return { ok: false, error: t("forbidden") };
   if (existing.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+  const partyError = await splitPartiesError(existing.closingAssociateId, validInput.associate2, validInput.associate3);
+  if (partyError) return { ok: false, error: t(partyError) };
 
   const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
   const next = {
@@ -184,6 +238,13 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
     associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
   };
 
+  // B-S6: re-check the edited sale; still allowed, but flagged when a line would go negative.
+  const violations = await splitBoundViolations(prisma, {
+    salesDate: next.salesDate, closingAssociateId: existing.closingAssociateId, lines: lineData,
+    associate2Id: next.associate2Id, associate2ValueType: next.associate2ValueType, associate2Value: next.associate2Value,
+    associate3Id: next.associate3Id, associate3ValueType: next.associate3ValueType, associate3Value: next.associate3Value,
+  });
+
   // SEC-5 / M2: the split approvals (SD + Business Admin) were given for a specific
   // split on specific amounts. If anything that feeds the commission split changes —
   // the split parties/values, the lines (product, amount, add-on codes) or the sales
@@ -194,8 +255,14 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
   const splitChanged = JSON.stringify(before) !== JSON.stringify(after);
   const hadApproval = !!existing.sdApprovedAt || !!existing.splitAdminApprovedAt;
   const clearApprovals = splitChanged
-    ? { sdApprovedAt: null, sdApprovedById: null, splitAdminApprovedAt: null, splitAdminApprovedById: null, splitEditedAt: new Date() }
+    ? {
+        sdApprovedAt: null, sdApprovedById: null, splitAdminApprovedAt: null, splitAdminApprovedById: null, splitEditedAt: new Date(),
+        // B-S6: any split edit voids a split exception too — it was given for the old terms.
+        splitExceptionApprovedAt: null, splitExceptionApprovedById: null, splitExceptionReason: null,
+        splitExceptionSnapshot: Prisma.DbNull, splitExceptionVersion: null,
+      }
     : {};
+  const exceptionVoided = splitChanged && !!existing.splitExceptionApprovedAt;
 
   try {
     await prisma.$transaction(async (db) => {
@@ -203,7 +270,7 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
       // approval of the quotation landing after the read above can't be edited past.
       const res = await db.salesSubmission.updateMany({
         where: { id: input.id, closingAssociateId: session.user.associateId!, status: SubmissionStatus.Submitted },
-        data: { ...next, ...clearApprovals },
+        data: { ...next, ...clearApprovals, splitExceptionRequired: violations.length > 0 },
       });
       if (res.count !== 1) throw new EditConflict();
       await db.saleLineItem.deleteMany({ where: { submissionId: input.id } });
@@ -218,13 +285,19 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
     action: "sale.edited", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id,
     before, after: { ...after, splitChanged, approvalsCleared: splitChanged && hadApproval },
   });
+  if (exceptionVoided) {
+    await logAudit({ action: "split.exception_voided", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { reason: "edit" } });
+  }
+  if (violations.length && splitChanged) {
+    await logAudit({ action: "split.exception_flagged", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { lines: violations } });
+  }
   revalidatePath("/portal/sales");
   revalidatePath(`/portal/sales/${input.id}`);
-  if (splitChanged && hadApproval) {
+  if (splitChanged && (hadApproval || violations.length)) {
     revalidatePath("/portal/approvals");
     revalidatePath("/admin/split-approvals");
   }
-  return { ok: true };
+  return violations.length ? { ok: true, warning: { code: "splitExceedsNet", lines: violations } } : { ok: true };
 }
 
 class EditConflict extends Error {}
@@ -413,6 +486,75 @@ export async function adminApproveSplit(
 }
 
 /**
+ * B-S6: a Business Admin approves a sale whose split books a commission line below zero
+ * (the project owner 2026-09-26: warn, don't block — but require admin approval). Business Admin only
+ * (not Accounts), a reason is required, and the approval is bound to (a) the split version
+ * the admin's page rendered (SA-1 style CAS on splitEditedAt) and (b) a snapshot of the
+ * negative lines as computed NOW, which closeSale re-checks with the rates then in force.
+ */
+export async function approveSplitException(
+  submissionId: string,
+  reason: string,
+  seenSplitEditedAt: string | null,
+  seenLines: SplitBoundViolation[],
+): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isFullAdmin(session.user.role)) return { ok: false, error: t("forbidden") };
+  const why = (reason ?? "").trim();
+  if (why.length < 5 || why.length > 500) return { ok: false, error: t("splitExceptionReasonRequired") };
+  const seen = seenAt(seenSplitEditedAt);
+  if (seen === "invalid") return { ok: false, error: t("splitChangedReload") };
+
+  const sub = await prisma.salesSubmission.findUnique({
+    where: { id: submissionId },
+    include: { lineItems: true },
+  });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (sub.status === SubmissionStatus.Rejected || sub.closedAt) return { ok: false, error: t("alreadyProcessed") };
+
+  const violations = await splitBoundViolations(prisma, {
+    salesDate: sub.salesDate, closingAssociateId: sub.closingAssociateId, lines: sub.lineItems,
+    associate2Id: sub.associate2Id, associate2ValueType: sub.associate2ValueType, associate2Value: sub.associate2Value,
+    associate3Id: sub.associate3Id, associate3ValueType: sub.associate3ValueType, associate3Value: sub.associate3Value,
+  });
+  if (violations.length === 0) {
+    // Nothing negative any more (e.g. rates changed in the associate's favour): clear the flag.
+    const cleared = await prisma.salesSubmission.updateMany({ where: { id: submissionId, splitEditedAt: seen }, data: { splitExceptionRequired: false } });
+    if (cleared.count) await logAudit({ action: "split.exception_cleared", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: "no_negative_lines" } });
+    revalidatePath("/admin/split-approvals");
+    return { ok: true };
+  }
+  // E1: approve exactly the figures the admin saw. If the recompute differs from what the page
+  // rendered (rates or upline eligibility changed since), refuse; the admin must review again.
+  if (!Array.isArray(seenLines) || !sameViolations(violations, seenLines)) {
+    return { ok: false, error: t("splitFiguresChanged") };
+  }
+
+  const res = await prisma.salesSubmission.updateMany({
+    where: { id: submissionId, splitEditedAt: seen, closedAt: null, status: { not: SubmissionStatus.Rejected } },
+    data: {
+      splitExceptionRequired: true,
+      splitExceptionApprovedAt: new Date(),
+      splitExceptionApprovedById: session.user.id,
+      splitExceptionReason: why,
+      splitExceptionSnapshot: violations as unknown as Prisma.InputJsonValue,
+      splitExceptionVersion: seen,
+    },
+  });
+  if (res.count === 0) return { ok: false, error: t("splitChangedReload") };
+
+  // N4: record both admin actors, so "same person approved the split and the exception" is visible.
+  await logAudit({
+    action: "split.exception_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id,
+    after: { reason: why, snapshot: violations, splitAdminApprovedById: sub.splitAdminApprovedById, sameApproverAsSplit: sub.splitAdminApprovedById === session.user.id },
+  });
+  revalidatePath("/admin/split-approvals");
+  revalidatePath(`/portal/sales/${submissionId}`);
+  return { ok: true };
+}
+
+/**
  * Reassign a submission's split Sales Director (23-Jul, issue 2 add-on). The SD
  * is defaulted from the closer's team at submission; if it routed to the wrong
  * director (leave, wrong team) a Business Admin can point it at another SD — but
@@ -512,6 +654,37 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
   if (sub.status !== SubmissionStatus.QuotationApproved) return { ok: false, error: t("quotationNotApproved") };
   if (!splitFullyApproved(sub)) return { ok: false, error: t("splitNotApproved") };
   if (sub._count.documents === 0) return { ok: false, error: t("signedDocRequired") };
+
+  // SEC-6: authoritative bound at closing, with the rates in force on the sales date —
+  // a split larger than Net-to-Closer would otherwise book a negative closer line.
+  const violations = await splitBoundViolations(prisma, {
+    salesDate: sub.salesDate, closingAssociateId: sub.closingAssociateId, lines: sub.lineItems,
+    associate2Id: sub.associate2Id, associate2ValueType: sub.associate2ValueType, associate2Value: sub.associate2Value,
+    associate3Id: sub.associate3Id, associate3ValueType: sub.associate3ValueType, associate3Value: sub.associate3Value,
+  });
+  // B-S6: negative lines are allowed only under a split exception that still covers the
+  // sale as it books NOW — same split version, and every negative line within the approved
+  // snapshot (not new, not deeper, e.g. after a rate change). Otherwise the exception is
+  // voided and a fresh Business Admin approval is needed.
+  if (violations.length) {
+    const approved = sub.splitExceptionApprovedAt !== null
+      && (sub.splitExceptionVersion?.getTime() ?? null) === (sub.splitEditedAt?.getTime() ?? null)
+      && snapshotCovers(violations, sub.splitExceptionSnapshot as SplitBoundViolation[] | null);
+    if (!approved) {
+      if (sub.splitExceptionApprovedAt !== null) {
+        await prisma.salesSubmission.updateMany({
+          where: { id: sub.id, splitExceptionApprovedAt: sub.splitExceptionApprovedAt },
+          data: { splitExceptionApprovedAt: null, splitExceptionApprovedById: null, splitExceptionReason: null, splitExceptionSnapshot: Prisma.DbNull, splitExceptionVersion: null, splitExceptionRequired: true },
+        });
+        await logAudit({ action: "split.exception_voided", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { reason: "rates_changed", lines: violations } });
+      } else if (!sub.splitExceptionRequired) {
+        await prisma.salesSubmission.update({ where: { id: sub.id }, data: { splitExceptionRequired: true } });
+      }
+      await logAudit({ action: "sale.close_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { reason: "splitExceptionRequired", violations } });
+      revalidatePath("/admin/split-approvals");
+      return { ok: false, error: t("splitExceptionRequired") };
+    }
+  }
 
   const closer = sub.closingAssociate;
   const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;
