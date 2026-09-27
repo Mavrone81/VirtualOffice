@@ -52,3 +52,16 @@ export async function dashboardMetrics(scopeIds: string[] | null): Promise<Dashb
     grossReceived: sum(ledger.filter((l) => l.payout?.payoutStatus === PayoutStatus.Paid).map((l) => l.amount)),
   };
 }
+
+/**
+ * B-1: "Total gross commission paid" (admin dashboard) — the sum of Paid
+ * MonthlyPayouts, org-wide. Derived from the payout's own status (R-6), not
+ * from ledger lines: an Approved-but-unpaid payout doesn't count yet.
+ */
+export async function totalGrossCommissionPaid(): Promise<ReturnType<typeof sum>> {
+  const paid = await prisma.monthlyPayout.findMany({
+    where: { payoutStatus: PayoutStatus.Paid },
+    select: { totalPayable: true },
+  });
+  return sum(paid.map((p) => p.totalPayable));
+}
