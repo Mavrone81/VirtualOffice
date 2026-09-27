@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { CommissionType, ComValueType, Designation, LedgerLineType } from "@prisma/client";
-import { computeProductPreview } from "./commission-preview";
+import { computeProductPreview, isOverAllocated } from "./commission-preview";
 import { computeLineCommission } from "@/server/commission/engine";
 
 // Mirrors VO_System_Workflows_v7 §6A.2 — every % computes on the Sales Amount.
@@ -42,18 +42,31 @@ describe("computeProductPreview", () => {
   });
 
   it("100% closing: company retained = cut pool − overrides (never negative from the pool)", () => {
-    // The case that showed −$300 on the product form (2026-09-21).
+    // The product form's default rates (B-10, 2026-09-26): closing 100 / cut 10 / direct 3 / second 2.
     const p = computeProductPreview({
       salesAmount: "10000",
       closing: { value: "100", percent: true },
       companyCutPool: { value: "10", percent: true },
-      smOverride: { value: "2", percent: true },
-      sdOverride: { value: "1", percent: true },
+      smOverride: { value: "3", percent: true },
+      sdOverride: { value: "2", percent: true },
     });
     expect(p.closing).toBe("10000");
     expect(p.companyCutPool).toBe("1000");
     expect(p.netToCloser).toBe("9000");
-    expect(p.companyRetained).toBe("700"); // 1000 − 200 − 100
+    expect(p.companyRetained).toBe("500"); // 1000 − 300 − 200
+    expect(isOverAllocated(p)).toBe(false);
+  });
+
+  it("over-allocated: direct + second overrides exceed the cut pool at 100% closing (B-10 warning)", () => {
+    const p = computeProductPreview({
+      salesAmount: "10000",
+      closing: { value: "100", percent: true },
+      companyCutPool: { value: "10", percent: true },
+      smOverride: { value: "6", percent: true },
+      sdOverride: { value: "5", percent: true },
+    });
+    expect(p.companyRetained).toBe("-100"); // 1000 − 600 − 500
+    expect(isOverAllocated(p)).toBe(true);
   });
 
   // The preview exists to show what the engine will book. Pin them together so
