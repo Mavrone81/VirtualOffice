@@ -58,6 +58,8 @@ export async function isTransactionSettled(db: Db, transactionId: string): Promi
   return hasUnreconciledLegacyPayout(db, transactionId);
 }
 
+export type SettledReason = "payoutAlreadyApprovedOrPaid" | "legacyReconciliationPending";
+
 /**
  * Batched version for a page listing many transactions — a fixed THREE
  * queries regardless of list size (DevLead follow-up: the first cut fired
@@ -65,9 +67,14 @@ export async function isTransactionSettled(db: Db, transactionId: string): Promi
  * requests / P2024 under load). Read-only, outside any lock: a UI hint, not
  * the authoritative guard (markInvoiceUnpaid/markInstallmentUnpaid re-check
  * under the sale lock regardless of what this returns).
+ *
+ * Returns the SPECIFIC reason per id, matching refuseIfSettled's own error
+ * keys and check order (linked wins when both apply), so the UI's "why is
+ * this disabled" tooltip can say which one applies instead of a bare yes/no.
  */
-export async function findSettledTransactionIds(transactionIds: string[]): Promise<Set<string>> {
-  if (transactionIds.length === 0) return new Set();
+export async function findSettledReasons(transactionIds: string[]): Promise<Map<string, SettledReason>> {
+  const reasons = new Map<string, SettledReason>();
+  if (transactionIds.length === 0) return reasons;
 
   // (1) Linked: transactions with a line in an Approved/Paid payout.
   const linked = await prisma.commissionLedger.findMany({
@@ -75,7 +82,7 @@ export async function findSettledTransactionIds(transactionIds: string[]): Promi
     select: { transactionId: true },
     distinct: ["transactionId"],
   });
-  const settled = new Set(linked.map((l) => l.transactionId));
+  for (const l of linked) reasons.set(l.transactionId, "payoutAlreadyApprovedOrPaid");
 
   // (2) The distinct (transactionId, associateId, payoutMonth) triples this
   // list's own lines belong to — the X1 check's scope.
@@ -100,9 +107,16 @@ export async function findSettledTransactionIds(transactionIds: string[]): Promi
     });
     const blockedPairs = new Set(legacyPayouts.map((p) => pairKey(p.associateId, p.payoutMonth)));
     for (const l of lines) {
-      if (l.associateId && blockedPairs.has(pairKey(l.associateId, l.payoutMonth))) settled.add(l.transactionId);
+      if (l.associateId && blockedPairs.has(pairKey(l.associateId, l.payoutMonth)) && !reasons.has(l.transactionId)) {
+        reasons.set(l.transactionId, "legacyReconciliationPending");
+      }
     }
   }
 
-  return settled;
+  return reasons;
+}
+
+/** Boolean view of findSettledReasons, for callers that only need yes/no. */
+export async function findSettledTransactionIds(transactionIds: string[]): Promise<Set<string>> {
+  return new Set((await findSettledReasons(transactionIds)).keys());
 }
