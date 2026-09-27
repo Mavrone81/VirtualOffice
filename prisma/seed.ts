@@ -1,12 +1,33 @@
 import { PrismaClient, AppRole, Designation, ApprovalStatus, AssociateStatus, PaymentMethod, CommissionType, ComValueType, ProductActiveStatus } from "@prisma/client";
 import { hash } from "@node-rs/argon2";
 import { encryptPII } from "../lib/crypto";
+import { seedGuardError } from "../lib/seed-guard";
 
 const prisma = new PrismaClient();
 
 const ADDRESS = "74 Lorong 6 Geylang, Singapore 399226";
 const EFF = new Date("2026-01-01");
-const SEED_PASSWORD = "Enshrine#2026"; // dev seed login password (change in prod)
+// SEC-4/SEC-3: no hardcoded shared secret in a public repo. Set SEED_PASSWORD
+// in the local seeding shell for a real value; this default is for local dev
+// only and is deliberately NOT the value ever used in any real deployment.
+// `|| undefined` first: an empty-string override isn't a real password (G2)
+// and must fall back to the dev default, not get hashed as-is — `??` alone
+// wouldn't catch that, since "" is neither null nor undefined.
+const SEED_PASSWORD = (process.env.SEED_PASSWORD || undefined) ?? "Seed-Dev-Only#1";
+
+// DevSecOps review (reviews/seed-guard-devsecops-review.md, G1/G2): the
+// fallback above is public (it's in this repo), so anything that isn't
+// provably local MUST supply its own SEED_PASSWORD (at least
+// MIN_SEED_PASSWORD_LENGTH chars) — refuse before any write, rather than
+// silently seeding real accounts with a published password. Logic lives in
+// lib/seed-guard.ts (tested) since this script itself isn't covered by
+// vitest's include globs.
+const guardError = seedGuardError({
+  nodeEnv: process.env.NODE_ENV,
+  databaseUrl: process.env.DATABASE_URL,
+  seedPassword: process.env.SEED_PASSWORD,
+});
+if (guardError) throw new Error(guardError);
 
 async function main() {
   const pwHash = await hash(SEED_PASSWORD);
@@ -82,20 +103,25 @@ async function main() {
     }
   }
 
-  // --- Associates (real prototype data, EN0001-EN0007) ---
+  // --- Associates (FAKE data — SEC-4. Same row count, designations and
+  // upline relationships as the original prototype seed; every name, NRIC,
+  // DOB, mobile and email below is synthetic. NRIC-shaped values follow the
+  // S000000<n>A convention shared with reports/harness/fake-seed.integration.test.ts
+  // so screenshots and seed data agree; mobiles are in the reserved-looking
+  // 8000000<n> range; emails are on example.com.) ---
   type A = {
     code: string; fullName: string; businessName?: string; mobile: string; email: string;
     nric: string; dob: string; designation: Designation; uplineCode?: string; team: string;
     approval: ApprovalStatus; status: AssociateStatus; role?: AppRole;
   };
   const assocDefs: A[] = [
-    { code: "EN0001", fullName: "Sylvia Lee Chee Wei", businessName: "Sylvia Lee", mobile: "96671881", email: "sylvia.lee.cx@gmail.com", nric: "S2184892A", dob: "1963-05-28", designation: Designation.SalesDirector, team: "Sylvia Lee Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesDirector },
-    { code: "EN0002", fullName: "Lim Xiong", businessName: "Vincent Lim", mobile: "98894508", email: "petafterlifesg@gmail.com", nric: "S8017722D", dob: "1980-06-15", designation: Designation.SalesDirector, team: "Vincent Lim Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesDirector },
-    { code: "EN0003", fullName: "Jennifer Rk (Uma Devi Raja Krishnan)", businessName: "Jennifer Rk", mobile: "87422156", email: "uma.devi.jennifer@gmail.com", nric: "S7703318A", dob: "1977-01-29", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Vincent Lim Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesAssociate },
-    { code: "EN0004", fullName: "Lee Jong Seng", businessName: "John Lee", mobile: "97323288", email: "johnlee@mobilebellator.com", nric: "S6807723J", dob: "1968-02-20", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Vincent Lim Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesAssociate },
-    { code: "EN0005", fullName: "Lim Wai Lee", mobile: "82001390", email: "limwailee8200@gmail.com", nric: "S7013454C", dob: "1979-04-27", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Vincent Lim Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesAssociate },
-    { code: "EN0006", fullName: "Yan Bai Xiang", mobile: "87685469", email: "alexsyanbaixiang@gmail.com", nric: "S9019702I", dob: "1990-06-04", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Vincent Lim Division", approval: ApprovalStatus.Pending, status: AssociateStatus.Inactive },
-    { code: "EN0007", fullName: "Koo Hok Kian", businessName: "Frances Koo", mobile: "92221890", email: "franceskoohk@gmail.com", nric: "S6910693E", dob: "1969-03-30", designation: Designation.SalesManager, uplineCode: "EN0001", team: "Sylvia Lee Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesManager },
+    { code: "EN0001", fullName: "Daniel Tan", businessName: "Daniel Tan", mobile: "80000001", email: "daniel.tan@example.com", nric: "S0000001A", dob: "1963-01-01", designation: Designation.SalesDirector, team: "Daniel Tan Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesDirector },
+    { code: "EN0002", fullName: "Kevin Ong", businessName: "Kevin Ong", mobile: "80000002", email: "kevin.ong@example.com", nric: "S0000002A", dob: "1980-01-01", designation: Designation.SalesDirector, team: "Kevin Ong Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesDirector },
+    { code: "EN0003", fullName: "Ravi Kumar", businessName: "Ravi Kumar", mobile: "80000003", email: "ravi.kumar@example.com", nric: "S0000003A", dob: "1977-01-01", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Kevin Ong Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesAssociate },
+    { code: "EN0004", fullName: "Wei Ling Ng", businessName: "Wei Ling Ng", mobile: "80000004", email: "wei.ling.ng@example.com", nric: "S0000004A", dob: "1968-01-01", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Kevin Ong Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesAssociate },
+    { code: "EN0005", fullName: "Priya Nair", mobile: "80000005", email: "priya.nair@example.com", nric: "S0000005A", dob: "1979-01-01", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Kevin Ong Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesAssociate },
+    { code: "EN0006", fullName: "Marcus Teo", mobile: "80000006", email: "marcus.teo@example.com", nric: "S0000006A", dob: "1990-01-01", designation: Designation.SalesAssociate, uplineCode: "EN0002", team: "Kevin Ong Division", approval: ApprovalStatus.Pending, status: AssociateStatus.Inactive },
+    { code: "EN0007", fullName: "Michelle Lim", businessName: "Michelle Lim", mobile: "80000007", email: "michelle.lim@example.com", nric: "S0000007A", dob: "1969-01-01", designation: Designation.SalesManager, uplineCode: "EN0001", team: "Daniel Tan Division", approval: ApprovalStatus.Approved, status: AssociateStatus.Active, role: AppRole.SalesManager },
   ];
 
   const idByCode: Record<string, string> = {};
@@ -108,7 +134,7 @@ async function main() {
       create: {
         associateCode: a.code, fullName: a.fullName, businessName: a.businessName ?? null,
         mobileNumber: a.mobile, email: a.email, nric: encryptPII(a.nric), dateOfBirth: new Date(a.dob),
-        designation: a.designation, directUplineId, recruitingManager: "Angeline Teo", teamName: a.team,
+        designation: a.designation, directUplineId, recruitingManager: "Rachel Sim", teamName: a.team,
         paymentMethod: PaymentMethod.PayNow, paynowNumber: a.mobile,
         approvalStatus: a.approval, associateStatus: a.status, joinDate: new Date("2026-05-25"),
       },
@@ -132,8 +158,8 @@ async function main() {
 
   // --- Staff logins (Product Owner + Accounts) ---
   for (const u of [
-    { email: "admin@enshrine.sg", role: AppRole.Admin },
-    { email: "accounts@enshrine.sg", role: AppRole.Accounts },
+    { email: "admin@example.com", role: AppRole.Admin },
+    { email: "accounts@example.com", role: AppRole.Accounts },
   ]) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
@@ -151,7 +177,8 @@ async function main() {
     users: await prisma.user.count(),
   };
   console.log("✅ Seed complete:", counts);
-  console.log(`   Logins: admin@enshrine.sg / accounts@enshrine.sg / <associate emails>  — password: ${SEED_PASSWORD}`);
+  const passwordNote = process.env.SEED_PASSWORD ? "(from SEED_PASSWORD)" : SEED_PASSWORD;
+  console.log(`   Logins: admin@example.com / accounts@example.com / <associate emails>  — password: ${passwordNote}`);
 }
 
 main()
