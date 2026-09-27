@@ -1257,6 +1257,7 @@
     "payoutNotPositive": "总额为零或负数的支付无法批准。",
     "payoutsNotBackfilled": "本月有已批准或已支付的支付记录尚未关联到佣金明细。请先执行支付回填，再重新运行支付。",
     "payoutRunConflict": "运行期间支付记录已发生变化，请重试。",
+    "recomputeBusy": "系统繁忙 — 付款未被记录，请重试。",
     "reauthFailed": "密码确认失败。",
     "titleRequired": "标题为必填项。",
     "messageBodyRequired": "消息内容为必填项。",
@@ -1280,8 +1281,7 @@
     "customTitleTooLong": "名片职称不能超过 {max} 个字符。",
     "teamNotYours": "您只能招募到自己的团队。",
     "teamRequired": "请选择新成员加入您的哪个团队。",
-    "agreementNotRead": "供应商须先阅读协议并勾选确认，方可签署。",
-    "recomputeBusy": "此交易正在被其他操作更新，请稍后重试。"
+    "agreementNotRead": "供应商须先阅读协议并勾选确认，方可签署。"
   },
   "nameCard": {
     "front": "正面",

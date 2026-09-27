@@ -43,6 +43,42 @@ describe("saleSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  // A-0b
+  it("accepts any installment count 1–24 (not just 12/24) and rejects out of range", () => {
+    const base = {
+      salesDate: "2026-07-01", clientName: "Acme", paymentPlan: "Installment" as const,
+      lines: [{ productId: "p1", comCodeIds: [], lineSaleAmount: 1200 }],
+    };
+    for (const n of [1, 6, 12, 18, 24]) {
+      expect(saleSchema.safeParse({ ...base, installmentCount: n }).success).toBe(true);
+    }
+    expect(saleSchema.safeParse({ ...base, installmentCount: 0 }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...base, installmentCount: 25 }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...base, installmentCount: undefined }).success).toBe(false); // required for Installment
+  });
+
+  it("refuses a deposit at or above the sale amount for an Installment plan (strict <)", () => {
+    const base = {
+      salesDate: "2026-07-01", clientName: "Acme", paymentPlan: "Installment" as const, installmentCount: 12,
+      lines: [{ productId: "p1", comCodeIds: [], lineSaleAmount: 100 }],
+    };
+    expect(saleSchema.safeParse({ ...base, deposit: 99.99 }).success).toBe(true);
+    // Deposit == sale would leave nothing to divide — N schedule rows of $0.00
+    // that still gate the eligibility count. Strictly less, not <=.
+    expect(saleSchema.safeParse({ ...base, deposit: 100 }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...base, deposit: 100.01 }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...base, deposit: 500 }).success).toBe(false);
+  });
+
+  it("a Full Payment deposit may equal the sale amount (no installment schedule is minted)", () => {
+    const base = {
+      salesDate: "2026-07-01", clientName: "Acme", paymentPlan: "Full Payment" as const,
+      lines: [{ productId: "p1", comCodeIds: [], lineSaleAmount: 100 }],
+    };
+    expect(saleSchema.safeParse({ ...base, deposit: 100 }).success).toBe(true);
+    expect(saleSchema.safeParse({ ...base, deposit: 100.01 }).success).toBe(false);
+  });
 });
 
 describe("comCodeSchema", () => {
