@@ -14,6 +14,7 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 import { prisma } from "@/lib/db";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "./actions";
 import { markInstallmentPaid } from "@/server/invoices/actions";
+import { fakePdfFile } from "@/lib/test-fixtures";
 
 const TAG = "A0DEP-";
 const SALE_DATE = "2099-09-10";
@@ -89,25 +90,25 @@ describe("Deposit schedule row (sequence 0)", () => {
     const [deposit, i1, i2, i3] = rows;
 
     // Deposit paid: amountCollected moves, eligibility does not (0 real installments paid).
-    expect((await markInstallmentPaid(deposit.id)).ok).toBe(true);
+    expect((await markInstallmentPaid(deposit.id, fakePdfFile())).ok).toBe(true);
     let txRow = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(txRow.amountCollected.toFixed(2)).toBe("300.00");
     expect(txRow.commissionEligibility).toBe("PendingCollection");
 
     // Deposit + 1 installment paid: still below the default threshold (3).
-    expect((await markInstallmentPaid(i1.id)).ok).toBe(true);
+    expect((await markInstallmentPaid(i1.id, fakePdfFile())).ok).toBe(true);
     txRow = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(txRow.commissionEligibility).toBe("PendingCollection");
 
     // Deposit + 2 installments paid: the literal spec case — still Pending,
     // because the deposit must not count toward the 3-installment threshold.
-    expect((await markInstallmentPaid(i2.id)).ok).toBe(true);
+    expect((await markInstallmentPaid(i2.id, fakePdfFile())).ok).toBe(true);
     txRow = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(txRow.amountCollected.toFixed(2)).toBe("900.00");
     expect(txRow.commissionEligibility).toBe("PendingCollection");
 
     // The 3rd real installment flips it to Eligible.
-    expect((await markInstallmentPaid(i3.id)).ok).toBe(true);
+    expect((await markInstallmentPaid(i3.id, fakePdfFile())).ok).toBe(true);
     txRow = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(txRow.amountCollected.toFixed(2)).toBe("1200.00");
     expect(txRow.commissionEligibility).toBe("Eligible");

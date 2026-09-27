@@ -9,6 +9,7 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 import { prisma } from "@/lib/db";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "./actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
+import { fakePdfFile } from "@/lib/test-fixtures";
 
 const TAG = "SPLIT4-";
 const SALE_DATE = "2099-02-10";
@@ -130,7 +131,7 @@ describe("Associate 2/3 split flows submit → verify → ledger", () => {
 
     // Marking the invoice Paid captures the payment (Issues v1.0 #6) and confirms
     // commission (Pending → Eligible).
-    expect((await markInvoicePaid(invoice.id, { method: "Bank", reference: "REF-TEST-1" })).ok).toBe(true);
+    expect((await markInvoicePaid(invoice.id, fakePdfFile(), { method: "Bank", reference: "REF-TEST-1" })).ok).toBe(true);
     const paidInv = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id }, select: { status: true, paidMethod: true, paidReference: true } });
     expect(paidInv.status).toBe("Paid");
     expect(paidInv.paidMethod).toBe("Bank");

@@ -13,6 +13,7 @@ vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 import { prisma } from "@/lib/db";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
+import { fakePdfFile } from "@/lib/test-fixtures";
 import { runPayouts, setPayoutStatus } from "@/server/payouts/actions";
 import { dashboardMetrics } from "./metrics";
 import { myTransactionRows } from "@/server/transactions/queries";
@@ -83,7 +84,7 @@ describe("F6: received/grossReceived derive from the payout, not LedgerStatus", 
 
     const tx = await prisma.salesTransaction.findFirstOrThrow({ where: { submissionId: sub.id } });
     const invoice = await prisma.invoice.findFirstOrThrow({ where: { transactionId: tx.id } });
-    expect((await markInvoicePaid(invoice.id)).ok).toBe(true);
+    expect((await markInvoicePaid(invoice.id, fakePdfFile())).ok).toBe(true);
 
     const eligibleLine = await prisma.commissionLedger.findFirstOrThrow({ where: { transactionId: tx.id, associateId: closerId } });
     expect(eligibleLine.status).toBe("Eligible"); // confirmed by mark-paid, not yet settled into a payout

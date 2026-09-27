@@ -24,6 +24,7 @@ import type { Prisma } from "@prisma/client";
 import { InvoiceStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { markInvoicePaid } from "@/server/invoices/actions";
+import { fakePdfFile } from "@/lib/test-fixtures";
 import { ZERO, clamp, round2, sum } from "@/lib/money";
 
 const TAG = "A0RACE-";
@@ -100,7 +101,7 @@ describe("amountCollected: two invoices on the same transaction marked Paid conc
               const r = await realFindMany(...a);
               if (!fired) {
                 fired = true;
-                second = markInvoicePaid(invB.id);
+                second = markInvoicePaid(invB.id, fakePdfFile());
                 secondState = await Promise.race([second.then(() => "committed-in-window"), sleep(WINDOW_MS).then(() => "blocked")]);
               }
               return r;
@@ -112,7 +113,7 @@ describe("amountCollected: two invoices on the same transaction marked Paid conc
         return fn(dbProxy);
       }, opts)) as never);
 
-    await markInvoicePaid(invA.id); // the FIRST call — its computeAmountCollected read is where we inject
+    await markInvoicePaid(invA.id, fakePdfFile()); // the FIRST call — its computeAmountCollected read is where we inject
     spy.mockRestore();
     await second;
 
