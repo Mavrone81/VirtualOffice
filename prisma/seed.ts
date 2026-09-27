@@ -7,27 +7,16 @@ const prisma = new PrismaClient();
 
 const ADDRESS = "74 Lorong 6 Geylang, Singapore 399226";
 const EFF = new Date("2026-01-01");
-// SEC-4/SEC-3: no hardcoded shared secret in a public repo. Set SEED_PASSWORD
-// in the local seeding shell for a real value; this default is for local dev
-// only and is deliberately NOT the value ever used in any real deployment.
-// `|| undefined` first: an empty-string override isn't a real password (G2)
-// and must fall back to the dev default, not get hashed as-is — `??` alone
-// wouldn't catch that, since "" is neither null nor undefined.
-const SEED_PASSWORD = (process.env.SEED_PASSWORD || undefined) ?? "Seed-Dev-Only#1";
 
-// DevSecOps review (reviews/seed-guard-devsecops-review.md, G1/G2): the
-// fallback above is public (it's in this repo), so anything that isn't
-// provably local MUST supply its own SEED_PASSWORD (at least
-// MIN_SEED_PASSWORD_LENGTH chars) — refuse before any write, rather than
-// silently seeding real accounts with a published password. Logic lives in
+// SEC-4/SEC-3: SEED_PASSWORD is required, in every environment — no
+// hardcoded fallback of any kind. Refuse before any write rather than
+// silently seeding with a published password. Logic lives in
 // lib/seed-guard.ts (tested) since this script itself isn't covered by
 // vitest's include globs.
-const guardError = seedGuardError({
-  nodeEnv: process.env.NODE_ENV,
-  databaseUrl: process.env.DATABASE_URL,
-  seedPassword: process.env.SEED_PASSWORD,
-});
+const guardError = seedGuardError({ seedPassword: process.env.SEED_PASSWORD });
 if (guardError) throw new Error(guardError);
+// Validated non-empty by the guard above.
+const SEED_PASSWORD = process.env.SEED_PASSWORD as string;
 
 async function main() {
   const pwHash = await hash(SEED_PASSWORD);
@@ -177,8 +166,7 @@ async function main() {
     users: await prisma.user.count(),
   };
   console.log("✅ Seed complete:", counts);
-  const passwordNote = process.env.SEED_PASSWORD ? "(from SEED_PASSWORD)" : SEED_PASSWORD;
-  console.log(`   Logins: admin@example.com / accounts@example.com / <associate emails>  — password: ${passwordNote}`);
+  console.log("   Logins: admin@example.com / accounts@example.com / <associate emails>  — password: from SEED_PASSWORD");
 }
 
 main()

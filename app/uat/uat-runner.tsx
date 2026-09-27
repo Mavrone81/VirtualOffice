@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import type { UatSection } from "@/lib/uat-cases";
-import { UAT_TOTAL, UAT_ACCOUNTS, UAT_PASSWORD } from "@/lib/uat-cases";
+import { UAT_TOTAL, UAT_ACCOUNTS } from "@/lib/uat-cases";
 import { setUatResult, getUatResults, getUatTesters } from "@/server/uat/actions";
 
 type Res = { status: string; notes: string | null };
@@ -131,10 +131,7 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
         </summary>
         <div className="px-5 pb-5">
           <div className="mb-3 text-[13px] text-muted">
-            Log in at <a href="/login" target="_blank" rel="noopener" className="font-medium text-action hover:underline">/login</a> using the email as the username. All accounts share one password:
-            <button type="button" onClick={() => copy(UAT_PASSWORD)} className="ml-1.5 rounded bg-paper-100 px-2 py-0.5 font-mono text-[12.5px] text-ink transition hover:bg-action-50">
-              {UAT_PASSWORD}{copied === UAT_PASSWORD ? " ✓" : ""}
-            </button>
+            Log in at <a href="/login" target="_blank" rel="noopener" className="font-medium text-action hover:underline">/login</a> using the email as the username. All accounts share one password — the <code className="rounded bg-paper-100 px-1 py-0.5 font-mono text-[12.5px]">SEED_PASSWORD</code> value used to seed this environment; ask whoever ran the seed if you don&apos;t have it.
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
