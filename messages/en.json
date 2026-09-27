@@ -47,7 +47,11 @@
     "periodQuarter": "This quarter",
     "periodYear": "This year",
     "periodCustom": "Custom range",
-    "clearAll": "Clear all filters"
+    "clearAll": "Clear all filters",
+    "txnId": "Transaction ID",
+    "category": "Product category",
+    "saleDateFrom": "Sale date from",
+    "saleDateTo": "Sale date to"
   },
   "nav": {
     "groupOperations": "Operations",
@@ -1506,15 +1510,21 @@
   },
   "verify": {
     "title": "Sales & verify",
-    "subtitle": "Closed sales — review the documents and record payment against the plan.",
+    "subtitle": "Booked sales — review the documents and payment status. Mark paid/unpaid from Invoices.",
     "empty": "No closed sales yet.",
+    "emptyFiltered": "No transactions match these filters.",
     "commission": "Commission",
     "documents": "Documents",
     "noDocuments": "No documents attached.",
     "view": "View",
     "payments": "Payments",
     "installmentProgress": "{paid}/{total} installments paid · commission at the {threshold}",
-    "noInvoice": "No invoice on this sale."
+    "noInvoice": "No invoice on this sale.",
+    "pagination": {
+      "showing": "Showing {from}–{to} of {total}",
+      "prev": "‹ Prev",
+      "next": "Next ›"
+    }
   },
   "assistant": {
     "title": "Portal Assistant",

@@ -33,6 +33,11 @@ export type TransactionSearch = {
   product?: string;
   eligibility?: string;
   closer?: string;
+  // B-2 (Sales & Verify): a free-text transaction-code prefix search.
+  txnId?: string;
+  // B-2: a product category (resolved to a set of productCodes by the page,
+  // which has the Product table — this module stays DB-free).
+  category?: string;
 };
 
 export type ParsedTransactionSearch = {
@@ -44,7 +49,14 @@ export type ParsedTransactionSearch = {
   product?: string;
   eligibility?: CommissionEligibility;
   closer?: string;
+  txnId?: string;
+  category?: string;
 };
+
+// A transaction code is short, plain text (e.g. "TXN-00412") — cap the
+// length so a pathological query string can't build an unbounded LIKE
+// pattern; anything longer just won't match anything real anyway.
+const TXN_ID_MAX_LEN = 40;
 
 /**
  * Validates raw URL query params before anything reaches Prisma. A filter
@@ -62,13 +74,16 @@ export function parseTransactionSearch(sp: TransactionSearch): ParsedTransaction
     product: sp.product?.trim() || undefined,
     eligibility: parseEnum(Object.values(CommissionEligibility), sp.eligibility),
     closer: parseUuid(sp.closer),
+    txnId: sp.txnId?.trim().slice(0, TXN_ID_MAX_LEN) || undefined,
+    category: sp.category?.trim() || undefined,
   };
 }
 
 /**
- * B-3: filter params for the Transactions / Received / Receivable lists.
- * `teamMemberIds` is pre-resolved by the caller (via lib/team.ts'
- * teamScopeIds(managerId)) — this module stays DB-free and pure.
+ * B-2/B-3: filter params for the Sales & Verify / Transactions / Received /
+ * Receivable lists. `teamMemberIds` and `productCodes` are pre-resolved by
+ * the caller (via lib/team.ts' teamScopeIds(managerId), and a product ->
+ * category lookup respectively) — this module stays DB-free and pure.
  */
 export type TransactionFilterParams = {
   designation?: Designation;
@@ -77,8 +92,12 @@ export type TransactionFilterParams = {
   /** Exclusive upper bound (see {@link ParsedTransactionSearch.to}). */
   to?: Date;
   product?: string;
+  /** B-2: every productCode belonging to the selected product category. */
+  productCodes?: string[];
   eligibility?: CommissionEligibility;
   closer?: string;
+  /** B-2: prefix match on transactionCode, case-insensitive. */
+  txnId?: string;
 };
 
 /**
@@ -95,6 +114,8 @@ export function transactionWhere(params: TransactionFilterParams): Prisma.SalesT
   if (params.from) and.push({ salesDate: { gte: params.from } });
   if (params.to) and.push({ salesDate: { lt: params.to } });
   if (params.product) and.push({ lineItems: { some: { productCode: params.product } } });
+  if (params.productCodes) and.push({ lineItems: { some: { productCode: { in: params.productCodes } } } });
   if (params.eligibility) and.push({ commissionEligibility: params.eligibility });
+  if (params.txnId) and.push({ transactionCode: { startsWith: params.txnId, mode: "insensitive" } });
   return and.length ? { AND: and } : {};
 }
