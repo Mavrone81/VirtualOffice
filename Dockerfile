@@ -1,6 +1,9 @@
 # Enshrine VirtualOffice — production image (Next.js standalone).
 FROM node:22-alpine AS base
-RUN corepack enable && corepack prepare pnpm@9 --activate
+# Version comes from package.json's `packageManager` field — one source of
+# truth. `corepack prepare pnpm@9` pinned the MAJOR only, so the image's pnpm
+# resolved latest-9.x at build time and floated between builds and against CI.
+RUN corepack enable
 WORKDIR /app
 
 # --- deps ---
@@ -28,6 +31,19 @@ RUN pnpm prisma generate && pnpm build
 FROM base AS migrator
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml ./
+# Materialise pnpm INTO this layer. This stage has no build-time pnpm call —
+# only its CMD — so without this the first invocation is the CMD, fetching
+# pnpm from the npm registry at container start, on the droplet, during
+# every deploy's migrate step.
+# COREPACK_HOME is set OUTSIDE root's home and the store is made world-readable,
+# so pnpm stays reachable whichever user this stage runs as. Without it,
+# `corepack install` lands in $HOME/.cache = /root/.cache and works only by
+# accident of this stage having no USER directive: add one and corepack silently
+# goes back to fetching pnpm from the npm registry at container start, on the
+# droplet, during every deploy's migrate. Asserted unconditionally by
+# lib/dockerfile-corepack.test.ts so the check has teeth on every run.
+ENV COREPACK_HOME=/opt/corepack
+RUN corepack install && chmod -R a+rX /opt/corepack
 COPY prisma ./prisma
 CMD ["pnpm", "prisma", "migrate", "deploy"]
 
