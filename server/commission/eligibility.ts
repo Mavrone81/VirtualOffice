@@ -9,9 +9,16 @@ import { runCommissionTx, auditRunResult, COMMISSION_TX_OPTIONS } from "./run";
  * Pending<->Eligible in the SAME transaction as the eligibility write (R-4) —
  * eligibility and the ledger can never disagree.
  * - Full Payment: Eligible once its invoice(s) are Paid.
- * - Installment: Eligible once >= threshold REAL installments are paid
- *   (default 3rd) — the deposit (sequence 0, Samuel Q9) is the entry fee, not
- *   one of the N installments, so it never counts toward the threshold.
+ * - Installment: Eligible once >= min(threshold, N) REAL installments are
+ *   paid, where N is the plan's own installment count — a plan with fewer
+ *   real installments than the configured threshold (e.g. a 2-instalment
+ *   plan under the default 3rd) needs ALL N paid, not the raw threshold,
+ *   since the threshold is env-configurable and a hard schema minimum would
+ *   drift or forbid a legitimate short plan. A plan needs at least one real
+ *   installment to ever become Eligible — an empty schedule always stays
+ *   PendingCollection, it never trivially satisfies min(threshold, 0) = 0.
+ *   The deposit (sequence 0, Samuel Q9) is the entry fee, not one of the N
+ *   installments, so it never counts toward paidCount or N.
  *
  * Callers that already hold the FOR UPDATE lock on this sales_transactions row
  * (A-0's unified mark-paid/unpaid transaction) pass their own `db` — the lock
@@ -31,10 +38,13 @@ export async function recomputeEligibilityTx(db: Prisma.TransactionClient, trans
     const allPaid = tx.invoices.length > 0 && tx.invoices.every((i) => i.status === InvoiceStatus.Paid);
     eligibility = allPaid ? CommissionEligibility.Eligible : CommissionEligibility.PendingCollection;
   } else {
-    const threshold = env.COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD;
-    const paidCount = tx.installmentPlan?.schedule.filter((s) => s.paid && s.sequence > 0).length ?? 0;
+    const realInstalments = tx.installmentPlan?.schedule.filter((s) => s.sequence > 0) ?? [];
+    const paidCount = realInstalments.filter((s) => s.paid).length;
+    const effectiveThreshold = Math.min(env.COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD, realInstalments.length);
     eligibility =
-      paidCount >= threshold ? CommissionEligibility.Eligible : CommissionEligibility.PendingCollection;
+      realInstalments.length > 0 && paidCount >= effectiveThreshold
+        ? CommissionEligibility.Eligible
+        : CommissionEligibility.PendingCollection;
   }
 
   if (eligibility !== tx.commissionEligibility) {
