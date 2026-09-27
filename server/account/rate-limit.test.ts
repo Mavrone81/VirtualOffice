@@ -15,7 +15,7 @@ vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/rate-limit", () => rateLimitMock);
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 vi.mock("@/lib/rbac", () => ({ can: () => true }));
 vi.mock("@/lib/env", () => ({ env: { AUTH_URL: "https://x" } }));
 vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(), resetPasswordEmail: () => ({}) }));

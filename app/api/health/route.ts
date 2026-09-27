@@ -1,3 +1,5 @@
+import { auditOk } from "@/lib/audit-status";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -9,7 +11,9 @@ export const dynamic = "force-dynamic";
 // healthcheck. Public by construction: middleware.ts excludes /api.
 export async function GET() {
   return Response.json(
-    { status: "ok", uptime: Math.round(process.uptime()) },
+    // auditOk: no best-effort audit write has failed since this process booted
+    // (a boolean only — the endpoint is public; the count is in the logs).
+    { status: "ok", uptime: Math.round(process.uptime()), auditOk: auditOk() },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

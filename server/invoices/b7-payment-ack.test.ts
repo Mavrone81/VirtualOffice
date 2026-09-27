@@ -9,12 +9,13 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
 import { markInvoicePaid, markInstallmentPaid, markInvoiceUnpaid } from "./actions";
 import { fakePdfFile } from "@/lib/test-fixtures";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 
 const TAG = "B7ACK-";
 const BUSINESS_ADMIN = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
@@ -119,10 +120,10 @@ describe("unmark clears the ack/method/reference, but both are recoverable from 
 
     // Both keys are recoverable from the audit trail even though only the
     // second is live on the row.
-    const paidCalls = vi.mocked(logAudit).mock.calls.filter((c) => c[0].action === "invoice.marked_paid" && c[0].entityId === inv.id);
+    const paidCalls = auditedEntries(logAudit, auditTx).filter((c) => c.action === "invoice.marked_paid" && c.entityId === inv.id).map((c) => [c]);
     expect(paidCalls[0][0].after).toMatchObject({ ackFileKey: firstAckKey, method: "Bank", reference: "REF-A" });
     expect(paidCalls[1][0].after).toMatchObject({ ackFileKey: secondAckKey, method: "Cash", reference: "REF-B" });
-    const unmarkCall = vi.mocked(logAudit).mock.calls.find((c) => c[0].action === "invoice.marked_unpaid" && c[0].entityId === inv.id)!;
+    const unmarkCall = auditedEntries(logAudit, auditTx).filter((c) => c.action === "invoice.marked_unpaid" && c.entityId === inv.id).map((c) => [c])[0]!;
     expect(unmarkCall[0].before).toMatchObject({ ackFileKey: firstAckKey, method: "Bank", reference: "REF-A" });
   });
 });

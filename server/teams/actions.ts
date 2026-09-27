@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isFullAdmin } from "@/lib/rbac";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 
 // Team creation + membership is Business Admin only (16-Jul RBAC matrix §H).
 async function requireBusinessAdmin() {
@@ -33,22 +33,34 @@ export async function addTeamMember(input: { teamId: string; associateId: string
   if (!session) return { ok: false, error: t("forbidden") };
   if (!input.associateId) return { ok: false, error: t("invalidInput") };
 
-  await prisma.teamMember.upsert({
-    where: { teamId_associateId: { teamId: input.teamId, associateId: input.associateId } },
-    create: { teamId: input.teamId, associateId: input.associateId },
-    update: {},
-  });
-  await logAudit({ action: "team.member_added", entityType: "Team", entityId: input.teamId, actorUserId: session.user.id });
+  // Tier A (commission input): the membership, the upline it syncs, and both
+  // records commit together (reviews/audit-reliability.md).
+  let synced = false;
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.teamMember.upsert({
+        where: { teamId_associateId: { teamId: input.teamId, associateId: input.associateId } },
+        create: { teamId: input.teamId, associateId: input.associateId },
+        update: {},
+      });
+      await auditTx(db, { action: "team.member_added", entityType: "Team", entityId: input.teamId, actorUserId: session.user.id, after: { associateId: input.associateId } });
 
-  // Approval follows the team (16-Jul §7): a member's split-approver + Tier-1
-  // commission override is the team Director, so sync their direct upline to the
-  // Director. Skip if the team has no director or the member IS the director.
-  const team = await prisma.team.findUnique({ where: { id: input.teamId }, select: { directorId: true } });
-  if (team?.directorId && team.directorId !== input.associateId) {
-    await prisma.associate.update({ where: { id: input.associateId }, data: { directUplineId: team.directorId } });
-    await logAudit({ action: "associate.upline.team_synced", entityType: "Associate", entityId: input.associateId, actorUserId: session.user.id, after: { directUplineId: team.directorId } });
-    revalidatePath("/admin/associates");
+      // Approval follows the team (16-Jul §7): a member's split-approver + Tier-1
+      // commission override is the team Director, so sync their direct upline to the
+      // Director. Skip if the team has no director or the member IS the director.
+      const team = await db.team.findUnique({ where: { id: input.teamId }, select: { directorId: true } });
+      if (team?.directorId && team.directorId !== input.associateId) {
+        const before = await db.associate.findUnique({ where: { id: input.associateId }, select: { directUplineId: true } });
+        await db.associate.update({ where: { id: input.associateId }, data: { directUplineId: team.directorId } });
+        await auditTx(db, { action: "associate.upline.team_synced", entityType: "Associate", entityId: input.associateId, actorUserId: session.user.id, before: { directUplineId: before?.directUplineId ?? null }, after: { directUplineId: team.directorId } });
+        synced = true;
+      }
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
   }
+  if (synced) revalidatePath("/admin/associates");
   revalidatePath("/admin/teams");
   return { ok: true };
 }
@@ -68,15 +80,23 @@ export async function setTeamDirector(input: { teamId: string; directorId: strin
   if (!team) return { ok: false, error: t("notFound") };
 
   const directorId = input.directorId || null;
-  await prisma.team.update({ where: { id: input.teamId }, data: { directorId } });
-
-  if (directorId) {
-    const memberIds = team.members.map((m) => m.associateId).filter((id) => id !== directorId);
-    if (memberIds.length) {
-      await prisma.associate.updateMany({ where: { id: { in: memberIds } }, data: { directUplineId: directorId } });
-    }
+  // Tier A (commission input: every member's Tier-1 override recipient changes).
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.team.update({ where: { id: input.teamId }, data: { directorId } });
+      let resynced: string[] = [];
+      if (directorId) {
+        resynced = team.members.map((m) => m.associateId).filter((id) => id !== directorId);
+        if (resynced.length) {
+          await db.associate.updateMany({ where: { id: { in: resynced } }, data: { directUplineId: directorId } });
+        }
+      }
+      await auditTx(db, { action: "team.director_changed", entityType: "Team", entityId: input.teamId, actorUserId: session.user.id, before: { directorId: team.directorId }, after: { directorId, uplineResyncedFor: resynced } });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
   }
-  await logAudit({ action: "team.director_changed", entityType: "Team", entityId: input.teamId, actorUserId: session.user.id, after: { directorId } });
   revalidatePath("/admin/teams");
   revalidatePath("/admin/associates");
   return { ok: true };

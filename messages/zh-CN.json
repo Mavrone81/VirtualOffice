@@ -1347,6 +1347,7 @@
     "legacyReconciliationPending": "无法取消标记 — 该伙伴在此月份有一笔较早的支付记录尚待核对。",
     "reasonRequired": "请填写原因。",
     "recomputeBusy": "系统繁忙 — 付款未被记录，请重试。",
+    "auditUnavailable": "无法写入审计记录，因此操作未执行。请稍后重试。",
     "reauthFailed": "密码确认失败。",
     "titleRequired": "标题为必填项。",
     "messageBodyRequired": "消息内容为必填项。",

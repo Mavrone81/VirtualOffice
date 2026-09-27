@@ -12,7 +12,7 @@ import { prisma } from "@/lib/db";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { isSdApproved, sdApproverId, pickSplitDirectorId, splitFullyApproved } from "@/lib/approval";
 import { D, round2, sum, ZERO } from "@/lib/money";
-import { logAudit } from "@/lib/audit";
+import { auditTx, AuditWriteError } from "@/lib/audit";
 import { runCommission } from "@/server/commission/run";
 import { splitBoundViolations, snapshotCovers, sameViolations, type SplitBoundViolation } from "@/server/commission/split-bounds";
 import { validate } from "@/lib/validate";
@@ -27,6 +27,28 @@ import { addSubmissionDocuments } from "@/server/documents/submission-docs";
  * client so it runs inside approveQuotation's transaction; gaps on rollback are
  * acceptable for an opaque code.
  */
+
+// Audit reliability (reviews/audit-reliability.md, Tier A): every sales money /
+// approval action writes its audit in the SAME transaction as the change, so a
+// failed audit rolls the change back. `write` does the change; `audits(result)`
+// lists what to record (empty when nothing changed, e.g. a CAS that matched no row).
+const AUDIT_UNAVAILABLE = Symbol("auditUnavailable");
+async function writeAudited<T>(
+  write: (db: Prisma.TransactionClient) => Promise<T>,
+  audits: (result: T) => Parameters<typeof auditTx>[1][],
+): Promise<T | typeof AUDIT_UNAVAILABLE> {
+  try {
+    return await prisma.$transaction(async (db) => {
+      const result = await write(db);
+      for (const entry of audits(result)) await auditTx(db, entry);
+      return result;
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return AUDIT_UNAVAILABLE;
+    throw e;
+  }
+}
+
 export async function nextTransactionCode(
   db: Prisma.TransactionClient | typeof prisma,
 ): Promise<string> {
@@ -150,7 +172,12 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
     ...splitColumns(validInput.associate2, validInput.associate3),
   });
 
-  const created = await prisma.salesSubmission.create({
+  // Tier A (reviews/audit-reliability.md): the flag on a split exception is
+  // recorded with the sale it flags, in one transaction.
+  let created: { id: string };
+  try {
+    created = await prisma.$transaction(async (db) => {
+  const c = await db.salesSubmission.create({
     select: { id: true },
     data: {
       salesDate: new Date(validInput.salesDate),
@@ -163,7 +190,7 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
       deposit: validInput.deposit ? round2(validInput.deposit) : null,
       installmentCount: validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null,
       amountCollected: 0,
-      closingAssociateId: session.user.associateId,
+      closingAssociateId: closerId,
       associate2Id: validInput.associate2?.associateId ?? null,
       associate2ValueType: validInput.associate2 ? (validInput.associate2.valueType as ComValueType) : null,
       associate2Value: validInput.associate2 ? round2(validInput.associate2.value) : null,
@@ -176,7 +203,13 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
     },
   });
   if (violations.length) {
-    await logAudit({ action: "split.exception_flagged", entityType: "SalesSubmission", entityId: created.id, actorUserId: session.user.id, after: { lines: violations } });
+    await auditTx(db, { action: "split.exception_flagged", entityType: "SalesSubmission", entityId: c.id, actorUserId: session.user.id, after: { lines: violations } });
+  }
+      return c;
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
   }
 
   // Optional supporting documents (freeform) — never fail the sale over a doc.
@@ -275,21 +308,23 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
       if (res.count !== 1) throw new EditConflict();
       await db.saleLineItem.deleteMany({ where: { submissionId: input.id } });
       await db.saleLineItem.createMany({ data: lineData.map((l) => ({ ...l, submissionId: input.id })) });
+      // Tier A: the edit (and any approvals it cleared / exception it voided or
+      // flagged) is recorded in the same transaction.
+      await auditTx(db, {
+        action: "sale.edited", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id,
+        before, after: { ...after, splitChanged, approvalsCleared: splitChanged && hadApproval },
+      });
+      if (exceptionVoided) {
+        await auditTx(db, { action: "split.exception_voided", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { reason: "edit" } });
+      }
+      if (violations.length && splitChanged) {
+        await auditTx(db, { action: "split.exception_flagged", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { lines: violations } });
+      }
     });
   } catch (e) {
     if (e instanceof EditConflict) return { ok: false, error: t("alreadyProcessed") };
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
     throw e;
-  }
-
-  await logAudit({
-    action: "sale.edited", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id,
-    before, after: { ...after, splitChanged, approvalsCleared: splitChanged && hadApproval },
-  });
-  if (exceptionVoided) {
-    await logAudit({ action: "split.exception_voided", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { reason: "edit" } });
-  }
-  if (violations.length && splitChanged) {
-    await logAudit({ action: "split.exception_flagged", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { lines: violations } });
   }
   revalidatePath("/portal/sales");
   revalidatePath(`/portal/sales/${input.id}`);
@@ -386,12 +421,15 @@ export async function approveSubmissionSplit(
   // refused (compare-and-swap), so a stale page can't approve terms nobody saw.
   const seen = seenAt(seenSplitEditedAt);
   if (seen === "invalid") return { ok: false, error: t("splitChangedReload") };
-  const res = await prisma.salesSubmission.updateMany({
-    where: { id: submissionId, sdApprovedAt: null, splitEditedAt: seen },
-    data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id },
-  });
+  const res = await writeAudited(
+    (db) => db.salesSubmission.updateMany({
+      where: { id: submissionId, sdApprovedAt: null, splitEditedAt: seen },
+      data: { sdApprovedAt: new Date(), sdApprovedById: session.user.id },
+    }),
+    (r) => (r.count ? [{ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id }] : []),
+  );
+  if (res === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
   if (res.count === 0) return (await sameTermsAlready(submissionId, seen, "sd")) ? { ok: true } : { ok: false, error: t("splitChangedReload") };
-  await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
   revalidatePath("/admin/quotations");
   revalidatePath("/portal/approvals");
   return { ok: true };
@@ -426,8 +464,11 @@ export async function revertSplitApproval(submissionId: string): Promise<{ ok: b
   // Once the Business Admin has signed off the split, the SD step is locked.
   if (sub.splitAdminApprovedAt) return { ok: false, error: t("alreadyProcessed") };
 
-  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: null, sdApprovedById: null } });
-  await logAudit({ action: "submission.split_reverted", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
+  const reverted = await writeAudited(
+    (db) => db.salesSubmission.update({ where: { id: submissionId }, data: { sdApprovedAt: null, sdApprovedById: null } }),
+    () => [{ action: "submission.split_reverted", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id }],
+  );
+  if (reverted === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
   revalidatePath("/portal/approvals");
   revalidatePath("/admin/quotations");
   return { ok: true };
@@ -465,21 +506,25 @@ export async function adminApproveSplit(
   // SA-1: compare-and-swap on the splitEditedAt the admin's page rendered.
   const seen = seenAt(seenSplitEditedAt);
   if (seen === "invalid") return { ok: false, error: t("splitChangedReload") };
-  const res = await prisma.salesSubmission.updateMany({
-    where: { id: submissionId, splitAdminApprovedAt: null, splitEditedAt: seen },
-    data: {
-      splitAdminApprovedAt: new Date(),
-      splitAdminApprovedById: session.user.id,
-      // If it was never explicitly SD-approved (3-day auto), record the auto now.
-      ...(sub.sdApprovedAt === null ? { sdApprovedAt: new Date() } : {}),
-    },
-  });
+  const res = await writeAudited(
+    (db) => db.salesSubmission.updateMany({
+      where: { id: submissionId, splitAdminApprovedAt: null, splitEditedAt: seen },
+      data: {
+        splitAdminApprovedAt: new Date(),
+        splitAdminApprovedById: session.user.id,
+        // If it was never explicitly SD-approved (3-day auto), record the auto now.
+        ...(sub.sdApprovedAt === null ? { sdApprovedAt: new Date() } : {}),
+      },
+    }),
+    (r) => (r.count
+      ? [
+          ...(sub.sdApprovedAt === null ? [{ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: null, after: { auto: true } }] : []),
+          { action: "submission.split_admin_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id },
+        ]
+      : []),
+  );
+  if (res === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
   if (res.count === 0) return (await sameTermsAlready(submissionId, seen, "admin")) ? { ok: true } : { ok: false, error: t("splitChangedReload") };
-
-  if (sub.sdApprovedAt === null) {
-    await logAudit({ action: "submission.sd_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: null, after: { auto: true } });
-  }
-  await logAudit({ action: "submission.split_admin_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
   revalidatePath("/admin/split-approvals");
   revalidatePath("/portal/quotations");
   return { ok: true };
@@ -520,8 +565,11 @@ export async function approveSplitException(
   });
   if (violations.length === 0) {
     // Nothing negative any more (e.g. rates changed in the associate's favour): clear the flag.
-    const cleared = await prisma.salesSubmission.updateMany({ where: { id: submissionId, splitEditedAt: seen }, data: { splitExceptionRequired: false } });
-    if (cleared.count) await logAudit({ action: "split.exception_cleared", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: "no_negative_lines" } });
+    const cleared = await writeAudited(
+      (db) => db.salesSubmission.updateMany({ where: { id: submissionId, splitEditedAt: seen }, data: { splitExceptionRequired: false } }),
+      (r) => (r.count ? [{ action: "split.exception_cleared", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: "no_negative_lines" } }] : []),
+    );
+    if (cleared === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
     revalidatePath("/admin/split-approvals");
     return { ok: true };
   }
@@ -531,24 +579,28 @@ export async function approveSplitException(
     return { ok: false, error: t("splitFiguresChanged") };
   }
 
-  const res = await prisma.salesSubmission.updateMany({
-    where: { id: submissionId, splitEditedAt: seen, closedAt: null, status: { not: SubmissionStatus.Rejected } },
-    data: {
-      splitExceptionRequired: true,
-      splitExceptionApprovedAt: new Date(),
-      splitExceptionApprovedById: session.user.id,
-      splitExceptionReason: why,
-      splitExceptionSnapshot: violations as unknown as Prisma.InputJsonValue,
-      splitExceptionVersion: seen,
-    },
-  });
+  const res = await writeAudited(
+    (db) => db.salesSubmission.updateMany({
+      where: { id: submissionId, splitEditedAt: seen, closedAt: null, status: { not: SubmissionStatus.Rejected } },
+      data: {
+        splitExceptionRequired: true,
+        splitExceptionApprovedAt: new Date(),
+        splitExceptionApprovedById: session.user.id,
+        splitExceptionReason: why,
+        splitExceptionSnapshot: violations as unknown as Prisma.InputJsonValue,
+        splitExceptionVersion: seen,
+      },
+    }),
+    // N4: record both admin actors, so "same person approved the split and the exception" is visible.
+    (r) => (r.count
+      ? [{
+          action: "split.exception_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id,
+          after: { reason: why, snapshot: violations as unknown as Prisma.InputJsonValue, splitAdminApprovedById: sub.splitAdminApprovedById, sameApproverAsSplit: sub.splitAdminApprovedById === session.user.id },
+        }]
+      : []),
+  );
+  if (res === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
   if (res.count === 0) return { ok: false, error: t("splitChangedReload") };
-
-  // N4: record both admin actors, so "same person approved the split and the exception" is visible.
-  await logAudit({
-    action: "split.exception_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id,
-    after: { reason: why, snapshot: violations, splitAdminApprovedById: sub.splitAdminApprovedById, sameApproverAsSplit: sub.splitAdminApprovedById === session.user.id },
-  });
   revalidatePath("/admin/split-approvals");
   revalidatePath(`/portal/sales/${submissionId}`);
   return { ok: true };
@@ -585,8 +637,11 @@ export async function reassignSplitDirector(submissionId: string, directorId: st
     if (!dir) return { ok: false, error: t("notADirector") };
   }
 
-  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { splitDirectorId: directorId } });
-  await logAudit({ action: "submission.split_director_reassigned", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { splitDirectorId: directorId } });
+  const reassigned = await writeAudited(
+    (db) => db.salesSubmission.update({ where: { id: submissionId }, data: { splitDirectorId: directorId } }),
+    () => [{ action: "submission.split_director_reassigned", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { splitDirectorId: directorId } }],
+  );
+  if (reassigned === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
   revalidatePath("/admin/split-approvals");
   revalidatePath("/portal/approvals");
   return { ok: true };
@@ -608,8 +663,11 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
   if (!sub) return { ok: false, error: t("notFound") };
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
-  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { status: SubmissionStatus.QuotationApproved } });
-  await logAudit({ action: "submission.quotation_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id });
+  const approved = await writeAudited(
+    (db) => db.salesSubmission.update({ where: { id: submissionId }, data: { status: SubmissionStatus.QuotationApproved } }),
+    () => [{ action: "submission.quotation_approved", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id }],
+  );
+  if (approved === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
   revalidatePath("/admin/quotations");
   revalidatePath("/portal/quotations");
   return { ok: true };
@@ -671,16 +729,23 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
       && (sub.splitExceptionVersion?.getTime() ?? null) === (sub.splitEditedAt?.getTime() ?? null)
       && snapshotCovers(violations, sub.splitExceptionSnapshot as SplitBoundViolation[] | null);
     if (!approved) {
-      if (sub.splitExceptionApprovedAt !== null) {
-        await prisma.salesSubmission.updateMany({
-          where: { id: sub.id, splitExceptionApprovedAt: sub.splitExceptionApprovedAt },
-          data: { splitExceptionApprovedAt: null, splitExceptionApprovedById: null, splitExceptionReason: null, splitExceptionSnapshot: Prisma.DbNull, splitExceptionVersion: null, splitExceptionRequired: true },
-        });
-        await logAudit({ action: "split.exception_voided", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { reason: "rates_changed", lines: violations } });
-      } else if (!sub.splitExceptionRequired) {
-        await prisma.salesSubmission.update({ where: { id: sub.id }, data: { splitExceptionRequired: true } });
-      }
-      await logAudit({ action: "sale.close_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { reason: "splitExceptionRequired", violations } });
+      const refused = await writeAudited(
+        async (db) => {
+          if (sub.splitExceptionApprovedAt !== null) {
+            return (await db.salesSubmission.updateMany({
+              where: { id: sub.id, splitExceptionApprovedAt: sub.splitExceptionApprovedAt },
+              data: { splitExceptionApprovedAt: null, splitExceptionApprovedById: null, splitExceptionReason: null, splitExceptionSnapshot: Prisma.DbNull, splitExceptionVersion: null, splitExceptionRequired: true },
+            })).count > 0;
+          }
+          if (!sub.splitExceptionRequired) await db.salesSubmission.update({ where: { id: sub.id }, data: { splitExceptionRequired: true } });
+          return false;
+        },
+        (voided) => [
+          ...(voided ? [{ action: "split.exception_voided", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { reason: "rates_changed", lines: violations as unknown as Prisma.InputJsonValue } }] : []),
+          { action: "sale.close_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { reason: "splitExceptionRequired", violations: violations as unknown as Prisma.InputJsonValue } },
+        ],
+      );
+      if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
       revalidatePath("/admin/split-approvals");
       return { ok: false, error: t("splitExceptionRequired") };
     }
@@ -689,7 +754,9 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
   const closer = sub.closingAssociate;
   const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;
 
-  const txId = await prisma.$transaction(async (db) => {
+  let txId: string;
+  try {
+  txId = await prisma.$transaction(async (db) => {
     const code = await nextTransactionCode(db);
 
     const transaction = await db.salesTransaction.create({
@@ -789,12 +856,24 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
       where: { id: sub.id },
       data: { closedAt: new Date(), closedById: session.user.id },
     });
+    // Tier A: the booking and its record commit together.
+    await auditTx(db, { action: "sale.closed", entityType: "SalesTransaction", entityId: transaction.id, actorUserId: session.user.id, after: { submissionId } });
     return transaction.id;
   });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
 
-  await runCommission(txId);
-
-  await logAudit({ action: "sale.closed", entityType: "SalesTransaction", entityId: txId, actorUserId: session.user.id, after: { submissionId } });
+  try {
+    await runCommission(txId, session.user.id);
+  } catch (e) {
+    // The sale is closed (committed above, with its audit). If the first commission
+    // run can't be recorded it rolls back as a whole — nothing unrecorded — and the
+    // lines are booked (and audited) by the next recompute, at the latest when a
+    // payment is marked. Don't report a committed close as a failure.
+    if (!(e instanceof AuditWriteError)) throw e;
+  }
   revalidatePath("/portal/quotations");
   revalidatePath("/admin/sales/verify");
   revalidatePath("/admin/sales/transactions");
@@ -816,8 +895,11 @@ export async function rejectSubmission(submissionId: string, reason?: string): P
   if (!sub) return { ok: false, error: t("notFound") };
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
-  await prisma.salesSubmission.update({ where: { id: submissionId }, data: { status: SubmissionStatus.Rejected } });
-  await logAudit({ action: "submission.rejected", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: reason?.trim() || null } });
+  const rejected = await writeAudited(
+    (db) => db.salesSubmission.update({ where: { id: submissionId }, data: { status: SubmissionStatus.Rejected } }),
+    () => [{ action: "submission.rejected", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: reason?.trim() || null } }],
+  );
+  if (rejected === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
   revalidatePath("/admin/quotations");
   return { ok: true };
 }

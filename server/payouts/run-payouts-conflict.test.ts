@@ -57,16 +57,17 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/server/access", () => ({ getAdminPrincipal: async () => ({ userId: "admin1", role: "Admin" }) }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 vi.mock("@/lib/reauth", () => ({ reauth: vi.fn() }));
 vi.mock("@/server/payouts/bankfile", () => ({ buildBankFileCsv: vi.fn() }));
 vi.mock("@/lib/env", () => ({ env: { PAYOUT_NET_NEGATIVE_POLICY: "hold" } }));
 
 import { runPayouts } from "./actions";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 
 const ok: Script = { latest: null, statusAtRecompute: "Pending", casCount: 1 };
-const audited = () => vi.mocked(logAudit).mock.calls.map(([a]) => a);
+const audited = () => auditedEntries(logAudit, auditTx);
 
 beforeEach(() => {
   vi.clearAllMocks();

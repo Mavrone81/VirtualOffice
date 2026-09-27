@@ -1,7 +1,7 @@
 import { CommissionEligibility, PaymentPlan, InvoiceStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
-import { runCommissionTx, auditRunResult, COMMISSION_TX_OPTIONS } from "./run";
+import { runCommissionTx, auditRunResultTx, COMMISSION_TX_OPTIONS } from "./run";
 
 /**
  * The transactional body of a recompute: lock, read, decide eligibility, write
@@ -58,8 +58,11 @@ export async function recomputeEligibilityTx(db: Prisma.TransactionClient, trans
 }
 
 /** Thin wrapper for callers outside an existing transaction. */
-export async function recomputeEligibility(transactionId: string): Promise<CommissionEligibility> {
-  const result = await prisma.$transaction((db) => recomputeEligibilityTx(db, transactionId), COMMISSION_TX_OPTIONS);
-  await auditRunResult(transactionId, result.run);
+export async function recomputeEligibility(transactionId: string, actorUserId: string | null): Promise<CommissionEligibility> {
+  const result = await prisma.$transaction(async (db) => {
+    const r = await recomputeEligibilityTx(db, transactionId);
+    await auditRunResultTx(db, transactionId, r.run, actorUserId); // Tier A: inside, rolls back together
+    return r;
+  }, COMMISSION_TX_OPTIONS);
   return result.eligibility;
 }
