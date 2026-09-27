@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,12 +8,17 @@ import { Input } from "@/components/ui/input";
 const selectCls =
   "h-9 rounded-lg border border-line bg-white px-2 text-[13px] text-ink focus:border-action focus:outline-none disabled:opacity-50";
 const dateCls = "h-9 w-36 px-2 text-[13px]";
+const textCls = "h-9 w-40 px-2 text-[13px]";
+const TEXT_DEBOUNCE_MS = 400;
 
 export type FilterOption = { value: string; label: string };
 
 export type FilterField =
   | { type: "select"; key: string; label: string; options: FilterOption[]; emptyLabel?: string }
-  | { type: "date-range"; fromKey: string; toKey: string; labelFrom: string; labelTo: string };
+  | { type: "date-range"; fromKey: string; toKey: string; labelFrom: string; labelTo: string }
+  // B-2: a free-text filter (e.g. Txn ID). Debounced so it doesn't push a URL
+  // change on every keystroke — every OTHER field type navigates immediately.
+  | { type: "text"; key: string; label: string; placeholder?: string };
 
 /**
  * B-2/B-3/B-4's shared filter bar: read/writes filters as URL query params
@@ -25,7 +31,7 @@ export function FilterBar({ fields, clearAllLabel }: { fields: FilterField[]; cl
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const managedKeys = fields.flatMap((f) => (f.type === "select" ? [f.key] : [f.fromKey, f.toKey]));
+  const managedKeys = fields.flatMap((f) => (f.type === "date-range" ? [f.fromKey, f.toKey] : [f.key]));
   const hasActive = managedKeys.some((k) => searchParams.get(k));
 
   function navigate(params: URLSearchParams) {
@@ -66,6 +72,15 @@ export function FilterBar({ fields, clearAllLabel }: { fields: FilterField[]; cl
             </div>
           );
         }
+        if (f.type === "text") {
+          return (
+            <div key={f.key}>
+              <Label htmlFor={f.key}>{f.label}</Label>
+              <DebouncedTextInput id={f.key} className={textCls} placeholder={f.placeholder}
+                value={searchParams.get(f.key) ?? ""} onCommit={(v) => setParam(f.key, v)} />
+            </div>
+          );
+        }
         const noOptions = f.options.length === 0 && f.emptyLabel;
         return (
           <div key={f.key}>
@@ -90,5 +105,47 @@ export function FilterBar({ fields, clearAllLabel }: { fields: FilterField[]; cl
         </button>
       )}
     </div>
+  );
+}
+
+/**
+ * A free-text filter field: local state for immediate typing feedback, the
+ * URL (and therefore the server query) only updates TEXT_DEBOUNCE_MS after
+ * the user stops typing — every keystroke pushing a URL change would be
+ * disruptive (history spam, a query per character).
+ */
+function DebouncedTextInput({
+  id, className, placeholder, value, onCommit,
+}: {
+  id: string; className: string; placeholder?: string; value: string; onCommit: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The URL value can change from outside (e.g. "Clear filters", browser
+  // back/forward) — resync the draft when that happens.
+  useEffect(() => setDraft(value), [value]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  function onChange(v: string) {
+    setDraft(v);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => onCommit(v), TEXT_DEBOUNCE_MS);
+  }
+
+  return (
+    <Input
+      id={id}
+      className={className}
+      placeholder={placeholder}
+      value={draft}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter") return;
+        if (timer.current) clearTimeout(timer.current);
+        onCommit(draft);
+      }}
+    />
   );
 }
