@@ -18,9 +18,9 @@ import { StatusPill } from "@/components/ui/status-pill";
  * both; tabs and filter are URL params so a view can be bookmarked.
  *
  * Eligibility: designations that cannot recruit see the "not eligible yet"
- * state instead of the table. The rule is lib/rbac canRecruit (Assistant
- * Manager and above) — the PDF says "below Manager", which conflicts with the
- * earlier AM+ decision; kept as-is until Samuel confirms (item A9).
+ * state instead of the table. The rule is lib/rbac canRecruit (Manager and
+ * above — A9, Samuel 2026-09-26: the PDF wins over the earlier 1 Sep AM+
+ * decision; Sales Assistant Manager is no longer eligible).
  */
 export async function RecruitmentView({ mode, basePath, tab, mgr }: {
   mode: "people" | "performance";

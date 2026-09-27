@@ -6,6 +6,7 @@ import {
   PartyPopper, Store, Sparkles, Landmark, Archive, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
+import { RECRUITER_ROLES } from "@/lib/roles";
 
 export type NavItem = {
   labelKey: string; // key into the `nav` message namespace
@@ -18,8 +19,6 @@ export type NavItem = {
 export type NavGroup = { titleKey: string; items: NavItem[] };
 
 const MANAGER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector"];
-// Mirror lib/rbac.ts (kept local so nav.ts doesn't pull prisma into the client bundle).
-const RECRUITER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector", "Admin"];
 const DIRECTOR_ROLES: AppRole[] = ["SalesDirector", "Admin"];
 
 // ---------------------------------------------------------------------------

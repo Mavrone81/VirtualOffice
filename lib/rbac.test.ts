@@ -13,13 +13,14 @@ describe("roleForDesignation — AppRole is derived from the sales designation (
   });
 });
 
-describe("canRecruit — invite candidate is SAM and above", () => {
-  it("SAM, SM, SD and Business Admin can recruit", () => {
-    for (const r of [AppRole.SalesAssistantManager, AppRole.SalesManager, AppRole.SalesDirector, AppRole.Admin]) {
+describe("canRecruit — invite candidate is Manager and above (A9, Samuel 2026-09-26)", () => {
+  it("SM, SD and Business Admin can recruit", () => {
+    for (const r of [AppRole.SalesManager, AppRole.SalesDirector, AppRole.Admin]) {
       expect(canRecruit(r)).toBe(true);
     }
   });
-  it("Sales Associate and Accounts cannot recruit", () => {
+  it("Sales Assistant Manager, Sales Associate and Accounts cannot recruit", () => {
+    expect(canRecruit(AppRole.SalesAssistantManager)).toBe(false);
     expect(canRecruit(AppRole.SalesAssociate)).toBe(false);
     expect(canRecruit(AppRole.Accounts)).toBe(false);
   });
