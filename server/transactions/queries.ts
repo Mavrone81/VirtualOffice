@@ -46,7 +46,7 @@ export async function myTransactionRows(variant: TransactionVariant) {
       lineItems: { select: { productName: true } },
       submission: { select: { createdAt: true } },
       invoices: { select: { id: true, invoiceNumber: true, amount: true }, orderBy: { createdAt: "asc" } },
-      ledgerLines: { select: { associateId: true, lineType: true, status: true, amount: true } },
+      ledgerLines: { select: { associateId: true, lineType: true, status: true, amount: true, payout: { select: { payoutStatus: true } } } },
     },
   });
 

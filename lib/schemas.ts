@@ -42,8 +42,8 @@ export const saleSchema = z
     clientContact: z.string().trim().max(200).optional(),
     paymentPlan: z.enum(["Full Payment", "Installment"]),
     deposit: z.number().finite().nonnegative().max(100_000_000).optional(),
-    // Installment plans are fixed at 12 or 24 months (23-Jul); refined below.
-    installmentCount: z.number().finite().int().positive().max(360).optional(),
+    // A-0b: the count is 1–24 on the server; refined below (deposit ≤ sale too).
+    installmentCount: z.number().finite().int().positive().max(24).optional(),
     lines: z
       .array(
         z.object({
@@ -59,8 +59,18 @@ export const saleSchema = z
     associate3: splitShare.optional(),
   })
   .refine(
-    (d) => d.paymentPlan !== "Installment" || d.installmentCount === 12 || d.installmentCount === 24,
-    { message: "Installment plan must be 12 or 24 months", path: ["installmentCount"] },
+    (d) => d.paymentPlan !== "Installment" || (d.installmentCount !== undefined && d.installmentCount >= 1),
+    { message: "Installment count must be between 1 and 24", path: ["installmentCount"] },
+  )
+  .refine(
+    (d) => {
+      if (d.deposit === undefined) return true;
+      const saleAmount = d.lines.reduce((s, l) => s + l.lineSaleAmount, 0);
+      // Strict for Installment: deposit === sale would leave nothing to divide,
+      // minting N schedule rows of $0.00 that still gate the eligibility count.
+      return d.paymentPlan === "Installment" ? d.deposit < saleAmount : d.deposit <= saleAmount;
+    },
+    { message: "Deposit must be less than the sale amount for an installment plan", path: ["deposit"] },
   );
 export type SaleInput = z.infer<typeof saleSchema>;
 

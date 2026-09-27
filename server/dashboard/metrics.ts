@@ -1,5 +1,5 @@
 import type { AppRole } from "@prisma/client";
-import { LedgerStatus } from "@prisma/client";
+import { LedgerStatus, PayoutStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { sum } from "@/lib/money";
 import { downlineIds } from "@/lib/rbac";
@@ -35,18 +35,20 @@ export type DashboardMetrics = {
  * The three headline figures scoped to a set of associate ids (null = all):
  *  - Total Transaction Value    = Σ sale amounts of closed transactions
  *  - Gross Commission Transacted = Σ non-cancelled commission-ledger lines
- *  - Gross Commission Received   = Σ paid commission-ledger lines
+ *  - Gross Commission Received   = Σ ledger lines settled in a Paid payout
+ *    (derived from line.payoutId -> payout.payoutStatus, not
+ *    LedgerStatus.Paid — see lib/my-share.ts)
  */
 export async function dashboardMetrics(scopeIds: string[] | null): Promise<DashboardMetrics> {
   const txWhere = scopeIds === null ? {} : { closingAssociateId: { in: scopeIds } };
   const ledgerWhere = scopeIds === null ? {} : { associateId: { in: scopeIds } };
   const [tx, ledger] = await Promise.all([
     prisma.salesTransaction.findMany({ where: txWhere, select: { saleAmount: true } }),
-    prisma.commissionLedger.findMany({ where: ledgerWhere, select: { amount: true, status: true } }),
+    prisma.commissionLedger.findMany({ where: ledgerWhere, select: { amount: true, status: true, payout: { select: { payoutStatus: true } } } }),
   ]);
   return {
     totalTransactionValue: sum(tx.map((t) => t.saleAmount)),
     grossTransacted: sum(ledger.filter((l) => l.status !== LedgerStatus.Cancelled).map((l) => l.amount)),
-    grossReceived: sum(ledger.filter((l) => l.status === LedgerStatus.Paid).map((l) => l.amount)),
+    grossReceived: sum(ledger.filter((l) => l.payout?.payoutStatus === PayoutStatus.Paid).map((l) => l.amount)),
   };
 }
