@@ -389,8 +389,14 @@
       "bank": "Bank",
       "reference": "Reference no.",
       "confirm": "Confirm paid",
-      "cancel": "Cancel"
-    }
+      "cancel": "Cancel",
+      "ackLabel": "Payment acknowledgement (required)",
+      "ackHint": "PDF, JPG or PNG"
+    },
+    "viewAck": "View acknowledgement",
+    "markUnpaidReason": "Reason (required)",
+    "markUnpaidBlocked": "Can't un-mark — commission from this sale is already approved or paid out.",
+    "ackUploadError": "That file couldn't be uploaded — {reason}."
   },
   "notices": {
     "title": "Notices",
@@ -1304,6 +1310,9 @@
     "payoutNotPositive": "A payout with a total of zero or less cannot be approved.",
     "payoutsNotBackfilled": "This month has approved or paid payouts that are not linked to their commission lines yet. Run the payout backfill before re-running payouts.",
     "payoutRunConflict": "Payouts changed while this run was in progress. Please try again.",
+    "payoutAlreadyApprovedOrPaid": "Can't un-mark — commission from this sale is already approved or paid out.",
+    "legacyReconciliationPending": "Can't un-mark — this associate has an older payout awaiting reconciliation for this month.",
+    "reasonRequired": "A reason is required.",
     "recomputeBusy": "System busy — the payment was NOT recorded. Please try again.",
     "reauthFailed": "Password confirmation failed.",
     "titleRequired": "Title is required.",

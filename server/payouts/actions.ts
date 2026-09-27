@@ -440,6 +440,25 @@ const ALLOWED_PAYOUT_TRANSITIONS: Partial<Record<PayoutStatus, PayoutStatus>> = 
   [PayoutStatus.Approved]: PayoutStatus.Paid,
 };
 
+/**
+ * B-7 (DevLead): lock every sales_transactions row this payout's ledger lines
+ * belong to, in id order, BEFORE the payout's own CAS — the global lock order
+ * (sale -> ledger -> payout) applied here so a concurrent B-7 unmark (which
+ * locks the sale first, then checks payout.payoutStatus) serialises against
+ * this transition instead of racing it: either the unmark's guard already
+ * sees this payout as Approved/Paid, or this transition waits behind the
+ * unmark's lock and only proceeds once it has committed (or rolled back).
+ * Ordering by id avoids a deadlock between two payouts that share a
+ * transaction (a split sale) locked in different orders.
+ */
+async function lockPayoutTransactions(db: Prisma.TransactionClient, payoutId: string): Promise<void> {
+  await db.$queryRaw`
+    SELECT id FROM sales_transactions
+    WHERE id IN (SELECT DISTINCT transaction_id FROM commission_ledger WHERE payout_id = ${payoutId}::uuid)
+    ORDER BY id FOR UPDATE
+  `;
+}
+
 export async function setPayoutStatus(payoutId: string, status: "Approved" | "Paid"): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const principal = await getAdminPrincipal();
@@ -459,12 +478,15 @@ export async function setPayoutStatus(payoutId: string, status: "Approved" | "Pa
   // between that read and this write: if a concurrent transition moved the row, or a
   // recompute changed the total (C2), the where matches nothing and we reject rather
   // than approve a figure nobody checked (or double-process two clicks on Paid).
-  const result = await prisma.monthlyPayout.updateMany({
-    where: { id: payoutId, payoutStatus: cur.payoutStatus, totalPayable: cur.totalPayable },
-    data: {
-      payoutStatus: target,
-      paidDate: status === "Paid" ? new Date() : undefined,
-    },
+  const result = await prisma.$transaction(async (db) => {
+    await lockPayoutTransactions(db, payoutId);
+    return db.monthlyPayout.updateMany({
+      where: { id: payoutId, payoutStatus: cur.payoutStatus, totalPayable: cur.totalPayable },
+      data: {
+        payoutStatus: target,
+        paidDate: status === "Paid" ? new Date() : undefined,
+      },
+    });
   });
   if (result.count === 0) return { ok: false, error: t("illegalPayoutTransition") };
   await logAudit({
@@ -480,15 +502,31 @@ export async function approveAllPayouts(month: string): Promise<{ ok: boolean; e
   const t = await getTranslations("errors");
   const principal = await getAdminPrincipal();
   if (!principal) return { ok: false, error: t("forbidden") };
-  const approved = await prisma.monthlyPayout.updateManyAndReturn({
-    // Zero/negative payouts stay Pending for a human to resolve (never exported).
+
+  // Candidates, in id order (B-7/DevLead: a consistent lock order across
+  // payouts avoids a deadlock with a concurrent call locking the same set).
+  const candidates = await prisma.monthlyPayout.findMany({
     where: { payoutMonth: month, payoutStatus: PayoutStatus.Pending, totalPayable: { gt: 0 } },
-    data: { payoutStatus: PayoutStatus.Approved },
-    select: { id: true, totalPayable: true },
+    orderBy: { id: "asc" },
+    select: { id: true },
   });
+
+  const approved: { id: string; total: string }[] = [];
+  for (const { id } of candidates) {
+    const row = await prisma.$transaction(async (db) => {
+      await lockPayoutTransactions(db, id);
+      return db.monthlyPayout.updateManyAndReturn({
+        where: { id, payoutStatus: PayoutStatus.Pending, totalPayable: { gt: 0 } },
+        data: { payoutStatus: PayoutStatus.Approved },
+        select: { id: true, totalPayable: true },
+      });
+    });
+    if (row.length) approved.push({ id: row[0].id, total: row[0].totalPayable.toFixed(2) });
+  }
+
   await logAudit({
     action: "payouts.approve_all", entityType: "MonthlyPayout", entityId: month, actorUserId: principal.userId,
-    after: { month, count: approved.length, payouts: approved.map((p) => ({ id: p.id, total: p.totalPayable.toFixed(2) })) },
+    after: { month, count: approved.length, payouts: approved },
   });
   revalidatePath("/admin/payouts");
   return { ok: true };

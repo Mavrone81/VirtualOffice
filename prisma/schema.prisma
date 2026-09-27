@@ -673,6 +673,9 @@ model Invoice {
   paidReference    String?               @map("paid_reference")
   pdfFileKey       String?               @map("pdf_file_key")
   signedPdfFileKey String?               @map("signed_pdf_file_key")
+  // B-7: the payment acknowledgement (PDF/JPG/PNG) required to mark Paid;
+  // admin-only, served by invoice id (ADR-0001) — never a raw storage key.
+  paymentAckFileKey String?              @map("payment_ack_file_key")
   remarks          String?
   scheduleEntry    InstallmentSchedule?
 
@@ -711,6 +714,12 @@ model InstallmentSchedule {
   invoice   Invoice?        @relation(fields: [invoiceId], references: [id])
   paid      Boolean         @default(false)
   paidDate  DateTime?       @map("paid_date")
+  // B-7: markInstallmentPaid writes this row directly (no Invoice row
+  // required), so an installment-only payment needs its own ack slot, and
+  // (DevLead) its own method/reference — Invoice already had these.
+  paymentAckFileKey String?              @map("payment_ack_file_key")
+  paidMethod        InvoicePaymentMethod? @map("paid_method")
+  paidReference     String?              @map("paid_reference")
 
   @@unique([planId, sequence])
   @@map("installment_schedule")
