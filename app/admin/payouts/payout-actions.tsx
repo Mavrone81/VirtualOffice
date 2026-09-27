@@ -4,41 +4,7 @@ import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { runPayouts, approveAllPayouts, setPayoutStatus } from "@/server/payouts/actions";
-
-export function RunPayoutsBar({ month }: { month: string }) {
-  const t = useTranslations("payouts");
-  const [pending, start] = useTransition();
-  const [msg, setMsg] = useState<string>();
-  const router = useRouter();
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button
-        size="sm"
-        disabled={pending}
-        onClick={() =>
-          start(async () => {
-            const r = await runPayouts(month);
-            setMsg(r.ok ? t("aggregated", { count: r.count ?? 0 }) : r.error);
-            router.refresh();
-          })
-        }
-      >
-        {pending ? t("running") : t("runPayouts")}
-      </Button>
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={pending}
-        onClick={() => start(async () => { await approveAllPayouts(month); router.refresh(); })}
-      >
-        {t("approveAll")}
-      </Button>
-      <BankFileButton month={month} />
-      {msg && <span className="text-[12px] text-muted">{msg}</span>}
-    </div>
-  );
-}
+import { setPayoutStatus } from "@/server/payouts/actions";
 
 /**
  * Bank/GIRO file download, gated by a fresh password re-entry. The old bare GET
@@ -46,7 +12,7 @@ export function RunPayoutsBar({ month }: { month: string }) {
  * the reauth-gated route, and the CSV is downloaded from the response blob only
  * after the server verifies the password (and audits the generation).
  */
-function BankFileButton({ month }: { month: string }) {
+export function BankFileButton({ month }: { month: string }) {
   const t = useTranslations("payouts");
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
