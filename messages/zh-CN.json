@@ -31,6 +31,17 @@
     "allCaughtUp": "暂无待处理事项。",
     "saved": "已保存"
   },
+  "filters": {
+    "designation": "职衔",
+    "team": "团队",
+    "teamNoDownline": "该经理暂无下属经纪人",
+    "dateFrom": "从",
+    "dateTo": "至",
+    "product": "产品",
+    "eligibility": "发放资格",
+    "closer": "成交经纪人",
+    "clearAll": "清除所有筛选"
+  },
   "nav": {
     "groupOperations": "运营",
     "groupFinance": "财务",
@@ -159,6 +170,7 @@
     "subtitle": "人事系统的核心档案 — 层级、批准、状态。",
     "exportContacts": "⤓ 导出联系人",
     "newAssociate": "+ 新增伙伴",
+    "emptyFiltered": "没有符合筛选条件的经纪人。",
     "col": {
       "id": "编号",
       "associate": "伙伴",
@@ -1014,6 +1026,7 @@
       "title": "销售交易",
       "subtitle": "已审核的官方确认销售记录。",
       "empty": "暂无已审核交易 — 请先审核提交内容以创建交易记录。",
+      "emptyFiltered": "没有符合筛选条件的交易。",
       "col": {
         "txnId": "交易编号",
         "date": "日期",
