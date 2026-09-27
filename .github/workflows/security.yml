@@ -43,9 +43,14 @@ jobs:
     continue-on-error: true # REMOVE on/after 2026-10-11 to make this blocking (DevSecOps)
     steps:
       - uses: actions/checkout@v4
+      # No `version:` on purpose. pnpm/action-setup@v4 reads `packageManager` from
+      # package.json, which is the single source of truth for the pnpm version. Passing
+      # BOTH makes the action throw "Multiple versions of pnpm specified" — it compares
+      # them as strings (`packageManager.replace('pnpm@','') !== version`), so
+      # `pnpm@9.15.0` vs `version: 9` is a mismatch, not a match. 🔴 PRECONDITION: needs
+      # the `packageManager` pin merged first (see this kit's README) — with neither set,
+      # the action requires a version and fails.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -69,6 +74,79 @@ jobs:
             echo
             echo '```'
             cat audit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${failed:-0}"
+
+  # ---------------------------------------------------------------------------
+  # Repo-wide credential-shape scan. Fails on any string literal assigned to a
+  # password/secret/token-like identifier that is not explicitly allow-listed.
+  #
+  # A SEPARATE job from `audit` on purpose: a credential-shaped literal and a
+  # dependency advisory are unrelated findings, and putting them in one job
+  # would let one mask the other in the summary and force them to share a
+  # single `continue-on-error` lifecycle.
+  #
+  # Shape, not values: a list of known secrets only looks backwards, and
+  # writing one into the repo to prove a secret is gone plants most of it back.
+  # This catches the NEXT credential, whatever it is called, without naming any
+  # value — including the `process.env.X ?? "literal"` fallback form, which is
+  # the form such a literal actually tends to live in.
+  #
+  # BLOCKING. It was non-blocking while the two real shared-password literals
+  # were still on main; the W2a-ADDENDUM cleared them and the scan is green on
+  # main with 0 pending, so the exemption's premise is spent and it is gone.
+  # 🔴 Do NOT reintroduce `continue-on-error` at JOB level here: it would also
+  # cover the self-test below, which is the one step whose entire job is to
+  # prove this scanner is not silently measuring nothing. If a temporary
+  # exemption is ever genuinely needed, put it on the SCAN STEP only, never on
+  # the job. (The `audit` job keeps its own flag on its own 2026-10-11
+  # lifecycle — deliberately independent of this one.)
+  # ---------------------------------------------------------------------------
+  credential-shape:
+    name: Credential-shaped literals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # 🔴 This step must never be exempted from failing the job. An earlier
+      # revision of this file said it was "NOT covered by continue-on-error's
+      # purpose" while a JOB-level flag covered every step including this one —
+      # true of the intent, false of the effect, and the flag is gone now
+      # (DevLead caught it, 2026-09-27). It asserts the scan's own shape
+      # claims against its real code path. It
+      # exists because the fallback rule (`IDENT = env.X ?? "literal"`) shipped
+      # dead — a wrong backreference made every fallback match arrive with an
+      # empty literal, which the empty-string rule wrote off as benign. Nothing
+      # ever went red. If this step fails, the scan below is not measuring what
+      # it says it measures, and its silence means nothing.
+      - name: Self-test the scan's shape claims
+        run: node .github/scripts/credential-shape-scan.mjs --self-test
+
+      - name: Scan for credential-shaped literals
+        run: |
+          set -o pipefail
+          # No install: the scanner is dependency-free, stdlib only.
+          node .github/scripts/credential-shape-scan.mjs 2>&1 | tee scan.txt || failed=1
+          {
+            echo "## Credential-shaped literals"
+            echo
+            if [ "${failed:-0}" = "0" ]; then
+              echo "No unexplained credential-shaped literals."
+            else
+              echo "A string literal is assigned to a password/secret/token-like identifier"
+              echo "and is not in \`.github/credential-shape-allowlist.tsv\`."
+              echo
+              echo "Fix it by moving the value to the environment. If it genuinely cannot be a"
+              echo "secret (a self-describing placeholder, for example), add it to the allow-list"
+              echo "**with a reason** — entries are per location and include the expected value,"
+              echo "so swapping a real secret in at an allow-listed spot still fails."
+            fi
+            echo
+            echo '```'
+            cat scan.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit "${failed:-0}"
