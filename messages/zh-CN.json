@@ -407,7 +407,8 @@
     },
     "viewAck": "查看付款证明",
     "markUnpaidReason": "原因（必填）",
-    "markUnpaidBlocked": "无法取消标记 — 此笔交易的佣金已批准或已发放。",
+    "markUnpaidConfirm": "确认",
+    "ackRequired": "必须上传付款证明。",
     "ackUploadError": "文件上传失败 — {reason}。"
   },
   "notices": {
@@ -654,8 +655,7 @@
       "deposit": "定金（S$）",
       "numInstallments": "分期期数",
       "installmentPlan": "分期方案",
-      "months12": "12 个月",
-      "months24": "24 个月",
+      "monthsCount": "{count} 个月",
       "products": "产品",
       "addLine": "添加行",
       "product": "产品",

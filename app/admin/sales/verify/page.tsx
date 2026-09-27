@@ -1,5 +1,4 @@
 import { format } from "date-fns";
-import { InvoiceStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -8,7 +7,6 @@ import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
-import { MarkPaidButton } from "@/app/admin/invoices/mark-paid-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Sales & verify · Enshrine Admin" };
@@ -88,7 +86,7 @@ export default async function SalesVerifyPage() {
                             <div key={x.id} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-[12px] ${x.paid ? "border-success/30 bg-success-50" : "border-line bg-paper-100"}`}>
                               <span className="text-muted">#{x.sequence}</span>
                               <span className="font-medium text-ink">{formatSGD(x.dueAmount)}</span>
-                              <MarkPaidButton id={x.id} kind="installment" paid={x.paid} />
+                              <StatusPill status={x.paid ? "Paid" : "Pending"} />
                             </div>
                           ))}
                         </div>
@@ -104,7 +102,6 @@ export default async function SalesVerifyPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <StatusPill status={inv.status} />
-                              {inv.status !== InvoiceStatus.Cancelled && <MarkPaidButton id={inv.id} kind="invoice" paid={inv.status === InvoiceStatus.Paid} />}
                             </div>
                           </div>
                         ))}
