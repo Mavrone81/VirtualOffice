@@ -6,7 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/rbac";
-import { logAudit } from "@/lib/audit";
+import { auditTx, AuditWriteError } from "@/lib/audit";
 import { validate as validateInput } from "@/lib/validate";
 import { productSchema, comCodeSchema } from "@/lib/schemas";
 
@@ -66,38 +66,47 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
   const v = validateInput(productSchema, input);
   if (!v.ok) return { ok: false, error: t("invalidInput") };
   const validInput = v.data;
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
   const err = validate(validInput);
   if (err) return { ok: false, error: t(err) };
   if (await prisma.product.findFirst({ where: { productCode: validInput.productCode.trim() } })) {
     return { ok: false, error: t("productCodeExists") };
   }
   const eff = new Date(validInput.effectiveDate);
-  const product = await prisma.product.create({
-    data: {
-      productCode: validInput.productCode.trim(),
-      productName: validInput.productName.trim(),
-      productCategory: validInput.productCategory?.trim() || null,
-      commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
-      closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
-      closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
-      companyCutPct: validInput.companyCutPct || "0",
-      companyCutType: valueType(validInput.companyCutType),
-      smOverridePct: validInput.smOverridePct || "0",
-      smOverrideType: valueType(validInput.smOverrideType),
-      sdOverridePct: validInput.sdOverridePct || "0",
-      sdOverrideType: valueType(validInput.sdOverrideType),
-      isExternal: validInput.isExternal,
-      externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
-      defaultCompanyId: validInput.defaultCompanyId || null,
-      activeStatus: ProductActiveStatus.Active,
-      effectiveDate: eff,
-    },
-  });
-  await prisma.commissionStructureVersion.create({
-    data: { productCode: product.productCode, productId: product.id, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
-  });
-  await logAudit({ action: "product.created", entityType: "Product", entityId: product.id });
+  // Tier A (commission input): the change and its record commit together.
+  try {
+    await prisma.$transaction(async (db) => {
+    const product = await db.product.create({
+      data: {
+        productCode: validInput.productCode.trim(),
+        productName: validInput.productName.trim(),
+        productCategory: validInput.productCategory?.trim() || null,
+        commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
+        closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
+        closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
+        companyCutPct: validInput.companyCutPct || "0",
+        companyCutType: valueType(validInput.companyCutType),
+        smOverridePct: validInput.smOverridePct || "0",
+        smOverrideType: valueType(validInput.smOverrideType),
+        sdOverridePct: validInput.sdOverridePct || "0",
+        sdOverrideType: valueType(validInput.sdOverrideType),
+        isExternal: validInput.isExternal,
+        externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
+        defaultCompanyId: validInput.defaultCompanyId || null,
+        activeStatus: ProductActiveStatus.Active,
+        effectiveDate: eff,
+      },
+    });
+    await db.commissionStructureVersion.create({
+      data: { productCode: product.productCode, productId: product.id, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
+    });
+    await auditTx(db, { action: "product.created", entityType: "Product", entityId: product.id, actorUserId: admin.user.id, after: { productCode: product.productCode, effectiveDate: eff.toISOString(), rates: rateSnapshot(validInput) } });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/products");
   return { ok: true };
 }
@@ -108,44 +117,62 @@ export async function changeRates(productId: string, input: ProductInput): Promi
   const v = validateInput(productSchema, input);
   if (!v.ok) return { ok: false, error: t("invalidInput") };
   const validInput = v.data;
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
   const err = validate(validInput);
   if (err) return { ok: false, error: t(err) };
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) return { ok: false, error: t("notFound") };
   const eff = new Date(validInput.effectiveDate);
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
-      closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
-      closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
-      companyCutPct: validInput.companyCutPct || "0",
-      companyCutType: valueType(validInput.companyCutType),
-      smOverridePct: validInput.smOverridePct || "0",
-      smOverrideType: valueType(validInput.smOverrideType),
-      sdOverridePct: validInput.sdOverridePct || "0",
-      sdOverrideType: valueType(validInput.sdOverrideType),
-      isExternal: validInput.isExternal,
-      externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
-      effectiveDate: eff,
-    },
-  });
-  await prisma.commissionStructureVersion.create({
-    data: { productCode: product.productCode, productId, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
-  });
-  await logAudit({ action: "product.rates_changed", entityType: "Product", entityId: productId });
+  // Tier A (commission input): the change and its record commit together.
+  try {
+    await prisma.$transaction(async (db) => {
+    await db.product.update({
+      where: { id: productId },
+      data: {
+        commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
+        closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
+        closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
+        companyCutPct: validInput.companyCutPct || "0",
+        companyCutType: valueType(validInput.companyCutType),
+        smOverridePct: validInput.smOverridePct || "0",
+        smOverrideType: valueType(validInput.smOverrideType),
+        sdOverridePct: validInput.sdOverridePct || "0",
+        sdOverrideType: valueType(validInput.sdOverrideType),
+        isExternal: validInput.isExternal,
+        externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
+        effectiveDate: eff,
+      },
+    });
+    await db.commissionStructureVersion.create({
+      data: { productCode: product.productCode, productId, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
+    });
+    await auditTx(db, { action: "product.rates_changed", entityType: "Product", entityId: productId, actorUserId: admin.user.id, after: { productCode: product.productCode, effectiveDate: eff.toISOString(), rates: rateSnapshot(validInput) } });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/products");
   return { ok: true };
 }
 
 export async function setProductActive(productId: string, active: boolean): Promise<{ ok: boolean }> {
-  if (!(await requireAdmin())) return { ok: false };
-  await prisma.product.update({
-    where: { id: productId },
-    data: { activeStatus: active ? ProductActiveStatus.Active : ProductActiveStatus.Inactive },
-  });
-  await logAudit({ action: active ? "product.activated" : "product.deactivated", entityType: "Product", entityId: productId });
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false };
+  // Tier A (commission input): the change and its record commit together.
+  try {
+    await prisma.$transaction(async (db) => {
+    await db.product.update({
+      where: { id: productId },
+      data: { activeStatus: active ? ProductActiveStatus.Active : ProductActiveStatus.Inactive },
+    });
+    await auditTx(db, { action: active ? "product.activated" : "product.deactivated", entityType: "Product", entityId: productId, actorUserId: admin.user.id });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false };
+    throw e;
+  }
   revalidatePath("/admin/products");
   return { ok: true };
 }
@@ -158,26 +185,44 @@ export async function addComCode(
   const v = validateInput(comCodeSchema, input);
   if (!v.ok) return { ok: false, error: t("invalidInput") };
   const validInput = v.data;
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
-  await prisma.comcode.create({
-    data: {
-      productId,
-      comCode: validInput.comCode.trim(),
-      label: validInput.label.trim(),
-      valueType: validInput.valueType === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage,
-      value: validInput.value,
-      active: true,
-    },
-  });
-  await logAudit({ action: "product.comcode_added", entityType: "Product", entityId: productId });
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+  // Tier A (commission input): the change and its record commit together.
+  try {
+    await prisma.$transaction(async (db) => {
+    await db.comcode.create({
+      data: {
+        productId,
+        comCode: validInput.comCode.trim(),
+        label: validInput.label.trim(),
+        valueType: validInput.valueType === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage,
+        value: validInput.value,
+        active: true,
+      },
+    });
+    await auditTx(db, { action: "product.comcode_added", entityType: "Product", entityId: productId, actorUserId: admin.user.id, after: { comCode: validInput.comCode.trim(), valueType: validInput.valueType, value: validInput.value } });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/products");
   return { ok: true };
 }
 
 export async function toggleComCode(comCodeId: string, active: boolean): Promise<{ ok: boolean }> {
-  if (!(await requireAdmin())) return { ok: false };
-  await prisma.comcode.update({ where: { id: comCodeId }, data: { active } });
-  await logAudit({ action: active ? "product.comcode_enabled" : "product.comcode_disabled", entityType: "ComCode", entityId: comCodeId });
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false };
+  // Tier A (commission input): the change and its record commit together.
+  try {
+    await prisma.$transaction(async (db) => {
+    await db.comcode.update({ where: { id: comCodeId }, data: { active } });
+    await auditTx(db, { action: active ? "product.comcode_enabled" : "product.comcode_disabled", entityType: "ComCode", entityId: comCodeId, actorUserId: admin.user.id });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false };
+    throw e;
+  }
   revalidatePath("/admin/products");
   return { ok: true };
 }

@@ -7,11 +7,11 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
-import { putObject } from "@/lib/storage";
+import { putObject, deleteObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { renderQuotationPdf } from "@/lib/pdf/quotation";
 import { addSubmissionDocuments } from "@/server/documents/submission-docs";
-import { logAudit } from "@/lib/audit";
+import { auditTx, AuditWriteError } from "@/lib/audit";
 
 /**
  * Upload signed documents into a sale's docket (16-Jul quotation workflow). Only
@@ -83,11 +83,21 @@ export async function signQuotationOnSystem(
 
   const key = `submissions/${submissionId}/${randomUUID()}.pdf`;
   await putObject(key, pdf.buffer);
-  await prisma.submissionDocument.create({
-    data: { submissionId, kind: "Signed", fileKey: key, fileName: `Signed-${pdf.filename}`, uploadedById: session.user.id },
-  });
-
-  await logAudit({ action: "quotation.signed_on_system", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { signerName: name } });
+  // Tier A (reviews/audit-reliability.md): the signed quotation is linked and
+  // recorded in one transaction; if the record can't be written, neither happens
+  // and the stored PDF is removed.
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.submissionDocument.create({
+        data: { submissionId, kind: "Signed", fileKey: key, fileName: `Signed-${pdf.filename}`, uploadedById: session.user.id },
+      });
+      await auditTx(db, { action: "quotation.signed_on_system", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { signerName: name, fileKey: key } });
+    });
+  } catch (e) {
+    await deleteObject(key);
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/portal/quotations");
   return { ok: true };
 }

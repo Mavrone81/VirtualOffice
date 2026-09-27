@@ -19,7 +19,8 @@ import { assertUpload } from "@/lib/file-type";
 import { humanize } from "@/lib/labels";
 import { renderAgreementPdf } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
+import { maskedPayee } from "@/server/associates/payee-audit";
 import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
 import { onboardingSchema } from "@/lib/schemas";
@@ -404,7 +405,9 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
   const pm = p.paymentMethod === "Bank Transfer" ? PaymentMethod.BankTransfer
     : p.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null;
 
-  const result = await prisma.$transaction(async (tx) => {
+  let result: { code: string; provisioned: boolean };
+  try {
+  result = await prisma.$transaction(async (tx) => {
     let provisioned = false;
     const associate = await tx.associate.create({
       data: {
@@ -488,8 +491,17 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
         convertedAssociateId: associate.id,
       },
     });
+    // Tier A: a new payee + login (role) is recorded with the conversion; payee masked.
+    await auditTx(tx, {
+      action: "candidate.approved", entityType: "Candidate", entityId: c.id, actorUserId: session.user.id,
+      after: { associateCode: associate.associateCode, associateId: associate.id, designation: associate.designation, loginProvisioned: provisioned, payee: maskedPayee(associate) },
+    });
     return { code: associate.associateCode, provisioned };
   });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") }; // nothing converted, no email sent
+    throw e;
+  }
 
   // Email the new associate their login credentials (best-effort, post-commit).
   if (result.provisioned) {
@@ -499,7 +511,6 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     });
   }
 
-  await logAudit({ action: "candidate.approved", entityType: "Candidate", entityId: c.id, after: { associateCode: result.code } });
   revalidatePath("/admin/recruitment");
   revalidatePath("/admin/associates");
   revalidatePath("/admin/dashboard");
@@ -512,15 +523,22 @@ export async function rejectCandidate(id: string, reason: string): Promise<{ ok:
   if (!session) return { ok: false, error: t("forbidden") };
   const c = await prisma.candidate.findUnique({ where: { id } });
   if (!c) return { ok: false, error: t("notFound") };
-  await prisma.candidate.update({
-    where: { id },
-    data: {
-      onboardingStage: OnboardingStage.Rejected,
-      rejectReason: reason?.trim() || null,
-      reviewedById: session.user.id,
-    },
-  });
-  await logAudit({ action: "candidate.rejected", entityType: "Candidate", entityId: id, actorUserId: session.user.id, after: { reason: reason?.trim() || null } });
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.candidate.update({
+        where: { id },
+        data: {
+          onboardingStage: OnboardingStage.Rejected,
+          rejectReason: reason?.trim() || null,
+          reviewedById: session.user.id,
+        },
+      });
+      await auditTx(db, { action: "candidate.rejected", entityType: "Candidate", entityId: id, actorUserId: session.user.id, after: { reason: reason?.trim() || null } });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/recruitment");
   revalidatePath(`/admin/recruitment/${id}`);
   return { ok: true };

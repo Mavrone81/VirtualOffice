@@ -14,10 +14,11 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 import { runPayouts, previewPayoutRun, reconcileLegacyPayout, setPayoutStatus } from "./actions";
 
 const TAG = "M5CF-";
@@ -190,7 +191,7 @@ describe("M5-CF: catch-up, carry-forward, stuck release, per-associate guard, pr
 
     const augPayout = await prisma.monthlyPayout.findFirstOrThrow({ where: { associateId: a, payoutMonth: "2199-08" } });
     expect(augPayout.totalPayable.toFixed(2)).toBe("900.00");
-    const audited = vi.mocked(logAudit).mock.calls.map(([x]) => x);
+    const audited = auditedEntries(logAudit, auditTx);
     expect(audited.some((x) => x.action === "payout.carried_forward" && x.entityId === stuck.id)).toBe(true);
     await assertConservation(a);
     await assertNeverPaidWhileNegative(a);

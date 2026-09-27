@@ -5,7 +5,8 @@
 import { describe, it, expect, afterAll, vi } from "vitest";
 import zlib from "node:zlib";
 
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/auth", () => ({ auth: async () => null })); // PDF renders run without an actor → session lookup
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
 import { encryptPII, decryptPiiRaw } from "@/lib/crypto";

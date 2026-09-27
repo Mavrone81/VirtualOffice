@@ -19,7 +19,7 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
@@ -128,7 +128,7 @@ describe("R-4: runCommission stale-read race", () => {
     }) as never);
 
     who.session = ADMIN;
-    const aPromise = runCommission(tx.id); // a gratuitous concurrent recompute (call A)
+    const aPromise = runCommission(tx.id, null); // a gratuitous concurrent recompute (call A)
     const fallback = (async () => {
       await new Promise((r) => setTimeout(r, 50));
       if (!hookFired) await runBOnce(); // fixed code: the vulnerable read moved off the global

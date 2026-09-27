@@ -1,5 +1,6 @@
 import { Prisma, PayoutStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { auditTx } from "@/lib/audit";
 import { decryptPiiAudited } from "@/server/pii";
 
 /**
@@ -31,12 +32,22 @@ export function csvCell(value: unknown): string {
 
 export async function buildBankFileCsv(
   month: string,
-  actorUserId?: string | null,
+  actorUserId: string | null,
   opts: { batchId?: string } = {},
 ): Promise<{ csv: string; batchId: string | null; payoutIds: string[]; total: string }> {
   let batchId: string | null = opts.batchId ?? null;
 
-  if (!batchId) {
+  if (batchId) {
+    // Audit reliability (Tier A): a re-download releases bank details again but
+    // changes no state, so it is recorded BEFORE anything is decrypted or built —
+    // no record, no file (auditTx throws).
+    const rows = await prisma.monthlyPayout.findMany({ where: { bankFileBatchId: batchId, payoutMonth: month }, select: { id: true, totalPayable: true } });
+    await auditTx(prisma, {
+      action: "payout.bankfile_redownloaded", entityType: "BankFileBatch", entityId: batchId,
+      after: { month, batchId, payoutIds: rows.map((r) => r.id), total: rows.reduce((a, r) => a.add(r.totalPayable), new Prisma.Decimal(0)).toFixed(2) },
+      actorUserId,
+    });
+  } else {
     batchId = await prisma.$transaction(async (db) => {
       const candidates = await db.monthlyPayout.findMany({
         where: { payoutMonth: month, payoutStatus: PayoutStatus.Approved, bankFileBatchId: null, totalPayable: { gt: 0 } },
@@ -48,6 +59,13 @@ export async function buildBankFileCsv(
       await db.monthlyPayout.updateMany({
         where: { id: { in: candidates.map((c) => c.id) }, bankFileBatchId: null, payoutStatus: PayoutStatus.Approved },
         data: { bankFileBatchId: batch.id },
+      });
+      // Tier A: the batch and its audit commit together, or neither does.
+      const stamped = await db.monthlyPayout.findMany({ where: { bankFileBatchId: batch.id }, select: { id: true, totalPayable: true } });
+      await auditTx(db, {
+        action: "payout.bankfile_generated", entityType: "BankFileBatch", entityId: batch.id,
+        after: { month, batchId: batch.id, payoutIds: stamped.map((r) => r.id), total: stamped.reduce((a, r) => a.add(r.totalPayable), new Prisma.Decimal(0)).toFixed(2) },
+        actorUserId,
       });
       return batch.id;
     });

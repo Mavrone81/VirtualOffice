@@ -8,8 +8,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole, isFullAdmin, downlineIds } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
-import { logAudit } from "@/lib/audit";
-import { decryptPiiAudited, type PiiField } from "@/server/pii";
+import { auditTx, AuditWriteError } from "@/lib/audit";
+import { maskedPayee } from "./payee-audit";
+import { decryptPiiAudited, PiiAuditUnavailableError, type PiiField } from "@/server/pii";
 import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
 import { newAssociateSchema, updateAssociateSchema } from "@/lib/schemas";
@@ -40,7 +41,14 @@ export async function revealAssociatePii(
   if (!a) return { ok: false, error: t("notFound") };
 
   const blob = field === "nric" ? a.nric : a.bankAccountNumber;
-  const value = await decryptPiiAudited({ blob, field, subjectType: "Associate", subjectId: associateId, actorUserId: session.user.id });
+  let value: string | null;
+  try {
+    value = await decryptPiiAudited({ blob, field, subjectType: "Associate", subjectId: associateId, actorUserId: session.user.id });
+  } catch (e) {
+    // Audit-before-reveal: no audit record, no plaintext.
+    if (e instanceof PiiAuditUnavailableError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   if (value == null) return { ok: false, error: t("notFound") };
   return { ok: true, value };
 }
@@ -101,7 +109,9 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
   const v = validate(newAssociateSchema, blankToUndefined(input));
   if (!v.ok) return { ok: false, error: t("invalidInput") };
   const validInput = v.data;
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+  const actor = admin.user.id;
 
   const directUpline = validInput.directUplineCode
     ? await prisma.associate.findUnique({ where: { associateCode: validInput.directUplineCode } })
@@ -123,7 +133,10 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
   }
 
   const code = await nextAssociateCode();
-  await prisma.associate.create({
+  // Tier A: a new payee (and their commission chain) is recorded with the row.
+  try {
+    await prisma.$transaction(async (db) => {
+  const created = await db.associate.create({
     data: {
       associateCode: code,
       fullName: validInput.fullName.trim(),
@@ -145,6 +158,15 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
       associateStatus: AssociateStatus.Inactive,
     },
   });
+  await auditTx(db, {
+    action: "associate.created", entityType: "Associate", entityId: created.id, actorUserId: actor,
+    after: { associateCode: code, designation: created.designation, directUplineId: created.directUplineId, secondUplineId: created.secondUplineId, payee: maskedPayee(created) },
+  });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/associates");
   return { ok: true, code };
 }
@@ -186,7 +208,9 @@ export async function updateAssociate(
   input: UpdateAssociateInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+  const actor = admin.user.id;
 
   const normalized = { ...input };
   for (const k of UPDATE_BLANKABLE) if (normalized[k] === "") delete normalized[k];
@@ -197,6 +221,7 @@ export async function updateAssociate(
 
   const existing = await prisma.associate.findUnique({ where: { id }, select: { id: true } });
   if (!existing) return { ok: false, error: t("notFound") };
+  const PAYEE = { paymentMethod: true, bankName: true, paynowNumber: true, bankAccountNumber: true, designation: true } as const;
 
   const data: Record<string, unknown> = {
     fullName: v.fullName.trim(),
@@ -218,8 +243,22 @@ export async function updateAssociate(
   if (v.nric) data.nric = encryptPII(v.nric.trim());
   if (v.bankAccountNumber) data.bankAccountNumber = encryptPII(v.bankAccountNumber.trim());
 
-  await prisma.associate.update({ where: { id }, data });
-  await logAudit({ action: "associate.updated", entityType: "Associate", entityId: id });
+  // Tier A: payee details (masked) and designation (commission input) are
+  // recorded with the edit, in the same transaction, before/after read under it.
+  try {
+    await prisma.$transaction(async (db) => {
+      const before = await db.associate.findUniqueOrThrow({ where: { id }, select: PAYEE });
+      const after = await db.associate.update({ where: { id }, data, select: PAYEE });
+      await auditTx(db, {
+        action: "associate.updated", entityType: "Associate", entityId: id, actorUserId: actor,
+        before: { designation: before.designation, payee: maskedPayee(before) },
+        after: { designation: after.designation, payee: maskedPayee(after), nricChanged: !!v.nric, bankAccountChanged: !!v.bankAccountNumber },
+      });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/associates");
   revalidatePath(`/admin/associates/${id}`);
   return { ok: true };
@@ -239,7 +278,8 @@ export async function updateAssociateUplines(
   secondUplineCode: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
 
   const associate = await prisma.associate.findUnique({
     where: { id },
@@ -269,14 +309,23 @@ export async function updateAssociateUplines(
     return { ok: false, error: t("uplineCannotBeDownline") };
   }
 
-  await prisma.associate.update({ where: { id }, data: { directUplineId: dir.id, secondUplineId: sec.id } });
-  await logAudit({
-    action: "associate.uplines.updated",
-    entityType: "Associate",
-    entityId: id,
-    before: { directUplineId: associate.directUplineId, secondUplineId: associate.secondUplineId },
-    after: { directUplineId: dir.id, secondUplineId: sec.id },
-  });
+  // Tier A (commission input: override recipients) — change + record together.
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.associate.update({ where: { id }, data: { directUplineId: dir.id, secondUplineId: sec.id } });
+      await auditTx(db, {
+        action: "associate.uplines.updated",
+        entityType: "Associate",
+        entityId: id,
+        actorUserId: admin.user.id,
+        before: { directUplineId: associate.directUplineId, secondUplineId: associate.secondUplineId },
+        after: { directUplineId: dir.id, secondUplineId: sec.id },
+      });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath(`/admin/associates/${id}`);
   revalidatePath("/admin/associates");
   return { ok: true };
@@ -288,12 +337,17 @@ export async function setApprovalStatus(
   status: "Approved" | "Rejected" | "Incomplete",
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+  const actor = admin.user.id;
   const a = await prisma.associate.findUnique({ where: { id }, include: { user: true } });
   if (!a) return { ok: false, error: t("notFound") };
 
   const approvalStatus = ApprovalStatus[status];
-  await prisma.associate.update({
+  const pwHash = status === "Approved" && !a.user && a.email ? await hash(generateTempPassword()) : null;
+  try {
+  await prisma.$transaction(async (db) => {
+  await db.associate.update({
     where: { id },
     data: {
       approvalStatus,
@@ -302,15 +356,21 @@ export async function setApprovalStatus(
   });
 
   // provision a login on first approval if the associate has an email and no user
-  if (status === "Approved" && !a.user && a.email) {
-    const pwHash = await hash(generateTempPassword());
-    const user = await prisma.user.create({
+  let provisioned: { userId: string; role: string } | null = null;
+  if (pwHash && a.email) {
+    const user = await db.user.create({
       data: { email: a.email, passwordHash: pwHash, role: ROLE_FOR_DESIGNATION[a.designation], associateId: a.id, mustResetPassword: true },
     });
-    await prisma.pFile.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, associateId: a.id } });
+    await db.pFile.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, associateId: a.id } });
+    provisioned = { userId: user.id, role: user.role };
   }
-
-  await logAudit({ action: `associate.approval.${approvalStatus}`, entityType: "Associate", entityId: id, before: { approvalStatus: a.approvalStatus }, after: { approvalStatus } });
+  // Tier A: approval, and any login/role it grants, recorded together.
+  await auditTx(db, { action: `associate.approval.${approvalStatus}`, entityType: "Associate", entityId: id, actorUserId: actor, before: { approvalStatus: a.approvalStatus }, after: { approvalStatus, ...(provisioned ? { loginProvisioned: provisioned } : {}) } });
+  });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/associates");
   revalidatePath("/admin/dashboard");
   return { ok: true };
@@ -321,14 +381,25 @@ export async function setAssociateStatus(
   status: "Active" | "Suspended" | "Terminated" | "Inactive",
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
-  if (!(await requireAdmin())) return { ok: false, error: t("forbidden") };
-  await prisma.associate.update({ where: { id }, data: { associateStatus: AssociateStatus[status] } });
-  // reflect login enablement
-  const a = await prisma.associate.findUnique({ where: { id }, include: { user: true } });
-  if (a?.user) {
-    await prisma.user.update({ where: { id: a.user.id }, data: { isActive: status === "Active" } });
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+  const actor = admin.user.id;
+  // Tier A: status (and login enablement) recorded in the same transaction.
+  try {
+    await prisma.$transaction(async (db) => {
+      const before = await db.associate.findUnique({ where: { id }, select: { associateStatus: true } });
+      await db.associate.update({ where: { id }, data: { associateStatus: AssociateStatus[status] } });
+      // reflect login enablement
+      const a = await db.associate.findUnique({ where: { id }, include: { user: true } });
+      if (a?.user) {
+        await db.user.update({ where: { id: a.user.id }, data: { isActive: status === "Active" } });
+      }
+      await auditTx(db, { action: `associate.status.${status}`, entityType: "Associate", entityId: id, actorUserId: actor, before: { associateStatus: before?.associateStatus ?? null }, after: { associateStatus: status, loginActive: a?.user ? status === "Active" : null } });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
   }
-  await logAudit({ action: `associate.status.${status}`, entityType: "Associate", entityId: id });
   revalidatePath("/admin/associates");
   return { ok: true };
 }

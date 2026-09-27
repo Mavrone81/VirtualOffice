@@ -9,8 +9,10 @@ const { authMock, prismaMock } = vi.hoisted(() => ({
 
 vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
+// Tier A writes run write + audit in a transaction: run the callback on the same mock.
+(prismaMock as Record<string, unknown>).$transaction = vi.fn(async (fn: (db: unknown) => unknown) => fn(prismaMock));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 vi.mock("@/lib/rbac", () => ({ can: () => true }));
 vi.mock("@/lib/env", () => ({ env: { AUTH_URL: "https://x" } }));
 vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(), resetPasswordEmail: () => ({}) }));

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { getObject, objectResponseHeaders } from "@/lib/storage";
+import { auditTx } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       (doc.assignment === "Team" && !!assoc?.teamName && doc.assignedTeam === assoc.teamName) ||
       (doc.assignment === "Associate" && !!assocId && doc.assignedAssociateId === assocId);
     if (!entitled) return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  // Tier A: signed agreements carry NRICs — record the download before streaming.
+  if (doc.type === "AssociateAgreement" || doc.type === "VendorAgreement") {
+    try {
+      await auditTx(prisma, { action: "document.pii_viewed", entityType: "Document", entityId: doc.id, actorUserId: session.user.id, after: { type: doc.type } });
+    } catch {
+      return new NextResponse("Temporarily unavailable — please try again", { status: 503 });
+    }
   }
 
   const data = await getObject(doc.fileKey);
