@@ -1,19 +1,21 @@
 "use server";
 
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import { revalidatePath } from "next/cache";
-import { AshesAgreementStatus, SubmissionStatus } from "@prisma/client";
+import { Prisma, AshesAgreementStatus, SubmissionFlow } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
-import { logAudit } from "@/lib/audit";
-import { putObject } from "@/lib/storage";
+import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
+import { putObject, deleteObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { amountToWords } from "@/lib/amount-words";
 import { renderAshesAgreementPdf } from "@/lib/pdf/ashes-agreement";
 import type { AshesPet } from "@/lib/pdf/ashes-agreement";
 import { encryptNric, LooksLikeEncryptedError } from "@/lib/crypto";
+import { ashesTermsSnapshot, isAgreementEditableStatus } from "@/lib/ashes-terms-snapshot";
 
 // ---------------------------------------------------------------------------
 // Storage of Pets Ashes Agreement (consolidated menu, Sep 2026). Pipeline:
@@ -50,7 +52,7 @@ async function allowedSubmission(submissionId: string) {
   if (!session?.user) return { session: null, sub: null };
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
-    include: { ashesAgreement: true },
+    include: { ashesAgreement: true, lineItems: { select: { productCode: true } } },
   });
   if (!sub) return { session, sub: null };
   const allowed =
@@ -68,8 +70,24 @@ export async function saveAshesAgreement(
   const t = await getTranslations("errors");
   const { session, sub } = await allowedSubmission(submissionId);
   if (!session || !sub) return { ok: false, error: t("forbidden") };
-  if (sub.status !== SubmissionStatus.QuotationApproved) return { ok: false, error: t("quotationNotApproved") };
+  // N4: Legacy rows are frozen — no edit at all — once the new flow is live
+  // (same design note as editSale/rejectSubmission, server/sales/actions.ts).
+  // Flag off: nothing is Legacy-refused (every row IS Legacy today), so this
+  // can never change today's behaviour early.
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.Legacy) {
+    try {
+      await auditTx(prisma, {
+        action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: submissionId,
+        actorUserId: session.user.id, after: { attempted: "saveAshesAgreement" },
+      });
+    } catch (e) {
+      if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+      throw e;
+    }
+    return { ok: false, error: t("legacyReadOnly") };
+  }
   if (sub.ashesAgreement?.status === AshesAgreementStatus.Signed) return { ok: false, error: t("alreadyProcessed") };
+  if (!isAgreementEditableStatus(sub.flow, sub.status)) return { ok: false, error: t("quotationNotApproved") };
   if (!input.applicant1Name?.trim()) return { ok: false, error: t("allFieldsRequired") };
 
   const pets = (input.pets ?? [])
@@ -156,9 +174,33 @@ export async function signAshesAgreement(
   const t = await getTranslations("errors");
   const { session, sub } = await allowedSubmission(submissionId);
   if (!session || !sub) return { ok: false, error: t("forbidden") };
+  // N4: Legacy rows are frozen — no edit at all — once the new flow is live
+  // (same design note as editSale/rejectSubmission, server/sales/actions.ts).
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.Legacy) {
+    try {
+      await auditTx(prisma, {
+        action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: submissionId,
+        actorUserId: session.user.id, after: { attempted: "signAshesAgreement" },
+      });
+    } catch (e) {
+      if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+      throw e;
+    }
+    return { ok: false, error: t("legacyReadOnly") };
+  }
   const agreement = sub.ashesAgreement;
   if (!agreement) return { ok: false, error: t("notFound") };
-  if (agreement.status === AshesAgreementStatus.Signed) return { ok: false, error: t("alreadyProcessed") };
+  // Superseded (✎6): not re-signable directly — an edit that re-adds the
+  // product it needs reinstates it to Draft first.
+  if (agreement.status === AshesAgreementStatus.Signed || agreement.status === AshesAgreementStatus.Superseded) {
+    return { ok: false, error: t("alreadyProcessed") };
+  }
+  // Defense-in-depth (DevLead review of 0393c0a): nothing currently reaches
+  // this function with a Draft agreement outside the editable window — that
+  // safety is a distributed invariant across editSale's CAS, verifySale's
+  // G3b+G4, and rejectSubmission's CAS, not a property of this function. Same
+  // gate as saveAshesAgreement, so this stops relying on the other four.
+  if (!isAgreementEditableStatus(sub.flow, sub.status)) return { ok: false, error: t("quotationNotApproved") };
 
   const m = signatureDataUrl.match(/^data:image\/png;base64,(.+)$/);
   if (!m) return { ok: false, error: t("signatureInvalid") };
@@ -169,19 +211,67 @@ export async function signAshesAgreement(
     return { ok: false, error: t("signatureInvalid") };
   }
 
-  const signatureKey = `submissions/${submissionId}/ashes-signature.png`;
+  // A new key every time, never reused — a re-sign (after a reinstate) must
+  // never overwrite an earlier signature image (✎6's "kept as history").
+  const signatureKey = `submissions/${submissionId}/${randomUUID()}-signature.png`;
   await putObject(signatureKey, Buffer.from(bytes));
 
-  await prisma.petsAshesAgreement.update({
-    where: { id: agreement.id },
-    data: { status: AshesAgreementStatus.Signed, signedAt: new Date(), applicantSignatureKey: signatureKey },
+  // A-17 C2/§4: snapshot the terms this signature covers now, so a later
+  // money edit can detect drift against exactly this shape (server/sales/
+  // actions.ts's ashesTermsChanged uses the identical function).
+  const signedTerms = ashesTermsSnapshot(sub, sub.lineItems);
+  // MD B3: amountNumeric/amountWords/paymentPlan/bookingFee/monthlyInstalment
+  // are "auto-pushed from the submission" (saveAshesAgreement's own words) —
+  // but editSale's void-to-Draft reversion (this same file's caller,
+  // server/sales/actions.ts) only clears the signed-* columns, never
+  // re-pushes these. A Draft reverted after a money edit could otherwise be
+  // re-signed with THESE stale fields while signedTerms above (computed
+  // fresh, from this same live `sub`) correctly reflects the new amount —
+  // the rendered PDF would show the old money while G3b's drift check
+  // (which compares against signedTerms, not these columns) sees no drift at
+  // all. Refreshing them here, in the SAME CAS update that flips to Signed,
+  // means the signed PDF and signedTerms can never disagree, regardless of
+  // whether saveAshesAgreement happened to be called again after the edit.
+  const isInstalment = sub.paymentPlan === "Installment";
+  const monthlyInstalment = isInstalment && sub.installmentCount
+    ? sub.saleAmount.minus(sub.deposit ?? 0).div(sub.installmentCount)
+    : null;
+  // CAS: only a Draft can be signed, and the flip to Signed IS the claim —
+  // two concurrent signs can't both win (count 0 on the loser).
+  const cas = await prisma.petsAshesAgreement.updateMany({
+    where: { id: agreement.id, status: AshesAgreementStatus.Draft },
+    data: {
+      status: AshesAgreementStatus.Signed, signedAt: new Date(), applicantSignatureKey: signatureKey, signedTerms,
+      amountNumeric: sub.saleAmount, amountWords: amountToWords(sub.saleAmount.toString()),
+      paymentPlan: sub.paymentPlan, bookingFee: isInstalment ? sub.deposit : null, monthlyInstalment,
+    },
   });
+  if (cas.count !== 1) {
+    await deleteObject(signatureKey).catch(() => {});
+    return { ok: false, error: t("alreadyProcessed") };
+  }
 
-  const pdf = await renderAshesAgreementPdf(agreement.id);
-  if (!pdf) return { ok: false, error: t("notFound") };
+  let pdf: { buffer: Buffer; filename: string } | null;
+  try {
+    pdf = await renderAshesAgreementPdf(agreement.id);
+    if (!pdf) throw new Error("render returned null");
+  } catch {
+    // Revert only THIS call's own claim (keyed on its own signatureKey), never
+    // a concurrent successful sign — and never leave a half-signed row: no
+    // pdf key/hash means no real signed document exists yet.
+    await prisma.petsAshesAgreement.updateMany({
+      where: { id: agreement.id, status: AshesAgreementStatus.Signed, applicantSignatureKey: signatureKey, agreementPdfKey: null },
+      data: { status: AshesAgreementStatus.Draft, signedAt: null, applicantSignatureKey: null, signedTerms: Prisma.DbNull },
+    });
+    await deleteObject(signatureKey).catch(() => {});
+    return { ok: false, error: t("signingFailed") };
+  }
+  // A new key every time (never reused): an old signed file is never
+  // overwritten, even across a void/supersede/re-sign cycle (ADR-0001).
   const pdfKey = `submissions/${submissionId}/${randomUUID()}.pdf`;
   await putObject(pdfKey, pdf.buffer);
-  await prisma.petsAshesAgreement.update({ where: { id: agreement.id }, data: { agreementPdfKey: pdfKey } });
+  const signedPdfSha256 = createHash("sha256").update(pdf.buffer).digest("hex");
+  await prisma.petsAshesAgreement.update({ where: { id: agreement.id }, data: { agreementPdfKey: pdfKey, signedPdfSha256 } });
   await prisma.submissionDocument.create({
     data: { submissionId, kind: "Signed", fileKey: pdfKey, fileName: pdf.filename, uploadedById: session.user.id },
   });

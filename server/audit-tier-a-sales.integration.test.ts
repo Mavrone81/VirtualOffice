@@ -18,11 +18,23 @@ vi.mock("@/server/commission/split-bounds", async (orig) => ({
 
 import { prisma } from "@/lib/db";
 import { installAuditFault, failAuditsFor, clearAuditFaults, removeAuditFault } from "@/lib/test-audit-fault";
-import { approveSplitException, adminApproveSplit, approveQuotation, rejectSubmission } from "./sales/actions";
 
 const TAG = "AUDTS-";
 const ADMIN = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
 let closerId = "";
+// This file is about audit-fault rollback, not A-17's flag — every fixture
+// here is created directly via prisma (flow defaults to Legacy), so
+// rejectSubmission must run flag-OFF to reach the rollback it's meant to
+// test. Forced explicitly rather than relying on ambient process env: a
+// static top-level import would let A-17's shipping configuration
+// (A17_CLOSED_DEAL_FLOW=true ambient) make rejectSubmission refuse these
+// Legacy fixtures with legacyReadOnly before the audit-fault it's here to
+// test ever runs — an unrelated-looking failure with nothing wrong in the
+// behaviour itself.
+let approveSplitException: (id: string, reason: string, seenSplitEditedAt: string | null, violations: unknown) => Promise<{ ok: boolean; error?: string }>;
+let adminApproveSplit: (id: string, seenSplitEditedAt: string | null) => Promise<{ ok: boolean; error?: string }>;
+let approveQuotation: (id: string) => Promise<{ ok: boolean; error?: string }>;
+let rejectSubmission: (id: string, reason?: string) => Promise<{ ok: boolean; error?: string }>;
 
 const mkSubmission = (code: string) => prisma.salesSubmission.create({
   data: { salesDate: new Date("2196-05-01"), clientName: TAG + code, saleAmount: 1000, paymentPlan: "FullPayment", closingAssociateId: closerId, amountCollected: 0, status: "Submitted" },
@@ -30,6 +42,10 @@ const mkSubmission = (code: string) => prisma.salesSubmission.create({
 });
 
 beforeAll(async () => {
+  delete process.env.A17_CLOSED_DEAL_FLOW;
+  vi.resetModules();
+  ({ approveSplitException, adminApproveSplit, approveQuotation, rejectSubmission } = (await import("./sales/actions")) as never);
+
   await installAuditFault();
   closerId = (await prisma.associate.create({
     data: { associateCode: TAG + "C1", fullName: TAG + "Closer", designation: "SalesAssociate", approvalStatus: "Approved", associateStatus: "Active" },

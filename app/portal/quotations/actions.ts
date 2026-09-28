@@ -2,10 +2,11 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { SubmissionStatus } from "@prisma/client";
+import { SubmissionStatus, SubmissionFlow } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
 import { putObject, deleteObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
@@ -23,11 +24,26 @@ export async function uploadDocketDocuments(submissionId: string, files: File[])
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { closingAssociateId: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { closingAssociateId: true, flow: true } });
   if (!sub) return { ok: false, error: t("notFound") };
 
   const allowed = isAdminRole(session.user.role) || (!!session.user.associateId && session.user.associateId === sub.closingAssociateId);
   if (!allowed) return { ok: false, error: t("forbidden") };
+
+  // N4: Legacy rows are frozen — no edit at all — once the new flow is live
+  // (same design note as editSale/rejectSubmission, server/sales/actions.ts).
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.Legacy) {
+    try {
+      await auditTx(prisma, {
+        action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: submissionId,
+        actorUserId: session.user.id, after: { attempted: "uploadDocketDocuments" },
+      });
+    } catch (e) {
+      if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+      throw e;
+    }
+    return { ok: false, error: t("legacyReadOnly") };
+  }
 
   if (!files?.length) return { ok: false, error: t("fileRequired") };
   const r = await addSubmissionDocuments(submissionId, files, "Signed", session.user.id);
@@ -56,12 +72,31 @@ export async function signQuotationOnSystem(
 
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
-    select: { closingAssociateId: true, status: true, transaction: { select: { id: true } } },
+    select: { closingAssociateId: true, status: true, flow: true, transaction: { select: { id: true } } },
   });
   if (!sub) return { ok: false, error: t("notFound") };
 
   const allowed = isAdminRole(session.user.role) || (!!session.user.associateId && session.user.associateId === sub.closingAssociateId);
   if (!allowed) return { ok: false, error: t("forbidden") };
+  // MD B1: this signature is what unlocks closeSale's legacy minting path
+  // (a Signed docket document) — a flow=ClosedDeal row must never be able to
+  // reach it, same reasoning as approveQuotation/closeSale themselves.
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.ClosedDeal) {
+    try {
+      await auditTx(prisma, {
+        action: "sale.closed_deal_flow_required", entityType: "SalesSubmission", entityId: submissionId,
+        actorUserId: session.user.id, after: { attempted: "signQuotationOnSystem" },
+      });
+    } catch (e) {
+      if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+      throw e;
+    }
+    // Distinct key from uploadDocketDocuments' legacyReadOnly below (a
+    // different condition — this refuses ClosedDeal, that refuses
+    // Legacy-frozen) to avoid a catalogue key collision with
+    // release/a17-03-ui. Semantics/wording deferred to follow-up F1.
+    return { ok: false, error: t("flowNotAvailable") };
+  }
   if (sub.transaction) return { ok: false, error: t("alreadyProcessed") };
   if (sub.status !== SubmissionStatus.QuotationApproved) return { ok: false, error: t("quotationNotApproved") };
 
