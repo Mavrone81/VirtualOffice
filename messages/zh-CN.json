@@ -1328,7 +1328,7 @@
     "alreadyProcessed": "已处理",
     "pendingSdApproval": "等待销售总监批准佣金分配。",
     "quotationNotApproved": "报价单尚未获批生成。",
-    "legacyReadOnly": "此操作不适用于该销售记录当前的流程。",
+    "legacyReadOnly": "历史记录（旧流程）— 此记录早于新交易流程，交易条款无法更改。",
     "flowNotAvailable": "此操作不适用于该销售记录当前的流程。",
     "splitNotApproved": "佣金分配尚未完全批准。",
     "splitExceptionReasonRequired": "请填写批准此分配例外的原因（5–500个字符）。",
