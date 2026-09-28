@@ -74,6 +74,13 @@ ENTRYPOINT ["node_modules/.bin/tsx"]
 
 # --- runtime (standalone) ---
 FROM base AS runner
+# F7: the commit this image was built from, so a running container can be compared
+# with `main`. Declared in THIS stage only — an ARG in an earlier stage would not
+# reach the runtime env, and a global ARG would invalidate every stage's cache on
+# every commit. Defaults to "unknown" so a local `docker build` without the arg
+# still starts; CI always passes it.
+ARG BUILD_SHA=unknown
+ENV BUILD_SHA=$BUILD_SHA
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
