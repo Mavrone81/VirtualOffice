@@ -10,7 +10,7 @@ import { validate } from "@/lib/validate";
 import { quotationSchema } from "@/lib/schemas";
 import { canManageQuotation } from "@/lib/quotation-access";
 import { logAudit } from "@/lib/audit";
-import { resolveSaleLines } from "@/server/sales/actions";
+import { resolveSaleLines } from "@/server/sales/resolve-sale-lines";
 
 /** A-17 §2: QUO-nnnn from its own sequence — never TXN-, a different record. */
 async function nextQuotationCode(db: Prisma.TransactionClient | typeof prisma): Promise<string> {
