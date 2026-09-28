@@ -38,7 +38,10 @@ afterAll(async () => {
   await prisma.submissionDocument.deleteMany({ where: { submissionId: { in: subIds } } });
   await prisma.salesSubmission.deleteMany({ where: { id: { in: subIds } } });
   await prisma.associate.deleteMany({ where: { id: closerId } });
-  await prisma.auditLog.deleteMany({ where: { entityId: { in: subIds } } });
+  // audit_log is append-only by DDL trigger (main's own audit-append-only
+  // migration) — a DELETE is refused, and refused-by-design, not a compromise
+  // (main's own pre-existing audit-*.integration.test.ts files have zero
+  // auditLog deletes for the same reason). Left in place, not cleaned up.
 });
 
 async function mkLegacySubmission(code: string) {
