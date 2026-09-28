@@ -6,6 +6,7 @@ const { authMock, prismaMock } = vi.hoisted(() => ({
     salesSubmission: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     saleLineItem: { deleteMany: vi.fn(), createMany: vi.fn() },
     product: { findMany: vi.fn() },
+    petsAshesAgreement: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     $transaction: vi.fn(),
   },
 }));
@@ -34,6 +35,17 @@ beforeEach(() => {
   authMock.mockResolvedValue({ user: { id: "u1", associateId: "a1" } });
   prismaMock.salesSubmission.findUnique.mockResolvedValue({
     closingAssociateId: "a1", status: "Submitted", salesDate: new Date("2026-07-20"), saleAmount: 10000,
+    // A real SalesSubmission row always has these (editSale's own select
+    // includes them) — filled in here, not left undefined, so a run under
+    // A-17's shipping configuration (A17_CLOSED_DEAL_FLOW=true ambient)
+    // doesn't crash in ashesTermsSnapshot's `D(sub.deposit)` on a fixture gap
+    // that has nothing to do with what any of these tests are checking.
+    // flow: ClosedDeal (not Legacy) so the same reasoning holds for the
+    // legacy-freeze check: inert either way while the flag is off (today),
+    // and doesn't wrongly refuse this generic "ordinary edit" test under
+    // ambient=true either. The one test that specifically wants Legacy
+    // behaviour already sets its own full mock override, unaffected by this.
+    paymentPlan: "FullPayment", deposit: null, installmentCount: null, flow: "ClosedDeal",
     associate2Id: null, associate2ValueType: null, associate2Value: null,
     associate3Id: null, associate3ValueType: null, associate3Value: null,
     sdApprovedAt: null, splitAdminApprovedAt: null,
@@ -116,5 +128,40 @@ describe("editSale", () => {
     const r = await editSale(base);
     expect(r.ok).toBe(false);
     expect(r.error).toBe("noAssociateProfile");
+  });
+
+  it("A-17: with the closed-deal flag off, never reads or writes the ashes table, even for a row that already has one", async () => {
+    // A pre-existing (pre-A-17) manually-created ashesAgreement, and an edit that
+    // drops the only product — exactly the shape that would create/void/delete a
+    // row if the flag were mistakenly on. It must not be, until env.A17_CLOSED_DEAL_FLOW
+    // is set to the exact string "true" (lib/env.ts's bool preprocessor).
+    //
+    // Forced explicitly rather than relying on the module-level `editSale`
+    // above being imported while ambient process.env happened to have the
+    // flag unset — that assumption breaks under A-17's own shipping
+    // configuration (A17_CLOSED_DEAL_FLOW=true ambient), where this test
+    // would otherwise be exercising the flag-ON path while asserting the
+    // flag-OFF outcome. Scoped to this one test: resetModules + a fresh
+    // dynamic import here doesn't affect the `editSale` binding the other
+    // tests in this file use (they keep whichever module instance loaded
+    // first, per ES module live-binding semantics).
+    delete process.env.A17_CLOSED_DEAL_FLOW;
+    vi.resetModules();
+    const { editSale: editSaleFlagOff } = (await import("@/server/sales/actions")) as { editSale: typeof editSale };
+
+    prismaMock.salesSubmission.findUnique.mockResolvedValue({
+      closingAssociateId: "a1", status: "Submitted", salesDate: new Date("2026-07-20"), saleAmount: 10000,
+      associate2Id: null, associate2ValueType: null, associate2Value: null,
+      associate3Id: null, associate3ValueType: null, associate3Value: null,
+      sdApprovedAt: null, splitAdminApprovedAt: null,
+      lineItems: [{ productCode: "P1", lineSaleAmount: 10000, selectedComCodes: [{ comCode: "CC1" }] }],
+      flow: "Legacy",
+      ashesAgreement: { id: "ashes1", status: "Signed", signatureVersion: 0, signedAt: new Date() },
+    });
+    const r = await editSaleFlagOff(base);
+    expect(r.ok).toBe(true);
+    expect(prismaMock.petsAshesAgreement.create).not.toHaveBeenCalled();
+    expect(prismaMock.petsAshesAgreement.update).not.toHaveBeenCalled();
+    expect(prismaMock.petsAshesAgreement.delete).not.toHaveBeenCalled();
   });
 });
