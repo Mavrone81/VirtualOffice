@@ -18,6 +18,14 @@ vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: logAuditMock }));
+// A-17 follow-up (ambient-flag release blocker): this file's mock replaces
+// the whole @/lib/audit module (no auditTx/AuditWriteError), so N4's
+// Legacy-frozen branch — reachable under ambient A17_CLOSED_DEAL_FLOW=true —
+// would throw against this mock rather than testing anything. Forced off so
+// this file (about the status gate, not about A-17's flag) isn't steered by
+// ambient config either way; a named coverage gap is recorded in
+// reviews/a17-flag-on-preconditions.md as a flag-flip precondition.
+vi.mock("@/lib/env", async (orig) => ({ ...(await orig<typeof import("@/lib/env")>()), env: { ...(await orig<typeof import("@/lib/env")>()).env, A17_CLOSED_DEAL_FLOW: false } }));
 
 import { saveAshesAgreement } from "@/server/agreements/actions";
 
