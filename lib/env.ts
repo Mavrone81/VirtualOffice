@@ -46,6 +46,21 @@ const schema = z.object({
 
   PAYMENT_GATEWAY_ENABLED: bool.default(false),
   FESTIVE_AI_ENABLED: bool.default(false),
+  // A-17 (✚5, design note §9): the new quotation -> closed-deal -> verify
+  // flow, OFF until phase 2 (needs SEC-12 deployed + verified first). `bool`
+  // above only ever turns true on the exact string "true" — anything unset
+  // or unparseable is OFF, never a silent enable.
+  A17_CLOSED_DEAL_FLOW: bool.default(false),
+  NRIC_RETENTION_DAILY_CAP: z.coerce.number().int().positive().default(200),
+  // A-17 §4a (DevLead: the first activation needs the owner's explicit go,
+  // like every other prod data write): off means the opportunistic trigger
+  // is a no-op and "Run now" is refused. Preview (dry run) is unaffected —
+  // it never writes, so the owner can review counts before enabling this.
+  NRIC_RETENTION_ENABLED: bool.default(false),
+  // Whether Legacy (pre-A-17) rejected rows are in scope at all, separate
+  // from the main switch above — Q13/Q15 were decided with the new flow in
+  // mind, so a Legacy row is purged only once the owner opts it in too.
+  NRIC_RETENTION_INCLUDE_LEGACY: bool.default(false),
   GST_ENABLED: bool.default(false),
   GST_RATE: z.coerce.number().default(9),
 

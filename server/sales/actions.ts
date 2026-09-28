@@ -1,23 +1,28 @@
 "use server";
 
+import { createHash } from "crypto";
 import { revalidatePath } from "next/cache";
 import { format } from "date-fns";
 import {
-  Prisma, PaymentPlan, SubmissionStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType, SubmissionDocKind, Designation,
-  AssociateStatus, ApprovalStatus,
+  Prisma, PaymentPlan, SubmissionStatus, SubmissionFlow, AshesAgreementStatus, CommissionEligibility, InvoiceType, InvoiceStatus, ComValueType, SubmissionDocKind, Designation,
+  AssociateStatus, ApprovalStatus, QuotationStatus,
 } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { isSdApproved, sdApproverId, pickSplitDirectorId, splitFullyApproved } from "@/lib/approval";
 import { D, round2, sum, ZERO } from "@/lib/money";
+import { ashesTermsSnapshot } from "@/lib/ashes-terms-snapshot";
 import { auditTx, AuditWriteError } from "@/lib/audit";
-import { runCommission } from "@/server/commission/run";
+import { runCommission, runCommissionTx, auditRunResultTx, buildCommissionPartiesSnapshot, COMMISSION_TX_OPTIONS } from "@/server/commission/run";
+import { getObject, deleteObject } from "@/lib/storage";
 import { splitBoundViolations, snapshotCovers, sameViolations, type SplitBoundViolation } from "@/server/commission/split-bounds";
 import { validate } from "@/lib/validate";
 import { saleSchema } from "@/lib/schemas";
-import { addSubmissionDocuments } from "@/server/documents/submission-docs";
+import { addSubmissionDocuments, storeSubmissionUploadBytes, MAX_DOC_BYTES } from "@/server/documents/submission-docs";
+import { createAshesDraftTx } from "@/server/agreements/ashes-draft";
 
 
 /**
@@ -68,12 +73,22 @@ export type SubmitSaleInput = {
   lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[];
   associate2?: { associateId: string; valueType: "Percentage" | "Absolute"; value: number };
   associate3?: { associateId: string; valueType: "Percentage" | "Absolute"; value: number };
+  // A-17 §2: converting a quotation into a transaction. CAS'd Issued -> Converted
+  // in the same DB transaction as the submission (see submitSale); the quotation
+  // only prefills the form, the submitted lines below stay authoritative.
+  quotationId?: string;
   documents?: File[]; // optional supporting documents (16-Jul quotation workflow); not validated by saleSchema
 };
 
+/** Thrown inside submitSale's transaction when the CAS finds the quotation
+ * already converted/voided, or not owned by this closer — caught by the
+ * caller and turned into a normal refusal (never a raw 500). */
+class QuotationConvertConflict extends Error {}
+
 /** Resolve submitted lines into persisted line-item data + the total. Shared by
- * submitSale + editSale so both build line items identically. */
-async function resolveSaleLines(lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[]) {
+ * submitSale + editSale so both build line items identically; also used by
+ * A-17's createQuotation, which server-prices its lines the exact same way. */
+export async function resolveSaleLines(lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[]) {
   const products = await prisma.product.findMany({ where: { id: { in: lines.map((l) => l.productId) } }, include: { comCodes: true } });
   const byId = new Map(products.map((p) => [p.id, p]));
   const lineData = lines.map((l) => {
@@ -92,7 +107,10 @@ async function resolveSaleLines(lines: { productId: string; lineSaleAmount: numb
       selectedComCodes: selected,
     };
   });
-  return { lineData, saleAmount: sum(lineData.map((l) => l.lineSaleAmount)) };
+  // A-17 §4: lineData feeds straight into SaleLineItem.create (no such column
+  // there), so the ashes flag is surfaced separately rather than added to it.
+  const needsAshesAgreement = lines.some((l) => byId.get(l.productId)?.requiresAshesAgreement === true);
+  return { lineData, saleAmount: sum(lineData.map((l) => l.lineSaleAmount)), needsAshesAgreement };
 }
 
 /** The submission's split columns from the validated input. */
@@ -131,7 +149,7 @@ async function splitPartiesError(
 /** A sale that books a negative commission line (B-S6): allowed, but flagged for a split exception. */
 export type SplitWarning = { code: "splitExceedsNet"; lines: SplitBoundViolation[] };
 
-export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string; id?: string; warning?: SplitWarning }> {
+export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean; error?: string; id?: string; warning?: SplitWarning; transactionCode?: string }> {
   const t = await getTranslations("errors");
   const v = validate(saleSchema, input);
   if (!v.ok) return { ok: false, error: t(v.code && SALE_ERROR_CODES.has(v.code) ? v.code : "invalidInput") };
@@ -163,7 +181,7 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
   ]);
   const splitDirectorId = pickSplitDirectorId(teams) ?? (closer ? sdApproverId(closer) : null);
 
-  const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
+  const { lineData, saleAmount, needsAshesAgreement } = await resolveSaleLines(validInput.lines);
 
   // B-S6 (Samuel: warn, don't block): a split that would book any commission line below
   // zero is ALLOWED, but flagged — it needs a Business Admin split exception before closing.
@@ -172,55 +190,115 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
     ...splitColumns(validInput.associate2, validInput.associate3),
   });
 
-  // Tier A (reviews/audit-reliability.md): the flag on a split exception is
-  // recorded with the sale it flags, in one transaction.
-  let created: { id: string };
+  // A-17 (design note §3, phase 1): behind the flag, new sales get the
+  // ClosedDeal flow — a TXN code assigned immediately, and a Pet Ash draft
+  // when a line needs it. Both minted in the same transaction as the
+  // submission so neither can exist without the other. Flag off: unchanged.
+  const closedDeal = env.A17_CLOSED_DEAL_FLOW;
+  const paymentPlan = validInput.paymentPlan === "Installment" ? PaymentPlan.Installment : PaymentPlan.FullPayment;
+  const deposit = validInput.deposit ? round2(validInput.deposit) : null;
+  const installmentCount = validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null;
+  const clientName = validInput.clientName.trim();
+
+  // Tier A (reviews/audit-reliability.md): the sale itself, the split
+  // exception flag and A-17's sale.submitted/ashes.generated all record with
+  // the write they describe, in the same transaction (writeAudited).
+  let result: Awaited<ReturnType<typeof writeAudited<{ id: string; transactionCode: string | null; quotationConverted: boolean }>>>;
   try {
-    created = await prisma.$transaction(async (db) => {
-  const c = await db.salesSubmission.create({
-    select: { id: true },
-    data: {
-      salesDate: new Date(validInput.salesDate),
-      quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
-      splitDirectorId,
-      clientName: validInput.clientName.trim(),
-      clientContact: validInput.clientContact?.trim() || null,
-      saleAmount,
-      paymentPlan: validInput.paymentPlan === "Installment" ? PaymentPlan.Installment : PaymentPlan.FullPayment,
-      deposit: validInput.deposit ? round2(validInput.deposit) : null,
-      installmentCount: validInput.paymentPlan === "Installment" ? validInput.installmentCount ?? null : null,
-      amountCollected: 0,
-      closingAssociateId: closerId,
-      associate2Id: validInput.associate2?.associateId ?? null,
-      associate2ValueType: validInput.associate2 ? (validInput.associate2.valueType as ComValueType) : null,
-      associate2Value: validInput.associate2 ? round2(validInput.associate2.value) : null,
-      associate3Id: validInput.associate3?.associateId ?? null,
-      associate3ValueType: validInput.associate3 ? (validInput.associate3.valueType as ComValueType) : null,
-      associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
-      status: SubmissionStatus.Submitted,
-      splitExceptionRequired: violations.length > 0,
-      lineItems: { create: lineData },
+    result = await writeAudited(
+    async (db) => {
+      const transactionCode = closedDeal ? await nextTransactionCode(db) : null;
+      const created = await db.salesSubmission.create({
+        select: { id: true },
+        data: {
+          salesDate: new Date(validInput.salesDate),
+          quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
+          splitDirectorId,
+          clientName,
+          clientContact: validInput.clientContact?.trim() || null,
+          saleAmount,
+          paymentPlan,
+          deposit,
+          installmentCount,
+          amountCollected: 0,
+          closingAssociateId: closerId,
+          associate2Id: validInput.associate2?.associateId ?? null,
+          associate2ValueType: validInput.associate2 ? (validInput.associate2.valueType as ComValueType) : null,
+          associate2Value: validInput.associate2 ? round2(validInput.associate2.value) : null,
+          associate3Id: validInput.associate3?.associateId ?? null,
+          associate3ValueType: validInput.associate3 ? (validInput.associate3.valueType as ComValueType) : null,
+          associate3Value: validInput.associate3 ? round2(validInput.associate3.value) : null,
+          status: SubmissionStatus.Submitted,
+          splitExceptionRequired: violations.length > 0,
+          lineItems: { create: lineData },
+          // L1 (DevLead review): the quotation-conversion flow is A-17 only —
+          // ignored entirely (not stored, no CAS) while the flag is off.
+          quotationId: closedDeal && validInput.quotationId ? validInput.quotationId : null,
+          ...(closedDeal ? { flow: SubmissionFlow.ClosedDeal, transactionCode } : {}),
+        },
+      });
+      if (closedDeal && needsAshesAgreement) {
+        await createAshesDraftTx(db, {
+          submissionId: created.id, clientName, saleAmount, paymentPlan, deposit, installmentCount,
+          createdById: session.user.id,
+        });
+      }
+      let quotationConverted = false;
+      if (closedDeal && validInput.quotationId) {
+        // CAS: only the closer's own still-Issued, still-valid quotation
+        // converts, and only once — a concurrent double-submit (or reusing an
+        // already-converted / voided / EXPIRED quotation) loses here and
+        // rolls the whole submission back. N6: validUntil was stored on the
+        // quotation but never checked anywhere — an expired quote could still
+        // convert into a real sale with no gate at all.
+        const converted = await db.quotation.updateMany({
+          where: {
+            id: validInput.quotationId, status: QuotationStatus.Issued, associateId: closerId,
+            OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
+          },
+          data: { status: QuotationStatus.Converted },
+        });
+        if (converted.count !== 1) throw new QuotationConvertConflict();
+        quotationConverted = true;
+      }
+      return { id: created.id, transactionCode, quotationConverted };
     },
-  });
-  if (violations.length) {
-    await auditTx(db, { action: "split.exception_flagged", entityType: "SalesSubmission", entityId: c.id, actorUserId: session.user.id, after: { lines: violations } });
-  }
-      return c;
-    });
+    (r) => {
+      const entries: Parameters<typeof auditTx>[1][] = [];
+      if (violations.length) {
+        entries.push({ action: "split.exception_flagged", entityType: "SalesSubmission", entityId: r.id, actorUserId: session.user.id, after: { lines: violations } });
+      }
+      if (closedDeal) {
+        entries.push({ action: "sale.submitted", entityType: "SalesSubmission", entityId: r.id, actorUserId: session.user.id, after: { flow: "ClosedDeal", transactionCode: r.transactionCode, saleAmount: saleAmount.toFixed(2) } });
+        if (needsAshesAgreement) {
+          entries.push({ action: "ashes.generated", entityType: "SalesSubmission", entityId: r.id, actorUserId: session.user.id });
+        }
+      }
+      if (r.quotationConverted) {
+        entries.push({ action: "quotation.converted", entityType: "Quotation", entityId: validInput.quotationId!, actorUserId: session.user.id, after: { submissionId: r.id } });
+      }
+      return entries;
+    },
+    );
   } catch (e) {
-    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    if (e instanceof QuotationConvertConflict) return { ok: false, error: t("quotationNotConvertible") };
     throw e;
   }
+  if (result === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+  const { id: createdId, transactionCode } = result;
 
   // Optional supporting documents (freeform) — never fail the sale over a doc.
   if (input.documents?.length) {
-    await addSubmissionDocuments(created.id, input.documents, SubmissionDocKind.Supporting, session.user.id);
+    await addSubmissionDocuments(createdId, input.documents, SubmissionDocKind.Supporting, session.user.id);
   }
 
   revalidatePath("/portal/sales");
   revalidatePath("/admin/quotations");
   if (violations.length) revalidatePath("/admin/split-approvals");
-  return violations.length ? { ok: true, id: created.id, warning: { code: "splitExceedsNet", lines: violations } } : { ok: true, id: created.id };
+  const txnField = { transactionCode: transactionCode ?? undefined };
+  return violations.length
+    ? { ok: true, id: createdId, warning: { code: "splitExceedsNet", lines: violations }, ...txnField }
+    : { ok: true, id: createdId, ...txnField };
 }
 
 /**
@@ -241,19 +319,33 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
     where: { id: input.id },
     select: {
       closingAssociateId: true, status: true, salesDate: true, saleAmount: true,
+      paymentPlan: true, deposit: true, installmentCount: true, flow: true,
       associate2Id: true, associate2ValueType: true, associate2Value: true,
       associate3Id: true, associate3ValueType: true, associate3Value: true,
       sdApprovedAt: true, splitAdminApprovedAt: true, splitExceptionApprovedAt: true,
       lineItems: { select: { productCode: true, lineSaleAmount: true, selectedComCodes: true } },
+      ashesAgreement: { select: { id: true, status: true, signatureVersion: true, signedAt: true, agreementPdfKey: true, applicantSignatureKey: true, signedPdfSha256: true, signedTerms: true } },
     },
   });
   if (!existing) return { ok: false, error: t("notFound") };
   if (existing.closingAssociateId !== session.user.associateId) return { ok: false, error: t("forbidden") };
+  // A-17 (design note §3): Legacy rows are frozen — no edit at all — once the
+  // new flow is live. Flag off: nothing is Legacy-refused (every row IS
+  // Legacy today), so this can never change today's behaviour early.
+  const closedDeal = env.A17_CLOSED_DEAL_FLOW;
+  if (closedDeal && existing.flow === SubmissionFlow.Legacy) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { attempted: "editSale" } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    return { ok: false, error: t("legacyReadOnly") };
+  }
   if (existing.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
   const partyError = await splitPartiesError(existing.closingAssociateId, validInput.associate2, validInput.associate3);
   if (partyError) return { ok: false, error: t(partyError) };
 
-  const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
+  const { lineData, saleAmount, needsAshesAgreement: needsAshesAgreementAfter } = await resolveSaleLines(validInput.lines);
   const next = {
     salesDate: new Date(validInput.salesDate),
     quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
@@ -297,17 +389,39 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
     : {};
   const exceptionVoided = splitChanged && !!existing.splitExceptionApprovedAt;
 
+  // A-17 §2/§4 (C2): a term the Pet Ash agreement carries (amount, plan,
+  // deposit/booking fee, instalments, products) changed. Client name/contact
+  // are deliberately excluded — a non-money correction doesn't void a signature.
+  // Computed only when the flag is on: only then does `existing` carry the
+  // extra fields this needs (legacy call sites/tests never selected them).
+  const ashesChanged = closedDeal && ashesTermsChanged(existing, next, lineData);
+  const existingAshes = existing.ashesAgreement;
+  let ashesRemoved = false, ashesCreated = false;
+
+  // Architect ✎6: any void/supersede audit carries the PRIOR key/hash/version/
+  // terms — it's the only pointer back to the file being superseded, since
+  // re-signing overwrites those columns on this 1:1 row. Never the raw NRIC-free
+  // signedTerms payload itself, just a hash of it (still no PII, but smaller).
+  const priorSignedSnapshot = (a: NonNullable<typeof existingAshes>) => ({
+    agreementPdfKey: a.agreementPdfKey,
+    applicantSignatureKey: a.applicantSignatureKey,
+    signedPdfSha256: a.signedPdfSha256,
+    signatureVersion: a.signatureVersion,
+    signedTermsHash: a.signedTerms ? createHash("sha256").update(JSON.stringify(a.signedTerms)).digest("hex") : null,
+  });
+
   try {
     await prisma.$transaction(async (db) => {
       // Compare-and-swap: only a still-Submitted sale of this closer is edited, so an
       // approval of the quotation landing after the read above can't be edited past.
       const res = await db.salesSubmission.updateMany({
         where: { id: input.id, closingAssociateId: session.user.associateId!, status: SubmissionStatus.Submitted },
-        data: { ...next, ...clearApprovals, splitExceptionRequired: violations.length > 0 },
+        data: { ...next, ...clearApprovals, splitExceptionRequired: violations.length > 0, contentVersion: { increment: 1 } },
       });
       if (res.count !== 1) throw new EditConflict();
       await db.saleLineItem.deleteMany({ where: { submissionId: input.id } });
       await db.saleLineItem.createMany({ data: lineData.map((l) => ({ ...l, submissionId: input.id })) });
+
       // Tier A: the edit (and any approvals it cleared / exception it voided or
       // flagged) is recorded in the same transaction.
       await auditTx(db, {
@@ -319,6 +433,74 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
       }
       if (violations.length && splitChanged) {
         await auditTx(db, { action: "split.exception_flagged", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { lines: violations } });
+      }
+
+      if (closedDeal && existingAshes) {
+        let effectiveStatus = existingAshes.status;
+        // DevLead (33f975f review): signatureVersion, not signedAt, is the
+        // durable "once signed" marker — void/reinstate below clear signedAt
+        // (and every other signed-* column) so a re-sign never inherits the
+        // PREVIOUS signing's pdf key/hash/terms.
+        const everSigned = existingAshes.signatureVersion > 0 || existingAshes.signedAt !== null;
+        // Clears every signed-* column so a re-sign starts from a genuinely
+        // clean Draft — signAshesAgreement's own revert-on-failure guard
+        // (agreementPdfKey: null) only works if this row actually has one.
+        const clearSignedColumns = { agreementPdfKey: null, signedPdfSha256: null, signedTerms: Prisma.DbNull, applicantSignatureKey: null, signedAt: null };
+
+        // C2: still needed, but a term the signature covers changed — re-sign.
+        if (effectiveStatus === AshesAgreementStatus.Signed && ashesChanged && needsAshesAgreementAfter) {
+          await auditTx(db, {
+            action: "ashes.signature_voided", entityType: "PetsAshesAgreement", entityId: existingAshes.id, actorUserId: session.user.id,
+            before: priorSignedSnapshot(existingAshes), after: { signatureVersion: existingAshes.signatureVersion + 1 },
+          });
+          await db.petsAshesAgreement.update({ where: { id: existingAshes.id }, data: { status: AshesAgreementStatus.Draft, signatureVersion: { increment: 1 }, ...clearSignedColumns } });
+          effectiveStatus = AshesAgreementStatus.Draft;
+        }
+
+        // ✎6: a once-signed row that's no longer needed at all → Superseded,
+        // never hard-deleted, never left as a misleading "still needs signing" Draft.
+        // Its signed-* columns are deliberately NOT cleared here — Superseded IS
+        // the preserved historical record (unlike void/reinstate, which are about
+        // to be re-signed).
+        if (everSigned && effectiveStatus !== AshesAgreementStatus.Superseded && !needsAshesAgreementAfter) {
+          await auditTx(db, {
+            action: "ashes.superseded", entityType: "PetsAshesAgreement", entityId: existingAshes.id, actorUserId: session.user.id,
+            before: priorSignedSnapshot(existingAshes), after: { status: "Superseded" },
+          });
+          await db.petsAshesAgreement.update({ where: { id: existingAshes.id }, data: { status: AshesAgreementStatus.Superseded } });
+          effectiveStatus = AshesAgreementStatus.Superseded;
+        } else if (effectiveStatus === AshesAgreementStatus.Superseded && needsAshesAgreementAfter) {
+          // ✎6: reinstated — a product that needs it came back. The prior
+          // signed snapshot (still intact on a Superseded row) goes in the
+          // audit before it's cleared for the coming re-sign.
+          await auditTx(db, {
+            action: "ashes.reinstated", entityType: "PetsAshesAgreement", entityId: existingAshes.id, actorUserId: session.user.id,
+            before: priorSignedSnapshot(existingAshes), after: { status: "Draft", signatureVersion: existingAshes.signatureVersion + 1 },
+          });
+          await db.petsAshesAgreement.update({ where: { id: existingAshes.id }, data: { status: AshesAgreementStatus.Draft, signatureVersion: { increment: 1 }, ...clearSignedColumns } });
+          effectiveStatus = AshesAgreementStatus.Draft;
+        }
+
+        // Never hard-delete a row that has ever carried a real signature — it's
+        // Superseded by now instead. Only a never-signed Draft is deleted outright.
+        if (effectiveStatus === AshesAgreementStatus.Draft && !everSigned && !needsAshesAgreementAfter) {
+          await db.petsAshesAgreement.delete({ where: { id: existingAshes.id } });
+          ashesRemoved = true;
+        }
+      } else if (closedDeal && !existingAshes && needsAshesAgreementAfter) {
+        await createAshesDraftTx(db, {
+          submissionId: input.id, clientName: next.clientName, saleAmount: next.saleAmount,
+          paymentPlan: next.paymentPlan, deposit: next.deposit, installmentCount: next.installmentCount,
+          createdById: session.user.id,
+        });
+        ashesCreated = true;
+      }
+      // Tier A: both ashes side-effects are recorded in the same transaction too.
+      if (ashesRemoved) {
+        await auditTx(db, { action: "ashes.draft_removed", entityType: "PetsAshesAgreement", entityId: existingAshes!.id, actorUserId: session.user.id });
+      }
+      if (ashesCreated) {
+        await auditTx(db, { action: "ashes.generated", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id });
       }
     });
   } catch (e) {
@@ -333,6 +515,27 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
     revalidatePath("/admin/split-approvals");
   }
   return violations.length ? { ok: true, warning: { code: "splitExceedsNet", lines: violations } } : { ok: true };
+}
+
+/** A-17 C2: has a term the Pet Ash agreement carries changed? */
+function ashesTermsChanged(
+  before: { saleAmount: Prisma.Decimal; paymentPlan: PaymentPlan; deposit: Prisma.Decimal | null; installmentCount: number | null; lineItems: { productCode: string }[] },
+  after: { saleAmount: Prisma.Decimal; paymentPlan: PaymentPlan; deposit: Prisma.Decimal | null; installmentCount: number | null },
+  afterLines: { productCode: string }[],
+): boolean {
+  return !ashesTermsEqual(ashesTermsSnapshot(before, before.lineItems), ashesTermsSnapshot(after, afterLines));
+}
+
+/**
+ * Field-by-field, never JSON.stringify — a snapshot read back from a jsonb
+ * column (G3b: `signedTerms`) can have its object keys reordered by Postgres,
+ * so a naive string comparison against a freshly-computed snapshot can differ
+ * only in key order and wrongly read as "changed".
+ */
+function ashesTermsEqual(a: ReturnType<typeof ashesTermsSnapshot> | null | undefined, b: ReturnType<typeof ashesTermsSnapshot>): boolean {
+  if (!a) return false;
+  return a.saleAmount === b.saleAmount && a.paymentPlan === b.paymentPlan && a.deposit === b.deposit
+    && a.installmentCount === b.installmentCount && JSON.stringify(a.products) === JSON.stringify(b.products);
 }
 
 class EditConflict extends Error {}
@@ -659,8 +862,35 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, flow: true } });
   if (!sub) return { ok: false, error: t("notFound") };
+  // MD B1: this is the OLD quotation workflow — it has no verifySale gate
+  // (G3/G3b/G4/G5), doesn't freeze commissionParties, and closeSale below
+  // would mint a SECOND transaction code for a row that flow=ClosedDeal is
+  // meant to close through the new flow instead. A ClosedDeal row must never
+  // reach QuotationApproved via this path.
+  //
+  // NOT the same condition as N4's Legacy-frozen check elsewhere in this
+  // file: this refuses ClosedDeal; N4 refuses Legacy once the flag is on. A
+  // flow=Legacy row deliberately STAYS OPEN here — Samuel confirmed (28 Sep,
+  // reviews/a17-flag-on-preconditions.md §3) that an in-flight Legacy sale
+  // may finish through this same old workflow after the flag flips, losing
+  // only edit/reject, not approve/close. One refusal and one deliberate
+  // non-refusal, same function, different flows — not a gap.
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.ClosedDeal) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.closed_deal_flow_required", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { attempted: "approveQuotation" } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    // Distinct key from editSale/rejectSubmission's legacyReadOnly (a
+    // different condition — Legacy-frozen, not ClosedDeal-must-use-verifySale)
+    // to avoid a catalogue key collision with release/a17-03-ui, which adds
+    // its own legacyReadOnly wording. Same text for now; semantics and final
+    // wording per the 4-meaning key audit are deferred to follow-up F1 — this
+    // is only the minimal duplicate-key fix, not a considered naming ruling.
+    return { ok: false, error: t("flowNotAvailable") };
+  }
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
   const approved = await writeAudited(
@@ -707,6 +937,29 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
   // Only the closing associate (or an admin) may close the sale.
   const isCloser = !!session.user.associateId && session.user.associateId === sub.closingAssociateId;
   if (!isCloser && !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  // MD B1: closeSale is the OLD quotation workflow's minting path — no
+  // verifySale gate (G3/G3b/G4/G5), no commissionParties freeze, and it mints
+  // its own transaction code below. verifySale is the ONLY minting path for
+  // flow=ClosedDeal (its own salesTransaction.create, separate from this
+  // one) — closeSale must never reach a ClosedDeal row at all, so this comes
+  // before even the idempotency short-circuit below.
+  //
+  // NOT the same condition as N4's Legacy-frozen check elsewhere in this
+  // file: this refuses ClosedDeal; a flow=Legacy row deliberately STAYS OPEN
+  // here — Samuel confirmed (28 Sep, reviews/a17-flag-on-preconditions.md
+  // §3) an in-flight Legacy sale may still close through this same old
+  // workflow after the flag flips, losing only edit/reject. One refusal and
+  // one deliberate non-refusal, same function, different flows — not a gap.
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.ClosedDeal) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.closed_deal_flow_required", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { attempted: "closeSale" } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    // Distinct key — see the same note in approveQuotation above.
+    return { ok: false, error: t("flowNotAvailable") };
+  }
 
   if (sub.transaction) { revalidatePath("/portal/quotations"); return { ok: true }; } // already closed
   if (sub.status !== SubmissionStatus.QuotationApproved) return { ok: false, error: t("quotationNotApproved") };
@@ -882,24 +1135,516 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
   return { ok: true };
 }
 
+class VerifyConflict extends Error {}
+
+/** G2: does the current split-exception approval (if any) still cover these
+ * violations? Pure — no writes. Shared by verifySale (which additionally
+ * voids a stale approval when this is false) and the read-only
+ * getVerifyChecklist (screen 4), so the two definitions can never drift. */
+function splitExceptionCoversViolations(
+  sub: { splitExceptionApprovedAt: Date | null; splitExceptionVersion: Date | null; splitEditedAt: Date | null; splitExceptionSnapshot: unknown },
+  violations: SplitBoundViolation[],
+): boolean {
+  return sub.splitExceptionApprovedAt !== null
+    && (sub.splitExceptionVersion?.getTime() ?? null) === (sub.splitEditedAt?.getTime() ?? null)
+    && snapshotCovers(violations, sub.splitExceptionSnapshot as SplitBoundViolation[] | null);
+}
+
+/** G3a/G3b: the sale's products' CURRENT required-document keys and whether
+ * any of them (or an existing non-Superseded ashes agreement) needs the Pet
+ * Ash agreement. Pure read (no writes). Shared by verifySale and
+ * getVerifyChecklist. */
+type RequiredDocumentEntry = { key: string; label_en: string; label_zh: string };
+
+async function resolveProductDocGate(
+  lineItems: { productCode: string }[],
+  ashesAgreement: { status: AshesAgreementStatus } | null,
+): Promise<{ missingProductCodes: string[]; requiredKeys: string[]; requiredDocs: RequiredDocumentEntry[]; needsAshes: boolean }> {
+  const productCodes = [...new Set(lineItems.map((l) => l.productCode))];
+  const products = await prisma.product.findMany({
+    where: { productCode: { in: productCodes } },
+    orderBy: { effectiveDate: "desc" },
+    select: { productCode: true, requiredDocuments: true, requiresAshesAgreement: true },
+  });
+  const currentByCode = new Map<string, (typeof products)[number]>();
+  for (const p of products) if (!currentByCode.has(p.productCode)) currentByCode.set(p.productCode, p); // newest row per code
+
+  const missingProductCodes = productCodes.filter((code) => !currentByCode.has(code));
+  const requiredDocsByKey = new Map<string, RequiredDocumentEntry>();
+  let needsAshes = false;
+  if (!missingProductCodes.length) {
+    for (const code of productCodes) {
+      const p = currentByCode.get(code)!;
+      for (const d of (p.requiredDocuments as RequiredDocumentEntry[] | null) ?? []) {
+        if (!requiredDocsByKey.has(d.key)) requiredDocsByKey.set(d.key, d);
+      }
+      if (p.requiresAshesAgreement) needsAshes = true;
+    }
+  }
+  // An agreement that was ever required and hasn't been Superseded by a later
+  // edit (✎6) must still be enforced even if the product's flag has since
+  // been turned off with no edit in between to retire it.
+  if (ashesAgreement && ashesAgreement.status !== AshesAgreementStatus.Superseded) needsAshes = true;
+  const requiredDocs = [...requiredDocsByKey.values()];
+  return { missingProductCodes, requiredKeys: requiredDocs.map((d) => d.key), requiredDocs, needsAshes };
+}
+
 /**
- * Business Admin rejects a submission at the quotation-review stage (16-Jul
- * quotation workflow). Only valid while it is still Submitted; audited.
+ * A-17 §Q6: attach a document that satisfies ONE of the sale's products'
+ * required-document keys (G3). requirementKey is validated against
+ * resolveProductDocGate's CURRENT read — the same rule verifySale and
+ * getVerifyChecklist enforce — never against whatever was required when the
+ * sale was submitted, so a since-retired key is refused here too (retired
+ * keys are only inert on EXISTING rows, never a valid target for a new one).
+ * Append-only: re-uploading the same key adds another row; "satisfied" is
+ * decided at read time by verifySale/getVerifyChecklist, never here.
+ * Tier A (reviews/audit-reliability.md): linked and recorded in one
+ * transaction, same shape as signQuotationOnSystem — if the audit can't be
+ * written, neither is the row, and the stored file is removed.
+ */
+export async function addSubmissionRequiredDocument(
+  submissionId: string,
+  requirementKey: string,
+  file: File,
+): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  // MD B2: flag-OFF must be genuinely dark — this whole A-17 mechanism has no
+  // Legacy-flow counterpart, so a flag-off deploy must not be able to reach
+  // it at all, callable server action or not.
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
+  const session = await auth();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({
+    where: { id: submissionId },
+    select: { status: true, closingAssociateId: true, lineItems: { select: { productCode: true } } },
+  });
+  if (!sub) return { ok: false, error: t("notFound") };
+
+  const allowed = isAdminRole(session.user.role) || (!!session.user.associateId && session.user.associateId === sub.closingAssociateId);
+  if (!allowed) return { ok: false, error: t("forbidden") };
+
+  // N5: a Verified or Rejected sale is terminal — there is no live checklist
+  // left to satisfy a required-document key against (verifySale/
+  // getVerifyChecklist have already run their course), so a new upload here
+  // would just be silently unreachable evidence, never checked by anything.
+  if (sub.status === SubmissionStatus.Verified || sub.status === SubmissionStatus.Rejected) {
+    return { ok: false, error: t("alreadyProcessed") };
+  }
+
+  if (!file || file.size === 0) return { ok: false, error: t("fileRequired") };
+  if (file.size > MAX_DOC_BYTES) return { ok: false, error: t("fileTooLarge") };
+
+  const { missingProductCodes, requiredKeys } = await resolveProductDocGate(sub.lineItems, null);
+  if (missingProductCodes.length || !requiredKeys.includes(requirementKey)) {
+    return { ok: false, error: t("invalidRequirementKey") };
+  }
+
+  const key = await storeSubmissionUploadBytes(submissionId, file);
+  if (!key) return { ok: false, error: t("invalidFileType") };
+
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.submissionDocument.create({
+        data: { submissionId, kind: SubmissionDocKind.Supporting, fileKey: key, fileName: file.name, uploadedById: session.user.id, requirementKey },
+      });
+      await auditTx(db, { action: "sale.required_document_added", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { requirementKey } });
+    });
+  } catch (e) {
+    await deleteObject(key);
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
+
+  revalidatePath("/portal/sales");
+  revalidatePath(`/portal/sales/${submissionId}`);
+  revalidatePath("/admin/sales/verify");
+  return { ok: true };
+}
+
+export type RequiredDocumentGate =
+  | { ok: true; requiredDocs: RequiredDocumentEntry[]; attachedKeys: string[]; productRecordMissing: boolean }
+  | { ok: false; error: string };
+
+/**
+ * Associate-or-admin read of the sale's products' CURRENT required-document
+ * keys (G3a) and which are already attached, via the SAME resolveProductDocGate
+ * source verifySale/getVerifyChecklist use — the sale detail page's "still
+ * missing" list can never disagree with what actually gates verification.
+ * Pure read, no writes.
+ *
+ * `resolveProductDocGate` returns an empty requiredKeys set BOTH when the
+ * sale genuinely needs no documents and when one of its products has no
+ * current record — the two are indistinguishable from requiredKeys alone,
+ * but verifySale/getVerifyChecklist treat the latter as a hard refusal
+ * (G3 "productRecordMissing"). productRecordMissing carries that distinction
+ * through so the page can say the same thing verify will say, instead of
+ * silently rendering "nothing required" (Backend finding, reviews/
+ * get-required-document-gate-missing-product-signal.md).
+ */
+export async function getRequiredDocumentGate(submissionId: string): Promise<RequiredDocumentGate> {
+  const t = await getTranslations("errors");
+  // MD B2: flag-OFF must be genuinely dark — same reasoning as
+  // addSubmissionRequiredDocument above (this is its read-side counterpart).
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
+  const session = await auth();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({
+    where: { id: submissionId },
+    select: { closingAssociateId: true, lineItems: { select: { productCode: true } }, documents: { select: { requirementKey: true } } },
+  });
+  if (!sub) return { ok: false, error: t("notFound") };
+
+  const allowed = isAdminRole(session.user.role) || (!!session.user.associateId && session.user.associateId === sub.closingAssociateId);
+  if (!allowed) return { ok: false, error: t("forbidden") };
+
+  const { missingProductCodes, requiredDocs } = await resolveProductDocGate(sub.lineItems, null);
+  if (missingProductCodes.length) return { ok: true, requiredDocs: [], attachedKeys: [], productRecordMissing: true };
+
+  const attachedKeys = [...new Set(sub.documents.map((d) => d.requirementKey).filter((k): k is string => !!k))];
+  return { ok: true, requiredDocs, attachedKeys, productRecordMissing: false };
+}
+
+/** G3b: the signed Pet Ash agreement's terms match the sale's CURRENT terms
+ * (C2), and its stored PDF's SHA-256 matches what was recorded at signing (a
+ * tampered file fails). Pure read (a storage GET, no writes). Shared by
+ * verifySale and getVerifyChecklist. */
+async function ashesSignatureOk(
+  sub: Parameters<typeof ashesTermsSnapshot>[0],
+  lineItems: Parameters<typeof ashesTermsSnapshot>[1],
+  ashesAgreement: { status: AshesAgreementStatus; signedTerms: unknown; agreementPdfKey: string | null; signedPdfSha256: string | null } | null,
+): Promise<boolean> {
+  const a = ashesAgreement;
+  const currentTerms = ashesTermsSnapshot(sub, lineItems);
+  const termsMatch = !!a && a.status === AshesAgreementStatus.Signed && ashesTermsEqual(a.signedTerms as ReturnType<typeof ashesTermsSnapshot> | null, currentTerms);
+  if (!termsMatch || !a!.agreementPdfKey || !a!.signedPdfSha256) return false;
+  const stored = await getObject(a!.agreementPdfKey);
+  return !!stored && createHash("sha256").update(stored).digest("hex") === a!.signedPdfSha256;
+}
+
+/**
+ * A-17 §3 (design note; replaces closeSale for ClosedDeal sales): Admin or
+ * Accounts books a Submitted sale once every gate passes. `seenContentVersion`
+ * is the content_version the admin's page rendered (G4: refuses a stale page).
+ * Reuses closeSale's DB-only booking body — same lines/invoices/instalments —
+ * but the TXN code was already minted at submit (never mints a second one),
+ * freezes commissionParties (Q33c) before the engine runs, and runs the
+ * ledger (runCommissionTx) in this SAME transaction (✎D1), not a second one.
+ * Idempotent: a submission that already has a transaction returns ok.
+ */
+export async function verifySale(submissionId: string, seenContentVersion: number): Promise<{ ok: boolean; error?: string; transactionId?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({
+    where: { id: submissionId },
+    include: {
+      lineItems: true,
+      transaction: { select: { id: true } },
+      closingAssociate: { include: { directUpline: { select: { designation: true } }, secondUpline: { select: { designation: true } } } },
+      ashesAgreement: true,
+      documents: { select: { requirementKey: true } },
+    },
+  });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (!env.A17_CLOSED_DEAL_FLOW || sub.flow !== SubmissionFlow.ClosedDeal) return { ok: false, error: t("legacyReadOnly") };
+  if (sub.transaction) { revalidatePath("/admin/sales/verify"); return { ok: true }; } // already verified
+  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
+
+  // G4: the admin verifies the version their page actually rendered.
+  if (sub.contentVersion !== seenContentVersion) return { ok: false, error: t("staleVersion") };
+
+  // G1: split fully approved (SD + Business Admin, SEC-5a).
+  if (!splitFullyApproved(sub)) return { ok: false, error: t("splitNotApproved") };
+
+  // G2: re-check with the rates in force NOW — same rule as closeSale/B-S6.
+  const violations = await splitBoundViolations(prisma, {
+    salesDate: sub.salesDate, closingAssociateId: sub.closingAssociateId, lines: sub.lineItems,
+    associate2Id: sub.associate2Id, associate2ValueType: sub.associate2ValueType, associate2Value: sub.associate2Value,
+    associate3Id: sub.associate3Id, associate3ValueType: sub.associate3ValueType, associate3Value: sub.associate3Value,
+  });
+  if (violations.length) {
+    const approved = splitExceptionCoversViolations(sub, violations);
+    if (!approved) {
+      const refused = await writeAudited(
+        async (db) => {
+          if (sub.splitExceptionApprovedAt !== null) {
+            return (await db.salesSubmission.updateMany({
+              where: { id: sub.id, splitExceptionApprovedAt: sub.splitExceptionApprovedAt },
+              data: { splitExceptionApprovedAt: null, splitExceptionApprovedById: null, splitExceptionReason: null, splitExceptionSnapshot: Prisma.DbNull, splitExceptionVersion: null, splitExceptionRequired: true },
+            })).count > 0;
+          }
+          if (!sub.splitExceptionRequired) await db.salesSubmission.update({ where: { id: sub.id }, data: { splitExceptionRequired: true } });
+          return false;
+        },
+        (voided) => [
+          ...(voided ? [{ action: "split.exception_voided", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { reason: "rates_changed", lines: violations as unknown as Prisma.InputJsonValue } }] : []),
+          { action: "sale.verify_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { gate: "G2-split-exception", violations: violations as unknown as Prisma.InputJsonValue } },
+        ],
+      );
+      if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+      revalidatePath("/admin/split-approvals");
+      return { ok: false, error: t("splitExceptionRequired") };
+    }
+    // G5: four-eyes — the split-exception approver can't also be the verifier.
+    if (sub.splitExceptionApprovedById === session.user.id) {
+      const refused = await writeAudited(
+        async () => {},
+        () => [{ action: "sale.verify_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { gate: "G5-four-eyes" } }],
+      );
+      if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+      return { ok: false, error: t("fourEyesBlocked") };
+    }
+  }
+
+  // G3a/G3b: products' current required-document keys + whether the Pet Ash
+  // agreement is needed (shared with getVerifyChecklist — see above).
+  const { missingProductCodes, requiredKeys, needsAshes } = await resolveProductDocGate(sub.lineItems, sub.ashesAgreement);
+  if (missingProductCodes.length) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.verify_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { gate: "G3a-product-missing", productCodes: missingProductCodes } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    return { ok: false, error: t("productRecordMissing") };
+  }
+
+  const attachedKeys = new Set(sub.documents.map((d) => d.requirementKey).filter((k): k is string => !!k));
+  const missingDocKeys = requiredKeys.filter((k) => !attachedKeys.has(k));
+  if (missingDocKeys.length) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.verify_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { gate: "G3-documents", missing: missingDocKeys } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    return { ok: false, error: t("requiredDocumentsMissing") };
+  }
+
+  // G3b: when a product needs the Pet Ash agreement, it must be Signed, its
+  // signed_terms must equal the sale's CURRENT terms (C2), and its stored PDF's
+  // SHA-256 must match signed_pdf_sha256 (a tampered file is refused).
+  if (needsAshes) {
+    const signatureOk = await ashesSignatureOk(sub, sub.lineItems, sub.ashesAgreement);
+    if (!signatureOk) {
+      const refused = await writeAudited(
+        async () => {},
+        () => [{ action: "sale.verify_refused", entityType: "SalesSubmission", entityId: sub.id, actorUserId: session.user.id, after: { gate: "G3-terms" } }],
+      );
+      if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+      return { ok: false, error: t("ashesSignatureRequired") };
+    }
+  }
+
+  const closer = sub.closingAssociate;
+  const fullPayment = sub.paymentPlan === PaymentPlan.FullPayment;
+  if (!sub.transactionCode) throw new Error("ClosedDeal submission is missing its transaction code (invariant from submitSale)");
+
+  let txId: string;
+  try {
+    txId = await prisma.$transaction(async (db) => {
+      // G4 (the real guard): only a still-Submitted row at the seen version
+      // flips to Verified. A concurrent edit or a second verify click loses.
+      const res = await db.salesSubmission.updateMany({
+        where: { id: sub.id, status: SubmissionStatus.Submitted, contentVersion: seenContentVersion },
+        data: { status: SubmissionStatus.Verified, verifiedAt: new Date(), verifiedById: session.user.id },
+      });
+      if (res.count !== 1) throw new VerifyConflict();
+
+      const transaction = await db.salesTransaction.create({
+        data: {
+          transactionCode: sub.transactionCode!, // minted at submit — never a second one
+          submissionId: sub.id,
+          salesDate: sub.salesDate,
+          clientName: sub.clientName,
+          clientContact: sub.clientContact,
+          saleAmount: sub.saleAmount,
+          paymentPlan: sub.paymentPlan,
+          deposit: sub.deposit,
+          installmentCount: sub.installmentCount,
+          amountCollected: 0, // nothing collected at verify — collected on mark-Paid
+          closingAssociateId: sub.closingAssociateId,
+          directUplineId: closer.directUplineId,
+          secondUplineId: closer.secondUplineId,
+          commissionEligibility: CommissionEligibility.PendingCollection,
+          verifiedById: session.user.id,
+          verifiedAt: new Date(),
+        },
+      });
+
+      // attach line items + resolve the structure version active on the sales date
+      const byCompany = new Map<string, ReturnType<typeof D>>();
+      for (const li of sub.lineItems) {
+        const version = await db.commissionStructureVersion.findFirst({
+          where: { productCode: li.productCode, effectiveDate: { lte: sub.salesDate } },
+          orderBy: { effectiveDate: "desc" },
+        });
+        await db.saleLineItem.update({ where: { id: li.id }, data: { transactionId: transaction.id, structureVersionId: version?.id ?? null } });
+        byCompany.set(li.companyId, (byCompany.get(li.companyId) ?? D(0)).add(D(li.lineSaleAmount)));
+      }
+
+      if (fullPayment) {
+        for (const [companyId, amount] of byCompany) {
+          const company = await db.company.update({ where: { id: companyId }, data: { invoiceNextSeq: { increment: 1 } } });
+          const seq = company.invoiceNextSeq - 1;
+          const invoiceNumber = `INV-${company.invoicePrefix}-${format(sub.salesDate, "yyyy")}-${String(seq).padStart(5, "0")}`;
+          await db.invoice.create({ data: { transactionId: transaction.id, companyId, invoiceNumber, invoiceType: InvoiceType.ComputerGenerated, amount, status: InvoiceStatus.Outstanding } });
+        }
+      }
+      if (!fullPayment && sub.installmentCount && sub.installmentCount > 0) {
+        const plan = await db.installmentPlan.create({ data: { transactionId: transaction.id, totalAmount: sub.saleAmount, deposit: sub.deposit ?? 0, installmentCount: sub.installmentCount } });
+        const remaining = D(sub.saleAmount).sub(D(sub.deposit ?? 0));
+        if (D(sub.deposit ?? 0).gt(0)) {
+          await db.installmentSchedule.create({ data: { planId: plan.id, sequence: 0, dueAmount: round2(D(sub.deposit ?? 0)), paid: false } });
+        }
+        const per = round2(remaining.div(sub.installmentCount));
+        let running = ZERO;
+        for (let i = 1; i <= sub.installmentCount; i++) {
+          const dueAmount = i === sub.installmentCount ? round2(remaining.sub(running)) : per;
+          running = running.add(dueAmount);
+          await db.installmentSchedule.create({ data: { planId: plan.id, sequence: i, dueAmount, paid: false } });
+        }
+      }
+
+      // Q33c: freeze WHO earns (and each upline's own Approved&&Active flag)
+      // BEFORE the engine runs, so the engine reads the snapshot, not live data.
+      const txForParties = await db.salesTransaction.findUniqueOrThrow({ where: { id: transaction.id }, include: { closingAssociate: true, submission: true } });
+      const snapshot = await buildCommissionPartiesSnapshot(db, txForParties);
+      await db.salesTransaction.update({ where: { id: transaction.id }, data: { commissionParties: snapshot as unknown as Prisma.InputJsonValue } });
+
+      // ✎D1: the ledger is booked by THIS transaction's own client, so it can
+      // see the SalesTransaction created above (still uncommitted to anyone else).
+      const result = await runCommissionTx(db, transaction.id);
+      await auditRunResultTx(db, transaction.id, result, session.user.id);
+
+      await auditTx(db, {
+        action: "sale.verified", entityType: "SalesTransaction", entityId: transaction.id, actorUserId: session.user.id,
+        after: { submissionId, transactionCode: sub.transactionCode, lineCount: result.lineCount },
+      });
+      return transaction.id;
+    }, COMMISSION_TX_OPTIONS);
+  } catch (e) {
+    if (e instanceof VerifyConflict) return { ok: false, error: t("alreadyProcessed") };
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
+
+  revalidatePath("/admin/sales/verify");
+  revalidatePath("/portal/sales");
+  revalidatePath(`/portal/sales/${submissionId}`);
+  revalidatePath("/admin/commission");
+  revalidatePath("/admin/dashboard");
+  return { ok: true, transactionId: txId };
+}
+
+export type VerifyGateKey = "G1" | "G2" | "G3" | "G4" | "G5";
+export type VerifyGateResult = { key: VerifyGateKey; pass: boolean; reasonKey?: string };
+export type VerifyChecklist = { ok: true; gates: VerifyGateResult[]; allPass: boolean; contentVersion: number } | { ok: false; error: string };
+
+/**
+ * A-17 §7 (design note): read-only G1–G5 checklist for the verify screen
+ * (screen 4) — the SAME gate logic verifySale uses (splitFullyApproved,
+ * splitBoundViolations, splitExceptionCoversViolations, resolveProductDocGate,
+ * ashesSignatureOk), so the checklist and the real verify can never
+ * disagree. Never writes anything: no audit rows, no voiding of a stale
+ * split-exception approval (verifySale does that only when it actually
+ * refuses). `seenContentVersion`, when passed, checks G4 against it (for a
+ * re-check just before submitting); omitted, G4 always passes and the
+ * current contentVersion is returned for the caller to hold onto.
+ */
+export async function getVerifyChecklist(submissionId: string, seenContentVersion?: number): Promise<VerifyChecklist> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  const sub = await prisma.salesSubmission.findUnique({
+    where: { id: submissionId },
+    include: { lineItems: true, ashesAgreement: true, documents: { select: { requirementKey: true } } },
+  });
+  if (!sub) return { ok: false, error: t("notFound") };
+  if (!env.A17_CLOSED_DEAL_FLOW || sub.flow !== SubmissionFlow.ClosedDeal) return { ok: false, error: t("legacyReadOnly") };
+
+  const gates: VerifyGateResult[] = [];
+  gates.push(splitFullyApproved(sub) ? { key: "G1", pass: true } : { key: "G1", pass: false, reasonKey: "splitNotApproved" });
+
+  const violations = await splitBoundViolations(prisma, {
+    salesDate: sub.salesDate, closingAssociateId: sub.closingAssociateId, lines: sub.lineItems,
+    associate2Id: sub.associate2Id, associate2ValueType: sub.associate2ValueType, associate2Value: sub.associate2Value,
+    associate3Id: sub.associate3Id, associate3ValueType: sub.associate3ValueType, associate3Value: sub.associate3Value,
+  });
+  let g2: VerifyGateResult = { key: "G2", pass: true };
+  let g5: VerifyGateResult = { key: "G5", pass: true };
+  if (violations.length) {
+    const approved = splitExceptionCoversViolations(sub, violations);
+    g2 = approved ? { key: "G2", pass: true } : { key: "G2", pass: false, reasonKey: "splitExceptionRequired" };
+    if (approved && sub.splitExceptionApprovedById === session.user.id) {
+      g5 = { key: "G5", pass: false, reasonKey: "fourEyesBlocked" };
+    }
+  }
+  gates.push(g2, g5);
+
+  const { missingProductCodes, requiredKeys, needsAshes } = await resolveProductDocGate(sub.lineItems, sub.ashesAgreement);
+  let g3: VerifyGateResult = { key: "G3", pass: true };
+  if (missingProductCodes.length) {
+    g3 = { key: "G3", pass: false, reasonKey: "productRecordMissing" };
+  } else {
+    const attachedKeys = new Set(sub.documents.map((d) => d.requirementKey).filter((k): k is string => !!k));
+    const missingDocKeys = requiredKeys.filter((k) => !attachedKeys.has(k));
+    if (missingDocKeys.length) {
+      g3 = { key: "G3", pass: false, reasonKey: "requiredDocumentsMissing" };
+    } else if (needsAshes && !(await ashesSignatureOk(sub, sub.lineItems, sub.ashesAgreement))) {
+      g3 = { key: "G3", pass: false, reasonKey: "ashesSignatureRequired" };
+    }
+  }
+  gates.push(g3);
+
+  const g4Pass = seenContentVersion === undefined || sub.contentVersion === seenContentVersion;
+  gates.push(g4Pass ? { key: "G4", pass: true } : { key: "G4", pass: false, reasonKey: "staleVersion" });
+
+  return { ok: true, gates, allPass: gates.every((g) => g.pass), contentVersion: sub.contentVersion };
+}
+
+/**
+ * Business Admin/Accounts rejects a still-Submitted submission (16-Jul
+ * quotation workflow; A-17 §3 extends it to the new flow). Terminal — only
+ * valid while Submitted, CAS so two admins can't both "succeed" on a race.
+ * A-17 (flag on): refuses Legacy rows, requires a reason, and stamps
+ * rejectedAt (drives the §4a NRIC retention job). Flag off: unchanged —
+ * reason stays optional, matching every existing legacy caller.
  */
 export async function rejectSubmission(submissionId: string, reason?: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, flow: true } });
   if (!sub) return { ok: false, error: t("notFound") };
-  if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
+  const closedDeal = env.A17_CLOSED_DEAL_FLOW;
+  if (closedDeal && sub.flow === SubmissionFlow.Legacy) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { attempted: "rejectSubmission" } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    return { ok: false, error: t("legacyReadOnly") };
+  }
+  const trimmedReason = reason?.trim() || null;
+  if (closedDeal && !trimmedReason) return { ok: false, error: t("reasonRequired") };
+
+  // CAS: only a still-Submitted row is rejected, so two admins can't both "succeed".
   const rejected = await writeAudited(
-    (db) => db.salesSubmission.update({ where: { id: submissionId }, data: { status: SubmissionStatus.Rejected } }),
-    () => [{ action: "submission.rejected", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: reason?.trim() || null } }],
+    (db) => db.salesSubmission.updateMany({
+      where: { id: submissionId, status: SubmissionStatus.Submitted },
+      data: { status: SubmissionStatus.Rejected, rejectedAt: new Date() },
+    }),
+    (res) => (res.count === 1 ? [{ action: "submission.rejected", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { reason: trimmedReason } }] : []),
   );
   if (rejected === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+  if (rejected.count === 0) return { ok: false, error: t("alreadyProcessed") };
   revalidatePath("/admin/quotations");
+  revalidatePath("/admin/sales/verify");
+  revalidatePath(`/portal/sales/${submissionId}`);
   return { ok: true };
 }
