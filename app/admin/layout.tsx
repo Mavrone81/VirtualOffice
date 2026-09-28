@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { sdAutoElapsedWhere } from "@/lib/approval";
-import { runNricRetentionOpportunistic } from "@/server/agreements/nric-retention";
+import { runNricRetentionOpportunistic } from "@/server/agreements/nric-retention-engine";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ApprovalStatus, OnboardingStage, SubmissionStatus } from "@prisma/client";
 import { auth } from "@/auth";
