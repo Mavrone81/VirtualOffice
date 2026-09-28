@@ -115,7 +115,7 @@
     "flyers": "传单",
     "edm": "电子直邮",
     "customisation": "定制服务",
-    "chineseNameMenu": "中文名",
+    "chineseNameMenu": "定制服务",
     "greetings": "节日祝福",
     "productsCatalogue": "产品",
     "recruitmentDashboard": "招募概览",
@@ -1630,7 +1630,7 @@
   },
   "marketing": {
     "customisation": {
-      "title": "中文名",
+      "title": "定制服务",
       "subtitle": "个性化营销物料",
       "howTitle": "如何申请定制",
       "howBody": "个性化营销物料（定制传单、电子直邮、节日祝福及其他设计）由专人安排。请联系 Yiling 说明需求，她会告知方案与所需时间。",
