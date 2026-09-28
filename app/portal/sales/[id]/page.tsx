@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
-import { ComValueType, InvoiceStatus, SubmissionStatus } from "@prisma/client";
+import { ComValueType, InvoiceStatus, SubmissionStatus, SubmissionFlow, AshesAgreementStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { formatSGD } from "@/lib/money";
 import { humanize } from "@/lib/labels";
+import { isAgreementEditableStatus } from "@/lib/ashes-terms-snapshot";
+import { getRequiredDocumentGate } from "@/server/sales/actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { LegacyBanner } from "@/components/ui/legacy-banner";
+import { RequiredDocsSection } from "./required-docs-section";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Sale · Enshrine Portal" };
@@ -33,6 +38,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
       lineItems: true,
       documents: { where: { kind: "Signed" }, orderBy: { createdAt: "asc" } },
       transaction: { include: { invoices: true } },
+      ashesAgreement: { select: { status: true } },
     },
   });
   if (!s || s.closingAssociateId !== associateId) notFound();
@@ -48,6 +54,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   const editable = s.status === SubmissionStatus.Submitted;
   const approved = s.status === SubmissionStatus.QuotationApproved;
   const paidInvoice = s.transaction?.invoices.find((i) => i.status === InvoiceStatus.Paid) ?? null;
+  const ashesEditable = !!s.ashesAgreement && s.ashesAgreement.status === AshesAgreementStatus.Draft && isAgreementEditableStatus(s.flow, s.status);
+  const docGate = await getRequiredDocumentGate(s.id);
 
   return (
     <>
@@ -58,6 +66,10 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
           {editable && <Button asChild><Link href={`/portal/sales/${s.id}/edit`}>{t("saleDetail.edit")}</Link></Button>}
         </span>
       </PageHeader>
+
+      {env.A17_CLOSED_DEAL_FLOW && s.flow === SubmissionFlow.Legacy && (
+        <div className="mb-4"><LegacyBanner /></div>
+      )}
 
       {s.splitExceptionRequired && (
         <div className={`mb-4 rounded-xl border px-4 py-3 text-[13px] ${s.splitExceptionApprovedAt ? "border-line bg-paper-100 text-ink" : "border-danger/40 bg-danger/5 text-danger"}`}>
@@ -74,6 +86,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
               <Field label={t("saleDetail.contact")} value={s.clientContact} />
               <Field label={t("saleDetail.plan")} value={humanize(s.paymentPlan)} />
               <Field label={t("saleDetail.date")} value={format(s.salesDate, "d MMM yyyy")} />
+              {s.transactionCode && <Field label={t("saleDetail.txnCode")} value={s.transactionCode} />}
             </div>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-[13px]">
@@ -121,7 +134,17 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
               {paidInvoice
                 ? <DocLink href={`/portal/invoices/${paidInvoice.id}/pdf`} label={t("saleDetail.invoice")} />
                 : <p className="text-[12px] text-muted">{t("saleDetail.invoicePending")}</p>}
+              {env.A17_CLOSED_DEAL_FLOW && s.ashesAgreement && (
+                <p className="text-[12px] text-muted">
+                  {t("saleDetail.ashesAgreementLabel")}: {ashesEditable ? (
+                    <Link href={`/portal/sales/${s.id}/agreement`} className="text-action hover:underline">{t(`saleDetail.ashesAgreementStatus.${s.ashesAgreement.status.toLowerCase()}`)}</Link>
+                  ) : (
+                    <span className="text-ink">{t(`saleDetail.ashesAgreementStatus.${s.ashesAgreement.status.toLowerCase()}`)}</span>
+                  )}
+                </p>
+              )}
             </div>
+            {env.A17_CLOSED_DEAL_FLOW && docGate.ok && <RequiredDocsSection submissionId={s.id} requiredDocs={docGate.requiredDocs} attachedKeys={docGate.attachedKeys} productRecordMissing={docGate.productRecordMissing} />}
             <div className="mt-4 border-t border-line pt-3">
               <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-2">{t("saleDetail.signedDocs")}</div>
               {s.documents.length === 0 ? (

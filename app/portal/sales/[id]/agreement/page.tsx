@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { SubmissionStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
+import { isAgreementEditableStatus } from "@/lib/ashes-terms-snapshot";
 import { formatSGD } from "@/lib/money";
 import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
@@ -30,7 +30,7 @@ export default async function AshesAgreementPage({ params }: { params: Promise<{
   if (!sub) notFound();
   const mine = !!session.user.associateId && session.user.associateId === sub.closingAssociateId;
   if (!mine && !isAdminRole(session.user.role)) notFound();
-  if (sub.status !== SubmissionStatus.QuotationApproved) redirect("/portal/quotations");
+  if (!isAgreementEditableStatus(sub.flow, sub.status)) redirect("/portal/quotations");
 
   const a = sub.ashesAgreement;
   // SEC-12: decrypt for the edit-form prefill (or tolerate still-plaintext

@@ -679,6 +679,7 @@
       "submitting": "提交中…",
       "submitSale": "提交销售",
       "verificationNote": "经财务/人力资源核实后正式生效。",
+      "ashesWillGenerate": "此销售包含需要宠物骨灰协议的产品——系统将自动生成一份供客户签署。",
       "docsTitle": "证明文件",
       "docsNote": "可选。可附上任何证明文件（PDF、PNG 或 JPEG）——管理员会在批准报价前查看。",
       "docsTooLarge": "附件过大，请将总大小控制在 9 MB 以内。",
@@ -844,6 +845,7 @@
       "contact": "联系方式",
       "plan": "方案",
       "date": "日期",
+      "txnCode": "交易编号",
       "product": "产品",
       "amount": "金额",
       "assoc2": "成交人 2",
@@ -860,8 +862,18 @@
       "agreement": "协议",
       "invoice": "发票",
       "invoicePending": "发票将在付款后可用。",
+      "ashesAgreementLabel": "宠物骨灰协议",
+      "ashesAgreementStatus": {
+        "draft": "待签署",
+        "signed": "已签署",
+        "superseded": "已作废"
+      },
       "signedDocs": "签署文件",
       "noSigned": "暂无签署文件。",
+      "requiredDocsTitle": "所需文件",
+      "requiredDocAttached": "已上传",
+      "requiredDocUpload": "上传",
+      "requiredDocUploadFailed": "上传失败，请重试。",
       "splitExceptionPending": "此分配超过净佣金，会产生负数佣金。须由业务管理员批准此例外后才能成交。",
       "splitExceptionApproved": "业务管理员已批准此分配例外。成交时将按所示记录负数佣金。"
     },
@@ -915,6 +927,15 @@
     "overAllocatedWarning": "直属上线与第二上线的 override 合计超过公司抽成奖池 —— 公司留存将为负数。",
     "couldNotCreate": "创建失败。",
     "createProductBtn": "创建产品",
+    "requiredDocuments": "所需文件（A-17）",
+    "noRequiredDocuments": "无所需文件——审核时不会要求任何文件。",
+    "addRequiredDocument": "+ 所需文件",
+    "removeRequiredDocument": "移除",
+    "labelEnPlaceholder": "标签（英文）",
+    "labelZhPlaceholder": "标签（中文）",
+    "ashesAgreementOn": "需要骨灰协议",
+    "ashesAgreementOff": "无需骨灰协议",
+    "ashesAgreementToggleHint": "提交此产品的销售是否自动生成骨灰协议草稿",
     "catalogue": {
       "title": "产品与服务",
       "subtitle": "当前可交易的产品",
@@ -1313,6 +1334,7 @@
     "photoInvalidFormat": "照片必须为 JPG、PNG 或 WebP 格式。",
     "photoTooLarge": "照片大小不能超过 5 MB。",
     "signatureInvalid": "签名图片无效。",
+    "signingFailed": "签署未完成 — 请重试。",
     "invalidFileType": "不支持的文件类型。",
     "alreadyConverted": "已转换。",
     "onboardingIncomplete": "候选人尚未完成入职流程。",
@@ -1321,6 +1343,7 @@
     "closingPctRequired": "百分比产品需要设置佣金百分比。",
     "closingFixedRequired": "固定产品需要设置固定佣金金额。",
     "productCodeExists": "产品代码已存在。",
+    "requiredDocumentsLimitReached": "此产品的必需文件数量已达到上限。",
     "allFieldsRequired": "所有字段均为必填项。",
     "noAssociateProfile": "未关联伙伴档案。",
     "clientNameRequired": "客户姓名为必填项。",
@@ -1347,6 +1370,14 @@
     "payoutRunConflict": "运行期间支付记录已发生变化，请重试。",
     "payoutAlreadyApprovedOrPaid": "无法取消标记 — 此笔交易的佣金已批准或已发放。",
     "legacyReconciliationPending": "无法取消标记 — 该伙伴在此月份有一笔较早的支付记录尚待核对。",
+    "staleVersion": "此销售记录在您打开此页面后已被修改。请重新加载以查看最新版本后再核实。",
+    "fourEyesBlocked": "您已批准此销售的分成例外；需由另一位管理员或财务人员核实。",
+    "requiredDocumentsMissing": "此销售的产品缺少一项或多项所需文件。",
+    "productRecordMissing": "找不到此销售的某项产品记录。请先修正产品记录后再核实。",
+    "invalidRequirementKey": "此文件要求对该销售的产品已不再适用。",
+    "quotationNotConvertible": "此报价单无法转换 — 可能已被使用、已作废，或不属于您。",
+    "ashesSignatureRequired": "宠物骨灰协议必须已签署，且条款与此销售一致，方可核实。",
+    "nricRetentionDisabled": "NRIC 保留功能尚未启用。请先预览统计数据，再请管理者开启后运行。",
     "reasonRequired": "请填写原因。",
     "recomputeBusy": "系统繁忙 — 付款未被记录，请重试。",
     "auditUnavailable": "无法写入审计记录，因此操作未执行。请稍后重试。",
@@ -1448,9 +1479,14 @@
     "signerNamePlaceholder": "全名",
     "signAttach": "签署并附上",
     "cancel": "取消",
+    "tabs": {
+      "records": "报价单",
+      "legacy": "旧流程审批队列"
+    },
     "list": {
       "title": "报价",
       "subtitle": "待您审核的销售——核对客户与文件后，批准销售员生成报价。与分成审批并行进行。",
+      "recordsSubtitle": "销售员通过文档模板（A-17）开出的报价单——只读；作废需填写原因。",
       "empty": "暂无待批准的报价。",
       "colDate": "日期",
       "colClient": "客户",
@@ -1527,7 +1563,27 @@
       "showing": "显示第 {from}–{to} 项，共 {total} 项",
       "prev": "‹ 上一页",
       "next": "下一页 ›"
-    }
+    },
+    "tabs": {
+      "awaiting": "待核实",
+      "booked": "已成交"
+    },
+    "awaitingSubtitle": "等待分成批准、文件及核实的成交销售。",
+    "awaitingEmpty": "暂无待核实的销售。",
+    "gate": {
+      "G1": "分成已全部批准",
+      "G2": "分成例外（如有）",
+      "G3": "所需文件与宠物骨灰协议",
+      "G4": "自加载此清单以来销售未变更",
+      "G5": "双人复核（分成例外批准人 ≠ 核实人）"
+    },
+    "action": "核实",
+    "recheck": "重新检查",
+    "reject": "拒绝",
+    "reasonRequired": "原因（必填）",
+    "rejectConfirm": "确认拒绝",
+    "cancel": "取消",
+    "fourEyesBlocked": "您已批准此销售的分成例外；需由另一位管理员或财务人员核实。"
   },
   "assistant": {
     "title": "门户助手",
@@ -1661,7 +1717,8 @@
       "subtitle": "按类别下载空白模板",
       "cat": {
         "pets": "宠物身后事",
-        "human": "人类身后事"
+        "human": "人类身后事",
+        "quotation": "报价"
       },
       "tplPetAsh": "宠物骨灰存放协议",
       "tplReferral": "推荐与营销合作协议",
@@ -1669,5 +1726,44 @@
       "none": "此类别暂无模板。",
       "signedHeading": "已签署协议"
     }
+  },
+  "quotation": {
+    "status": {
+      "issued": "已开立",
+      "converted": "已转换",
+      "void": "已作废"
+    },
+    "form": {
+      "heading": "开立报价单",
+      "clientName": "客户姓名",
+      "clientContact": "客户联系方式",
+      "quoteDate": "报价日期",
+      "validUntil": "有效期至",
+      "product": "产品",
+      "price": "价格",
+      "addLine": "添加行",
+      "removeLine": "删除行",
+      "total": "总额",
+      "issue": "开立报价单"
+    },
+    "list": {
+      "heading": "您的报价单",
+      "empty": "暂无报价单。开立一份，可在客户确认前先给出价格。",
+      "colCode": "编号",
+      "colDate": "日期",
+      "colClient": "客户",
+      "colAssociate": "销售员",
+      "colProducts": "产品",
+      "colTotal": "总额",
+      "colStatus": "状态",
+      "view": "查看",
+      "convert": "转为交易",
+      "voidReasonPrompt": "作废原因（必填）",
+      "voidConfirm": "作废",
+      "cancel": "取消"
+    },
+    "convert": "转为交易",
+    "void": "作废",
+    "fromChip": "来自 {code}"
   }
 }
