@@ -78,6 +78,37 @@ jobs:
         run: pnpm exec tsc --noEmit
       - name: Lint
         run: pnpm lint
+      # 🔴 The PDF tests shell out to poppler binaries, and the runner has none.
+      # #60 failed with 26 x `spawnSync pdfinfo ENOENT` while our local gate passed,
+      # because this machine happens to have poppler installed. The gate reproduced
+      # CI's COMMANDS but not CI's MACHINE — a dependency that is merely present on a
+      # developer's box is not a dependency the pipeline has.
+      #
+      # 🔴 THREE binaries are needed, not the one the failure named. Enumerated from
+      # the test source rather than from the error text: `pdfinfo`
+      # (lib/pdf/agreement.test.ts:70), `pdftotext` (:78, :87) and `pdftoppm`
+      # (:33, :265). Installing only what the error named would have produced a
+      # second red run on `pdftotext`. All three ship in `poppler-utils`. The tests
+      # also invoke `sh`, which is POSIX and needs no install.
+      #
+      # The tests must NOT skip when a binary is missing. A test that silently skips
+      # in CI is worse than no test: it reports green forever while asserting
+      # nothing, and nobody reads a skip count. So this step installs the dependency
+      # and then ASSERTS each binary resolves — an `apt-get` exit 0 is not evidence
+      # that the thing you wanted is on PATH.
+      - name: Install poppler-utils (PDF tests shell out to it)
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          for b in pdfinfo pdftotext pdftoppm; do
+            if ! command -v "$b" > /dev/null 2>&1; then
+              echo "::error::$b is not on PATH after installing poppler-utils. The PDF tests would fail with ENOENT. Not continuing and pretending the dependency is satisfied."
+              exit 1
+            fi
+            echo "$b -> $(command -v "$b")"
+          done
+
       - name: Unit + integration tests
         run: pnpm test
 

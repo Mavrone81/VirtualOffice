@@ -1,9 +1,18 @@
 /**
  * One-off backfill: re-render existing signed Associate Agreement PDFs into the
- * official V.2026-04 format (lib/pdf/agreement.tsx). New agreements already use
- * it; this rewrites the ones signed before the format change.
+ * official V.2026-04 format. New agreements already use it; this rewrites the
+ * ones signed before the format change.
  *
- * Idempotent — safe to re-run; each run re-renders from source data and
+ * 🔴 RULING (28 Sep 2026, the project owner, via the MD): the signed PDF is the record of
+ * what the associate signed and is NEVER modified after signing. This script's
+ * entire purpose — overwriting an existing signedAgreementFileKey — is now
+ * AGAINST that policy as a routine action. It is kept, not deleted, because a
+ * legitimate authorised one-off use may still arise and it holds the backup
+ * logic; it must NEVER be run against real records without the project owner's explicit
+ * go on the day. Nothing runs it tonight regardless — this is the code-level
+ * guard for whenever "later" arrives, not a green light now.
+ *
+ * Idempotent — safe to re-run; each write re-renders from source data and
  * overwrites the stored PDF. The previous PDF is copied to
  * `<key>.pre-v2607.bak` once (not overwritten on re-runs).
  *
@@ -11,19 +20,30 @@
  * the stored signature, exactly as the onboarding flow did. Rewrites both the
  * candidate copy and, for converted candidates, the associate copy.
  *
- * Run where the DB + storage volume + PII key are reachable (the app env). e.g.
+ * 🔴 DEFAULT IS DRY-RUN (inverted from the original DRY=1-to-preview shape,
+ * same reasoning as every other destructive job on this team: the destructive
+ * path ships OFF, an explicit flag turns it on). Writing requires BOTH:
+ *   WRITE=1                 — the explicit opt-in
+ *   REASON="..."            — why this run is authorised; logged with every write
+ * Run where the DB + storage volume + PII key are reachable (the app env), e.g.
  * a builder/deps container joined to the compose network with vo_uploads mounted
- * and STORAGE_DIR=/data/uploads:  pnpm tsx scripts/backfill-associate-agreements.ts
- * Add DRY=1 to report without writing.
+ * and STORAGE_DIR=/data/uploads:
+ *   pnpm tsx scripts/backfill-associate-agreements.ts                 # dry run (default)
+ *   WRITE=1 REASON="the project owner go 2026-10-xx" pnpm tsx scripts/backfill-associate-agreements.ts
  */
 import { PrismaClient } from "@prisma/client";
 import { getObject, putObject } from "@/lib/storage";
 import { decryptPiiRaw, maskNric } from "@/lib/crypto";
 import { humanize } from "@/lib/labels";
-import { renderAgreementPdf, type AgreementData } from "@/lib/pdf/agreement";
+import { renderAgreementPdf, formatUplineOrNA, type AgreementData } from "@/lib/pdf/agreement";
 
 const prisma = new PrismaClient();
-const DRY = process.env.DRY === "1";
+const WRITE = process.env.WRITE === "1";
+const REASON = process.env.REASON?.trim();
+if (WRITE && !REASON) {
+  console.error("Refusing to write: WRITE=1 requires REASON=\"...\" stating why this run is authorised (the project owner's go, dated).");
+  process.exit(1);
+}
 
 type Payload = {
   businessName?: string | null; nric?: string | null; dateOfBirth?: string | null;
@@ -43,11 +63,17 @@ async function main() {
   const candidates = await prisma.candidate.findMany({
     where: { signedAgreementFileKey: { not: null } },
     include: {
-      intendedDirectUpline: { select: { fullName: true, associateCode: true } },
+      intendedDirectUpline: {
+        select: { fullName: true, associateCode: true, directUpline: { select: { fullName: true, associateCode: true } } },
+      },
       convertedAssociate: { select: { id: true, associateCode: true, signedAgreementFileKey: true } },
     },
   });
-  console.log(`${candidates.length} signed agreement(s) to backfill${DRY ? " (DRY RUN)" : ""}`);
+  console.log(
+    `${candidates.length} signed agreement(s) to backfill — ${
+      WRITE ? `WRITING (reason: ${REASON})` : "DRY RUN, no writes (set WRITE=1 and REASON=\"...\" to apply)"
+    }`,
+  );
 
   for (const c of candidates) {
     const p = (c.submittedPayload as Payload | null) ?? {};
@@ -73,13 +99,18 @@ async function main() {
       spouseConflict: p.spouseConflict ?? null, spouseName: p.spouseName ?? null,
       spouseCompany: p.spouseCompany ?? null, spouseDesignation: p.spouseDesignation ?? null,
       emergencyName: p.emergencyContactName ?? null, emergencyContact: p.emergencyContactNumber ?? null,
-      associateId: c.convertedAssociate?.associateCode ?? null, tier1Manager: uplineName,
+      // Associate ID intentionally NOT set — renderAgreementPdf never stamps
+      // it regardless (the project owner's ruling), so passing it here would be dead
+      // data implying otherwise.
+      tier1Manager: formatUplineOrNA(c.intendedDirectUpline),
+      tier2Manager: formatUplineOrNA(c.intendedDirectUpline?.directUpline),
     };
 
     const pdf = await renderAgreementPdf(data);
     const keys = [c.signedAgreementFileKey!, c.convertedAssociate?.signedAgreementFileKey].filter(Boolean) as string[];
     for (const key of keys) {
-      if (DRY) { console.log(`  would rewrite ${key} (${pdf.length} bytes)`); continue; }
+      if (!WRITE) { console.log(`  DRY RUN: would rewrite ${key} (${pdf.length} bytes)`); continue; }
+      console.log(`  WRITING ${key} (reason: ${REASON})`);
       await backupOnce(key);
       await putObject(key, pdf);
       console.log(`  rewrote ${key} (${pdf.length} bytes)`);
