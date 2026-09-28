@@ -54,7 +54,7 @@ export function EditAssociateForm({ id, initial }: { id: string; initial: EditIn
             <Input id="mob" value={f.mobileNumber ?? ""} onChange={(e) => set({ mobileNumber: e.target.value })} />
           </div>
           <div>
-            <Label htmlFor="em">{t("form.email")}</Label>
+            <Label htmlFor="em">{t("form.emailLogin")}</Label>
             <Input id="em" type="email" value={f.email ?? ""} onChange={(e) => set({ email: e.target.value })} />
           </div>
           <div>
