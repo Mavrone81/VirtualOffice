@@ -105,7 +105,7 @@
     "transactionReceived": "Transaction Received",
     "transactionReceivable": "Transaction Receivable",
     "associatesList": "Associates List",
-    "directRecruits": "Direct Recruits",
+    "directRecruits": "Invite Candidate",
     "downlineRecruits": "Downline Recruits",
     "transactionSubmission": "Transaction Submission",
     "referralSubmission": "Referral Partnership Submission",
@@ -990,7 +990,7 @@
     },
     "invitedOn": "Invited {date}",
     "new": {
-      "title": "Invite candidate",
+      "title": "Invite Candidate",
       "subtitle": "Create a private onboarding link. The candidate fills in their own details and signs — you approve at the end."
     },
     "form": {

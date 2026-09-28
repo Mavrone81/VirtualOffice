@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 import { PageHeader } from "@/components/ui/page-header";
 import { InviteForm } from "./invite-form";
 
-export const metadata = { title: "Invite candidate · Enshrine Admin" };
+export const metadata = { title: "Invite Candidate · Enshrine Admin" };
 
 export default async function InviteCandidatePage() {
   const t = await getTranslations("recruitment");
