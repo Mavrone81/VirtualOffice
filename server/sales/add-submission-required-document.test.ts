@@ -151,4 +151,17 @@ describe("addSubmissionRequiredDocument", () => {
     expect(r).toEqual({ ok: false, error: "auditUnavailable" });
     expect(deleteObjectMock).toHaveBeenCalledTimes(1);
   });
+
+  // N5: a Verified or Rejected sale is terminal — there is no live checklist
+  // left to satisfy a required-document key against, so a new upload here
+  // would just be silently unreachable evidence, never checked by anything.
+  it.each(["Verified", "Rejected"])("N5: refuses a %s (terminal) sale", async (status) => {
+    authMock.mockResolvedValue({ user: { role: "Associate", id: "closer1", associateId: "closer1" } });
+    prismaMock.salesSubmission.findUnique.mockResolvedValue({
+      status, closingAssociateId: "closer1", lineItems: [{ productCode: "DOC" }],
+    });
+    const r = await addSubmissionRequiredDocument("sub1", "contract", PDF);
+    expect(r).toEqual({ ok: false, error: "alreadyProcessed" });
+    expect(prismaMock.submissionDocument.create).not.toHaveBeenCalled();
+  });
 });

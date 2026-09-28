@@ -269,6 +269,30 @@ describe("submitSale — flag ON: ClosedDeal flow", () => {
       }
     });
 
+    it("N6: an EXPIRED quotation (validUntil in the past) is refused the same way, not silently converted", async () => {
+      who.session = { user: { associateId: closerId, id: closerId } };
+      const expiredId = (await prisma.quotation.create({
+        data: {
+          quotationCode: `${TAG}QUO-${++quoteN}`, associateId: closerId, clientName: "Quote Client",
+          quoteDate: new Date("2026-01-01"), validUntil: new Date("2026-01-15"), lines: [], total: "1000.00",
+          status: "Issued" as never,
+        },
+        select: { id: true },
+      })).id;
+      try {
+        const r = await submitSale({
+          salesDate: "2026-08-01", clientName: "Expired Client", paymentPlan: "Full Payment",
+          lines: [{ productId: plainProductId, lineSaleAmount: 1000, comCodeIds: [] }], quotationId: expiredId,
+        });
+        expect(r).toEqual({ ok: false, error: "quotationNotConvertible" });
+        const quotation = await prisma.quotation.findUniqueOrThrow({ where: { id: expiredId }, select: { status: true } });
+        expect(quotation.status).toBe("Issued"); // untouched — never converted
+        expect(await prisma.auditLog.count({ where: { entityId: expiredId, action: "quotation.converted" } })).toBe(0);
+      } finally {
+        await prisma.quotation.deleteMany({ where: { id: expiredId } });
+      }
+    });
+
     it("concurrent double-submit of the same quotation: exactly one converts it", async () => {
       const quotationId = await mkQuotation();
       who.session = { user: { associateId: closerId, id: closerId } };
