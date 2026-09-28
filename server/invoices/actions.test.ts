@@ -10,13 +10,14 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { markInvoicePaid, markInvoiceUnpaid, markInstallmentPaid, markInstallmentUnpaid } from "./actions";
 import { visibleTransactions } from "@/server/transactions/queries";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 import { fakePdfFile } from "@/lib/test-fixtures";
 
 const TAG = "A0AMT-";
@@ -116,7 +117,7 @@ describe("markInvoicePaid / markInvoiceUnpaid — amountCollected", () => {
     const row = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(row.amountCollected.toFixed(2)).toBe("500.00"); // still clamped, not 800
 
-    const overCollectedAudits = vi.mocked(logAudit).mock.calls.filter((c) => c[0].action === "transaction.over_collected");
+    const overCollectedAudits = auditedEntries(logAudit, auditTx).filter((c) => c.action === "transaction.over_collected").map((c) => [c]);
     expect(overCollectedAudits).toHaveLength(1);
     expect(overCollectedAudits[0][0]).toMatchObject({
       entityType: "SalesTransaction", entityId: tx.id, actorUserId: ADMIN.user.id, after: { raw: "800.00", saleAmount: "500.00" },

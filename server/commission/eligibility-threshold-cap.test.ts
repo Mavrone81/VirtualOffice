@@ -14,7 +14,7 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
@@ -103,7 +103,7 @@ describe("recomputeEligibility: threshold capped at the plan's real-installment 
     const tx = await mkSaleTransaction("TWO-BOTH", 2);
     for (const s of tx.installmentPlan!.schedule) await markPaid(s.id);
 
-    const result = await recomputeEligibility(tx.id);
+    const result = await recomputeEligibility(tx.id, null);
     expect(result).toBe(CommissionEligibility.Eligible);
     const fresh = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(fresh.commissionEligibility).toBe(CommissionEligibility.Eligible);
@@ -114,7 +114,7 @@ describe("recomputeEligibility: threshold capped at the plan's real-installment 
     const [first] = tx.installmentPlan!.schedule.sort((a, b) => a.sequence - b.sequence);
     await markPaid(first.id);
 
-    const result = await recomputeEligibility(tx.id);
+    const result = await recomputeEligibility(tx.id, null);
     expect(result).toBe(CommissionEligibility.PendingCollection);
   });
 
@@ -126,7 +126,7 @@ describe("recomputeEligibility: threshold capped at the plan's real-installment 
     // with no "at least one" guard is dangerous: min(3, 0) = 0 and 0 >= 0.
     await prisma.installmentSchedule.deleteMany({ where: { planId: tx.installmentPlan!.id } });
 
-    const result = await recomputeEligibility(tx.id);
+    const result = await recomputeEligibility(tx.id, null);
     expect(result).toBe(CommissionEligibility.PendingCollection);
     const fresh = await prisma.salesTransaction.findUniqueOrThrow({ where: { id: tx.id } });
     expect(fresh.commissionEligibility).toBe(CommissionEligibility.PendingCollection);
@@ -138,7 +138,7 @@ describe("recomputeEligibility: threshold capped at the plan's real-installment 
     expect(sorted.length).toBe(5);
     for (const s of sorted.slice(0, 3)) await markPaid(s.id);
 
-    const result = await recomputeEligibility(tx.id);
+    const result = await recomputeEligibility(tx.id, null);
     expect(result).toBe(CommissionEligibility.Eligible);
 
     const lines = await prisma.commissionLedger.findMany({ where: { transactionId: tx.id } });
@@ -152,7 +152,7 @@ describe("recomputeEligibility: threshold capped at the plan's real-installment 
     expect(deposit).toBeTruthy();
     await markPaid(deposit!.id);
 
-    const result = await recomputeEligibility(tx.id);
+    const result = await recomputeEligibility(tx.id, null);
     expect(result).toBe(CommissionEligibility.PendingCollection);
 
     const lines = await prisma.commissionLedger.findMany({ where: { transactionId: tx.id } });

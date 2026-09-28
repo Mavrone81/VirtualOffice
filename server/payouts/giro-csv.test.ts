@@ -18,6 +18,7 @@ const { dbMock, prismaMock, genMock } = vi.hoisted(() => {
 });
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("@/server/pii", () => ({ decryptPiiAudited: vi.fn(async () => "=1+2") }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { buildBankFileCsv, csvCell } from "./bankfile";
 
@@ -29,7 +30,7 @@ const payout = (over: Record<string, unknown>) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  dbMock.monthlyPayout.findMany.mockResolvedValue([{ id: "p1" }]);
+  dbMock.monthlyPayout.findMany.mockResolvedValue([{ id: "p1", totalPayable: new Prisma.Decimal("100.00") }]);
 });
 
 describe("csvCell", () => {

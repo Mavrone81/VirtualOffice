@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { fileKeyFromSegments } from "@/lib/file-key";
 import { getObject, objectResponseHeaders } from "@/lib/storage";
+import { auditTx } from "@/lib/audit";
+import { nricDocumentFor } from "@/server/documents/pii-documents";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
       }
     }
     if (!allowed) return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  // Tier A: an NRIC-bearing agreement is recorded before it's streamed —
+  // no record, no file (503, retryable).
+  const piiDoc = await nricDocumentFor(key);
+  if (piiDoc) {
+    try {
+      await auditTx(prisma, { action: "document.pii_viewed", entityType: piiDoc.entityType, entityId: piiDoc.entityId, actorUserId: session.user.id, after: { fileKey: key } });
+    } catch {
+      return new NextResponse("Temporarily unavailable — please try again", { status: 503 });
+    }
   }
 
   const data = await getObject(key);

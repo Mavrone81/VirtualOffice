@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/rbac";
 import { renderStatementPdf } from "@/lib/pdf/statement";
+import { PiiAuditUnavailableError } from "@/server/pii";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  const pdf = await renderStatementPdf(id, session.user.id);
+  // The statement carries a decrypted bank account: audit-before-reveal means no
+  // audit record, no file (503, retryable) — never a statement with an unrecorded reveal.
+  let pdf: Awaited<ReturnType<typeof renderStatementPdf>>;
+  try {
+    pdf = await renderStatementPdf(id, session.user.id);
+  } catch (e) {
+    if (e instanceof PiiAuditUnavailableError) return new NextResponse("Temporarily unavailable — please try again", { status: 503 });
+    throw e;
+  }
   if (!pdf) return new NextResponse("Not found", { status: 404 });
 
   return new NextResponse(new Uint8Array(pdf.buffer), {

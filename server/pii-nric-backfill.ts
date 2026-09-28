@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { encryptPII, decryptPiiCurrentKeyOnly } from "@/lib/crypto";
-import { logAudit } from "@/lib/audit";
+import { auditTx } from "@/lib/audit";
 
 /** SEC-12: the 5 plaintext NRIC columns across 2 tables. */
 export const NRIC_TARGETS = [
@@ -48,14 +48,21 @@ export async function applyNricEncryptBackfill(db: PrismaClient, actorUserId: st
     let encryptedNow = 0;
     for (const row of rows) {
       const ciphertext = encryptPII(row.value);
-      const res = await db.$executeRawUnsafe(
-        `UPDATE "${t.table}" SET "${t.column}" = $1 WHERE id = $2::uuid AND "${t.column}" NOT LIKE 'v1:%'`,
-        ciphertext, row.id,
-      );
-      if (res > 0) {
-        encryptedNow++;
-        await logAudit({ action: "pii.nric_encrypted", entityType: t.entityType, entityId: row.id, after: { field: t.field }, actorUserId });
-      }
+      // Tier A (reviews/audit-reliability.md): each row's UPDATE and its audit are
+      // one transaction — a row is never encrypted unrecorded. A failed audit
+      // aborts the run (AuditWriteError) with that row still plaintext; re-running
+      // is safe (the NOT LIKE 'v1:%' guard) and picks it up.
+      const written = await db.$transaction(async (tx) => {
+        const res = await tx.$executeRawUnsafe(
+          `UPDATE "${t.table}" SET "${t.column}" = $1 WHERE id = $2::uuid AND "${t.column}" NOT LIKE 'v1:%'`,
+          ciphertext, row.id,
+        );
+        if (res > 0) {
+          await auditTx(tx, { action: "pii.nric_encrypted", entityType: t.entityType, entityId: row.id, after: { field: t.field }, actorUserId });
+        }
+        return res;
+      });
+      if (written > 0) encryptedNow++;
     }
     const after = await planOne(db, t);
     results.push({ ...after, encryptedNow });

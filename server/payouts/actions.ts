@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma, LedgerStatus, PayoutKind, PayoutStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx, AuditWriteError, PiiAuditUnavailableError } from "@/lib/audit";
 import { getAdminPrincipal, getFullAdminPrincipal } from "@/server/access";
 import { reauth } from "@/lib/reauth";
 import { buildBankFileCsv } from "@/server/payouts/bankfile";
@@ -17,7 +17,7 @@ import { PolicyNotImplemented, currentNetNegativePolicy } from "@/server/payouts
 export type PayoutErrorCode =
   | "forbidden" | "badMonth" | "payoutRunConflict" | "payoutPolicyNotImplemented"
   | "notFound" | "allFieldsRequired" | "illegalPayoutTransition" | "alreadyProcessed"
-  | "legacyDifferenceRequired" | "legacyDifferenceMismatch";
+  | "legacyDifferenceRequired" | "legacyDifferenceMismatch" | "auditUnavailable";
 
 function err(t: (k: string) => string, code: PayoutErrorCode): { ok: false; code: PayoutErrorCode; error: string } {
   return { ok: false, code, error: t(code) };
@@ -43,14 +43,16 @@ export async function generateBankFile(
   if (!(await reauth(principal.userId, password))) return { ok: false, error: t("reauthFailed") };
   if (batchId && !/^[0-9a-f-]{36}$/i.test(batchId)) return { ok: false, error: t("notFound") };
 
-  const file = await buildBankFileCsv(month, principal.userId, { batchId });
-  await logAudit({
-    action: batchId ? "payout.bankfile_redownloaded" : "payout.bankfile_generated",
-    entityType: "BankFileBatch",
-    entityId: file.batchId ?? month,
-    after: { month, batchId: file.batchId, payoutIds: file.payoutIds, total: file.total },
-    actorUserId: principal.userId,
-  });
+  // Audit reliability: the batch stamp and its audit are one transaction, a
+  // re-download is audited before anything is built, and every account decrypt
+  // is audited first — if any of those records can't be written, no file.
+  let file: Awaited<ReturnType<typeof buildBankFileCsv>>;
+  try {
+    file = await buildBankFileCsv(month, principal.userId, { batchId });
+  } catch (e) {
+    if (e instanceof PiiAuditUnavailableError || e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   return { ok: true, csv: file.csv, batchId: file.batchId, reprint: !!batchId };
 }
 
@@ -117,7 +119,13 @@ export async function runPayouts(
     if (!assoc) continue;
     try {
       const entries = await prisma.$transaction(async (db): Promise<Entry[]> => {
-        return applyAssociatePlan(db, month, plan, assoc);
+        const done = await applyAssociatePlan(db, month, plan, assoc);
+        // Audit reliability (Tier A): this associate's payout writes and their
+        // records commit together — a failed audit rolls this associate back.
+        for (const a of done) {
+          await auditTx(db, { action: a.action, entityType: "MonthlyPayout", entityId: a.entityId, before: a.before, after: a.after, actorUserId: principal.userId });
+        }
+        return done;
       });
       if (entries.length) processedCount++;
       audits.push(...entries);
@@ -131,6 +139,11 @@ export async function runPayouts(
       if (e instanceof PolicyNotImplemented) {
         policyError = e.policy;
         break outer;
+      }
+      if (e instanceof AuditWriteError) {
+        // This associate rolled back; earlier ones committed with their records.
+        await auditPayoutRun(audits, month, principal.userId, true, blockedAssociateIds, processedCount);
+        return err(t, "auditUnavailable");
       }
       // A concurrent run (or a concurrent approval) got there first: each associate's
       // step is its own transaction, so what already committed is audited below and
@@ -362,7 +375,9 @@ export async function reconcileLegacyPayout(
   if (!reason.trim()) return err(t, "allFieldsRequired");
   if (lineIds.length === 0) return err(t, "allFieldsRequired");
 
-  const result = await prisma.$transaction(async (db) => {
+  let result: Awaited<ReturnType<typeof reconcileLegacyPayout>>;
+  try {
+  result = await prisma.$transaction(async (db) => {
     await db.$queryRaw`SELECT id FROM commission_ledger WHERE id = ANY(${lineIds}::uuid[]) ORDER BY id FOR UPDATE`;
     await db.$queryRaw`SELECT id FROM monthly_payouts WHERE id = ${payoutId}::uuid ORDER BY id FOR UPDATE`;
 
@@ -406,7 +421,7 @@ export async function reconcileLegacyPayout(
     const attach = await db.commissionLedger.updateMany({ where: candidateWhere, data: { payoutId } });
     if (attach.count !== lineIds.length) return err(t, "payoutRunConflict");
 
-    await logAudit({
+    await auditTx(db, {
       action: "payout.legacy_reconciled", entityType: "MonthlyPayout", entityId: payoutId, actorUserId: principal.userId,
       after: {
         lineIds, paidTotal: paidTotal.toFixed(2), attachedSum: attachedSum.toFixed(2),
@@ -416,6 +431,10 @@ export async function reconcileLegacyPayout(
     });
     return { ok: true as const };
   });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return err(t, "auditUnavailable"); // Tier A: nothing linked
+    throw e;
+  }
 
   if (result.ok) revalidatePath("/admin/payouts");
   return result;
@@ -425,12 +444,12 @@ async function auditPayoutRun(
   audits: { action: string; entityId: string; before?: Prisma.InputJsonValue; after: Prisma.InputJsonValue }[],
   month: string, actorUserId: string, interrupted: boolean, blockedAssociateIds: string[] = [], processedCount = 0,
 ): Promise<void> {
-  for (const a of audits) {
-    await logAudit({ action: a.action, entityType: "MonthlyPayout", entityId: a.entityId, before: a.before, after: a.after, actorUserId });
-  }
-  await logAudit({
+  // Each entry in `audits` was already recorded inside its own associate's
+  // transaction (Tier A). This is only the run's summary — its facts are all in
+  // those records, so it stays best-effort (Tier B, visible if it fails).
+  await logAudit({ // tier-b-ok: run summary; every payout change it lists was audited atomically
     action: "payouts.run", entityType: "MonthlyPayout", entityId: month,
-    after: { month, count: processedCount, interrupted, blockedAssociateIds, policy: currentNetNegativePolicy().name },
+    after: { month, count: processedCount, interrupted, blockedAssociateIds, policy: currentNetNegativePolicy().name, entries: audits.length },
     actorUserId,
   });
 }
@@ -478,22 +497,32 @@ export async function setPayoutStatus(payoutId: string, status: "Approved" | "Pa
   // between that read and this write: if a concurrent transition moved the row, or a
   // recompute changed the total (C2), the where matches nothing and we reject rather
   // than approve a figure nobody checked (or double-process two clicks on Paid).
-  const result = await prisma.$transaction(async (db) => {
-    await lockPayoutTransactions(db, payoutId);
-    return db.monthlyPayout.updateMany({
-      where: { id: payoutId, payoutStatus: cur.payoutStatus, totalPayable: cur.totalPayable },
-      data: {
-        payoutStatus: target,
-        paidDate: status === "Paid" ? new Date() : undefined,
-      },
+  let result: { count: number };
+  try {
+    result = await prisma.$transaction(async (db) => {
+      await lockPayoutTransactions(db, payoutId);
+      const r = await db.monthlyPayout.updateMany({
+        where: { id: payoutId, payoutStatus: cur.payoutStatus, totalPayable: cur.totalPayable },
+        data: {
+          payoutStatus: target,
+          paidDate: status === "Paid" ? new Date() : undefined,
+        },
+      });
+      // Tier A: the transition and its record commit together, or neither does.
+      if (r.count === 1) {
+        await auditTx(db, {
+          action: `payout.${status}`, entityType: "MonthlyPayout", entityId: payoutId, actorUserId: principal.userId,
+          before: { status: cur.payoutStatus, total: cur.totalPayable.toFixed(2) },
+          after: { status: target, total: cur.totalPayable.toFixed(2) },
+        });
+      }
+      return r;
     });
-  });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   if (result.count === 0) return { ok: false, error: t("illegalPayoutTransition") };
-  await logAudit({
-    action: `payout.${status}`, entityType: "MonthlyPayout", entityId: payoutId, actorUserId: principal.userId,
-    before: { status: cur.payoutStatus, total: cur.totalPayable.toFixed(2) },
-    after: { status: target, total: cur.totalPayable.toFixed(2) },
-  });
   revalidatePath("/admin/payouts");
   return { ok: true };
 }
@@ -513,18 +542,38 @@ export async function approveAllPayouts(month: string): Promise<{ ok: boolean; e
 
   const approved: { id: string; total: string }[] = [];
   for (const { id } of candidates) {
-    const row = await prisma.$transaction(async (db) => {
-      await lockPayoutTransactions(db, id);
-      return db.monthlyPayout.updateManyAndReturn({
-        where: { id, payoutStatus: PayoutStatus.Pending, totalPayable: { gt: 0 } },
-        data: { payoutStatus: PayoutStatus.Approved },
-        select: { id: true, totalPayable: true },
+    let row: { id: string; totalPayable: Prisma.Decimal }[];
+    try {
+      row = await prisma.$transaction(async (db) => {
+        await lockPayoutTransactions(db, id);
+        const r = await db.monthlyPayout.updateManyAndReturn({
+          where: { id, payoutStatus: PayoutStatus.Pending, totalPayable: { gt: 0 } },
+          data: { payoutStatus: PayoutStatus.Approved },
+          select: { id: true, totalPayable: true },
+        });
+        // Tier A: each approval is recorded with it (the summary below is only an index).
+        if (r.length) {
+          await auditTx(db, {
+            action: "payout.Approved", entityType: "MonthlyPayout", entityId: id, actorUserId: principal.userId,
+            before: { status: PayoutStatus.Pending, total: r[0].totalPayable.toFixed(2) },
+            after: { status: PayoutStatus.Approved, total: r[0].totalPayable.toFixed(2), via: "approve_all" },
+          });
+        }
+        return r;
       });
-    });
+    } catch (e) {
+      if (e instanceof AuditWriteError) {
+        // Stop here: this payout stayed Pending; the ones before it are approved and recorded.
+        await logAudit({ action: "payouts.approve_all", entityType: "MonthlyPayout", entityId: month, actorUserId: principal.userId, after: { month, count: approved.length, payouts: approved, interrupted: true } }); // tier-b-ok: summary index of per-payout records
+        revalidatePath("/admin/payouts");
+        return { ok: false, error: t("auditUnavailable") };
+      }
+      throw e;
+    }
     if (row.length) approved.push({ id: row[0].id, total: row[0].totalPayable.toFixed(2) });
   }
 
-  await logAudit({
+  await logAudit({ // tier-b-ok: summary index; each approval above was audited atomically
     action: "payouts.approve_all", entityType: "MonthlyPayout", entityId: month, actorUserId: principal.userId,
     after: { month, count: approved.length, payouts: approved },
   });

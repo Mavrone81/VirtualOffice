@@ -14,14 +14,14 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
 import { markInvoicePaid, markInvoiceUnpaid } from "@/server/invoices/actions";
 import { fakePdfFile } from "@/lib/test-fixtures";
 import { recomputeAmountCollected } from "@/server/transactions/amount-collected";
 import { COMMISSION_TX_OPTIONS } from "@/server/commission/run";
-import { logAudit } from "@/lib/audit";
+import { auditTx } from "@/lib/audit";
 
 const TAG = "A0STRESS-";
 const ADMIN = { user: { associateId: null, id: "11111111-1111-1111-1111-111111111111", role: "Admin" } };
@@ -114,7 +114,7 @@ describe(`amountCollected stress: ${ROUNDS} rounds of concurrent mark/unmark/rec
         }
         if (ops.length === 0) ops.push({ kind: "recompute" }); // never an empty round
 
-        const auditCountBefore = vi.mocked(logAudit).mock.calls.length;
+        const auditCountBefore = vi.mocked(auditTx).mock.calls.length; // Tier A: marks are audited in-transaction
         const results = await Promise.allSettled(
           ops.map((op) => {
             if (op.kind === "pay") return markInvoicePaid(op.invoiceId!, fakePdfFile());
@@ -131,7 +131,7 @@ describe(`amountCollected stress: ${ROUNDS} rounds of concurrent mark/unmark/rec
         const marks = ops
           .map((op, i) => ({ op, r: results[i] as PromiseFulfilledResult<unknown> }))
           .filter(({ op }) => op.kind !== "recompute");
-        const auditCalls = vi.mocked(logAudit).mock.calls.slice(auditCountBefore);
+        const auditCalls = vi.mocked(auditTx).mock.calls.slice(auditCountBefore).map((c) => [c[1]] as const);
 
         // Group by (invoiceId, kind): two ops of the same kind can legitimately
         // target the same invoice concurrently in one round (one wins the CAS,
