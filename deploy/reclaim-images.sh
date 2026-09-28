@@ -4,8 +4,8 @@
 # Runs ONLY after a deploy has been verified (see the CI/CD workflow) — never
 # speculatively. Deploying by immutable per-commit tag is correct and it accumulates:
 # ~400MB per merge, and the host's `docker image prune -f` cron removes DANGLING images
-# only, so it will never reclaim a tagged one. Measured on the deploy host 2026-09-28:
-# / was 154G with 20G free (88% used), shared with other applications.
+# only, so it will never reclaim a tagged one. The host's disk is finite and shared
+# with other applications, so this repository's superseded images must be cleaned up.
 #
 # 🔴 Constraints, each of which is load-bearing:
 #   * scoped to ONE repository. A global prune on a shared host would delete other
@@ -16,6 +16,12 @@
 #   * never `docker rmi -f`. An in-use image stays.
 #   * always exits 0. A cleanup must not fail a deploy that already succeeded and
 #     verified; problems are reported as warnings.
+#   * 🔴 prints "reclaim-images: complete" on EVERY path that finishes (F7b). Because
+#     the script always exits 0, its exit code cannot distinguish "ran and removed
+#     nothing" — the normal healthy case — from "never ran, or was cut off mid-way by
+#     a dropped connection". Only this sentinel can: the caller asserts it and warns
+#     loudly when it is absent. A silent skip on a finite, shared disk is exactly the
+#     failure this line exists to make visible.
 #   * POSIX sh. This runs on the deploy host, whose shell is not ours to assume —
 #     `set -o pipefail` is a bash-ism that aborts dash on line 1, which looks
 #     identical to the script running and finding nothing to do.
@@ -37,6 +43,7 @@ ROWS="$(docker images --filter "reference=${IMAGE}" --format '{{.CreatedAt}}|{{.
 if [ -z "$ROWS" ]; then
   echo "no ${IMAGE} images present — nothing to do"
   echo "disk after : $(disk)"
+  echo "reclaim-images: complete"
   exit 0
 fi
 
@@ -45,6 +52,7 @@ BAD="$(printf '%s\n' "$ROWS" | awk -F'|' -v r="$IMAGE" '{split($2,a,":"); if (a[
 if [ -n "$BAD" ]; then
   echo "::warning::Refusing to remove anything: the image filter returned rows outside ${IMAGE} ($(printf '%s' "$BAD" | tr '\n' ' ')). Not deleting on a shared host when the filter is not understood."
   echo "disk after : $(disk)"
+  echo "reclaim-images: complete"
   exit 0
 fi
 
@@ -63,4 +71,5 @@ done
 
 echo "kept: :latest, ${DEPLOY_SHA} (current), ${PREV:-none} (previous — rollback without a rebuild)"
 echo "disk after : $(disk)"
+echo "reclaim-images: complete"
 exit 0

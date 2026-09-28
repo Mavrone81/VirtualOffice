@@ -235,6 +235,19 @@ jobs:
       contents: read
       packages: read
     steps:
+      # F7b: this job had NO checkout — it did not need one, because every step either
+      # talked to the remote or used `git ls-remote` against a URL. It needs one now:
+      # the attempt-count reporter is a file in this repo
+      # (.github/scripts/report-ssh-attempts.sh), and without a checkout it would not
+      # exist on the runner. That step runs with `if: always()`, so its absence would
+      # have failed the job AFTER a perfectly good deploy — a red run over a shipped
+      # commit, which is the most confusing possible outcome.
+      # Pinned to this run's commit rather than the default, so a workflow_dispatch
+      # rollback runs the reporter belonging to the sha being deployed.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
       - name: Check deploy secrets are configured
         id: check
         run: |
@@ -284,8 +297,53 @@ jobs:
           ALLOW_NON_HEAD: ${{ github.event.inputs.allow_non_head || 'false' }}
           OVERRIDE_REASON: ${{ github.event.inputs.reason || '' }}
 
-      - name: Deploy over SSH
+      # =====================================================================
+      # F7b — every SSH step below is attempted up to THREE times.
+      #
+      # WHY: SSH connections to the deploy host intermittently fail during connection
+      # ESTABLISHMENT, and it has reached the Deploy step itself — a recent run failed
+      # with "Deploy over SSH: handshake failed ... connection reset", and the merge did
+      # not go live until it was re-run by hand.
+      #
+      # 🔴 The failure happens BEFORE the remote shell exists, which is what decides
+      # where the fix goes: nothing inside the remote script can catch a handshake that
+      # never completed, so the retry has to be here, on the client side.
+      #
+      # 🔴 This is a pipeline-side mitigation for a host-side condition, and it is not a
+      # substitute for addressing the host. That change is owned and decided elsewhere;
+      # this one deliberately does not touch it.
+      #
+      # HOW, and why it is written out three times rather than looped: GitHub Actions
+      # has no loop construct and no YAML anchors, and a `uses:` step cannot be wrapped
+      # by a retry action. So each attempt is a real step. Attempts 1 and 2 carry
+      # `continue-on-error: true`, which makes a failure non-fatal (outcome=failure,
+      # conclusion=success) so the next attempt's `if` can fire; attempt 3 does NOT, so
+      # a third failure fails the job. The fail-after-3 is therefore structural — it is
+      # the absence of a key in the YAML, not a decision taken in shell at runtime.
+      #
+      # 🔴 A RETRY MUST NOT MASK A DEGRADING HOST. Succeeding on the third attempt is
+      # not the same as being healthy, and if the two look identical in the run summary
+      # the retry has destroyed the only signal that the box is getting worse. So every
+      # SSH operation ends in a report step that logs the attempt count and raises a
+      # `::warning::` whenever more than one attempt was needed — and an `::error::`
+      # naming it as persistent, not transient, when all three fail.
+      #
+      # 🔴 RETRYING IS SAFE, BUT IT IS NOT FREE. See deploy/deploy-app.sh: the steps
+      # are re-runnable (`git fetch`/`checkout`, `compose up`, and `prisma migrate
+      # deploy` skips applied migrations), but a retry after a PARTIAL step runs that
+      # step again rather than no-opping. A retry after `up -d app` succeeded recreates
+      # the container: a brief extra restart, not a correctness risk. "Idempotent"
+      # would invite the assumption that a retry costs nothing; it does not.
+      #
+      # NOTE ON THE BACKOFF: three attempts have two gaps, so the backoff is 10s then
+      # 20s. A third 40s gap would only delay the failure report — there is no fourth
+      # attempt for it to precede.
+      # =====================================================================
+
+      - name: Deploy over SSH (attempt 1 of 3)
+        id: deploy_a1
         if: steps.check.outputs.ready == 'true'
+        continue-on-error: true
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -294,7 +352,6 @@ jobs:
           envs: GHCR_TOKEN,GHCR_USER,IMAGE,DEPLOY_SHA,APP_IMAGE
           script: |
             set -e
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             cd /root/VirtualOffice
             # F7/A: pin the source to the EXACT commit this run built, not to whatever
             # main happens to be now. Previously `git pull --ff-only origin main` took
@@ -318,27 +375,133 @@ jobs:
             # Print the resulting state, so the log answers "what source was this built
             # from" without anyone having to log in and look.
             echo "host checkout now at: $(git rev-parse HEAD) on $(git rev-parse --abbrev-ref HEAD)"
-            # F7/A: pull and run the immutable per-commit tag, never `:latest`.
-            # `:latest` is mutable and is whatever build pushed last, which is not
-            # necessarily this one — that is how an older build won on 2026-09-28.
-            # APP_IMAGE is already the compose seam (docker-compose.prod.yml:
-            # image: ${APP_IMAGE:-...:latest}) and is exported for BOTH pull and up,
-            # so the container that starts is the one that was just pulled.
-            export APP_IMAGE
-            docker compose -f docker-compose.prod.yml pull app
-            # Apply pending migrations (deploy-only, never seeds) from the
-            # pinned source BEFORE swapping the app, so the schema is
-            # ready when the new code starts. --build picks up new migrations.
-            docker compose -f docker-compose.prod.yml --profile tools run --rm --build migrate
-            docker compose -f docker-compose.prod.yml up -d app
-            docker image prune -f
-            docker logout ghcr.io
+            # F7b: the body of the deploy lives in deploy/deploy-app.sh, in the repo, so
+            # that the three retry attempts below share ONE copy of it instead of three
+            # divergent inline heredocs. The checkout above is already pinned to this
+            # commit, so the script that runs is exactly the one in this PR.
+            export GHCR_TOKEN GHCR_USER IMAGE DEPLOY_SHA APP_IMAGE
+            sh deploy/deploy-app.sh
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
           IMAGE: ${{ env.IMAGE }}
           DEPLOY_SHA: ${{ github.sha }}
           APP_IMAGE: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Back off 10s before Deploy over SSH attempt 2
+        if: steps.check.outputs.ready == 'true' && steps.deploy_a1.outcome == 'failure'
+        run: |
+          echo "Deploy over SSH: attempt 1 of 3 failed. Backing off 10s before attempt 2."
+          sleep 10
+
+      - name: Deploy over SSH (attempt 2 of 3)
+        id: deploy_a2
+        if: steps.check.outputs.ready == 'true' && steps.deploy_a1.outcome == 'failure'
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE,DEPLOY_SHA,APP_IMAGE
+          script: |
+            set -e
+            cd /root/VirtualOffice
+            # F7/A: pin the source to the EXACT commit this run built, not to whatever
+            # main happens to be now. Previously `git pull --ff-only origin main` took
+            # current main while the image came from `:latest` — so migrations could be
+            # applied from a NEWER revision than the app image being started. Source and
+            # image must be the same revision or `migrate` is running against the wrong code.
+            # 🔴 NOT `--depth=1`. Measured on a real full clone: a shallow fetch writes
+            # .git/shallow, sets is-shallow-repository=true and TRUNCATES history
+            # (275 reachable commits -> 254 in the test), and it persists. The host's
+            # clone is a full one that other things may rely on; a deploy must not
+            # quietly convert it. A normal fetch of main is enough — the sha we deploy
+            # is main's head, or (for a rollback) an ancestor of it.
+            git fetch origin main
+            # A named local branch rather than a detached HEAD. Measured on the host:
+            # nothing depends on this clone sitting on `main` (the only VO cron is the
+            # backup, which references no git), so either is safe — but "detached HEAD"
+            # is what a human meets at 2am when something is wrong, and it reads like a
+            # mistake. `deployed` says what it is. -B force-moves it each deploy, and it
+            # has no upstream, so nobody can accidentally pull into it.
+            git checkout -B deployed "$DEPLOY_SHA"
+            # Print the resulting state, so the log answers "what source was this built
+            # from" without anyone having to log in and look.
+            echo "host checkout now at: $(git rev-parse HEAD) on $(git rev-parse --abbrev-ref HEAD)"
+            # F7b: the body of the deploy lives in deploy/deploy-app.sh, in the repo, so
+            # that the three retry attempts below share ONE copy of it instead of three
+            # divergent inline heredocs. The checkout above is already pinned to this
+            # commit, so the script that runs is exactly the one in this PR.
+            export GHCR_TOKEN GHCR_USER IMAGE DEPLOY_SHA APP_IMAGE
+            sh deploy/deploy-app.sh
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE: ${{ env.IMAGE }}
+          DEPLOY_SHA: ${{ github.sha }}
+          APP_IMAGE: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Back off 20s before Deploy over SSH attempt 3
+        if: steps.check.outputs.ready == 'true' && steps.deploy_a2.outcome == 'failure'
+        run: |
+          echo "Deploy over SSH: attempt 2 of 3 failed. Backing off 20s before attempt 3."
+          sleep 20
+
+      - name: Deploy over SSH (attempt 3 of 3 — final, fails the job)
+        id: deploy_a3
+        if: steps.check.outputs.ready == 'true' && steps.deploy_a2.outcome == 'failure'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE,DEPLOY_SHA,APP_IMAGE
+          script: |
+            set -e
+            cd /root/VirtualOffice
+            # F7/A: pin the source to the EXACT commit this run built, not to whatever
+            # main happens to be now. Previously `git pull --ff-only origin main` took
+            # current main while the image came from `:latest` — so migrations could be
+            # applied from a NEWER revision than the app image being started. Source and
+            # image must be the same revision or `migrate` is running against the wrong code.
+            # 🔴 NOT `--depth=1`. Measured on a real full clone: a shallow fetch writes
+            # .git/shallow, sets is-shallow-repository=true and TRUNCATES history
+            # (275 reachable commits -> 254 in the test), and it persists. The host's
+            # clone is a full one that other things may rely on; a deploy must not
+            # quietly convert it. A normal fetch of main is enough — the sha we deploy
+            # is main's head, or (for a rollback) an ancestor of it.
+            git fetch origin main
+            # A named local branch rather than a detached HEAD. Measured on the host:
+            # nothing depends on this clone sitting on `main` (the only VO cron is the
+            # backup, which references no git), so either is safe — but "detached HEAD"
+            # is what a human meets at 2am when something is wrong, and it reads like a
+            # mistake. `deployed` says what it is. -B force-moves it each deploy, and it
+            # has no upstream, so nobody can accidentally pull into it.
+            git checkout -B deployed "$DEPLOY_SHA"
+            # Print the resulting state, so the log answers "what source was this built
+            # from" without anyone having to log in and look.
+            echo "host checkout now at: $(git rev-parse HEAD) on $(git rev-parse --abbrev-ref HEAD)"
+            # F7b: the body of the deploy lives in deploy/deploy-app.sh, in the repo, so
+            # that the three retry attempts below share ONE copy of it instead of three
+            # divergent inline heredocs. The checkout above is already pinned to this
+            # commit, so the script that runs is exactly the one in this PR.
+            export GHCR_TOKEN GHCR_USER IMAGE DEPLOY_SHA APP_IMAGE
+            sh deploy/deploy-app.sh
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE: ${{ env.IMAGE }}
+          DEPLOY_SHA: ${{ github.sha }}
+          APP_IMAGE: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Report deploy SSH attempts used
+        if: always() && steps.check.outputs.ready == 'true'
+        env:
+          A1: ${{ steps.deploy_a1.outcome }}
+          A2: ${{ steps.deploy_a2.outcome }}
+          A3: ${{ steps.deploy_a3.outcome }}
+        run: sh .github/scripts/report-ssh-attempts.sh 'Deploy over SSH'
 
       # F7/C: this is what makes the build-sha a GATE rather than a dashboard.
       # Ask the RUNNING container what it is, and fail the job if it is not the commit
@@ -349,19 +512,29 @@ jobs:
       # live process instead of at the pipeline.
       # Compares against DEPLOY_SHA (this run's commit), not main's head, so a
       # deliberate rollback via allow_non_head verifies correctly too.
-      - name: Verify the running container is this commit
+      #
+      # 🔴 F7b: this step now ALSO reclaims disk, on the same connection, after
+      # verifying. It therefore carries NO `continue-on-error`, and must never be given
+      # one: this is the deploy's only real gate, and softening it so that the cleanup
+      # bolted onto its end cannot fail the job would make a wrong-build-in-production
+      # report green. The cleanup is made non-fatal INSIDE the script instead, where it
+      # can be non-fatal without taking the verification down with it.
+      - name: Verify and reclaim over SSH (attempt 1 of 3)
+        id: verify_a1
         if: steps.check.outputs.ready == 'true'
+        continue-on-error: true
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: DEPLOY_SHA
+          envs: DEPLOY_SHA,IMAGE
           script: |
             # `set -eu` only: POSIX. `pipefail` is a bash-ism and this runs on the
             # remote host, whose shell is not ours to assume — under dash it aborts the
             # script on line 1, which would look exactly like the check passing quietly.
             set -eu
+            cd /root/VirtualOffice
             # The container's HEALTHCHECK has a 40s start-period; poll rather than
             # assume it is already serving. Fail closed if it never answers.
             RUNNING=""
@@ -376,7 +549,7 @@ jobs:
               # failure this step exists to catch, reproduced inside the step itself.
               # `exec` is also independent of the published mapping, so it keeps working
               # if the host port is ever changed.
-              BODY="$(cd /root/VirtualOffice && docker compose -f docker-compose.prod.yml exec -T app \
+              BODY="$(docker compose -f docker-compose.prod.yml exec -T app \
                 node -e 'fetch("http://127.0.0.1:3000/api/health").then(r=>r.text()).then(t=>console.log(t))' 2>/dev/null || true)"
               RUNNING="$(printf '%s' "$BODY" | grep -o '"sha":"[^"]*"' | cut -d'"' -f4 || true)"
               [ -n "$RUNNING" ] && break
@@ -397,40 +570,204 @@ jobs:
               exit 1
             fi
             echo "Verified: production is running the commit this run deployed."
+
+            # ---- F7/D reclaim, folded into THIS connection (F7b) -------------------
+            # 🔴 ORDERING IS UNCHANGED, and that is the point: every `exit 1` above is
+            # reached before this line, so reclaim is still structurally unreachable
+            # until the running container has been confirmed to be this commit. Folding
+            # it in here does not move it earlier — it removes a THIRD SSH connection
+            # per deploy, on a host that is currently resetting handshakes under load,
+            # and it runs the cleanup on a connection that has already proved itself.
+            #
+            # 🔴 Never fatal. The deploy is verified by the time we get here; a disk
+            # cleanup must not turn a good deploy red. But "not fatal" must not become
+            # "not noticed": reclaim-images.sh always exits 0 BY DESIGN, so its exit
+            # code cannot tell "ran and removed nothing" — the normal healthy case —
+            # apart from "never ran". Only the completion sentinel can, so it is
+            # asserted, and its absence is reported loudly. Silent skips accumulate on
+            # a disk that is finite and shared with other applications.
+            RECLAIM_OUT="$(sh deploy/reclaim-images.sh 2>&1)" || true
+            printf '%s\n' "$RECLAIM_OUT"
+            if printf '%s\n' "$RECLAIM_OUT" | grep -q '^reclaim-images: complete$'; then
+              echo "reclaim: completed"
+            else
+              echo "::warning::DISK WAS NOT RECLAIMED. deploy/reclaim-images.sh did not report completion, so this repository's superseded images are still on the deploy host. The deploy itself is fine and verified — but do not read this run as a successful cleanup. Check free space before assuming the next deploy has room."
+            fi
         env:
           DEPLOY_SHA: ${{ github.sha }}
+          IMAGE: ${{ env.IMAGE }}
 
-      # F7/D: reclaim disk, but ONLY after C has confirmed the right build is live.
-      # Deploying by immutable per-commit tag (F7/A) is correct and it accumulates:
-      # ~400MB per merge, and the host's `docker image prune -f` cron removes DANGLING
-      # images only — it will never touch a tagged one. Measured on the host on
-      # 2026-09-28: / is 154G with 20G free (88% used), on a disk shared with other
-      # applications. So this step is part of A, not housekeeping.
-      #
-      # 🔴 Scoped to this repository's images ONLY. A global prune on a shared box would
-      # delete other tenants' images. The script asserts every row it is about to act on
-      # belongs to this repository and ABORTS without deleting if that is not true.
-      # It never uses `docker rmi -f`: an in-use image must stay. A cleanup must not
-      # fail a deploy that already succeeded and verified, so it always exits 0 and
-      # reports problems as warnings.
-      - name: Reclaim disk (this repository's old images only)
-        if: steps.check.outputs.ready == 'true'
+      - name: Back off 10s before Verify and reclaim over SSH attempt 2
+        if: steps.check.outputs.ready == 'true' && steps.verify_a1.outcome == 'failure'
+        run: |
+          echo "Verify and reclaim over SSH: attempt 1 of 3 failed. Backing off 10s before attempt 2."
+          sleep 10
+
+      - name: Verify and reclaim over SSH (attempt 2 of 3)
+        id: verify_a2
+        if: steps.check.outputs.ready == 'true' && steps.verify_a1.outcome == 'failure'
+        continue-on-error: true
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           envs: DEPLOY_SHA,IMAGE
-          # The logic lives in deploy/reclaim-images.sh, in the repo, rather than inline
-          # here. A step that DELETES IMAGES on a shared host should be reviewable in a
-          # diff and runnable in a test — an inline heredoc inside YAML is neither, and
-          # the escaping alone produced two silently-wrong versions while writing it.
-          # The host checkout is already pinned to this commit, so the script present
-          # there is exactly the one in this PR.
           script: |
-            set -e
+            # `set -eu` only: POSIX. `pipefail` is a bash-ism and this runs on the
+            # remote host, whose shell is not ours to assume — under dash it aborts the
+            # script on line 1, which would look exactly like the check passing quietly.
+            set -eu
             cd /root/VirtualOffice
-            sh deploy/reclaim-images.sh
+            # The container's HEALTHCHECK has a 40s start-period; poll rather than
+            # assume it is already serving. Fail closed if it never answers.
+            RUNNING=""
+            for i in $(seq 1 30); do
+              # Ask the CONTAINER, over its own loopback, not the host's port.
+              # 🔴 NEVER use the host's localhost:3000 here. This box is shared: host
+              # port 3000 belongs to a DIFFERENT application, and
+              # docker-compose.prod.yml publishes this app on 127.0.0.1:10502:3000.
+              # Querying the host port would poll for 90s and fail every deploy — and if
+              # that other application ever answered /api/health with a `sha` field, this
+              # check would happily verify the WRONG application. That is precisely the
+              # failure this step exists to catch, reproduced inside the step itself.
+              # `exec` is also independent of the published mapping, so it keeps working
+              # if the host port is ever changed.
+              BODY="$(docker compose -f docker-compose.prod.yml exec -T app \
+                node -e 'fetch("http://127.0.0.1:3000/api/health").then(r=>r.text()).then(t=>console.log(t))' 2>/dev/null || true)"
+              RUNNING="$(printf '%s' "$BODY" | grep -o '"sha":"[^"]*"' | cut -d'"' -f4 || true)"
+              [ -n "$RUNNING" ] && break
+              sleep 3
+            done
+            if [ -z "$RUNNING" ]; then
+              echo "::error::/api/health did not report a sha after 90s. Refusing to call this deploy verified."
+              exit 1
+            fi
+            echo "running sha : $RUNNING"
+            echo "deployed sha: $DEPLOY_SHA"
+            if [ "$RUNNING" = "unknown" ]; then
+              echo "::error::The running container reports sha=unknown — it was built without BUILD_SHA. This deploy cannot be verified."
+              exit 1
+            fi
+            if [ "$RUNNING" != "$DEPLOY_SHA" ]; then
+              echo "::error::Production is running $RUNNING but this run deployed $DEPLOY_SHA. An older or unrelated build is live. Do not assume the merge shipped."
+              exit 1
+            fi
+            echo "Verified: production is running the commit this run deployed."
+
+            # ---- F7/D reclaim, folded into THIS connection (F7b) -------------------
+            # 🔴 ORDERING IS UNCHANGED, and that is the point: every `exit 1` above is
+            # reached before this line, so reclaim is still structurally unreachable
+            # until the running container has been confirmed to be this commit. Folding
+            # it in here does not move it earlier — it removes a THIRD SSH connection
+            # per deploy, on a host that is currently resetting handshakes under load,
+            # and it runs the cleanup on a connection that has already proved itself.
+            #
+            # 🔴 Never fatal. The deploy is verified by the time we get here; a disk
+            # cleanup must not turn a good deploy red. But "not fatal" must not become
+            # "not noticed": reclaim-images.sh always exits 0 BY DESIGN, so its exit
+            # code cannot tell "ran and removed nothing" — the normal healthy case —
+            # apart from "never ran". Only the completion sentinel can, so it is
+            # asserted, and its absence is reported loudly. Silent skips accumulate on
+            # a disk that is finite and shared with other applications.
+            RECLAIM_OUT="$(sh deploy/reclaim-images.sh 2>&1)" || true
+            printf '%s\n' "$RECLAIM_OUT"
+            if printf '%s\n' "$RECLAIM_OUT" | grep -q '^reclaim-images: complete$'; then
+              echo "reclaim: completed"
+            else
+              echo "::warning::DISK WAS NOT RECLAIMED. deploy/reclaim-images.sh did not report completion, so this repository's superseded images are still on the deploy host. The deploy itself is fine and verified — but do not read this run as a successful cleanup. Check free space before assuming the next deploy has room."
+            fi
         env:
           DEPLOY_SHA: ${{ github.sha }}
           IMAGE: ${{ env.IMAGE }}
+
+      - name: Back off 20s before Verify and reclaim over SSH attempt 3
+        if: steps.check.outputs.ready == 'true' && steps.verify_a2.outcome == 'failure'
+        run: |
+          echo "Verify and reclaim over SSH: attempt 2 of 3 failed. Backing off 20s before attempt 3."
+          sleep 20
+
+      - name: Verify and reclaim over SSH (attempt 3 of 3 — final, fails the job)
+        id: verify_a3
+        if: steps.check.outputs.ready == 'true' && steps.verify_a2.outcome == 'failure'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: DEPLOY_SHA,IMAGE
+          script: |
+            # `set -eu` only: POSIX. `pipefail` is a bash-ism and this runs on the
+            # remote host, whose shell is not ours to assume — under dash it aborts the
+            # script on line 1, which would look exactly like the check passing quietly.
+            set -eu
+            cd /root/VirtualOffice
+            # The container's HEALTHCHECK has a 40s start-period; poll rather than
+            # assume it is already serving. Fail closed if it never answers.
+            RUNNING=""
+            for i in $(seq 1 30); do
+              # Ask the CONTAINER, over its own loopback, not the host's port.
+              # 🔴 NEVER use the host's localhost:3000 here. This box is shared: host
+              # port 3000 belongs to a DIFFERENT application, and
+              # docker-compose.prod.yml publishes this app on 127.0.0.1:10502:3000.
+              # Querying the host port would poll for 90s and fail every deploy — and if
+              # that other application ever answered /api/health with a `sha` field, this
+              # check would happily verify the WRONG application. That is precisely the
+              # failure this step exists to catch, reproduced inside the step itself.
+              # `exec` is also independent of the published mapping, so it keeps working
+              # if the host port is ever changed.
+              BODY="$(docker compose -f docker-compose.prod.yml exec -T app \
+                node -e 'fetch("http://127.0.0.1:3000/api/health").then(r=>r.text()).then(t=>console.log(t))' 2>/dev/null || true)"
+              RUNNING="$(printf '%s' "$BODY" | grep -o '"sha":"[^"]*"' | cut -d'"' -f4 || true)"
+              [ -n "$RUNNING" ] && break
+              sleep 3
+            done
+            if [ -z "$RUNNING" ]; then
+              echo "::error::/api/health did not report a sha after 90s. Refusing to call this deploy verified."
+              exit 1
+            fi
+            echo "running sha : $RUNNING"
+            echo "deployed sha: $DEPLOY_SHA"
+            if [ "$RUNNING" = "unknown" ]; then
+              echo "::error::The running container reports sha=unknown — it was built without BUILD_SHA. This deploy cannot be verified."
+              exit 1
+            fi
+            if [ "$RUNNING" != "$DEPLOY_SHA" ]; then
+              echo "::error::Production is running $RUNNING but this run deployed $DEPLOY_SHA. An older or unrelated build is live. Do not assume the merge shipped."
+              exit 1
+            fi
+            echo "Verified: production is running the commit this run deployed."
+
+            # ---- F7/D reclaim, folded into THIS connection (F7b) -------------------
+            # 🔴 ORDERING IS UNCHANGED, and that is the point: every `exit 1` above is
+            # reached before this line, so reclaim is still structurally unreachable
+            # until the running container has been confirmed to be this commit. Folding
+            # it in here does not move it earlier — it removes a THIRD SSH connection
+            # per deploy, on a host that is currently resetting handshakes under load,
+            # and it runs the cleanup on a connection that has already proved itself.
+            #
+            # 🔴 Never fatal. The deploy is verified by the time we get here; a disk
+            # cleanup must not turn a good deploy red. But "not fatal" must not become
+            # "not noticed": reclaim-images.sh always exits 0 BY DESIGN, so its exit
+            # code cannot tell "ran and removed nothing" — the normal healthy case —
+            # apart from "never ran". Only the completion sentinel can, so it is
+            # asserted, and its absence is reported loudly. Silent skips accumulate on
+            # a disk that is finite and shared with other applications.
+            RECLAIM_OUT="$(sh deploy/reclaim-images.sh 2>&1)" || true
+            printf '%s\n' "$RECLAIM_OUT"
+            if printf '%s\n' "$RECLAIM_OUT" | grep -q '^reclaim-images: complete$'; then
+              echo "reclaim: completed"
+            else
+              echo "::warning::DISK WAS NOT RECLAIMED. deploy/reclaim-images.sh did not report completion, so this repository's superseded images are still on the deploy host. The deploy itself is fine and verified — but do not read this run as a successful cleanup. Check free space before assuming the next deploy has room."
+            fi
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+          IMAGE: ${{ env.IMAGE }}
+
+      - name: Report verify/reclaim SSH attempts used
+        if: always() && steps.check.outputs.ready == 'true'
+        env:
+          A1: ${{ steps.verify_a1.outcome }}
+          A2: ${{ steps.verify_a2.outcome }}
+          A3: ${{ steps.verify_a3.outcome }}
+        run: sh .github/scripts/report-ssh-attempts.sh 'Verify and reclaim over SSH'
