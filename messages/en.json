@@ -1328,6 +1328,8 @@
     "alreadyProcessed": "Already processed",
     "pendingSdApproval": "Pending SD approval of the commission split.",
     "quotationNotApproved": "The quotation has not been approved for generation yet.",
+    "legacyReadOnly": "History (old process) — this record predates the new transaction flow. Sale terms can't be changed.",
+    "flowNotAvailable": "This action isn't available for this sale's flow.",
     "splitNotApproved": "The commission split is not fully approved yet.",
     "splitExceptionReasonRequired": "Enter a reason for approving this split exception (5–500 characters).",
     "splitExceptionRequired": "This sale books a commission line below zero. A Business Admin must approve the split exception (with a reason) before it can close.",

@@ -16,9 +16,10 @@ const BY_PREFIX: { re: RegExp; entityType: string }[] = [
   { re: /^associates\/([0-9a-f-]{36})\//i, entityType: "Associate" },
   { re: /^candidates\/([0-9a-f-]{36})\//i, entityType: "Candidate" },
   { re: /^vendors\/([0-9a-f-]{36})\//i, entityType: "VendorReferral" },
-  // The sale docket (DevLead, A-17 ✎6): client documents, signed quotations,
-  // every version of an ashes agreement, and signature images. All personal data,
-  // so all recorded; the ashes lookup above still names a current agreement exactly.
+  // The sale docket (DevLead, A-17 ✎6): client documents, signed quotations, ashes
+  // agreements — INCLUDING earlier signed versions after a void/re-sign, which no
+  // longer match agreementPdfKey — and signature images. All personal data, so
+  // all recorded; the ashes lookup above still names a current agreement exactly.
   { re: /^submissions\/([0-9a-f-]{36})\//i, entityType: "SalesSubmission" },
 ];
 
