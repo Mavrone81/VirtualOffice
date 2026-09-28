@@ -24,11 +24,26 @@ export async function uploadDocketDocuments(submissionId: string, files: File[])
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { closingAssociateId: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { closingAssociateId: true, flow: true } });
   if (!sub) return { ok: false, error: t("notFound") };
 
   const allowed = isAdminRole(session.user.role) || (!!session.user.associateId && session.user.associateId === sub.closingAssociateId);
   if (!allowed) return { ok: false, error: t("forbidden") };
+
+  // N4: Legacy rows are frozen — no edit at all — once the new flow is live
+  // (same design note as editSale/rejectSubmission, server/sales/actions.ts).
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.Legacy) {
+    try {
+      await auditTx(prisma, {
+        action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: submissionId,
+        actorUserId: session.user.id, after: { attempted: "uploadDocketDocuments" },
+      });
+    } catch (e) {
+      if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+      throw e;
+    }
+    return { ok: false, error: t("legacyReadOnly") };
+  }
 
   if (!files?.length) return { ok: false, error: t("fileRequired") };
   const r = await addSubmissionDocuments(submissionId, files, "Signed", session.user.id);
