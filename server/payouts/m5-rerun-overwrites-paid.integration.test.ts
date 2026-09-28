@@ -11,6 +11,15 @@ vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
+// A-17 follow-up (ambient-flag release blocker, same shape as the earlier one):
+// this file is not about A-17 at all, but submitSale (unrelated, pre-existing)
+// reads the AMBIENT A17_CLOSED_DEAL_FLOW and sets flow=ClosedDeal whenever it
+// is true — which then trips B1's flow=ClosedDeal refusal in
+// approveQuotation/closeSale below, used here as pure fixture scaffolding.
+// Forced off so this file is not steered by ambient config either way; a
+// named coverage gap (this file's path under a real flag-ON config) is
+// recorded in reviews/a17-flag-on-preconditions.md as a flag-flip precondition.
+vi.mock("@/lib/env", async (orig) => ({ ...(await orig<typeof import("@/lib/env")>()), env: { ...(await orig<typeof import("@/lib/env")>()).env, A17_CLOSED_DEAL_FLOW: false } }));
 
 import { prisma } from "@/lib/db";
 import { logAudit, auditTx } from "@/lib/audit";
