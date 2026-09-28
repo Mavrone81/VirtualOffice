@@ -193,6 +193,10 @@ export type OnboardingSubmission = {
   agreementAccepted: boolean;
   // V-2026-07 additions.
   maritalStatus?: "Single" | "Married" | "Divorced" | "Widowed";
+  // Printed on the agreement's particulars table — required (onboardingSchema).
+  nationality?: string;
+  gender?: "Male" | "Female";
+  religion?: string;
   spouseConflict?: boolean;
   spouseName?: string;
   spouseCompany?: string;
@@ -297,6 +301,9 @@ export async function submitOnboarding(
     bankName: s.bankName?.trim() || null,
     bankAccountNumber: s.bankAccountNumber ? encryptPII(s.bankAccountNumber.trim()) : null,
     maritalStatus: s.maritalStatus ?? null,
+    nationality: s.nationality?.trim() || null,
+    gender: s.gender ?? null,
+    religion: s.religion?.trim() || null,
     // Conflict-of-interest declaration (V-2026-07). Spouse details are only kept
     // when the conflict is declared Yes.
     spouseConflict: s.spouseConflict ?? false,
@@ -336,11 +343,13 @@ export async function submitOnboarding(
     uplineName: upline ? `${upline.fullName} (${upline.associateCode})` : null,
     signedDate: new Date(),
     signatureDataUrl: s.signature,
-    // Official V.2026-04 particulars — filled from the onboarding submission;
-    // fields not collected (nationality, gender, religion) stay blank on the form.
+    // Official V.2026-04 particulars — filled from the onboarding submission.
     businessName: s.businessName?.trim() || null,
+    nationality: s.nationality?.trim() || null,
     dateOfBirth: s.dateOfBirth ?? null,
+    gender: s.gender ?? null,
     maritalStatus: s.maritalStatus ?? null,
+    religion: s.religion?.trim() || null,
     homeAddress: s.residentialAddress?.trim() || null,
     commencementDate: c.commencementDate ? c.commencementDate.toISOString().slice(0, 10) : null,
     spouseConflict: s.spouseConflict ?? null,
