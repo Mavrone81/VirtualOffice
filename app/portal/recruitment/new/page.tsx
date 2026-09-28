@@ -15,7 +15,7 @@ import { myRecruiterTeams } from "@/server/recruitment/actions";
 import { CancelInviteButton } from "./cancel-invite-button";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Invite candidate · Enshrine Portal" };
+export const metadata = { title: "Invite Candidate · Enshrine Portal" };
 
 // Portal-side recruitment (16-Jul #12): a Manager and above (A9) invites a
 // candidate from their own office. Same action + form as the admin surface,
