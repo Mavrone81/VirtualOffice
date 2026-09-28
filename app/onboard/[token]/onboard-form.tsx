@@ -16,6 +16,11 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   const [done, setDone] = useState(false);
+  // The acceptance box only unlocks once the full agreement has been opened
+  // or downloaded — "I have read the full agreement" should be at least
+  // possible to be true when it's ticked.
+  const [opened, setOpened] = useState(false);
+  const agreementUrl = `/onboard/${encodeURIComponent(token)}/agreement`;
   const [f, setF] = useState<OnboardingSubmission>({
     nric: "", paymentMethod: "PayNow", agreementAccepted: false,
   });
@@ -169,14 +174,26 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
 
       <div className="rounded-xl border border-line bg-white p-5">
         <h2 className="mb-3 font-display text-[16px] text-ink">{t("agreement.title")}</h2>
-        <div className="max-h-44 overflow-y-auto rounded-lg border border-line bg-paper-100 p-4 text-[12px] leading-relaxed text-muted">
-          <p>{t("agreement.para1")}</p>
-          <p className="mt-2">{t("agreement.para2")}</p>
+        <div className="rounded-lg border border-line bg-paper-100 p-4 text-[13px] leading-relaxed text-body">
+          <p>{t("agreement.intro")}</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a href={agreementUrl} target="_blank" rel="noopener" onClick={() => setOpened(true)}
+              className="inline-flex h-10 items-center rounded-lg bg-ink px-4 text-[13px] font-medium text-white hover:opacity-90">
+              {t("agreement.view")}
+            </a>
+            <a href={`${agreementUrl}?download=1`} onClick={() => setOpened(true)}
+              className="inline-flex h-10 items-center rounded-lg border border-line bg-white px-4 text-[13px] font-medium text-ink hover:bg-paper-100">
+              {t("agreement.download")}
+            </a>
+          </div>
+          <p className="mt-3 text-[12px] text-muted">{t("agreement.dataNote")}</p>
         </div>
-        <label className="mt-4 flex items-start gap-2.5 text-[13px] text-body">
-          <input type="checkbox" className="mt-0.5" checked={f.agreementAccepted} onChange={(e) => set({ agreementAccepted: e.target.checked })} />
+        <label className={`mt-4 flex items-start gap-2.5 text-[13px] ${opened ? "text-body" : "text-muted-2"}`}>
+          <input type="checkbox" className="mt-0.5" disabled={!opened} checked={f.agreementAccepted}
+            onChange={(e) => set({ agreementAccepted: e.target.checked })} />
           <span>{t("agreement.checkbox")}</span>
         </label>
+        {!opened && <p className="mt-1 pl-6 text-[12px] text-muted-2">{t("agreement.openFirst")}</p>}
 
         <div className="mt-4">
           <Label>{t("agreement.signatureLabel")}</Label>
