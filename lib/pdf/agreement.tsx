@@ -55,6 +55,18 @@ const s = StyleSheet.create({
 });
 
 const dash = "____________________";
+
+/** "THIS AGREEMENT is made on the __ day of __ 20__" — the signing date, in
+ *  Singapore time (the server clock may be UTC, which would give the wrong
+ *  day for a signature made before 8am). */
+function agreementDateParts(date: Date): { day: string; month: string; yy: string } {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Singapore", day: "numeric", month: "long", year: "numeric" })
+    .formatToParts(date);
+  const get = (type: string) => parts.find((x) => x.type === type)?.value ?? "";
+  const n = Number(get("day"));
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
+  return { day: `${n}${suffix}`, month: get("month"), yy: get("year").slice(2) };
+}
 const d = (v: string | null | undefined) => (v && String(v).trim() ? String(v) : dash);
 function fmtDate(v: string | null | undefined): string {
   if (!v) return dash;
@@ -172,6 +184,7 @@ function ParticularsTable({ a }: { a: AgreementData }) {
 }
 
 function AgreementDoc({ a }: { a: AgreementData }) {
+  const made = agreementDateParts(a.signedDate);
   return (
     <Document title={`Associate Agreement — ${a.fullName}`} author="Enshrine">
       <Page size="A4" style={s.page}>
@@ -180,7 +193,7 @@ function AgreementDoc({ a }: { a: AgreementData }) {
 
         <Text style={s.title}>ASSOCIATE AGREEMENT</Text>
         <Text style={s.intro}>
-          THIS AGREEMENT is made on the {dash} day of {dash} 20{dash} between{" "}
+          THIS AGREEMENT is made on the <Text style={s.bold}>{made.day}</Text> day of <Text style={s.bold}>{made.month}</Text> 20<Text style={s.bold}>{made.yy}</Text> between{" "}
           <Text style={s.bold}>M/S ENSHRINE HOLDINGS PTE LTD - UEN Number 202328861K</Text> (hereinafter known as “the Company”) of the one part and
         </Text>
 

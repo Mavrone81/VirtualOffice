@@ -232,6 +232,10 @@ export const onboardingSchema = z.object({
   agreementAccepted: z.boolean(),
   // V-2026-07 identity addition.
   maritalStatus: z.enum(["Single", "Married", "Divorced", "Widowed"]).optional(),
+  // Printed on the Associate Agreement's particulars table, so required (28 Sep).
+  nationality: z.string().trim().min(1).max(100),
+  gender: z.enum(["Male", "Female"]),
+  religion: z.string().trim().min(1).max(100),
   // Spouse / Conflict of Interest Declaration (V-2026-07): is the spouse working
   // for or supplying a funeral / afterlife company? If declared Yes, capture who.
   spouseConflict: z.boolean().optional(),

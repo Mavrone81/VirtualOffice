@@ -471,7 +471,8 @@
     "errors": {
       "noAgreement": "Please accept the Associate Agreement to continue.",
       "noSignature": "Please sign in the box to complete your agreement.",
-      "submitFailed": "Could not submit. Please try again."
+      "submitFailed": "Could not submit. Please try again.",
+      "particularsRequired": "Please fill in your nationality, gender and religion — they are printed on your Associate Agreement."
     },
     "details": {
       "title": "Your details",
@@ -484,6 +485,21 @@
       "married": "Married",
       "divorced": "Divorced",
       "widowed": "Widowed",
+      "nationality": "Nationality *",
+      "nationalityPlaceholder": "e.g. Singaporean",
+      "gender": "Gender *",
+      "male": "Male",
+      "female": "Female",
+      "religion": "Religion *",
+      "religionBuddhism": "Buddhism",
+      "religionTaoism": "Taoism",
+      "religionChristianity": "Christianity",
+      "religionCatholicism": "Catholicism",
+      "religionIslam": "Islam",
+      "religionHinduism": "Hinduism",
+      "religionSikhism": "Sikhism",
+      "religionFreeThinker": "Free Thinker",
+      "religionOthers": "Others",
       "address": "Residential address",
       "ecName": "Emergency contact name",
       "ecNumber": "Emergency contact number",
