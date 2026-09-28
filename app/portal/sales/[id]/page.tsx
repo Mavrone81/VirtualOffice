@@ -134,7 +134,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
               {paidInvoice
                 ? <DocLink href={`/portal/invoices/${paidInvoice.id}/pdf`} label={t("saleDetail.invoice")} />
                 : <p className="text-[12px] text-muted">{t("saleDetail.invoicePending")}</p>}
-              {s.ashesAgreement && (
+              {env.A17_CLOSED_DEAL_FLOW && s.ashesAgreement && (
                 <p className="text-[12px] text-muted">
                   {t("saleDetail.ashesAgreementLabel")}: {ashesEditable ? (
                     <Link href={`/portal/sales/${s.id}/agreement`} className="text-action hover:underline">{t(`saleDetail.ashesAgreementStatus.${s.ashesAgreement.status.toLowerCase()}`)}</Link>
@@ -144,7 +144,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                 </p>
               )}
             </div>
-            {docGate.ok && <RequiredDocsSection submissionId={s.id} requiredDocs={docGate.requiredDocs} attachedKeys={docGate.attachedKeys} productRecordMissing={docGate.productRecordMissing} />}
+            {env.A17_CLOSED_DEAL_FLOW && docGate.ok && <RequiredDocsSection submissionId={s.id} requiredDocs={docGate.requiredDocs} attachedKeys={docGate.attachedKeys} productRecordMissing={docGate.productRecordMissing} />}
             <div className="mt-4 border-t border-line pt-3">
               <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-2">{t("saleDetail.signedDocs")}</div>
               {s.documents.length === 0 ? (
