@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { NameCardStudio } from "@/components/name-card/studio";
 import { ResetPasswordButton } from "./reset-password";
+import { SignInLinkButton } from "./signin-link";
 import { RevealPii } from "./reveal-pii";
 import { UplineEditor } from "./upline-editor";
 
@@ -231,6 +232,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
               <h2 className="mb-1 font-display text-[16px] text-ink">{t("detail.loginSection")}</h2>
               <p className="mb-3 text-[12px] text-muted">{a.user.email}</p>
               <ResetPasswordButton associateId={a.id} />
+              <SignInLinkButton associateId={a.id} />
             </Card>
           )}
 
