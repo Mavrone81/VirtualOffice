@@ -282,6 +282,18 @@
       "button": "Reset password",
       "couldNotReset": "Could not reset."
     },
+    "signinLink": {
+      "button": "Create sign-in link",
+      "again": "Create a new link",
+      "creating": "Creating…",
+      "hint": "A one-time link for the associate to set their own password. Use it if the welcome email didn't arrive.",
+      "message": "Hi {name}, welcome to Enshrine Virtual Office!\n\nTo sign in for the first time:\n1. Open this link and choose your own password (it works once and expires in 3 days):\n{url}\n\n2. Then sign in at {login}\n   Email: {email}\n   Password: the one you just chose\n\nIf the link has expired, just let us know and we'll send a new one.",
+      "copy": "Copy message",
+      "copied": "✓ Copied",
+      "copyFailed": "Couldn't copy. Select the text and copy it manually.",
+      "oneTime": "Creating a new link cancels any earlier one.",
+      "failed": "Could not create a sign-in link."
+    },
     "edit": {
       "title": "Edit {name}",
       "save": "Save changes",
