@@ -17,7 +17,7 @@ import { encryptPII, maskNric } from "@/lib/crypto";
 import { putObject, getObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { humanize } from "@/lib/labels";
-import { renderAgreementPdf } from "@/lib/pdf/agreement";
+import { renderAgreementPdf, formatUplineOrNA } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "@/server/associates/payee-audit";
@@ -330,8 +330,14 @@ export async function submitOnboarding(
   }
   await putObject(`candidates/${c.id}/signature.png`, Buffer.from(signatureBytes));
 
+  // Tier 1/2 Manager (page 7 "For Official Use") are knowable at signing —
+  // the candidate signs before approval, so this is the INTENDED upline
+  // chain, not the eventual associate record. One query gets both tiers.
   const upline = c.intendedDirectUplineId
-    ? await prisma.associate.findUnique({ where: { id: c.intendedDirectUplineId }, select: { fullName: true, associateCode: true } })
+    ? await prisma.associate.findUnique({
+        where: { id: c.intendedDirectUplineId },
+        select: { fullName: true, associateCode: true, directUpline: { select: { fullName: true, associateCode: true } } },
+      })
     : null;
   const agreementPdf = await renderAgreementPdf({
     fullName: c.fullName,
@@ -358,7 +364,13 @@ export async function submitOnboarding(
     spouseDesignation: s.spouseConflict ? s.spouseDesignation?.trim() || null : null,
     emergencyName: s.emergencyContactName?.trim() || null,
     emergencyContact: s.emergencyContactNumber?.trim() || null,
-    tier1Manager: upline ? `${upline.fullName} (${upline.associateCode})` : null,
+    // Scoped exception (the project owner's ruling): "NA" here means a KNOWN absence
+    // (this associate genuinely has no upline at this tier) — never used
+    // for a field that's merely uncollected. Associate ID is deliberately
+    // NOT passed: the signed PDF is never modified after signing, and
+    // nextAssociateCode() doesn't exist until approveCandidate runs anyway.
+    tier1Manager: formatUplineOrNA(upline),
+    tier2Manager: formatUplineOrNA(upline?.directUpline),
   });
   signedAgreementFileKey = `candidates/${c.id}/signed-agreement.pdf`;
   await putObject(signedAgreementFileKey, agreementPdf);
