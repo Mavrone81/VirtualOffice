@@ -2,12 +2,13 @@
 
 import { randomUUID, createHash } from "crypto";
 import { revalidatePath } from "next/cache";
-import { Prisma, AshesAgreementStatus } from "@prisma/client";
+import { Prisma, AshesAgreementStatus, SubmissionFlow } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { putObject, deleteObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { amountToWords } from "@/lib/amount-words";
@@ -69,6 +70,22 @@ export async function saveAshesAgreement(
   const t = await getTranslations("errors");
   const { session, sub } = await allowedSubmission(submissionId);
   if (!session || !sub) return { ok: false, error: t("forbidden") };
+  // N4: Legacy rows are frozen — no edit at all — once the new flow is live
+  // (same design note as editSale/rejectSubmission, server/sales/actions.ts).
+  // Flag off: nothing is Legacy-refused (every row IS Legacy today), so this
+  // can never change today's behaviour early.
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.Legacy) {
+    try {
+      await auditTx(prisma, {
+        action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: submissionId,
+        actorUserId: session.user.id, after: { attempted: "saveAshesAgreement" },
+      });
+    } catch (e) {
+      if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+      throw e;
+    }
+    return { ok: false, error: t("legacyReadOnly") };
+  }
   if (sub.ashesAgreement?.status === AshesAgreementStatus.Signed) return { ok: false, error: t("alreadyProcessed") };
   if (!isAgreementEditableStatus(sub.flow, sub.status)) return { ok: false, error: t("quotationNotApproved") };
   if (!input.applicant1Name?.trim()) return { ok: false, error: t("allFieldsRequired") };
@@ -157,6 +174,20 @@ export async function signAshesAgreement(
   const t = await getTranslations("errors");
   const { session, sub } = await allowedSubmission(submissionId);
   if (!session || !sub) return { ok: false, error: t("forbidden") };
+  // N4: Legacy rows are frozen — no edit at all — once the new flow is live
+  // (same design note as editSale/rejectSubmission, server/sales/actions.ts).
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.Legacy) {
+    try {
+      await auditTx(prisma, {
+        action: "sale.legacy_write_refused", entityType: "SalesSubmission", entityId: submissionId,
+        actorUserId: session.user.id, after: { attempted: "signAshesAgreement" },
+      });
+    } catch (e) {
+      if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+      throw e;
+    }
+    return { ok: false, error: t("legacyReadOnly") };
+  }
   const agreement = sub.ashesAgreement;
   if (!agreement) return { ok: false, error: t("notFound") };
   // Superseded (✎6): not re-signable directly — an edit that re-adds the
