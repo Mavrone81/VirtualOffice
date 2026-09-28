@@ -13,6 +13,13 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest
 
 const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
+// A-17 follow-up (ambient-flag release blocker): this fixture is flow=Legacy
+// (an arbitrary, simpler-precondition choice — the fix under test doesn't
+// depend on flow at all), but N4's Legacy-frozen check is reachable under
+// ambient A17_CLOSED_DEAL_FLOW=true and would refuse the very sign call this
+// test is proving. Forced off so this file (about the money-refresh fix, not
+// about N4) isn't steered by ambient config either way.
+vi.mock("@/lib/env", async (orig) => ({ ...(await orig<typeof import("@/lib/env")>()), env: { ...(await orig<typeof import("@/lib/env")>()).env, A17_CLOSED_DEAL_FLOW: false } }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
