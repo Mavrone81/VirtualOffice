@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { validate } from "@/lib/validate";
 import { quotationSchema } from "@/lib/schemas";
 import { canManageQuotation } from "@/lib/quotation-access";
@@ -30,6 +31,10 @@ export async function createQuotation(input: {
   lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[];
 }): Promise<{ ok: boolean; error?: string; id?: string; quotationCode?: string }> {
   const t = await getTranslations("errors");
+  // MD B2: flag-OFF must be genuinely dark — this whole feature (writes
+  // client name/contact/total to a new table) is not something a flag-off
+  // deploy should be able to reach at all, callable server action or not.
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
   const session = await auth();
   if (!session?.user.associateId) return { ok: false, error: t("noAssociateProfile") };
 
@@ -78,6 +83,7 @@ export async function createQuotation(input: {
  */
 export async function voidQuotation(quotationId: string, reason: string): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
   const trimmedReason = reason?.trim();
