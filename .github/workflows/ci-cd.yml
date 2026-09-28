@@ -5,6 +5,19 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # F7/B: the deploy refuses to run a sha that is not main's head. That is correct for
+  # ordinary pushes and WRONG for a rollback, which deliberately deploys an older sha.
+  # So the override is explicit, audited, and requires a reason — never a silent bypass.
+  workflow_dispatch:
+    inputs:
+      allow_non_head:
+        description: "Deploy a sha that is NOT main's head (rollback). Requires a reason."
+        type: boolean
+        default: false
+      reason:
+        description: "Why this sha is being deployed instead of main's head (recorded in the run log)."
+        type: string
+        default: ""
 
 concurrency:
   group: ci-cd-${{ github.ref }}
@@ -158,7 +171,15 @@ jobs:
   # ---------------------------------------------------------------------------
   build-push:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # F7/B: admits `workflow_dispatch` for the same reason as `deploy` below — and this
+    # half is easy to miss. `deploy` has `needs: build-push`, and a job whose dependency
+    # was SKIPPED is itself skipped, so admitting dispatch only on `deploy` leaves the
+    # rollback override just as unreachable, one level further down. On a rollback this
+    # rebuilds the target sha and republishes `:<sha>` (and `:latest`), which is the
+    # correct end state for a rollback anyway.
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -180,6 +201,10 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
+          # F7: bake the commit into the image so /api/health can report which build is
+          # actually running, and the post-deploy check can fail the job on a mismatch.
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -190,7 +215,15 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy:
     needs: build-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # F7/B: `workflow_dispatch` is admitted here ON PURPOSE — without it the
+    # allow_non_head override below is UNREACHABLE, because a dispatch run is not a
+    # `push` and the job would never start. The override would have existed only on
+    # paper: a rollback path documented, gated, and impossible to execute.
+    # Safety is not weakened: every dispatch run still goes through the head check,
+    # which refuses a non-head sha unless allow_non_head is set WITH a reason.
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      || github.event_name == 'workflow_dispatch'
     # SEC-8: bind the prod deploy to the GitHub Environment "production", so the project owner can add
     # required reviewers (a technical gate for his go) and move SSH_* into environment secrets.
     # Until he does, behaviour is unchanged: the environment is auto-created with no rules,
@@ -211,6 +244,46 @@ jobs:
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
+      # F7/B: refuse to deploy a sha that is not main's head.
+      # Two runs can finish out of order — this is not theoretical: on 2026-09-28 an
+      # older run redeployed over a newer one and production ran a stale build with
+      # every check green. This step FAILS rather than races, so the wrong build never
+      # reaches the host. `git ls-remote` is the git protocol, not the REST API, so it
+      # costs nothing against the shared 60/hour unauthenticated quota.
+      # 🔴 Known limit: TOCTOU. main can move between this check and the deploy below.
+      # The window is seconds and it fails safe (an older sha is refused, never a newer
+      # one silently accepted). Detection of everything this cannot see — a manual
+      # `docker compose up`, a rollback left in place, a retagged :latest — is the
+      # post-deploy /api/health comparison at the end of this job, not this step.
+      - name: Refuse to deploy a sha that is not main's head
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | cut -f1)"
+          if [ -z "$HEAD_SHA" ]; then
+            echo "::error::could not read main's head from the remote — refusing to deploy rather than assume this sha is current"
+            exit 1
+          fi
+          echo "offered sha : ${GITHUB_SHA}"
+          echo "main's head : ${HEAD_SHA}"
+          if [ "$HEAD_SHA" = "${GITHUB_SHA}" ]; then
+            echo "This run is main's head. Proceeding."
+            exit 0
+          fi
+          if [ "${ALLOW_NON_HEAD}" = "true" ]; then
+            if [ -z "${OVERRIDE_REASON//[[:space:]]/}" ]; then
+              echo "::error::allow_non_head was set without a reason. An override with no reason is not auditable — supply one and re-run."
+              exit 1
+            fi
+            echo "::warning::DELIBERATE NON-HEAD DEPLOY (rollback). offered=${GITHUB_SHA} head=${HEAD_SHA} reason=${OVERRIDE_REASON}"
+            exit 0
+          fi
+          echo "::error::Refusing to deploy ${GITHUB_SHA} because main's head is ${HEAD_SHA}. This run is not the newest and would put an older build into production. To deploy an older sha deliberately (a rollback), re-run via workflow_dispatch with allow_non_head=true and a reason."
+          exit 1
+        env:
+          ALLOW_NON_HEAD: ${{ github.event.inputs.allow_non_head || 'false' }}
+          OVERRIDE_REASON: ${{ github.event.inputs.reason || '' }}
+
       - name: Deploy over SSH
         if: steps.check.outputs.ready == 'true'
         uses: appleboy/ssh-action@v1
@@ -218,15 +291,28 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: GHCR_TOKEN,GHCR_USER,IMAGE
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE,DEPLOY_SHA,APP_IMAGE
           script: |
             set -e
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             cd /root/VirtualOffice
-            git pull --ff-only origin main
+            # F7/A: pin the source to the EXACT commit this run built, not to whatever
+            # main happens to be now. Previously `git pull --ff-only origin main` took
+            # current main while the image came from `:latest` — so migrations could be
+            # applied from a NEWER revision than the app image being started. Source and
+            # image must be the same revision or `migrate` is running against the wrong code.
+            git fetch --depth=1 origin "$DEPLOY_SHA"
+            git checkout --detach "$DEPLOY_SHA"
+            # F7/A: pull and run the immutable per-commit tag, never `:latest`.
+            # `:latest` is mutable and is whatever build pushed last, which is not
+            # necessarily this one — that is how an older build won on 2026-09-28.
+            # APP_IMAGE is already the compose seam (docker-compose.prod.yml:
+            # image: ${APP_IMAGE:-...:latest}) and is exported for BOTH pull and up,
+            # so the container that starts is the one that was just pulled.
+            export APP_IMAGE
             docker compose -f docker-compose.prod.yml pull app
             # Apply pending migrations (deploy-only, never seeds) from the
-            # freshly pulled source BEFORE swapping the app, so the schema is
+            # pinned source BEFORE swapping the app, so the schema is
             # ready when the new code starts. --build picks up new migrations.
             docker compose -f docker-compose.prod.yml --profile tools run --rm --build migrate
             docker compose -f docker-compose.prod.yml up -d app
@@ -236,3 +322,51 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
           IMAGE: ${{ env.IMAGE }}
+          DEPLOY_SHA: ${{ github.sha }}
+          APP_IMAGE: ${{ env.IMAGE }}:${{ github.sha }}
+
+      # F7/C: this is what makes the build-sha a GATE rather than a dashboard.
+      # Ask the RUNNING container what it is, and fail the job if it is not the commit
+      # this run deployed. Everything before this step reasons about what *should* be
+      # running; only this asks what *is*. It is also the only check that catches what
+      # A and B structurally cannot — a manual `docker compose up`, a rollback left in
+      # place, or someone retagging `:latest` in the registry — because it looks at the
+      # live process instead of at the pipeline.
+      # Compares against DEPLOY_SHA (this run's commit), not main's head, so a
+      # deliberate rollback via allow_non_head verifies correctly too.
+      - name: Verify the running container is this commit
+        if: steps.check.outputs.ready == 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: DEPLOY_SHA
+          script: |
+            set -euo pipefail
+            # The container's HEALTHCHECK has a 40s start-period; poll rather than
+            # assume it is already serving. Fail closed if it never answers.
+            RUNNING=""
+            for i in $(seq 1 30); do
+              BODY="$(curl -fsS --max-time 5 http://localhost:3000/api/health || true)"
+              RUNNING="$(printf '%s' "$BODY" | grep -o '"sha":"[^"]*"' | cut -d'"' -f4 || true)"
+              [ -n "$RUNNING" ] && break
+              sleep 3
+            done
+            if [ -z "$RUNNING" ]; then
+              echo "::error::/api/health did not report a sha after 90s. Refusing to call this deploy verified."
+              exit 1
+            fi
+            echo "running sha : $RUNNING"
+            echo "deployed sha: $DEPLOY_SHA"
+            if [ "$RUNNING" = "unknown" ]; then
+              echo "::error::The running container reports sha=unknown — it was built without BUILD_SHA. This deploy cannot be verified."
+              exit 1
+            fi
+            if [ "$RUNNING" != "$DEPLOY_SHA" ]; then
+              echo "::error::Production is running $RUNNING but this run deployed $DEPLOY_SHA. An older or unrelated build is live. Do not assume the merge shipped."
+              exit 1
+            fi
+            echo "Verified: production is running the commit this run deployed."
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
