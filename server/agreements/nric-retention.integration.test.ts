@@ -20,11 +20,12 @@ const who: { session: unknown } = { session: null };
 
 import { prisma } from "@/lib/db";
 import type * as NricRetentionModule from "./nric-retention";
+import type * as NricRetentionEngineModule from "./nric-retention-engine";
 
-let runNricRetention: typeof NricRetentionModule.runNricRetention;
+let runNricRetention: typeof NricRetentionEngineModule.runNricRetention;
 let nricRetentionPreview: typeof NricRetentionModule.nricRetentionPreview;
 let nricRetentionRunNow: typeof NricRetentionModule.nricRetentionRunNow;
-let previewNricRetention: typeof NricRetentionModule.previewNricRetention;
+let previewNricRetention: typeof NricRetentionEngineModule.previewNricRetention;
 
 const TAG = "A17NRIC-";
 let closerId = "";
@@ -73,7 +74,8 @@ async function mkRejectedAgreement(
 beforeAll(async () => {
   process.env.NRIC_RETENTION_ENABLED = "true";
   vi.resetModules();
-  ({ runNricRetention, nricRetentionPreview, nricRetentionRunNow, previewNricRetention } = await import("./nric-retention"));
+  ({ runNricRetention, previewNricRetention } = await import("./nric-retention-engine"));
+  ({ nricRetentionPreview, nricRetentionRunNow } = await import("./nric-retention"));
 
   closerId = (await prisma.associate.create({
     data: { associateCode: TAG + "CL", fullName: "Closer", designation: "SalesAssociate" as never, approvalStatus: "Approved" as never, associateStatus: "Active" as never },
@@ -183,7 +185,7 @@ describe("runNricRetention — cap", () => {
 
     process.env.NRIC_RETENTION_DAILY_CAP = "2";
     vi.resetModules();
-    const { runNricRetention: cappedRun } = await import("./nric-retention");
+    const { runNricRetention: cappedRun } = await import("./nric-retention-engine");
     const r1 = await cappedRun({ dryRun: false, trigger: "manual", actorUserId: null, skipCooldown: true });
     delete process.env.NRIC_RETENTION_DAILY_CAP;
     expect(r1.counts!.processed).toBe(2);
@@ -193,7 +195,7 @@ describe("runNricRetention — cap", () => {
 
     // The next run (no cooldown block since skipCooldown, default cap) purges the remainder.
     vi.resetModules();
-    const { runNricRetention: uncappedRun } = await import("./nric-retention");
+    const { runNricRetention: uncappedRun } = await import("./nric-retention-engine");
     await uncappedRun({ dryRun: false, trigger: "manual", actorUserId: null, skipCooldown: true });
     for (const id of ids) {
       expect((await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id } })).applicant1Nric).toBeNull();
@@ -232,7 +234,7 @@ describe("runNricRetentionOpportunistic", () => {
     const badPrisma = { $transaction: () => { throw new Error("boom"); } };
     vi.doMock("@/lib/db", () => ({ prisma: badPrisma }));
     vi.resetModules();
-    const { runNricRetentionOpportunistic: freshOpportunistic } = await import("./nric-retention");
+    const { runNricRetentionOpportunistic: freshOpportunistic } = await import("./nric-retention-engine");
     await expect(freshOpportunistic()).resolves.toBeUndefined();
     vi.doUnmock("@/lib/db");
     vi.resetModules();
@@ -245,9 +247,10 @@ describe("NRIC_RETENTION_ENABLED — default off (DevLead: the first activation 
     delete process.env.NRIC_RETENTION_ENABLED;
     vi.resetModules();
     const fresh = await import("./nric-retention");
+    const freshEngine = await import("./nric-retention-engine");
 
     const before = await prisma.auditLog.count({ where: { action: "ashes.nric_retention_run" } });
-    await fresh.runNricRetentionOpportunistic();
+    await freshEngine.runNricRetentionOpportunistic();
     expect(await prisma.auditLog.count({ where: { action: "ashes.nric_retention_run" } })).toBe(before); // no run at all
 
     who.session = { user: { id: "99999999-9999-9999-9999-999999999999", associateId: null, role: "Admin" } };
