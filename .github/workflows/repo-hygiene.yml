@@ -1,0 +1,84 @@
+name: Repo hygiene
+
+# Committed-document gate. Fails on any TRACKED file with a document/office extension
+# outside the directory allow-list at the repository root.
+#
+# 🔴 DELIBERATELY ITS OWN WORKFLOW FILE, not a job added to security.yml. security.yml is
+# created by a different in-flight PR (the credential-shape gate). Two PRs both creating
+# the same workflow file would conflict, and whichever merged second would need a hand
+# three-way in a workflow file — which is precisely where a wrong-side resolution can
+# delete a gate while every test stays green. Separate files mean the two PRs are
+# independent and can merge in either order.
+#
+# Nothing in this workflow, the script, or the allow-list names the class of document being
+# kept out. The extension list carries the meaning and the allow-list names only what is
+# permitted. A gate that names what it is protecting tells a reader where to go looking.
+
+on:
+  pull_request:
+    branches: [main]
+  # `push` as well as `pull_request`: a direct push to main skips review, and on this repo
+  # a merge to main is a production deploy with no human gate after it. A gate that covers
+  # only the reviewed route does not cover the route that needs it most.
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: repo-hygiene-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  committed-documents:
+    name: Committed documents
+    runs-on: ubuntu-latest
+    # No `continue-on-error` at JOB level, now or later. It would also cover the self-test
+    # step below, which is the one step whose entire purpose is to prove this scanner is
+    # not silently measuring nothing. If a temporary exemption is ever genuinely needed,
+    # put it on the scan step only, never on the job.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 🔴 This step must never be exempted from failing the job. It asserts the matcher's
+      # shape claims through the real code path — including that an allow-listed directory
+      # does NOT cover a sibling sharing its name prefix — and it proves NON-VACUITY by
+      # neutralising the allow-list and requiring that the documents this repo legitimately
+      # holds still surface. A scanner that walked past every file would pass a file count
+      # and fail this.
+      - name: Self-test the document scan's shape claims
+        run: node .github/scripts/document-file-scan.mjs --self-test
+
+      - name: Scan for committed documents outside the allow-list
+        run: |
+          set -o pipefail
+          # No install: the scanner is dependency-free, stdlib only.
+          node .github/scripts/document-file-scan.mjs 2>&1 | tee scan.txt || failed=1
+          {
+            echo "## Committed documents"
+            echo
+            if [ "${failed:-0}" = "0" ]; then
+              echo "No committed documents outside \`document-file-allowlist.tsv\`."
+            else
+              echo "A document-extension file is committed outside every allow-listed directory."
+              echo
+              echo "Fix it by removing the file from the repository. **Prefer that over an"
+              echo "allow-list entry** — an exemption is a debt with no due date, and a later"
+              echo "reader has to re-judge it forever. If a directory genuinely should hold"
+              echo "committed documents, add it to \`document-file-allowlist.tsv\` **with a"
+              echo "reason**; entries are directories, never individual filenames."
+              echo
+              echo "Note that deleting the file from the working tree is not enough if it is"
+              echo "already tracked — it has to leave the commit."
+            fi
+            echo
+            echo '```'
+            cat scan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${failed:-0}"
