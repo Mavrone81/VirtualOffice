@@ -94,6 +94,27 @@ enum SubmissionStatus {
   Submitted
   QuotationApproved
   Rejected
+  // A-17 phase 1 (own migration, ✎D2: the value can't be added and used in
+  // the same transaction). Legacy submissions never reach this; ClosedDeal
+  // ones do once phase 2 (flag on, gated on SEC-12) ships.
+  Verified
+}
+
+// A-17: Legacy = the pre-A-17 quotation-approval/close flow (every existing
+// row, permanently the column default — ✎D3). ClosedDeal = the new
+// submit -> verify flow. New code sets ClosedDeal explicitly; nothing ever
+// relies on the column default to produce it.
+enum SubmissionFlow {
+  Legacy
+  ClosedDeal
+}
+
+// A-17: a Quotation is its own record, never touches money, never read by
+// the commission engine.
+enum QuotationStatus {
+  Issued
+  Converted
+  Void
 }
 
 enum SubmissionDocKind {
@@ -199,6 +220,10 @@ enum VendorStatus {
 enum AshesAgreementStatus {
   Draft
   Signed
+  // A-17 phase 1 (✎6): a signed agreement whose product is removed by a
+  // later edit becomes Superseded. Own migration (the value can't be added
+  // and used in the same transaction, same as SubmissionStatus.Verified).
+  Superseded
 }
 
 // ---------------------------------------------------------------------------
@@ -297,6 +322,7 @@ model Associate {
   pFile                   PFile?
   closedSubmissions       SalesSubmission[]  @relation("SubmissionCloser")
   closedTransactions      SalesTransaction[] @relation("TransactionCloser")
+  quotations              Quotation[]
   ledgerLines             CommissionLedger[]
   payouts                 MonthlyPayout[]
   vendorReferrals         VendorReferral[]
@@ -419,6 +445,13 @@ model Product {
   effectiveDate              DateTime            @map("effective_date") @db.Date
   remarks                    String?
 
+  // A-17 ⓢ Q6: per-product required-document checklist, e.g. [{key, label_en,
+  // label_zh}]. Empty means nothing is required for this product; G3 checks
+  // the union across a sale's products against the tagged uploads.
+  requiredDocuments      Json    @default("[]") @map("required_documents")
+  // A-17 Q4: drives automatic Pet Ash agreement generation at submit (§4).
+  requiresAshesAgreement Boolean @default(false) @map("requires_ashes_agreement")
+
   comCodes Comcode[]
   versions CommissionStructureVersion[]
 
@@ -521,6 +554,30 @@ model SalesSubmission {
   remarks                    String?
   status                     SubmissionStatus @default(Submitted)
 
+  // A-17 phase 1 (§2). flow's default of Legacy is PERMANENT (✎D3) — new code
+  // always sets ClosedDeal explicitly on create.
+  flow            SubmissionFlow @default(Legacy)
+  rejectedAt      DateTime?      @map("rejected_at")
+  // Bumped on every closer edit / doc add-remove / ashes save-sign, NOT by
+  // approvals (✎S1). verifySale's G4 is a CAS on the value the admin's verify
+  // page rendered.
+  contentVersion  Int            @default(0) @map("content_version")
+  // Assigned at submit from transaction_code_seq; copied to
+  // SalesTransaction.transactionCode at verify. Nullable + unique: gaps from
+  // rejected sales are fine (the code is opaque), and every Legacy row stays
+  // NULL here (its code lives on the transaction only).
+  transactionCode String?        @unique @map("transaction_code")
+  // The admin verification stamp (plain id, no FK — same convention as
+  // SalesTransaction.verifiedById). SalesTransaction gets the same values.
+  // ⚠ On Legacy rows these two don't exist; closedAt/closedById already carry
+  // that meaning for the old flow.
+  verifiedAt      DateTime?      @map("verified_at")
+  verifiedById    String?        @map("verified_by") @db.Uuid
+  // Informational only (§2): converting a quotation prefills the submission,
+  // but the submission's own lines stay authoritative.
+  quotationId     String?        @map("quotation_id") @db.Uuid
+  quotation       Quotation?     @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+
   lineItems      SaleLineItem[]
   transaction    SalesTransaction?
   documents      SubmissionDocument[]
@@ -529,6 +586,7 @@ model SalesSubmission {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([quotationId])
   @@map("sales_submissions")
 }
 
@@ -537,14 +595,17 @@ model SalesSubmission {
 // quotation); `Signed` = client-signed documents uploaded into the sale's docket
 // after the quotation is generated. Files live in the lib/storage object store.
 model SubmissionDocument {
-  id           String            @id @default(uuid()) @db.Uuid
-  submissionId String            @map("submission_id") @db.Uuid
-  submission   SalesSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  kind         SubmissionDocKind
-  fileKey      String            @map("file_key")
-  fileName     String            @map("file_name")
-  uploadedById String?           @map("uploaded_by") @db.Uuid
-  createdAt    DateTime          @default(now()) @map("created_at")
+  id             String            @id @default(uuid()) @db.Uuid
+  submissionId   String            @map("submission_id") @db.Uuid
+  submission     SalesSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  kind           SubmissionDocKind
+  fileKey        String            @map("file_key")
+  fileName       String            @map("file_name")
+  uploadedById   String?           @map("uploaded_by") @db.Uuid
+  // A-17 ⓢ Q6: which of the product's required-document keys this upload
+  // satisfies. NULL for every existing document (untagged).
+  requirementKey String?           @map("requirement_key")
+  createdAt      DateTime          @default(now()) @map("created_at")
 
   @@index([submissionId])
   @@map("submission_documents")
@@ -648,6 +709,11 @@ model SalesTransaction {
   verifiedById          String?               @map("verified_by") @db.Uuid
   verifiedAt            DateTime?             @map("verified_at")
   remarks               String?
+  // A-17 ⓢ Q33c: the closer/upline/split-partner snapshot frozen at
+  // verifySale, so a later payment mark can't change WHO earns. NEW SALES
+  // ONLY — NULL for every existing (legacy) transaction, no backfill; legacy
+  // transactions keep the live upline/split resolution.
+  commissionParties     Json?                 @map("commission_parties")
 
   lineItems       SaleLineItem[]
   invoices        Invoice[]
@@ -663,31 +729,64 @@ model SalesTransaction {
 }
 
 // ---------------------------------------------------------------------------
+// A-17: quotations. Own record, generated from Doc Template, never touches
+// money and is never read by the commission engine — `lines`/`total` are a
+// JSONB snapshot at issue time precisely so a later product/rate change can't
+// retroactively change an issued quotation.
+// ---------------------------------------------------------------------------
+model Quotation {
+  id            String          @id @default(uuid()) @db.Uuid
+  quotationCode String          @unique @map("quotation_code")
+  associateId   String          @map("associate_id") @db.Uuid
+  associate     Associate       @relation(fields: [associateId], references: [id])
+  clientName    String          @map("client_name")
+  clientContact String?         @map("client_contact")
+  quoteDate     DateTime        @map("quote_date") @db.Date
+  validUntil    DateTime?       @map("valid_until") @db.Date
+  /// Snapshot at issue time: [{ productCode, productName, amount, addOns }].
+  lines         Json
+  total         Decimal         @db.Decimal(14, 2)
+  status        QuotationStatus @default(Issued)
+  createdById   String?         @map("created_by") @db.Uuid
+  voidedAt      DateTime?       @map("voided_at")
+  voidedById    String?         @map("voided_by") @db.Uuid
+  voidReason    String?         @map("void_reason")
+
+  convertedSubmissions SalesSubmission[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([associateId])
+  @@map("quotations")
+}
+
+// ---------------------------------------------------------------------------
 // Invoicing / installments
 // ---------------------------------------------------------------------------
 model Invoice {
-  id               String                @id @default(uuid()) @db.Uuid
-  transactionId    String                @map("transaction_id") @db.Uuid
-  transaction      SalesTransaction      @relation(fields: [transactionId], references: [id])
-  companyId        String                @map("company_id") @db.Uuid
-  company          Company               @relation(fields: [companyId], references: [id])
-  invoiceNumber    String                @map("invoice_number")
-  invoiceType      InvoiceType           @default(ComputerGenerated) @map("invoice_type")
-  installmentIndex Int?                  @map("installment_index")
-  amount           Decimal               @db.Decimal(14, 2)
-  status           InvoiceStatus         @default(Outstanding)
-  paidDate         DateTime?             @map("paid_date")
-  paidMarkedById   String?               @map("paid_marked_by") @db.Uuid
+  id                String                @id @default(uuid()) @db.Uuid
+  transactionId     String                @map("transaction_id") @db.Uuid
+  transaction       SalesTransaction      @relation(fields: [transactionId], references: [id])
+  companyId         String                @map("company_id") @db.Uuid
+  company           Company               @relation(fields: [companyId], references: [id])
+  invoiceNumber     String                @map("invoice_number")
+  invoiceType       InvoiceType           @default(ComputerGenerated) @map("invoice_type")
+  installmentIndex  Int?                  @map("installment_index")
+  amount            Decimal               @db.Decimal(14, 2)
+  status            InvoiceStatus         @default(Outstanding)
+  paidDate          DateTime?             @map("paid_date")
+  paidMarkedById    String?               @map("paid_marked_by") @db.Uuid
   // Payment capture on mark-Paid (Issues v1.0 #6): how the client tendered.
-  paidMethod       InvoicePaymentMethod? @map("paid_method")
-  paidReference    String?               @map("paid_reference")
-  pdfFileKey       String?               @map("pdf_file_key")
-  signedPdfFileKey String?               @map("signed_pdf_file_key")
+  paidMethod        InvoicePaymentMethod? @map("paid_method")
+  paidReference     String?               @map("paid_reference")
+  pdfFileKey        String?               @map("pdf_file_key")
+  signedPdfFileKey  String?               @map("signed_pdf_file_key")
   // B-7: the payment acknowledgement (PDF/JPG/PNG) required to mark Paid;
   // admin-only, served by invoice id (ADR-0001) — never a raw storage key.
-  paymentAckFileKey String?              @map("payment_ack_file_key")
-  remarks          String?
-  scheduleEntry    InstallmentSchedule?
+  paymentAckFileKey String?               @map("payment_ack_file_key")
+  remarks           String?
+  scheduleEntry     InstallmentSchedule?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -714,22 +813,22 @@ model InstallmentPlan {
 }
 
 model InstallmentSchedule {
-  id        String          @id @default(uuid()) @db.Uuid
-  planId    String          @map("plan_id") @db.Uuid
-  plan      InstallmentPlan @relation(fields: [planId], references: [id])
-  sequence  Int
-  dueAmount Decimal         @map("due_amount") @db.Decimal(14, 2)
-  dueDate   DateTime?       @map("due_date") @db.Date
-  invoiceId String?         @unique @map("invoice_id") @db.Uuid
-  invoice   Invoice?        @relation(fields: [invoiceId], references: [id])
-  paid      Boolean         @default(false)
-  paidDate  DateTime?       @map("paid_date")
+  id                String                @id @default(uuid()) @db.Uuid
+  planId            String                @map("plan_id") @db.Uuid
+  plan              InstallmentPlan       @relation(fields: [planId], references: [id])
+  sequence          Int
+  dueAmount         Decimal               @map("due_amount") @db.Decimal(14, 2)
+  dueDate           DateTime?             @map("due_date") @db.Date
+  invoiceId         String?               @unique @map("invoice_id") @db.Uuid
+  invoice           Invoice?              @relation(fields: [invoiceId], references: [id])
+  paid              Boolean               @default(false)
+  paidDate          DateTime?             @map("paid_date")
   // B-7: markInstallmentPaid writes this row directly (no Invoice row
   // required), so an installment-only payment needs its own ack slot, and
   // (DevLead) its own method/reference — Invoice already had these.
-  paymentAckFileKey String?              @map("payment_ack_file_key")
+  paymentAckFileKey String?               @map("payment_ack_file_key")
   paidMethod        InvoicePaymentMethod? @map("paid_method")
-  paidReference     String?              @map("paid_reference")
+  paidReference     String?               @map("paid_reference")
 
   @@unique([planId, sequence])
   @@map("installment_schedule")
@@ -961,6 +1060,15 @@ model PetsAshesAgreement {
   companyWitnessName    String?              @map("company_witness_name")
   companyWitnessNric    String?              @map("company_witness_nric")
   agreementPdfKey       String?              @map("agreement_pdf_key")
+
+  // A-17 C2: the terms snapshot + stored-PDF hash taken at signing, so a
+  // later edit to a term the agreement carries can be detected (compared
+  // against the submission's current terms) and the signature voided.
+  signedTerms      Json?   @map("signed_terms")
+  signedPdfSha256  String? @map("signed_pdf_sha256") @db.Char(64)
+  // Bumped each time a signature is voided and re-taken; 0 for every existing
+  // (never-voided) row.
+  signatureVersion Int     @default(0) @map("signature_version")
 
   createdById String? @map("created_by") @db.Uuid
 
