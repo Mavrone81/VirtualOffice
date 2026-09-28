@@ -11,12 +11,16 @@ export const metadata = { title: "Invite candidate · Enshrine Admin" };
 export default async function InviteCandidatePage() {
   const t = await getTranslations("recruitment");
 
-  const [uplines, h] = await Promise.all([
+  // A Business Admin can place a candidate into any team, so the choice is
+  // every active team already created (Admin → Teams) — a dropdown, not
+  // free text, so a typo can't invent a team that doesn't exist.
+  const [uplines, teams, h] = await Promise.all([
     prisma.associate.findMany({
       where: { archivedAt: null, associateStatus: "Active" },
       orderBy: { associateCode: "asc" },
       select: { associateCode: true, fullName: true, designation: true },
     }),
+    prisma.team.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { name: true } }),
     headers(),
   ]);
   const host = h.get("x-forwarded-host") ?? h.get("host");
@@ -27,6 +31,7 @@ export default async function InviteCandidatePage() {
       <PageHeader title={t("new.title")} subtitle={t("new.subtitle")} />
       <InviteForm
         baseUrl={baseUrl}
+        teamOptions={teams.map((x) => x.name)}
         uplines={uplines.map((u) => ({ code: u.associateCode, label: `${u.associateCode} · ${u.fullName} (${humanize(u.designation)})` }))}
       />
     </>
