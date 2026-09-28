@@ -6,6 +6,14 @@ name: Security
 on:
   pull_request:
     branches: [main]
+  # `push` is here deliberately, in addition to `pull_request`. `pull_request` is the
+  # load-bearing trigger — it is what makes CI judge the MERGE tree, which is the tree
+  # that actually lands. But a direct push to `main` skips review entirely, and that is
+  # precisely the path where an unscanned credential would land AND deploy (on this repo
+  # a merge to main is a production deploy, with no human gate after it). A gate that
+  # covers only the disciplined route does not cover the route that needs it most.
+  push:
+    branches: [main]
   schedule:
     # Mondays 01:00 UTC (09:00 SGT) — catches advisories published against deps
     # we never touched, which is how 20 of them accumulated unnoticed between
@@ -47,9 +55,15 @@ jobs:
       # package.json, which is the single source of truth for the pnpm version. Passing
       # BOTH makes the action throw "Multiple versions of pnpm specified" — it compares
       # them as strings (`packageManager.replace('pnpm@','') !== version`), so
-      # `pnpm@9.15.0` vs `version: 9` is a mismatch, not a match. 🔴 PRECONDITION: needs
-      # the `packageManager` pin merged first (see this kit's README) — with neither set,
-      # the action requires a version and fails.
+      # `pnpm@9.15.0` vs `version: 9` is a mismatch, not a match. With NEITHER set the
+      # action requires a version and fails, so the `packageManager` pin is a hard
+      # precondition for this job.
+      # ✅ SATISFIED: `main` carries `"packageManager": "pnpm@9.15.0"` (package.json:53)
+      # as of `25e329c`, 2026-09-28. This comment previously read "PRECONDITION: needs
+      # the pin merged first" — that was true when written and is now false, and a
+      # reviewer could have held this PR back on it. A comment that argues for a decision
+      # already taken keeps arguing: when a blocker clears, the note that named it has to
+      # clear with it.
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
