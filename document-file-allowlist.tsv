@@ -1,0 +1,20 @@
+# Directories allowed to hold committed documents (.xlsx .xls .docx .doc .pdf).
+# Enforced by .github/scripts/document-file-scan.mjs.
+#
+# TAB-separated:  directory <TAB> reason
+#
+# Rules, and why they are these rules:
+#  * A reason is MANDATORY. An allow-list with reasons stays maintained; a pile of
+#    unexplained paths is how a check gets quietly switched off.
+#  * Entries are DIRECTORIES, never individual filenames. A directory entry is a visible
+#    policy decision in the diff that adds it; a filename entry is a single file slipped
+#    into a list where the next reader cannot tell it apart from the rest.
+#  * Scope is the directory and everything under it. A sibling sharing a name prefix is
+#    NOT covered (`docs/t/` does not allow `docs/theft/`) — asserted in the self-test.
+#  * This file lives at the repository root, NOT under .github/, so adding a legitimate
+#    document directory does not touch the CI directory. Every edit to a workflow file is
+#    a chance for a wrong-side conflict resolution to delete a gate while tests stay green.
+#  * PREFER REMOVING THE FILE OVER ADDING AN ENTRY. An exemption is a debt with no due
+#    date: a later reader has to re-judge it forever.
+docs/agreement-templates/	Blank agreement templates, source of the customer-facing PDFs. No personal data: they are unfilled forms.
+public/templates/	The same blank templates, served to the browser for download. No personal data.
