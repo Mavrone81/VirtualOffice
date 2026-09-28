@@ -883,7 +883,13 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
       () => [{ action: "sale.closed_deal_flow_required", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { attempted: "approveQuotation" } }],
     );
     if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
-    return { ok: false, error: t("legacyReadOnly") };
+    // Distinct key from editSale/rejectSubmission's legacyReadOnly (a
+    // different condition — Legacy-frozen, not ClosedDeal-must-use-verifySale)
+    // to avoid a catalogue key collision with release/a17-03-ui, which adds
+    // its own legacyReadOnly wording. Same text for now; semantics and final
+    // wording per the 4-meaning key audit are deferred to follow-up F1 — this
+    // is only the minimal duplicate-key fix, not a considered naming ruling.
+    return { ok: false, error: t("flowNotAvailable") };
   }
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
@@ -951,7 +957,8 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
       () => [{ action: "sale.closed_deal_flow_required", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { attempted: "closeSale" } }],
     );
     if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
-    return { ok: false, error: t("legacyReadOnly") };
+    // Distinct key — see the same note in approveQuotation above.
+    return { ok: false, error: t("flowNotAvailable") };
   }
 
   if (sub.transaction) { revalidatePath("/portal/quotations"); return { ok: true }; } // already closed
