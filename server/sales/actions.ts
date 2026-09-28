@@ -13,7 +13,7 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { isSdApproved, sdApproverId, pickSplitDirectorId, splitFullyApproved } from "@/lib/approval";
-import { D, round2, sum, ZERO } from "@/lib/money";
+import { D, round2, ZERO } from "@/lib/money";
 import { ashesTermsSnapshot } from "@/lib/ashes-terms-snapshot";
 import { auditTx, AuditWriteError } from "@/lib/audit";
 import { runCommission, runCommissionTx, auditRunResultTx, buildCommissionPartiesSnapshot, COMMISSION_TX_OPTIONS } from "@/server/commission/run";
@@ -23,6 +23,7 @@ import { validate } from "@/lib/validate";
 import { saleSchema } from "@/lib/schemas";
 import { addSubmissionDocuments, storeSubmissionUploadBytes, MAX_DOC_BYTES } from "@/server/documents/submission-docs";
 import { createAshesDraftTx } from "@/server/agreements/ashes-draft";
+import { resolveSaleLines } from "@/server/sales/resolve-sale-lines";
 
 
 /**
@@ -84,34 +85,6 @@ export type SubmitSaleInput = {
  * already converted/voided, or not owned by this closer — caught by the
  * caller and turned into a normal refusal (never a raw 500). */
 class QuotationConvertConflict extends Error {}
-
-/** Resolve submitted lines into persisted line-item data + the total. Shared by
- * submitSale + editSale so both build line items identically; also used by
- * A-17's createQuotation, which server-prices its lines the exact same way. */
-export async function resolveSaleLines(lines: { productId: string; lineSaleAmount: number; comCodeIds: string[] }[]) {
-  const products = await prisma.product.findMany({ where: { id: { in: lines.map((l) => l.productId) } }, include: { comCodes: true } });
-  const byId = new Map(products.map((p) => [p.id, p]));
-  const lineData = lines.map((l) => {
-    const p = byId.get(l.productId);
-    if (!p) throw new Error("Unknown product");
-    const selected = p.comCodes
-      .filter((c) => l.comCodeIds.includes(c.id))
-      .map((c) => ({ comCode: c.comCode, label: c.label, valueType: c.valueType, value: c.value.toString() }));
-    return {
-      companyId: p.defaultCompanyId ?? products[0].defaultCompanyId!,
-      productCode: p.productCode,
-      productName: p.productName,
-      commissionType: p.commissionType,
-      lineSaleAmount: round2(l.lineSaleAmount),
-      isExternal: p.isExternal,
-      selectedComCodes: selected,
-    };
-  });
-  // A-17 §4: lineData feeds straight into SaleLineItem.create (no such column
-  // there), so the ashes flag is surfaced separately rather than added to it.
-  const needsAshesAgreement = lines.some((l) => byId.get(l.productId)?.requiresAshesAgreement === true);
-  return { lineData, saleAmount: sum(lineData.map((l) => l.lineSaleAmount)), needsAshesAgreement };
-}
 
 /** The submission's split columns from the validated input. */
 function splitColumns(
