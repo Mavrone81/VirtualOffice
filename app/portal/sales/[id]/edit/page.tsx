@@ -32,6 +32,7 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
     productCode: p.productCode,
     productName: p.productName,
     companyName: p.defaultCompany?.name ?? "—",
+    requiresAshesAgreement: p.requiresAshesAgreement,
     comCodes: p.comCodes.map((c) => ({ id: c.id, label: c.label, valueType: c.valueType, value: c.value.toString() })),
   }));
 
