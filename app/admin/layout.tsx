@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { sdAutoElapsedWhere } from "@/lib/approval";
+import { runNricRetentionOpportunistic } from "@/server/agreements/nric-retention";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ApprovalStatus, OnboardingStage, SubmissionStatus } from "@prisma/client";
 import { auth } from "@/auth";
@@ -16,6 +18,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (!isAdminRole(session.user.role)) redirect("/portal/dashboard");
+
+  // A-17 §4a: the NRIC retention purge's opportunistic trigger — runs after
+  // this response is sent, at most once a day, and never affects the page.
+  after(runNricRetentionOpportunistic);
 
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
   const [recruit, quotations, referrals] = await Promise.all([

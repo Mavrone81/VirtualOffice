@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { format } from "date-fns";
+import { SubmissionStatus, SubmissionFlow } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -12,22 +14,22 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { FilterBar, type FilterField } from "@/components/ui/filter-bar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
+import { RejectButton } from "./reject-button";
+import { VerifyPanel } from "./verify-panel";
+import { LegacyBanner } from "@/components/ui/legacy-banner";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Sales & verify · Enshrine Admin" };
 
 const PAGE_SIZE = 25;
 
-// B-2: Sales & Verify is READ-ONLY (Frontend's B-7 moved marking paid/unpaid
-// to Invoices entirely — see MarkPaidButton there). This page shows every
-// booked sale (a transaction exists) with its documents and payment/
-// installment status for reference, filterable and paginated.
-//
-// A-17 will later split this into two tabs ("Awaiting verification" / the
-// new Verify queue, and "Booked" / this exact list) — see docs/design/
-// a17-quotation-flow.md screen 4. Nothing here needs to anticipate that
-// beyond not assuming this is the page's only content forever.
-export default async function SalesVerifyPage({ searchParams }: { searchParams: Promise<TransactionSearch & { page?: string }> }) {
+// B-2's original page is READ-ONLY (Frontend's B-7 moved marking paid/unpaid
+// to Invoices entirely — see MarkPaidButton there); with A17_CLOSED_DEAL_FLOW
+// off it renders exactly that, unchanged. With the flag on, A-17 (docs/
+// design/a17-quotation-flow.md screen 4) adds a second tab in front of it:
+// "Awaiting verification" (SalesSubmission at Submitted + ClosedDeal, with
+// Verify/Reject) alongside "Booked" (this exact list, now second).
+export default async function SalesVerifyPage({ searchParams }: { searchParams: Promise<TransactionSearch & { page?: string; tab?: string }> }) {
   const t = await getTranslations("verify");
   const tf = await getTranslations("filters");
   const threshold = env.COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD;
@@ -35,6 +37,19 @@ export default async function SalesVerifyPage({ searchParams }: { searchParams: 
   const rawSp = await searchParams;
   const sp = parseTransactionSearch(rawSp);
   const page = Math.max(1, Number.parseInt(rawSp.page ?? "1", 10) || 1);
+  const a17On = env.A17_CLOSED_DEAL_FLOW;
+  const tab: "awaiting" | "booked" = a17On && rawSp.tab === "booked" ? "booked" : "awaiting";
+
+  const awaitingSales = a17On && tab === "awaiting"
+    ? await prisma.salesSubmission.findMany({
+        where: { status: SubmissionStatus.Submitted, flow: SubmissionFlow.ClosedDeal },
+        orderBy: { createdAt: "asc" },
+        include: {
+          closingAssociate: { select: { fullName: true, associateCode: true } },
+          lineItems: { select: { productName: true } },
+        },
+      })
+    : [];
 
   const [associates, categories, categoryProductCodes] = await Promise.all([
     prisma.associate.findMany({ select: { id: true, fullName: true, associateCode: true }, orderBy: { fullName: "asc" } }),
@@ -53,22 +68,25 @@ export default async function SalesVerifyPage({ searchParams }: { searchParams: 
   const where = transactionWhere({ closer: sp.closer, from: sp.from, to: sp.to, txnId: sp.txnId, productCodes });
   const filtersActive = Boolean(sp.closer || sp.from || sp.to || sp.txnId || sp.category);
 
-  const [total, sales] = await Promise.all([
-    prisma.salesTransaction.count({ where }),
-    prisma.salesTransaction.findMany({
-      where,
-      orderBy: [{ verifiedAt: "desc" }, { id: "desc" }],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: {
-        closingAssociate: { select: { fullName: true, associateCode: true } },
-        lineItems: { select: { productName: true } },
-        invoices: { include: { company: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
-        installmentPlan: { include: { schedule: { orderBy: { sequence: "asc" } } } },
-        submission: { include: { documents: { orderBy: { createdAt: "asc" } } } },
-      },
-    }),
-  ]);
+  const showBooked = tab === "booked" || !a17On;
+  const [total, sales] = showBooked
+    ? await Promise.all([
+        prisma.salesTransaction.count({ where }),
+        prisma.salesTransaction.findMany({
+          where,
+          orderBy: [{ verifiedAt: "desc" }, { id: "desc" }],
+          skip: (page - 1) * PAGE_SIZE,
+          take: PAGE_SIZE,
+          include: {
+            closingAssociate: { select: { fullName: true, associateCode: true } },
+            lineItems: { select: { productName: true } },
+            invoices: { include: { company: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
+            installmentPlan: { include: { schedule: { orderBy: { sequence: "asc" } } } },
+            submission: { include: { documents: { orderBy: { createdAt: "asc" } } } },
+          },
+        }),
+      ])
+    : [0, []];
 
   const fields: FilterField[] = [
     { type: "text", key: "txnId", label: tf("txnId") },
@@ -82,8 +100,52 @@ export default async function SalesVerifyPage({ searchParams }: { searchParams: 
 
   return (
     <>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader title={t("title")} subtitle={a17On && tab === "awaiting" ? t("awaitingSubtitle") : t("subtitle")} />
 
+      {a17On && (
+        <nav className="mb-4 flex flex-wrap gap-2" aria-label={t("title")}>
+          {(["awaiting", "booked"] as const).map((tb) => (
+            <Link
+              key={tb}
+              href={tb === "awaiting" ? "/admin/sales/verify" : "/admin/sales/verify?tab=booked"}
+              aria-current={tb === tab ? "page" : undefined}
+              className={
+                "rounded-xl border-2 border-ink px-6 py-2.5 text-[14px] font-semibold transition-colors " +
+                (tb === tab ? "bg-ink text-white" : "bg-white text-ink hover:bg-paper-100")
+              }
+            >
+              {t(`tabs.${tb}`)}
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      {a17On && tab === "awaiting" ? (
+        awaitingSales.length === 0 ? (
+          <Card className="px-5 py-12 text-center text-[13px] text-muted">{t("awaitingEmpty")}</Card>
+        ) : (
+          <div className="space-y-4">
+            {awaitingSales.map((s) => (
+              <Card key={s.id} className="overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
+                  <div className="text-[13px]">
+                    <span className="font-medium text-ink">{s.transactionCode}</span>
+                    <span className="text-muted"> · {s.clientName} · {formatSGD(s.saleAmount)} · {format(s.salesDate, "d MMM yyyy")}</span>
+                    <div className="mt-0.5 text-[12px] text-muted">
+                      {s.closingAssociate.fullName} · {humanize(s.paymentPlan)} · {s.lineItems.map((l) => l.productName).join(", ")}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <VerifyPanel id={s.id} />
+                    <RejectButton id={s.id} />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )
+      ) : (
+      <>
       <Suspense fallback={null}>
         <FilterBar fields={fields} clearAllLabel={tf("clearAll")} />
       </Suspense>
@@ -102,6 +164,9 @@ export default async function SalesVerifyPage({ searchParams }: { searchParams: 
               const paidInstallments = s.installmentPlan?.schedule.filter((x) => x.paid).length ?? 0;
               return (
                 <Card key={s.id} className="overflow-hidden">
+                  {a17On && s.submission?.flow === SubmissionFlow.Legacy && (
+                    <div className="px-5 pt-4"><LegacyBanner /></div>
+                  )}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
                     <div className="text-[13px]">
                       <span className="font-medium text-ink">{s.transactionCode}</span>
@@ -186,6 +251,8 @@ export default async function SalesVerifyPage({ searchParams }: { searchParams: 
             />
           </Suspense>
         </>
+      )}
+      </>
       )}
     </>
   );

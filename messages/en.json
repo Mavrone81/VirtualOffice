@@ -679,6 +679,7 @@
       "submitting": "Submitting…",
       "submitSale": "Submit sale",
       "verificationNote": "Becomes official after Accounts/HR verification.",
+      "ashesWillGenerate": "This sale includes a product that needs a Pet Ash agreement — one will be generated automatically for the client to sign.",
       "docsTitle": "Supporting documents",
       "docsNote": "Optional. Attach any supporting files (PDF, PNG or JPEG) — the admin reviews these before approving the quotation.",
       "docsTooLarge": "Attached documents are too large. Keep the total under 9 MB.",
@@ -844,6 +845,7 @@
       "contact": "Contact",
       "plan": "Plan",
       "date": "Date",
+      "txnCode": "Transaction code",
       "product": "Product",
       "amount": "Amount",
       "assoc2": "Associate 2",
@@ -860,8 +862,18 @@
       "agreement": "Agreement",
       "invoice": "Invoice",
       "invoicePending": "Invoice available once paid.",
+      "ashesAgreementLabel": "Pet Ash agreement",
+      "ashesAgreementStatus": {
+        "draft": "Awaiting signature",
+        "signed": "Signed",
+        "superseded": "Superseded"
+      },
       "signedDocs": "Signed documents",
       "noSigned": "No signed documents.",
+      "requiredDocsTitle": "Required documents",
+      "requiredDocAttached": "Attached",
+      "requiredDocUpload": "Upload",
+      "requiredDocUploadFailed": "Upload failed. Please try again.",
       "splitExceptionPending": "This split is larger than the Net-to-Closer, so a commission line would go below zero. A Business Admin must approve this exception before the sale can close.",
       "splitExceptionApproved": "A Business Admin has approved this split exception. The negative commission line will be booked as shown when the sale closes."
     },
@@ -915,6 +927,15 @@
     "overAllocatedWarning": "The direct + second-upline overrides exceed the company cut pool — company retained would be negative.",
     "couldNotCreate": "Could not create.",
     "createProductBtn": "Create product",
+    "requiredDocuments": "Required documents (A-17)",
+    "noRequiredDocuments": "No required documents — verify won't ask for any.",
+    "addRequiredDocument": "+ required document",
+    "removeRequiredDocument": "Remove",
+    "labelEnPlaceholder": "Label (English)",
+    "labelZhPlaceholder": "Label (Chinese)",
+    "ashesAgreementOn": "Pet Ash agreement required",
+    "ashesAgreementOff": "Pet Ash agreement not required",
+    "ashesAgreementToggleHint": "Whether submitting a sale for this product drafts a Pet Ash agreement automatically",
     "catalogue": {
       "title": "Products & Services",
       "subtitle": "What you can transact today",
@@ -1313,6 +1334,7 @@
     "photoInvalidFormat": "Photo must be a JPG, PNG, or WebP image.",
     "photoTooLarge": "Photo must be under 5 MB.",
     "signatureInvalid": "Invalid signature image.",
+    "signingFailed": "Could not complete signing — please try again.",
     "invalidFileType": "Unsupported file type.",
     "alreadyConverted": "Already converted.",
     "onboardingIncomplete": "Candidate has not completed onboarding yet.",
@@ -1321,6 +1343,7 @@
     "closingPctRequired": "Percentage products need a closing %.",
     "closingFixedRequired": "Fixed products need a flat closing amount.",
     "productCodeExists": "Product code already exists.",
+    "requiredDocumentsLimitReached": "This product already has the maximum number of required documents.",
     "allFieldsRequired": "All fields required.",
     "noAssociateProfile": "No associate profile linked.",
     "clientNameRequired": "Client name is required.",
@@ -1347,6 +1370,14 @@
     "payoutRunConflict": "Payouts changed while this run was in progress. Please try again.",
     "payoutAlreadyApprovedOrPaid": "Can't un-mark — commission from this sale is already approved or paid out.",
     "legacyReconciliationPending": "Can't un-mark — this associate has an older payout awaiting reconciliation for this month.",
+    "staleVersion": "This sale was edited after you opened this page. Reload to see the current version before verifying.",
+    "fourEyesBlocked": "You approved this sale's split exception; another admin or Accounts must verify.",
+    "requiredDocumentsMissing": "One or more required documents are missing for this sale's products.",
+    "productRecordMissing": "One of this sale's products could not be found. Fix the product records before verifying.",
+    "invalidRequirementKey": "This document requirement is no longer valid for this sale's products.",
+    "quotationNotConvertible": "This quotation can't be converted — it may already be used, voided, or not yours.",
+    "ashesSignatureRequired": "The Pet Ash agreement must be signed, with terms matching this sale, before it can be verified.",
+    "nricRetentionDisabled": "NRIC retention is not enabled yet. Preview the counts, then ask an owner to turn it on before running it.",
     "reasonRequired": "A reason is required.",
     "recomputeBusy": "System busy — the payment was NOT recorded. Please try again.",
     "auditUnavailable": "This couldn't be recorded in the audit trail, so it was NOT done. Please try again in a moment.",
@@ -1448,9 +1479,14 @@
     "signerNamePlaceholder": "Full name",
     "signAttach": "Sign & attach",
     "cancel": "Cancel",
+    "tabs": {
+      "records": "Quotations",
+      "legacy": "Legacy approval queue"
+    },
     "list": {
       "title": "Quotations",
       "subtitle": "Sales awaiting your review — check the client + documents, then approve the rep to generate the quotation. Runs in parallel with split approval.",
+      "recordsSubtitle": "Quotations issued by associates from Doc Template (A-17) — read-only; void needs a reason.",
       "empty": "Nothing awaiting quotation approval.",
       "colDate": "Date",
       "colClient": "Client",
@@ -1527,7 +1563,27 @@
       "showing": "Showing {from}–{to} of {total}",
       "prev": "‹ Prev",
       "next": "Next ›"
-    }
+    },
+    "tabs": {
+      "awaiting": "Awaiting verification",
+      "booked": "Booked"
+    },
+    "awaitingSubtitle": "Closed-deal sales waiting on split approval, documents and Verify.",
+    "awaitingEmpty": "No sales awaiting verification.",
+    "gate": {
+      "G1": "Split fully approved",
+      "G2": "Split exception (if any)",
+      "G3": "Required documents & Pet Ash agreement",
+      "G4": "Sale unchanged since this checklist loaded",
+      "G5": "Four-eyes (split exception approver ≠ verifier)"
+    },
+    "action": "Verify",
+    "recheck": "Re-check",
+    "reject": "Reject",
+    "reasonRequired": "Reason (required)",
+    "rejectConfirm": "Confirm reject",
+    "cancel": "Cancel",
+    "fourEyesBlocked": "You approved this sale's split exception; another admin or Accounts must verify."
   },
   "assistant": {
     "title": "Portal Assistant",
@@ -1661,7 +1717,8 @@
       "subtitle": "Blank templates to download, by category",
       "cat": {
         "pets": "Pets Afterlife",
-        "human": "Human Afterlife"
+        "human": "Human Afterlife",
+        "quotation": "Quotation"
       },
       "tplPetAsh": "Storage of Pet Ash Agreement",
       "tplReferral": "Referral & Marketing Partnership Agreement",
@@ -1669,5 +1726,44 @@
       "none": "No templates in this category yet.",
       "signedHeading": "Signed agreements"
     }
+  },
+  "quotation": {
+    "status": {
+      "issued": "Issued",
+      "converted": "Converted",
+      "void": "Void"
+    },
+    "form": {
+      "heading": "Issue a quotation",
+      "clientName": "Client name",
+      "clientContact": "Client contact",
+      "quoteDate": "Quote date",
+      "validUntil": "Valid until",
+      "product": "Product",
+      "price": "Price",
+      "addLine": "Add line",
+      "removeLine": "Remove line",
+      "total": "Total",
+      "issue": "Issue quotation"
+    },
+    "list": {
+      "heading": "Your quotations",
+      "empty": "No quotations yet. Issue one to give a prospective client a price before they commit.",
+      "colCode": "Code",
+      "colDate": "Date",
+      "colClient": "Client",
+      "colAssociate": "Associate",
+      "colProducts": "Products",
+      "colTotal": "Total",
+      "colStatus": "Status",
+      "view": "View",
+      "convert": "Convert to transaction",
+      "voidReasonPrompt": "Reason for voiding this quotation (required)",
+      "voidConfirm": "Void",
+      "cancel": "Cancel"
+    },
+    "convert": "Convert to transaction",
+    "void": "Void",
+    "fromChip": "From {code}"
   }
 }
