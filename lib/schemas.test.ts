@@ -159,11 +159,28 @@ describe("onboardingSchema", () => {
         nric: "S1234567A",
         paymentMethod: "PayNow",
         agreementAccepted: true,
+        nationality: "Singaporean",
+        gender: "Male",
+        religion: "Buddhism",
       }).success,
     ).toBe(true);
   });
 
-  const base = { nric: "S1234567A", paymentMethod: "PayNow" as const, agreementAccepted: true };
+  const base = {
+    nric: "S1234567A", paymentMethod: "PayNow" as const, agreementAccepted: true,
+    nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
+  };
+
+  // Printed on the Associate Agreement's particulars table (28 Sep) — each is
+  // required, and a blank one is as bad as a missing one.
+  it.each(["nationality", "gender", "religion"] as const)("requires %s", (key) => {
+    const { [key]: _omit, ...without } = base;
+    expect(onboardingSchema.safeParse(without).success).toBe(false);
+    expect(onboardingSchema.safeParse({ ...base, [key]: "  " }).success).toBe(false);
+  });
+  it("rejects a gender outside the listed values", () => {
+    expect(onboardingSchema.safeParse({ ...base, gender: "Unknown" }).success).toBe(false);
+  });
 
   it("accepts an optional marital status", () => {
     expect(onboardingSchema.safeParse({ ...base, maritalStatus: "Married" }).success).toBe(true);
