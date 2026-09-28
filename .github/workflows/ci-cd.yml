@@ -308,7 +308,16 @@ jobs:
             # quietly convert it. A normal fetch of main is enough — the sha we deploy
             # is main's head, or (for a rollback) an ancestor of it.
             git fetch origin main
-            git checkout --detach "$DEPLOY_SHA"
+            # A named local branch rather than a detached HEAD. Measured on the host:
+            # nothing depends on this clone sitting on `main` (the only VO cron is the
+            # backup, which references no git), so either is safe — but "detached HEAD"
+            # is what a human meets at 2am when something is wrong, and it reads like a
+            # mistake. `deployed` says what it is. -B force-moves it each deploy, and it
+            # has no upstream, so nobody can accidentally pull into it.
+            git checkout -B deployed "$DEPLOY_SHA"
+            # Print the resulting state, so the log answers "what source was this built
+            # from" without anyone having to log in and look.
+            echo "host checkout now at: $(git rev-parse HEAD) on $(git rev-parse --abbrev-ref HEAD)"
             # F7/A: pull and run the immutable per-commit tag, never `:latest`.
             # `:latest` is mutable and is whatever build pushed last, which is not
             # necessarily this one — that is how an older build won on 2026-09-28.
@@ -349,7 +358,10 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           envs: DEPLOY_SHA
           script: |
-            set -euo pipefail
+            # `set -eu` only: POSIX. `pipefail` is a bash-ism and this runs on the
+            # remote host, whose shell is not ours to assume — under dash it aborts the
+            # script on line 1, which would look exactly like the check passing quietly.
+            set -eu
             # The container's HEALTHCHECK has a 40s start-period; poll rather than
             # assume it is already serving. Fail closed if it never answers.
             RUNNING=""
@@ -387,3 +399,38 @@ jobs:
             echo "Verified: production is running the commit this run deployed."
         env:
           DEPLOY_SHA: ${{ github.sha }}
+
+      # F7/D: reclaim disk, but ONLY after C has confirmed the right build is live.
+      # Deploying by immutable per-commit tag (F7/A) is correct and it accumulates:
+      # ~400MB per merge, and the host's `docker image prune -f` cron removes DANGLING
+      # images only — it will never touch a tagged one. Measured on the host on
+      # 2026-09-28: / is 154G with 20G free (88% used), on a disk shared with other
+      # applications. So this step is part of A, not housekeeping.
+      #
+      # 🔴 Scoped to this repository's images ONLY. A global prune on a shared box would
+      # delete other tenants' images. The script asserts every row it is about to act on
+      # belongs to this repository and ABORTS without deleting if that is not true.
+      # It never uses `docker rmi -f`: an in-use image must stay. A cleanup must not
+      # fail a deploy that already succeeded and verified, so it always exits 0 and
+      # reports problems as warnings.
+      - name: Reclaim disk (this repository's old images only)
+        if: steps.check.outputs.ready == 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: DEPLOY_SHA,IMAGE
+          # The logic lives in deploy/reclaim-images.sh, in the repo, rather than inline
+          # here. A step that DELETES IMAGES on a shared host should be reviewable in a
+          # diff and runnable in a test — an inline heredoc inside YAML is neither, and
+          # the escaping alone produced two silently-wrong versions while writing it.
+          # The host checkout is already pinned to this commit, so the script present
+          # there is exactly the one in this PR.
+          script: |
+            set -e
+            cd /root/VirtualOffice
+            sh deploy/reclaim-images.sh
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+          IMAGE: ${{ env.IMAGE }}
