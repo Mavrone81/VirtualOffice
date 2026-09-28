@@ -863,6 +863,14 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
   // would mint a SECOND transaction code for a row that flow=ClosedDeal is
   // meant to close through the new flow instead. A ClosedDeal row must never
   // reach QuotationApproved via this path.
+  //
+  // NOT the same condition as N4's Legacy-frozen check elsewhere in this
+  // file: this refuses ClosedDeal; N4 refuses Legacy once the flag is on. A
+  // flow=Legacy row deliberately STAYS OPEN here — Samuel confirmed (28 Sep,
+  // reviews/a17-flag-on-preconditions.md §3) that an in-flight Legacy sale
+  // may finish through this same old workflow after the flag flips, losing
+  // only edit/reject, not approve/close. One refusal and one deliberate
+  // non-refusal, same function, different flows — not a gap.
   if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.ClosedDeal) {
     const refused = await writeAudited(
       async () => {},
@@ -924,6 +932,13 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
   // flow=ClosedDeal (its own salesTransaction.create, separate from this
   // one) — closeSale must never reach a ClosedDeal row at all, so this comes
   // before even the idempotency short-circuit below.
+  //
+  // NOT the same condition as N4's Legacy-frozen check elsewhere in this
+  // file: this refuses ClosedDeal; a flow=Legacy row deliberately STAYS OPEN
+  // here — Samuel confirmed (28 Sep, reviews/a17-flag-on-preconditions.md
+  // §3) an in-flight Legacy sale may still close through this same old
+  // workflow after the flag flips, losing only edit/reject. One refusal and
+  // one deliberate non-refusal, same function, different flows — not a gap.
   if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.ClosedDeal) {
     const refused = await writeAudited(
       async () => {},
