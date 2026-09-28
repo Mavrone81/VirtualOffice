@@ -91,7 +91,11 @@ export async function signQuotationOnSystem(
       if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
       throw e;
     }
-    return { ok: false, error: t("legacyReadOnly") };
+    // Distinct key from uploadDocketDocuments' legacyReadOnly below (a
+    // different condition — this refuses ClosedDeal, that refuses
+    // Legacy-frozen) to avoid a catalogue key collision with
+    // release/a17-03-ui. Semantics/wording deferred to follow-up F1.
+    return { ok: false, error: t("flowNotAvailable") };
   }
   if (sub.transaction) return { ok: false, error: t("alreadyProcessed") };
   if (sub.status !== SubmissionStatus.QuotationApproved) return { ok: false, error: t("quotationNotApproved") };
