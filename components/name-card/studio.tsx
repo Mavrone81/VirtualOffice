@@ -182,7 +182,7 @@ export function NameCardStudio({
                   <Label htmlFor="cn">{t("chineseName")}</Label>
                   <span className="text-[11px] text-muted-2">{chineseName.length}/{NAME_CARD_CHINESE_NAME_MAX}</span>
                 </div>
-                <Input id="cn" value={chineseName} maxLength={NAME_CARD_CHINESE_NAME_MAX} onChange={(e) => setChineseName(e.target.value)} placeholder="张三" />
+                <Input id="cn" value={chineseName} maxLength={NAME_CARD_CHINESE_NAME_MAX} onChange={(e) => setChineseName(e.target.value)} placeholder="中文名" />
               </div>
             )}
             {canEditTitle && (
