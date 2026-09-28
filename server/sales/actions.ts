@@ -1180,6 +1180,10 @@ export async function addSubmissionRequiredDocument(
   file: File,
 ): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
+  // MD B2: flag-OFF must be genuinely dark — this whole A-17 mechanism has no
+  // Legacy-flow counterpart, so a flag-off deploy must not be able to reach
+  // it at all, callable server action or not.
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
 
@@ -1244,6 +1248,9 @@ export type RequiredDocumentGate =
  */
 export async function getRequiredDocumentGate(submissionId: string): Promise<RequiredDocumentGate> {
   const t = await getTranslations("errors");
+  // MD B2: flag-OFF must be genuinely dark — same reasoning as
+  // addSubmissionRequiredDocument above (this is its read-side counterpart).
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
   const session = await auth();
   if (!session) return { ok: false, error: t("forbidden") };
 
