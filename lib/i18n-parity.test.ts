@@ -17,20 +17,20 @@ describe("i18n key parity (en vs zh-CN)", () => {
     expect([...zhKeys].filter((k) => !enKeys.has(k))).toEqual([]);
   });
 
-  // A14: the name-card field label is 中文名 (distinct from A-15 below).
-  it("nameCard.chineseName reads 中文名 in both locales", () => {
-    expect(en.nameCard.chineseName).toBe("中文名");
+  // A14, revised by Samuel 28 Sep: the name-card field reads "Chinese Name" in
+  // English and 中文名 in Chinese (its placeholder is 中文名, not a sample name).
+  it("nameCard.chineseName reads Chinese Name / 中文名", () => {
+    expect(en.nameCard.chineseName).toBe("Chinese Name");
     expect(zhCN.nameCard.chineseName).toBe("中文名");
   });
 
-  // A-15 (Samuel, Q10, 2026-09-26): split by portal. The associate Marketing
-  // menu item + its page title read 中文名; the admin Marketing library keeps
-  // "Customisation" (shared nav.customisation would otherwise leak into both).
-  it("the associate Customisation menu item and its page title read 中文名", () => {
-    expect(en.nav.chineseNameMenu).toBe("中文名");
-    expect(zhCN.nav.chineseNameMenu).toBe("中文名");
-    expect(en.marketing.customisation.title).toBe("中文名");
-    expect(zhCN.marketing.customisation.title).toBe("中文名");
+  // A-15 revised by Samuel 28 Sep: the associate Marketing menu item and its
+  // page title read "Customisation" (same wording as the admin library), not 中文名.
+  it("the associate Customisation menu item and its page title read Customisation", () => {
+    expect(en.nav.chineseNameMenu).toBe(en.nav.customisation);
+    expect(zhCN.nav.chineseNameMenu).toBe(zhCN.nav.customisation);
+    expect(en.marketing.customisation.title).toBe(en.nav.customisation);
+    expect(zhCN.marketing.customisation.title).toBe(zhCN.nav.customisation);
   });
 
   it("the admin Marketing library keeps the Customisation label", () => {
