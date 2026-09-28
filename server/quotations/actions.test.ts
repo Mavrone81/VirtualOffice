@@ -8,6 +8,10 @@ vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+// MD B2: createQuotation/voidQuotation now refuse outright when the flag is
+// off (a separate, dedicated test covers that refusal) — this file tests the
+// feature's own real behaviour, which only exists with the flag on.
+vi.mock("@/lib/env", async (orig) => ({ ...(await orig<typeof import("@/lib/env")>()), env: { ...(await orig<typeof import("@/lib/env")>()).env, A17_CLOSED_DEAL_FLOW: true } }));
 
 import { prisma } from "@/lib/db";
 import { createQuotation, voidQuotation } from "./actions";
