@@ -10,7 +10,7 @@ vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/storage", () => ({ putObject: putObjectMock }));
 vi.mock("@/lib/file-type", () => ({ assertUpload: assertMock }));
 
-import { addSubmissionDocuments, MAX_DOC_BYTES } from "@/server/documents/submission-docs";
+import { addSubmissionDocuments, storeSubmissionUploadBytes, MAX_DOC_BYTES } from "@/server/documents/submission-docs";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -51,5 +51,36 @@ describe("addSubmissionDocuments", () => {
     const empty = new File([], "");
     const r = await addSubmissionDocuments("sub1", [empty], "Supporting", null);
     expect(r).toEqual({ stored: 0, rejected: [] });
+  });
+});
+
+describe("storeSubmissionUploadBytes", () => {
+  it("validates + stores a good file and returns its key", async () => {
+    const f = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "contract.pdf");
+    const key = await storeSubmissionUploadBytes("sub1", f);
+    expect(key).toMatch(/^submissions\/sub1\/.+\.pdf$/);
+    expect(putObjectMock).toHaveBeenCalledTimes(1);
+    expect(prismaMock.submissionDocument.create).not.toHaveBeenCalled(); // no DB write — caller's job
+  });
+
+  it("returns null for an oversize file without storing", async () => {
+    const big = new File([new Uint8Array(MAX_DOC_BYTES + 1)], "big.pdf");
+    const key = await storeSubmissionUploadBytes("sub1", big);
+    expect(key).toBeNull();
+    expect(putObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("returns null for a file that fails magic-byte sniffing", async () => {
+    assertMock.mockImplementation(() => { throw new Error("BAD_UPLOAD_TYPE"); });
+    const f = new File([new Uint8Array([0x00, 0x01])], "fake.exe");
+    const key = await storeSubmissionUploadBytes("sub1", f);
+    expect(key).toBeNull();
+    expect(putObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("returns null for an empty file", async () => {
+    const empty = new File([], "");
+    const key = await storeSubmissionUploadBytes("sub1", empty);
+    expect(key).toBeNull();
   });
 });

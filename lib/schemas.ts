@@ -61,6 +61,9 @@ export const saleSchema = z
     // Flow-3 Net-to-Closer split (optional).
     associate2: splitShare.optional(),
     associate3: splitShare.optional(),
+    // A-17 §2: converting a quotation into this sale (informational FK; CAS'd
+    // Issued -> Converted server-side in submitSale).
+    quotationId: id.optional(),
   })
   // SEC-6: the percentage shares together can't exceed 100% of net, and the two
   // partners must be different people.
@@ -88,6 +91,28 @@ export const saleSchema = z
     { message: "Deposit must be less than the sale amount for an installment plan", path: ["deposit"] },
   );
 export type SaleInput = z.infer<typeof saleSchema>;
+
+// ---------------------------------------------------------------------------
+// A-17 — Quotation (mirrors CreateQuotationInput, server/quotations/actions.ts).
+// No money/approval fields: a quotation is priced but never touches the engine.
+// ---------------------------------------------------------------------------
+export const quotationSchema = z.object({
+  clientName: name,
+  clientContact: z.string().trim().max(200).optional(),
+  quoteDate: dateStr,
+  validUntil: dateStr.optional(),
+  lines: z
+    .array(
+      z.object({
+        productId: id,
+        lineSaleAmount: z.number().finite().positive().max(100_000_000),
+        comCodeIds: z.array(id).max(50),
+      }),
+    )
+    .min(1)
+    .max(100),
+});
+export type QuotationInput = z.infer<typeof quotationSchema>;
 
 // ---------------------------------------------------------------------------
 // Com codes — mirrors the addComCode() second argument (server/products/actions.ts)
@@ -122,6 +147,19 @@ export const productSchema = z.object({
   effectiveDate: dateStr,
 });
 export type ProductSchemaInput = z.infer<typeof productSchema>;
+
+// ---------------------------------------------------------------------------
+// A-17 screen 6 — per-product required documents (add only; the key is
+// server-generated, never part of the input — see lib/product-requirement-key.ts).
+// ---------------------------------------------------------------------------
+export const addProductRequiredDocumentSchema = z.object({
+  labelEn: z.string().trim().min(1).max(200),
+  labelZh: z.string().trim().min(1).max(200),
+});
+export type AddProductRequiredDocumentInput = z.infer<typeof addProductRequiredDocumentSchema>;
+
+// Bounded so the list (and the checklist UI it drives) can't grow unbounded.
+export const MAX_REQUIRED_DOCUMENTS_PER_PRODUCT = 20;
 
 // ---------------------------------------------------------------------------
 // Associates — mirrors NewAssociateInput (server/associates/actions.ts)

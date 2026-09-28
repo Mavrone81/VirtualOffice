@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Designation, LedgerLineType, LedgerStatus, PayoutStatus, Prisma } from "@prisma/client";
+import { Designation, ComValueType, LedgerLineType, LedgerStatus, PayoutStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { computeTransactionCommission, type LineInput, type UplineInput, type SplitInput } from "./engine";
 import { toLineInput, toSplit, toUpline } from "./inputs";
@@ -28,13 +28,28 @@ export type CommissionParties = {
 };
 
 /**
- * Resolve the uplines, split partners and eligibility a commission recompute needs,
- * from LIVE associate/submission data. This is the one place that knows where those
- * come from, so a later flow (A-17, ClosedDeal) can substitute a frozen snapshot
- * (`SalesTransaction.commissionParties`, taken at verify) without touching the rest
- * of runCommissionTx.
+ * A-17 §2 (Q33c): the JSON-serializable shape stored on
+ * `SalesTransaction.commissionParties`, written once at verifySale, never
+ * updated (except DevSecOps' C3 admin-only correction path). Freezes WHO
+ * earns and each upline's own Approved&&Active flag exactly as verifySale
+ * saw them — a later designation/upline/approval change can't retroactively
+ * change a booked deal's payees (the R-2 bug this removes). Deliberately
+ * does NOT freeze payment eligibility (`SalesTransaction.commissionEligibility`)
+ * — that's driven by amountCollected/A-0 and must stay live every recompute.
  */
-export async function loadCommissionParties(db: Db, tx: TxForParties): Promise<CommissionParties> {
+export type CommissionPartiesSnapshot = {
+  v: 1;
+  frozenAt: string;
+  closer: { id: string; designation: Designation };
+  directUpline: { id: string; designation: Designation; eligible: boolean } | null;
+  secondUpline: { id: string; designation: Designation; eligible: boolean } | null;
+  associate2: { associateId: string; valueType: ComValueType; value: string } | null;
+  associate3: { associateId: string; valueType: ComValueType; value: string } | null;
+  names: Record<string, { name: string | null; designation: Designation | null }>;
+};
+
+/** Live resolution from associate/submission data (Legacy, and the source verifySale snapshots from). */
+async function loadLiveCommissionParties(db: Db, tx: TxForParties): Promise<CommissionParties> {
   const associate2 = toSplit(tx.submission.associate2Id, tx.submission.associate2ValueType, tx.submission.associate2Value);
   const associate3 = toSplit(tx.submission.associate3Id, tx.submission.associate3ValueType, tx.submission.associate3Value);
 
@@ -56,6 +71,51 @@ export async function loadCommissionParties(db: Db, tx: TxForParties): Promise<C
     secondUpline: toUpline(tx.secondUplineId ? upById.get(tx.secondUplineId) : null),
     associate2,
     associate3,
+    eligible: tx.commissionEligibility === "Eligible",
+    nameOf,
+  };
+}
+
+/**
+ * A-17 verifySale: build the frozen snapshot from live data, to persist on
+ * `SalesTransaction.commissionParties` inside the verify transaction.
+ */
+export async function buildCommissionPartiesSnapshot(db: Db, tx: TxForParties): Promise<CommissionPartiesSnapshot> {
+  const live = await loadLiveCommissionParties(db, tx);
+  const names: CommissionPartiesSnapshot["names"] = {};
+  for (const id of [tx.closingAssociateId, live.directUpline?.associateId, live.secondUpline?.associateId, live.associate2?.associateId, live.associate3?.associateId]) {
+    if (id) names[id] = live.nameOf(id);
+  }
+  return {
+    v: 1,
+    frozenAt: new Date().toISOString(),
+    closer: { id: tx.closingAssociateId, designation: tx.closingAssociate.designation },
+    directUpline: live.directUpline ? { id: live.directUpline.associateId, designation: live.directUpline.designation, eligible: live.directUpline.eligible } : null,
+    secondUpline: live.secondUpline ? { id: live.secondUpline.associateId, designation: live.secondUpline.designation, eligible: live.secondUpline.eligible } : null,
+    associate2: live.associate2 ? { associateId: live.associate2.associateId, valueType: live.associate2.valueType, value: live.associate2.value.toString() } : null,
+    associate3: live.associate3 ? { associateId: live.associate3.associateId, valueType: live.associate3.valueType, value: live.associate3.value.toString() } : null,
+    names,
+  };
+}
+
+/**
+ * Resolve the uplines, split partners and eligibility a commission recompute
+ * needs. A ClosedDeal transaction with a frozen snapshot rehydrates from it —
+ * no live associate query for payee decisions, names included (Q14/Q33c).
+ * Legacy (commissionParties null) resolves live, as before A-17.
+ */
+export async function loadCommissionParties(db: Db, tx: TxForParties): Promise<CommissionParties> {
+  const snapshot = tx.commissionParties as CommissionPartiesSnapshot | null;
+  if (!snapshot) return loadLiveCommissionParties(db, tx);
+
+  const nameOf = (id: string | null): { name: string | null; designation: Designation | null } =>
+    (id && snapshot.names[id]) || { name: null, designation: null };
+  return {
+    directUpline: snapshot.directUpline ? { associateId: snapshot.directUpline.id, designation: snapshot.directUpline.designation, eligible: snapshot.directUpline.eligible } : null,
+    secondUpline: snapshot.secondUpline ? { associateId: snapshot.secondUpline.id, designation: snapshot.secondUpline.designation, eligible: snapshot.secondUpline.eligible } : null,
+    associate2: snapshot.associate2 ? { associateId: snapshot.associate2.associateId, valueType: snapshot.associate2.valueType, value: snapshot.associate2.value } : null,
+    associate3: snapshot.associate3 ? { associateId: snapshot.associate3.associateId, valueType: snapshot.associate3.valueType, value: snapshot.associate3.value } : null,
+    // Payment eligibility is driven by amountCollected (A-0), never frozen.
     eligible: tx.commissionEligibility === "Eligible",
     nameOf,
   };

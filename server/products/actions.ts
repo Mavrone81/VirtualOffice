@@ -8,7 +8,9 @@ import { prisma } from "@/lib/db";
 import { can } from "@/lib/rbac";
 import { auditTx, AuditWriteError } from "@/lib/audit";
 import { validate as validateInput } from "@/lib/validate";
-import { productSchema, comCodeSchema } from "@/lib/schemas";
+import { productSchema, comCodeSchema, addProductRequiredDocumentSchema, MAX_REQUIRED_DOCUMENTS_PER_PRODUCT } from "@/lib/schemas";
+import { generateRequirementKey } from "@/lib/product-requirement-key";
+import { env } from "@/lib/env";
 
 // Managing products / com codes / rates is Admin-only (docs/05_RBAC.md §3).
 async function requireAdmin() {
@@ -221,6 +223,143 @@ export async function toggleComCode(comCodeId: string, active: boolean): Promise
     });
   } catch (e) {
     if (e instanceof AuditWriteError) return { ok: false };
+    throw e;
+  }
+  revalidatePath("/admin/products");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// A-17 screen 6: per-product required documents + the Pet Ash agreement
+// flag. Add/remove only (no in-place edit, no reordering) — the key is
+// generated from the English label, never admin-typed (lib/product-
+// requirement-key.ts), so it can't collide and editing a label later can't
+// silently change the key that G3 (server/sales/actions.ts) and
+// submission_documents.requirement_key already reference. Gated on
+// A17_CLOSED_DEAL_FLOW: refuses exactly like a not-yet-shipped feature
+// (t("notFound")) when it's off, same posture as B-9's build-now-ship-later.
+// ---------------------------------------------------------------------------
+// Snake_case in storage: matches the schema comment and Backend's own
+// existing verifySale test fixture exactly (server/sales/
+// a17-verify-sale.integration.test.ts) — G3 only ever reads `.key`, so
+// nothing enforces this, but drifting from the one other place this shape
+// already exists would just be confusing later.
+type RequiredDocumentEntry = { key: string; label_en: string; label_zh: string };
+
+function requiredDocumentsOf(product: { requiredDocuments: Prisma.JsonValue }): RequiredDocumentEntry[] {
+  return (product.requiredDocuments as RequiredDocumentEntry[] | null) ?? [];
+}
+
+// Sentinels thrown INSIDE the transaction to short-circuit to a specific
+// {ok:false} result once outside it — matching the row lock's whole point:
+// nothing about the outcome can be decided from a read taken before the
+// lock, so every branch (not found, at the bound, missing key) has to be
+// decided from the LOCKED read, inside the same transaction as the write.
+class RequirementNotFound extends Error {}
+class RequirementLimitReached extends Error {}
+
+// FOR UPDATE locks the row for the rest of the transaction — a second
+// concurrent add/remove on the SAME product blocks until this one commits
+// or rolls back, so the read-modify-write of the JSON list can't lose a
+// concurrent change the way two unlocked reads racing to write would.
+async function lockProductRequiredDocuments(db: Prisma.TransactionClient, productId: string): Promise<RequiredDocumentEntry[]> {
+  const rows = await db.$queryRaw<{ required_documents: Prisma.JsonValue }[]>`
+    SELECT required_documents FROM products WHERE id = ${productId}::uuid FOR UPDATE
+  `;
+  if (rows.length === 0) throw new RequirementNotFound();
+  return requiredDocumentsOf({ requiredDocuments: rows[0].required_documents });
+}
+
+export async function addProductRequiredDocument(
+  productId: string,
+  input: { labelEn: string; labelZh: string },
+): Promise<{ ok: boolean; error?: string; key?: string }> {
+  const t = await getTranslations("errors");
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
+  const v = validateInput(addProductRequiredDocumentSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+
+  // Tier A (commission input — required documents gate verify's eligibility): the change and its record commit together.
+  let key = "";
+  try {
+    await prisma.$transaction(async (db) => {
+      const existing = await lockProductRequiredDocuments(db, productId);
+      if (existing.length >= MAX_REQUIRED_DOCUMENTS_PER_PRODUCT) throw new RequirementLimitReached();
+
+      key = generateRequirementKey(validInput.labelEn, existing.map((e) => e.key));
+      const entry: RequiredDocumentEntry = { key, label_en: validInput.labelEn, label_zh: validInput.labelZh };
+      const updated: RequiredDocumentEntry[] = [...existing, entry];
+
+      await db.product.update({ where: { id: productId }, data: { requiredDocuments: updated as Prisma.InputJsonValue } });
+      await auditTx(db, { action: "product.required_document_added", entityType: "Product", entityId: productId, actorUserId: admin.user.id, after: entry });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    if (e instanceof RequirementNotFound) return { ok: false, error: t("notFound") };
+    if (e instanceof RequirementLimitReached) return { ok: false, error: t("requiredDocumentsLimitReached") };
+    throw e;
+  }
+  revalidatePath("/admin/products");
+  return { ok: true, key };
+}
+
+export async function removeProductRequiredDocument(productId: string, key: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+
+  // Tier A: the change and its record commit together. Nothing else needs
+  // to change — G3 checks the CURRENT product config at verify time, so an
+  // already-tagged submission_documents row just stops mattering for this
+  // requirement; no backfill. Re-adding the same label later regenerates
+  // the same key (the slug is deterministic), so a previously tagged
+  // document counts again — that's the same requirement coming back, not a
+  // new one, which is the intended behavior, not a bug.
+  try {
+    await prisma.$transaction(async (db) => {
+      const existing = await lockProductRequiredDocuments(db, productId);
+      const removed = existing.find((e) => e.key === key);
+      if (!removed) throw new RequirementNotFound();
+      const updated = existing.filter((e) => e.key !== key);
+
+      await db.product.update({ where: { id: productId }, data: { requiredDocuments: updated as Prisma.InputJsonValue } });
+      await auditTx(db, { action: "product.required_document_removed", entityType: "Product", entityId: productId, actorUserId: admin.user.id, before: removed });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    if (e instanceof RequirementNotFound) return { ok: false, error: t("notFound") };
+    throw e;
+  }
+  revalidatePath("/admin/products");
+  return { ok: true };
+}
+
+export async function setProductAshesAgreementFlag(productId: string, requiresAshesAgreement: boolean): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  if (!env.A17_CLOSED_DEAL_FLOW) return { ok: false, error: t("notFound") };
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
+  if (!product) return { ok: false, error: t("notFound") };
+
+  // Tier A (drives automatic Pet Ash agreement generation at submit — A-17 §4).
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.product.update({ where: { id: productId }, data: { requiresAshesAgreement } });
+      await auditTx(db, {
+        action: requiresAshesAgreement ? "product.ashes_agreement_required" : "product.ashes_agreement_not_required",
+        entityType: "Product",
+        entityId: productId,
+        actorUserId: admin.user.id,
+      });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
     throw e;
   }
   revalidatePath("/admin/products");

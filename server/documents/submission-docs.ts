@@ -9,12 +9,34 @@ import { assertUpload } from "@/lib/file-type";
 export const MAX_DOC_BYTES = 15_000_000;
 
 /**
+ * Validate (size cap, SEC-11 magic-byte sniff — PDF/PNG/JPEG only) and store
+ * one file's bytes in the object store. Returns the storage key, or null on a
+ * bad/oversize file — never throws. Callers that need the submission_documents
+ * row written inside their OWN transaction (e.g. a Tier-A audited write, see
+ * addSubmissionRequiredDocument in server/sales/actions.ts) create the row
+ * themselves after this; addSubmissionDocuments below does both steps itself
+ * for its own best-effort, unaudited, freeform-batch case.
+ */
+export async function storeSubmissionUploadBytes(submissionId: string, file: File): Promise<string | null> {
+  if (!file || file.size === 0 || file.size > MAX_DOC_BYTES) return null;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let ext: "png" | "jpeg" | "pdf";
+  try {
+    ext = assertUpload(bytes, ["pdf", "png", "jpeg"]);
+  } catch {
+    return null;
+  }
+  const key = `submissions/${submissionId}/${randomUUID()}.${ext}`;
+  await putObject(key, Buffer.from(bytes));
+  return key;
+}
+
+/**
  * Attach freeform documents to a sale (16-Jul quotation workflow). `Supporting`
  * = uploaded at submission (admin reviews before approving the quotation);
- * `Signed` = client-signed documents in the docket after generation. Each file
- * is magic-byte sniffed (PDF/PNG/JPEG only) and stored in the object store; a
- * bad or oversize file is skipped and reported, never thrown, so it can't fail
- * the surrounding action.
+ * `Signed` = client-signed documents in the docket after generation. A bad or
+ * oversize file is skipped and reported, never thrown, so it can't fail the
+ * surrounding action.
  */
 export async function addSubmissionDocuments(
   submissionId: string,
@@ -26,17 +48,8 @@ export async function addSubmissionDocuments(
   let stored = 0;
   for (const file of files) {
     if (!file || file.size === 0) continue;
-    if (file.size > MAX_DOC_BYTES) { rejected.push(file.name); continue; }
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    let ext: "png" | "jpeg" | "pdf";
-    try {
-      ext = assertUpload(bytes, ["pdf", "png", "jpeg"]);
-    } catch {
-      rejected.push(file.name);
-      continue;
-    }
-    const key = `submissions/${submissionId}/${randomUUID()}.${ext}`;
-    await putObject(key, Buffer.from(bytes));
+    const key = await storeSubmissionUploadBytes(submissionId, file);
+    if (!key) { rejected.push(file.name); continue; }
     await prisma.submissionDocument.create({
       data: { submissionId, kind, fileKey: key, fileName: file.name, uploadedById: uploaderId },
     });
