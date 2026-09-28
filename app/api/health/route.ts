@@ -13,7 +13,14 @@ export async function GET() {
   return Response.json(
     // auditOk: no best-effort audit write has failed since this process booted
     // (a boolean only — the endpoint is public; the count is in the logs).
-    { status: "ok", uptime: Math.round(process.uptime()), auditOk: auditOk() },
+    // F7 `sha`: the commit this image was built from, so a post-deploy check can
+    // compare the RUNNING container against `main`. Production silently running an
+    // older build than main is otherwise invisible — every check stays green.
+    // 🔴 Deliberately the commit sha and NOTHING else. This endpoint is public
+    // (middleware.ts excludes /api), so no build host, no branch, no env, no paths:
+    // a commit sha for a public repo discloses nothing a reader cannot already
+    // fetch, and anything else here would.
+    { status: "ok", uptime: Math.round(process.uptime()), auditOk: auditOk(), sha: process.env.BUILD_SHA ?? "unknown" },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
