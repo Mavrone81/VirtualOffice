@@ -1,0 +1,28 @@
+# Permitted top-level DIRECTORIES. Enforced by .github/scripts/toplevel-dir-scan.mjs.
+#
+# TAB-separated:  directory <TAB> reason
+#
+# Rules, and why they are these rules:
+#  * This list names only what is PERMITTED. It never names a forbidden path — in a public
+#    repository a denylist would tell a reader exactly what to go looking for in history.
+#    Anything not listed is caught, whatever it is called and whatever it contains.
+#  * A reason is MANDATORY, so the next reader can tell a deliberate root from a stray one.
+#  * Matching is on the EXACT directory name, not a prefix: a root sharing a name prefix
+#    with a permitted one is not permitted. Asserted in the self-test.
+#  * DIRECTORIES ONLY. Top-level files are deliberately not covered: they churn during
+#    ordinary work, and a check that fires on ordinary work gets switched off.
+#  * Adding a root here is a policy decision. Prefer putting new code under an existing
+#    root over widening this list.
+app	Next.js App Router pages and route handlers.
+components	Shared React components.
+deploy	Deployment runbooks and host configuration.
+docs	Project documentation, ADRs and agreement templates.
+i18n	Locale routing and request configuration.
+lib	Framework-agnostic helpers shared by server and client.
+messages	Translation catalogues (en, zh-CN).
+prisma	Schema, migrations and the seed script.
+public	Static assets served as-is, including blank downloadable templates.
+scripts	One-off maintenance and backfill scripts.
+server	Server-only actions and business logic.
+types	Ambient TypeScript declarations.
+.github	CI workflows and the scripts they run.

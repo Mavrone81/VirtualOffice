@@ -1,0 +1,72 @@
+name: Repo structure
+
+# Unexpected-top-level-directory gate. Fails on any tracked top-level directory that is not
+# an explicitly permitted root.
+#
+# 🔴 ITS OWN WORKFLOW FILE, AND BASED ON main RATHER THAN STACKED. A sibling PR adds
+# .github/workflows/repo-hygiene.yml (the committed-document gate). Two independent PRs
+# cannot both create one file, and stacking this on that PR would give it a hard merge
+# order — which is the failure this project has paid for repeatedly: a sha or an ordering
+# constraint moving under someone who had already written it down. Separate files, separate
+# bases, either order. Once both are on main the two hygiene jobs can be consolidated into
+# one file as a trivial follow-up, which is the right moment to do it — nothing in flight.
+#
+# The allow-list names ONLY permitted roots, never a forbidden path: in a public repository
+# a denylist would tell a reader exactly what to go looking for in history.
+
+on:
+  pull_request:
+    branches: [main]
+  # `push` as well: a direct push to main skips review, and a merge to main here is a
+  # production deploy with no human gate after it.
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: repo-structure-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  top-level-directories:
+    name: Top-level directories
+    runs-on: ubuntu-latest
+    # No `continue-on-error` at JOB level, now or later: it would also cover the self-test,
+    # the one step whose purpose is to prove this walker is not silently measuring nothing.
+    # If a temporary exemption is ever needed, put it on the scan step only.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Self-test the structure scan's shape claims
+        run: node .github/scripts/toplevel-dir-scan.mjs --self-test
+
+      - name: Scan for unexpected top-level directories
+        run: |
+          set -o pipefail
+          # No install: the scanner is dependency-free, stdlib only.
+          node .github/scripts/toplevel-dir-scan.mjs 2>&1 | tee scan.txt || failed=1
+          {
+            echo "## Top-level directories"
+            echo
+            if [ "${failed:-0}" = "0" ]; then
+              echo "No unexpected top-level directories."
+            else
+              echo "A tracked top-level directory is not in \`toplevel-allowlist.tsv\`."
+              echo
+              echo "If it does not belong in this repository, remove it from the commit —"
+              echo "deleting it from the working tree is not enough once it is tracked."
+              echo "If it does belong, add it to \`toplevel-allowlist.tsv\` **with a reason**."
+              echo "Prefer putting new code under an existing root over widening the list."
+            fi
+            echo
+            echo '```'
+            cat scan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${failed:-0}"
