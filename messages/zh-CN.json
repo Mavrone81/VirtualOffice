@@ -471,7 +471,8 @@
     "errors": {
       "noAgreement": "请接受伙伴协议以继续。",
       "noSignature": "请在方框内签名以完成协议。",
-      "submitFailed": "提交失败，请重试。"
+      "submitFailed": "提交失败，请重试。",
+      "particularsRequired": "请填写您的国籍、性别及宗教——这些资料将载入您的伙伴协议。"
     },
     "details": {
       "title": "您的个人资料",
@@ -484,6 +485,21 @@
       "married": "已婚",
       "divorced": "离异",
       "widowed": "丧偶",
+      "nationality": "国籍 *",
+      "nationalityPlaceholder": "例如：新加坡",
+      "gender": "性别 *",
+      "male": "男",
+      "female": "女",
+      "religion": "宗教 *",
+      "religionBuddhism": "佛教",
+      "religionTaoism": "道教",
+      "religionChristianity": "基督教",
+      "religionCatholicism": "天主教",
+      "religionIslam": "伊斯兰教",
+      "religionHinduism": "印度教",
+      "religionSikhism": "锡克教",
+      "religionFreeThinker": "无宗教信仰",
+      "religionOthers": "其他",
       "address": "住址",
       "ecName": "紧急联系人姓名",
       "ecNumber": "紧急联系人电话",

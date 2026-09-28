@@ -38,6 +38,7 @@ const validSubmission = {
   nric: "S1234567A",
   paymentMethod: "PayNow" as const,
   agreementAccepted: true,
+  nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
   signature: "data:image/png;base64,iVBORw0KGgo=",
 };
 
@@ -91,6 +92,7 @@ describe("submitOnboarding rate limiting", () => {
       nric: "S1234567A",
       paymentMethod: "Crypto",
       agreementAccepted: true,
+      nationality: "Singaporean", gender: "Male", religion: "Buddhism",
       signature: "data:image/png;base64,iVBORw0KGgo=",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately malformed input
     } as any;

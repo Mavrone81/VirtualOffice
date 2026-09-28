@@ -8,6 +8,11 @@ import { Label } from "@/components/ui/label";
 import { submitOnboarding, type OnboardingSubmission } from "@/server/recruitment/actions";
 import { SignaturePad } from "./signature-pad";
 
+// Stored (and printed on the agreement) as the English value; shown localised.
+const RELIGIONS = [
+  "Buddhism", "Taoism", "Christianity", "Catholicism", "Islam", "Hinduism", "Sikhism", "Free Thinker", "Others",
+] as const;
+
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
 
@@ -20,9 +25,23 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
     nric: "", paymentMethod: "PayNow", agreementAccepted: false,
   });
   const set = (patch: Partial<OnboardingSubmission>) => setF((p) => ({ ...p, ...patch }));
+  const religionLabel: Record<(typeof RELIGIONS)[number], string> = {
+    Buddhism: t("details.religionBuddhism"),
+    Taoism: t("details.religionTaoism"),
+    Christianity: t("details.religionChristianity"),
+    Catholicism: t("details.religionCatholicism"),
+    Islam: t("details.religionIslam"),
+    Hinduism: t("details.religionHinduism"),
+    Sikhism: t("details.religionSikhism"),
+    "Free Thinker": t("details.religionFreeThinker"),
+    Others: t("details.religionOthers"),
+  };
 
   function submit() {
     setError(undefined);
+    // Nationality, gender and religion are printed on the Associate Agreement's
+    // particulars table, so they're required (the server enforces it too).
+    if (!f.nationality?.trim() || !f.gender || !f.religion) { setError(t("errors.particularsRequired")); return; }
     if (!f.agreementAccepted) { setError(t("errors.noAgreement")); return; }
     if (!f.signature) { setError(t("errors.noSignature")); return; }
     start(async () => {
@@ -80,6 +99,28 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
               <option value="Married">{t("details.married")}</option>
               <option value="Divorced">{t("details.divorced")}</option>
               <option value="Widowed">{t("details.widowed")}</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="nationality">{t("details.nationality")}</Label>
+            <Input id="nationality" value={f.nationality ?? ""} onChange={(e) => set({ nationality: e.target.value })}
+              placeholder={t("details.nationalityPlaceholder")} required />
+          </div>
+          <div>
+            <Label htmlFor="gender">{t("details.gender")}</Label>
+            <select id="gender" className={selectCls} required value={f.gender ?? ""}
+              onChange={(e) => set({ gender: (e.target.value || undefined) as OnboardingSubmission["gender"] })}>
+              <option value="">—</option>
+              <option value="Male">{t("details.male")}</option>
+              <option value="Female">{t("details.female")}</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="religion">{t("details.religion")}</Label>
+            <select id="religion" className={selectCls} required value={f.religion ?? ""}
+              onChange={(e) => set({ religion: e.target.value || undefined })}>
+              <option value="">—</option>
+              {RELIGIONS.map((r) => <option key={r} value={r}>{religionLabel[r]}</option>)}
             </select>
           </div>
           <div className="sm:col-span-2">
