@@ -31,7 +31,10 @@ vi.mock("@/lib/storage", () => ({
   putObject: putObjectMock,
   getObject: vi.fn(),
 }));
-vi.mock("@/lib/pdf/agreement", () => ({ renderAgreementPdf: vi.fn(async () => Buffer.from("pdf")) }));
+vi.mock("@/lib/pdf/agreement", () => ({
+  renderAgreementPdf: vi.fn(async () => Buffer.from("pdf")),
+  formatUplineOrNA: (u: { fullName: string; associateCode: string } | null | undefined) => (u ? `${u.fullName} (${u.associateCode})` : "NA"),
+}));
 vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(), onboardingInviteEmail: vi.fn(), approvalEmail: vi.fn() }));
 
 import { submitOnboarding } from "./actions";
