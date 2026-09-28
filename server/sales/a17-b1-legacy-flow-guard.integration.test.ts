@@ -93,7 +93,7 @@ describe("B1: approveQuotation refuses flow=ClosedDeal (flag on)", () => {
     vi.resetModules();
     const { approveQuotation } = (await import("./actions")) as { approveQuotation: (id: string) => Promise<{ ok: boolean; error?: string }> };
     const r = await approveQuotation(submissionId);
-    expect(r).toEqual({ ok: false, error: "legacyReadOnly" });
+    expect(r).toEqual({ ok: false, error: "flowNotAvailable" });
     const after = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: submissionId }, select: { status: true } });
     expect(after.status).toBe("Submitted"); // never reached QuotationApproved
   });
@@ -110,7 +110,7 @@ describe("B1: closeSale refuses flow=ClosedDeal (flag on)", () => {
     vi.resetModules();
     const { closeSale } = (await import("./actions")) as { closeSale: (id: string) => Promise<{ ok: boolean; error?: string }> };
     const r = await closeSale(submissionId);
-    expect(r).toEqual({ ok: false, error: "legacyReadOnly" });
+    expect(r).toEqual({ ok: false, error: "flowNotAvailable" });
     expect(await prisma.salesTransaction.count({ where: { submissionId } })).toBe(0);
   });
 });
@@ -129,7 +129,7 @@ describe("B1: signQuotationOnSystem refuses flow=ClosedDeal (flag on)", () => {
     // A minimal magic-byte-valid PNG data URL (assertUpload only sniffs bytes).
     const PNG_B64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).toString("base64");
     const r = await signQuotationOnSystem(submissionId, `data:image/png;base64,${PNG_B64}`, "Test Signer");
-    expect(r).toEqual({ ok: false, error: "legacyReadOnly" });
+    expect(r).toEqual({ ok: false, error: "flowNotAvailable" });
     expect(await prisma.submissionDocument.count({ where: { submissionId } })).toBe(0);
   });
 });
