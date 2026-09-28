@@ -97,3 +97,31 @@ describe("security + commission inputs", () => {
     expect((await prisma.product.findUniqueOrThrow({ where: { id: productId } })).closingCommPct?.toString()).toBe("10");
   });
 });
+
+describe("designation drives the login role (Bug 001, 28 Sep)", () => {
+  const setDesignation = (designation: "SalesAssociate" | "SalesManager") => updateAssociate(assocId, {
+    fullName: TAG + "Payee", designation, paymentMethod: "Bank Transfer", bankName: "Fake Bank",
+  });
+
+  it("promoting to Sales Manager moves the login role with it, recorded in the same audit row", async () => {
+    expect(await setDesignation("SalesManager")).toEqual({ ok: true });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } })).role).toBe("SalesManager");
+    const a = await prisma.auditLog.findFirstOrThrow({ where: { action: "associate.updated", entityId: assocId }, orderBy: { createdAt: "desc" } });
+    expect(JSON.stringify(a.beforeJson)).toContain("SalesAssociate");
+    expect(JSON.stringify(a.afterJson)).toContain("\"role\":\"SalesManager\"");
+    // …and back, so the role never outlives the designation that granted it.
+    expect(await setDesignation("SalesAssociate")).toEqual({ ok: true });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } })).role).toBe("SalesAssociate");
+  });
+
+  it("never touches an office role (Admin/Accounts are assigned, not derived)", async () => {
+    await prisma.user.update({ where: { id: userId }, data: { role: "Accounts" } });
+    try {
+      expect(await setDesignation("SalesManager")).toEqual({ ok: true });
+      expect((await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { role: true } })).role).toBe("Accounts");
+    } finally {
+      await setDesignation("SalesAssociate");
+      await prisma.user.update({ where: { id: userId }, data: { role: "SalesAssociate" } });
+    }
+  });
+});
