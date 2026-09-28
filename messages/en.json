@@ -508,9 +508,12 @@
     },
     "agreement": {
       "title": "Associate Agreement",
-      "para1": "This Associate Agreement is entered into between Enshrine and the individual named in this onboarding. As an independent commission-based associate, you agree to represent Enshrine's services with integrity, to comply with all applicable regulations, and to the commission structure and payout terms communicated to you.",
-      "para2": "Commissions are earned on verified, collected sales and are subject to the override and eligibility rules of the Enshrine commission plan. Personal data provided here is used solely for HR, payout, and compliance purposes and is stored securely. This is a summary; the full agreement will be provided in your P-file.",
-      "checkbox": "I have read and accept the Associate Agreement, and confirm the details above are accurate.",
+      "intro": "Before you sign, please read the full Associate Agreement (version 2607) between you and Enshrine Holdings Pte Ltd. It sets out your appointment as an independent associate, your obligations, the commission and payout terms, and how the agreement may be ended.",
+      "view": "View full agreement",
+      "download": "Download agreement (PDF)",
+      "dataNote": "The personal data you provide on this form is collected and used only for HR, commission payout and compliance purposes, and is stored securely.",
+      "checkbox": "I confirm that I have read and understood the full Associate Agreement (version 2607), and I agree to be bound by its terms and conditions. I also confirm that the information I have provided above is true, accurate and complete.",
+      "openFirst": "Open or download the full agreement to enable this confirmation.",
       "signatureLabel": "Signature *",
       "signatureHint": "Draw your signature above using your mouse, finger, or stylus. This becomes your signed agreement."
     },
