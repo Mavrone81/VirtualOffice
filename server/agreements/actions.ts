@@ -189,11 +189,31 @@ export async function signAshesAgreement(
   // money edit can detect drift against exactly this shape (server/sales/
   // actions.ts's ashesTermsChanged uses the identical function).
   const signedTerms = ashesTermsSnapshot(sub, sub.lineItems);
+  // MD B3: amountNumeric/amountWords/paymentPlan/bookingFee/monthlyInstalment
+  // are "auto-pushed from the submission" (saveAshesAgreement's own words) —
+  // but editSale's void-to-Draft reversion (this same file's caller,
+  // server/sales/actions.ts) only clears the signed-* columns, never
+  // re-pushes these. A Draft reverted after a money edit could otherwise be
+  // re-signed with THESE stale fields while signedTerms above (computed
+  // fresh, from this same live `sub`) correctly reflects the new amount —
+  // the rendered PDF would show the old money while G3b's drift check
+  // (which compares against signedTerms, not these columns) sees no drift at
+  // all. Refreshing them here, in the SAME CAS update that flips to Signed,
+  // means the signed PDF and signedTerms can never disagree, regardless of
+  // whether saveAshesAgreement happened to be called again after the edit.
+  const isInstalment = sub.paymentPlan === "Installment";
+  const monthlyInstalment = isInstalment && sub.installmentCount
+    ? sub.saleAmount.minus(sub.deposit ?? 0).div(sub.installmentCount)
+    : null;
   // CAS: only a Draft can be signed, and the flip to Signed IS the claim —
   // two concurrent signs can't both win (count 0 on the loser).
   const cas = await prisma.petsAshesAgreement.updateMany({
     where: { id: agreement.id, status: AshesAgreementStatus.Draft },
-    data: { status: AshesAgreementStatus.Signed, signedAt: new Date(), applicantSignatureKey: signatureKey, signedTerms },
+    data: {
+      status: AshesAgreementStatus.Signed, signedAt: new Date(), applicantSignatureKey: signatureKey, signedTerms,
+      amountNumeric: sub.saleAmount, amountWords: amountToWords(sub.saleAmount.toString()),
+      paymentPlan: sub.paymentPlan, bookingFee: isInstalment ? sub.deposit : null, monthlyInstalment,
+    },
   });
   if (cas.count !== 1) {
     await deleteObject(signatureKey).catch(() => {});
