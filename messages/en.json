@@ -115,7 +115,7 @@
     "flyers": "Flyers",
     "edm": "EDMs",
     "customisation": "Customisation",
-    "chineseNameMenu": "中文名",
+    "chineseNameMenu": "Customisation",
     "greetings": "Greetings",
     "productsCatalogue": "Products",
     "recruitmentDashboard": "Recruitment Dashboard",
@@ -1448,7 +1448,7 @@
     "downloadImage": "Download image",
     "preparing": "Preparing…",
     "editTitle": "Personalise your card",
-    "chineseName": "中文名",
+    "chineseName": "Chinese Name",
     "cardTitle": "Title on card",
     "cardTitleHint": "Shown under your name — e.g. Funeral Director. Defaults to your designation.",
     "saving": "Saving…",
@@ -1630,7 +1630,7 @@
   },
   "marketing": {
     "customisation": {
-      "title": "中文名",
+      "title": "Customisation",
       "subtitle": "Personalised marketing collateral",
       "howTitle": "How to request customisation",
       "howBody": "Custom marketing collateral (personalised flyers, EDMs, greetings and other designs) is arranged personally. Contact Yiling with what you need and she will advise on options and turnaround.",
