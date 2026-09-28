@@ -856,8 +856,21 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
   const session = await auth();
   if (!session || !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
 
-  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true } });
+  const sub = await prisma.salesSubmission.findUnique({ where: { id: submissionId }, select: { status: true, flow: true } });
   if (!sub) return { ok: false, error: t("notFound") };
+  // MD B1: this is the OLD quotation workflow — it has no verifySale gate
+  // (G3/G3b/G4/G5), doesn't freeze commissionParties, and closeSale below
+  // would mint a SECOND transaction code for a row that flow=ClosedDeal is
+  // meant to close through the new flow instead. A ClosedDeal row must never
+  // reach QuotationApproved via this path.
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.ClosedDeal) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.closed_deal_flow_required", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { attempted: "approveQuotation" } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    return { ok: false, error: t("legacyReadOnly") };
+  }
   if (sub.status !== SubmissionStatus.Submitted) return { ok: false, error: t("alreadyProcessed") };
 
   const approved = await writeAudited(
@@ -904,6 +917,21 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
   // Only the closing associate (or an admin) may close the sale.
   const isCloser = !!session.user.associateId && session.user.associateId === sub.closingAssociateId;
   if (!isCloser && !isAdminRole(session.user.role)) return { ok: false, error: t("forbidden") };
+
+  // MD B1: closeSale is the OLD quotation workflow's minting path — no
+  // verifySale gate (G3/G3b/G4/G5), no commissionParties freeze, and it mints
+  // its own transaction code below. verifySale is the ONLY minting path for
+  // flow=ClosedDeal (its own salesTransaction.create, separate from this
+  // one) — closeSale must never reach a ClosedDeal row at all, so this comes
+  // before even the idempotency short-circuit below.
+  if (env.A17_CLOSED_DEAL_FLOW && sub.flow === SubmissionFlow.ClosedDeal) {
+    const refused = await writeAudited(
+      async () => {},
+      () => [{ action: "sale.closed_deal_flow_required", entityType: "SalesSubmission", entityId: submissionId, actorUserId: session.user.id, after: { attempted: "closeSale" } }],
+    );
+    if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+    return { ok: false, error: t("legacyReadOnly") };
+  }
 
   if (sub.transaction) { revalidatePath("/portal/quotations"); return { ok: true }; } // already closed
   if (sub.status !== SubmissionStatus.QuotationApproved) return { ok: false, error: t("quotationNotApproved") };
