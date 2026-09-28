@@ -142,3 +142,44 @@ export async function resetAssociatePassword(associateId: string): Promise<{ ok:
   }
   return { ok: true, tempPassword };
 }
+
+/** How long an admin-issued sign-in link stays valid — long enough to survive
+ *  a weekend in a WhatsApp chat, short enough not to be a standing credential. */
+const SIGNIN_LINK_TTL_MS = 72 * 60 * 60 * 1000;
+
+/**
+ * Admin-only: issue a one-time "set your password" link for an associate, to
+ * copy and send them directly (WhatsApp etc.) when the welcome email doesn't
+ * arrive — or any time later. It reuses the self-service reset token, so it
+ * replaces any earlier reset link, works exactly once, and expires in 72h.
+ * The admin never sees or chooses the password.
+ */
+export async function createSignInLink(
+  associateId: string,
+): Promise<{ ok: boolean; error?: string; url?: string; loginUrl?: string; email?: string; name?: string }> {
+  const t = await getTranslations("errors");
+  const session = await auth();
+  if (!session || !can(session.user.role, "manage_users")) return { ok: false, error: t("forbidden") };
+
+  const assoc = await prisma.associate.findUnique({ where: { id: associateId }, include: { user: true } });
+  if (!assoc) return { ok: false, error: t("associateNotFound") };
+  if (!assoc.user || !assoc.user.isActive) return { ok: false, error: t("noLoginToReset") };
+
+  const token = randomBytes(32).toString("base64url");
+  const userId = assoc.user.id;
+  try {
+    // Tier A: a credential issued by an admin and its record commit together.
+    await prisma.$transaction(async (db) => {
+      await db.user.update({
+        where: { id: userId },
+        data: { resetTokenHash: sha256(token), resetTokenExpiresAt: new Date(Date.now() + SIGNIN_LINK_TTL_MS) },
+      });
+      await auditTx(db, { action: "password.signin_link_by_admin", entityType: "User", entityId: userId, actorUserId: session.user.id, after: { associateId } });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") }; // no link issued
+    throw e;
+  }
+  const base = await baseUrl();
+  return { ok: true, url: `${base}/reset-password/${token}`, loginUrl: `${base}/login`, email: assoc.user.email, name: assoc.fullName };
+}
