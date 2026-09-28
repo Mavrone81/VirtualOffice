@@ -17,6 +17,7 @@ export type FormProduct = {
   productCode: string;
   productName: string;
   companyName: string;
+  requiresAshesAgreement: boolean;
   comCodes: { id: string; label: string; valueType: string; value: string }[];
 };
 
@@ -31,10 +32,12 @@ export type SaleFormInitial = {
   lines: Line[]; split2: Split; split3: Split;
 };
 
-export function SaleForm({ products, associates, today, initial, submissionId }: { products: FormProduct[]; associates: { id: string; name: string }[]; today: string; initial?: SaleFormInitial; submissionId?: string }) {
+export function SaleForm({ products, associates, today, initial, submissionId, fromQuotationCode, fromQuotationId }: { products: FormProduct[]; associates: { id: string; name: string }[]; today: string; initial?: SaleFormInitial; submissionId?: string; fromQuotationCode?: string; fromQuotationId?: string }) {
   const isEdit = !!submissionId;
   const router = useRouter();
   const t = useTranslations("portal");
+  const tq = useTranslations("quotation");
+  const ts = useTranslations("status");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
 
@@ -52,6 +55,9 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
 
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const total = lines.reduce((a, l) => a + (parseFloat(l.amount) || 0), 0);
+  // A-17 §4: fully server-derived (resolveSaleLines) — this is an informational
+  // echo of the same rule, not a decision the client makes.
+  const needsAshesAgreement = lines.some((l) => productById.get(l.productId)?.requiresAshesAgreement);
 
   function setLine(i: number, patch: Partial<Line>) {
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -103,21 +109,29 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
         .map((l) => ({ productId: l.productId, lineSaleAmount: parseFloat(l.amount), comCodeIds: l.comCodeIds })),
       associate2: mkSplit(split2),
       associate3: mkSplit(split3),
+      quotationId: fromQuotationId,
     };
     startTransition(async () => {
       const res = isEdit
         ? await editSale({ id: submissionId!, ...base })
         : await submitSale({ ...base, documents });
-      // B-S6: a sale with a split exception opens its detail page, which shows the warning.
+      // B-S6: a sale with a split exception opens its detail page, which shows the
+      // warning. A-17: so does a TXN code — that's the one place it's shown.
       const newId = (res as { id?: string }).id;
       const warned = !!(res as { warning?: unknown }).warning;
-      if (res.ok) router.push(isEdit ? `/portal/sales/${submissionId}` : warned && newId ? `/portal/sales/${newId}` : "/portal/sales");
+      const hasTxnCode = !!(res as { transactionCode?: string }).transactionCode;
+      if (res.ok) router.push(isEdit ? `/portal/sales/${submissionId}` : (warned || hasTxnCode) && newId ? `/portal/sales/${newId}` : "/portal/sales");
       else setError(res.error ?? t("saleForm.couldNotSubmit"));
     });
   }
 
   return (
     <div className="max-w-3xl space-y-5">
+      {fromQuotationCode && (
+        <span className="inline-block rounded-full border border-line bg-paper-100 px-3 py-1 text-[12px] text-muted">
+          {tq("fromChip", { code: fromQuotationCode })}
+        </span>
+      )}
       <Card className="p-5">
         <h2 className="mb-4 font-display text-[17px] text-ink">{t("saleForm.clientPayment")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -145,8 +159,8 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
               onChange={(e) => setPlan(e.target.value as "Full Payment" | "Installment")}
               className="h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none"
             >
-              <option>Full Payment</option>
-              <option>Installment</option>
+              <option value="Full Payment">{ts("FullPayment")}</option>
+              <option value="Installment">{ts("Installment")}</option>
             </select>
           </div>
           {plan === "Installment" && (
@@ -238,6 +252,12 @@ export function SaleForm({ products, associates, today, initial, submissionId }:
             );
           })}
         </div>
+
+        {needsAshesAgreement && (
+          <p className="mt-3 rounded-lg border border-line-200 bg-paper-100 px-3 py-2 text-[12px] text-muted">
+            {t("saleForm.ashesWillGenerate")}
+          </p>
+        )}
 
         <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
           <span className="text-[13px] text-muted">{t("saleForm.saleTotal")}</span>

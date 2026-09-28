@@ -4,11 +4,13 @@ import { FileText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { transactionScopeIds } from "@/lib/transaction-scope";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { QuotationForm, type QuotationFormProduct, type QuotationRow } from "./quotation-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Doc Template · Enshrine Portal" };
@@ -24,14 +26,18 @@ const TEMPLATES = {
   ],
   human: [] as { key: string; href: string }[],
 } as const;
-type Cat = keyof typeof TEMPLATES;
+type TemplateCat = keyof typeof TEMPLATES;
+type Cat = TemplateCat | "quotation";
 
 export default async function PortalAgreementsPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
   const session = await auth();
   const t = await getTranslations("agreements");
   if (!session?.user) return null;
   const { cat: rawCat } = await searchParams;
-  const cat: Cat = rawCat === "human" ? "human" : "pets";
+  // A-17 (flag OFF): the Quotation tab doesn't exist yet, so a stray
+  // ?cat=quotation falls back to today's behaviour instead of rendering it.
+  const a17On = env.A17_CLOSED_DEAL_FLOW;
+  const cat: Cat = a17On && rawCat === "quotation" ? "quotation" : rawCat === "human" ? "human" : "pets";
 
   const ids = await transactionScopeIds(session.user.role, session.user.associateId ?? null);
   const agreements = await prisma.petsAshesAgreement.findMany({
@@ -40,17 +46,43 @@ export default async function PortalAgreementsPage({ searchParams }: { searchPar
     include: { submission: { include: { closingAssociate: { select: { fullName: true } } } } },
   });
 
-  const templates = TEMPLATES[cat];
+  let quotationProducts: QuotationFormProduct[] = [];
+  let quotationRows: QuotationRow[] = [];
+  if (a17On && cat === "quotation" && session.user.associateId) {
+    const [products, quotations] = await Promise.all([
+      prisma.product.findMany({
+        where: { activeStatus: "Active", archivedAt: null },
+        select: { id: true, productCode: true, productName: true },
+        orderBy: { productCode: "asc" },
+      }),
+      prisma.quotation.findMany({
+        where: { associateId: session.user.associateId },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+    quotationProducts = products;
+    quotationRows = quotations.map((q) => ({
+      id: q.id,
+      quotationCode: q.quotationCode,
+      clientName: q.clientName,
+      quoteDate: q.quoteDate.toISOString().slice(0, 10),
+      total: q.total.toString(),
+      status: q.status,
+      lines: q.lines as QuotationRow["lines"],
+    }));
+  }
+
+  const templates = cat === "quotation" ? [] : TEMPLATES[cat];
 
   return (
     <>
       <PageHeader title={t("docTemplate.title")} subtitle={t("docTemplate.subtitle")} />
 
       <nav className="mb-4 flex flex-wrap gap-2" aria-label={t("docTemplate.title")}>
-        {(["pets", "human"] as const).map((c) => (
+        {(a17On ? (["pets", "human", "quotation"] as const) : (["pets", "human"] as const)).map((c) => (
           <Link
             key={c}
-            href={c === "pets" ? "/portal/agreements" : "/portal/agreements?cat=human"}
+            href={c === "pets" ? "/portal/agreements" : `/portal/agreements?cat=${c}`}
             aria-current={c === cat ? "page" : undefined}
             className={
               "rounded-xl border-2 border-ink px-6 py-2.5 text-[14px] font-semibold transition-colors " +
@@ -62,6 +94,10 @@ export default async function PortalAgreementsPage({ searchParams }: { searchPar
         ))}
       </nav>
 
+      {cat === "quotation" ? (
+        <QuotationForm products={quotationProducts} today={format(new Date(), "yyyy-MM-dd")} quotations={quotationRows} />
+      ) : (
+        <>
       <div className="mb-8 flex flex-col gap-2">
         {templates.length === 0 ? (
           <Card className="px-5 py-10 text-center text-[13px] text-muted">{t("docTemplate.none")}</Card>
@@ -130,6 +166,8 @@ export default async function PortalAgreementsPage({ searchParams }: { searchPar
         {t("list.legacyNote")}{" "}
         <Link href="/portal/sales-agreements" className="text-action hover:underline">{t("list.legacyLink")}</Link>
       </p>
+        </>
+      )}
         </>
       )}
     </>

@@ -5,11 +5,12 @@ import { CommissionType } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isFullAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ActiveToggle, ComCodeManager } from "./product-controls";
+import { ActiveToggle, ComCodeManager, RequiredDocumentsManager, AshesAgreementToggle } from "./product-controls";
 
 export const metadata = { title: "Products & commission · Enshrine Admin" };
 
@@ -17,6 +18,7 @@ export default async function ProductsPage() {
   const session = await auth();
   if (!session?.user || !isFullAdmin(session.user.role)) redirect("/admin/dashboard");
   const t = await getTranslations("products");
+  const a17On = env.A17_CLOSED_DEAL_FLOW;
   const products = await prisma.product.findMany({
     where: { archivedAt: null },
     include: { comCodes: true, defaultCompany: true },
@@ -41,6 +43,7 @@ export default async function ProductsPage() {
                   <span className="text-ink">· {p.productName}</span>
                   <ActiveToggle id={p.id} active={p.activeStatus === "Active"} />
                   {p.isExternal && <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] text-gold">{t("external")}</span>}
+                  {a17On && <AshesAgreementToggle productId={p.id} requiresAshesAgreement={p.requiresAshesAgreement} />}
                 </div>
                 <div className="mt-0.5 text-[12px] text-muted">
                   {p.productCategory ?? "—"} · {p.defaultCompany?.name ?? t("noDefaultEntity")} · eff. {format(p.effectiveDate, "dd MMM yyyy")}
@@ -70,6 +73,13 @@ export default async function ProductsPage() {
               productId={p.id}
               comCodes={p.comCodes.map((c) => ({ id: c.id, comCode: c.comCode, label: c.label, valueType: c.valueType, value: c.value.toString(), active: c.active }))}
             />
+
+            {a17On && (
+              <RequiredDocumentsManager
+                productId={p.id}
+                requiredDocuments={p.requiredDocuments as { key: string; label_en: string; label_zh: string }[]}
+              />
+            )}
           </Card>
         ))}
       </div>
