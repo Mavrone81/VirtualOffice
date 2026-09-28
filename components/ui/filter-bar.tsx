@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input";
 
 const selectCls =
   "h-9 rounded-lg border border-line bg-white px-2 text-[13px] text-ink focus:border-action focus:outline-none disabled:opacity-50";
-const dateCls = "h-9 w-36 px-2 text-[13px]";
+// The width lives on the wrapper, not the input: iPad/iOS Safari ignores a
+// date input's own width and sizes it to its content ("28 Sep 2026" plus
+// padding), so it overflowed into the next filter. min-w-0 + appearance-none
+// let the input shrink to the wrapper; the value is left-aligned like
+// desktop (WebKit centres it by default).
+const dateWrapCls = "w-36 shrink-0";
+const dateCls = "block h-9 min-w-0 appearance-none px-2 text-[13px] [&::-webkit-date-and-time-value]:text-left";
 const textCls = "h-9 w-40 px-2 text-[13px]";
 const TEXT_DEBOUNCE_MS = 400;
 
@@ -59,12 +65,12 @@ export function FilterBar({ fields, clearAllLabel }: { fields: FilterField[]; cl
         if (f.type === "date-range") {
           return (
             <div key={f.fromKey} className="flex items-end gap-2">
-              <div>
+              <div className={dateWrapCls}>
                 <Label htmlFor={f.fromKey}>{f.labelFrom}</Label>
                 <Input id={f.fromKey} type="date" className={dateCls} value={searchParams.get(f.fromKey) ?? ""}
                   onChange={(e) => setParam(f.fromKey, e.target.value)} />
               </div>
-              <div>
+              <div className={dateWrapCls}>
                 <Label htmlFor={f.toKey}>{f.labelTo}</Label>
                 <Input id={f.toKey} type="date" className={dateCls} value={searchParams.get(f.toKey) ?? ""}
                   onChange={(e) => setParam(f.toKey, e.target.value)} />
