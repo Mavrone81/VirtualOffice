@@ -245,11 +245,17 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
       }
       let quotationConverted = false;
       if (closedDeal && validInput.quotationId) {
-        // CAS: only the closer's own still-Issued quotation converts, and only
-        // once — a concurrent double-submit (or reusing an already-converted /
-        // voided quotation) loses here and rolls the whole submission back.
+        // CAS: only the closer's own still-Issued, still-valid quotation
+        // converts, and only once — a concurrent double-submit (or reusing an
+        // already-converted / voided / EXPIRED quotation) loses here and
+        // rolls the whole submission back. N6: validUntil was stored on the
+        // quotation but never checked anywhere — an expired quote could still
+        // convert into a real sale with no gate at all.
         const converted = await db.quotation.updateMany({
-          where: { id: validInput.quotationId, status: QuotationStatus.Issued, associateId: closerId },
+          where: {
+            id: validInput.quotationId, status: QuotationStatus.Issued, associateId: closerId,
+            OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
+          },
           data: { status: QuotationStatus.Converted },
         });
         if (converted.count !== 1) throw new QuotationConvertConflict();
@@ -1204,12 +1210,20 @@ export async function addSubmissionRequiredDocument(
 
   const sub = await prisma.salesSubmission.findUnique({
     where: { id: submissionId },
-    select: { closingAssociateId: true, lineItems: { select: { productCode: true } } },
+    select: { status: true, closingAssociateId: true, lineItems: { select: { productCode: true } } },
   });
   if (!sub) return { ok: false, error: t("notFound") };
 
   const allowed = isAdminRole(session.user.role) || (!!session.user.associateId && session.user.associateId === sub.closingAssociateId);
   if (!allowed) return { ok: false, error: t("forbidden") };
+
+  // N5: a Verified or Rejected sale is terminal — there is no live checklist
+  // left to satisfy a required-document key against (verifySale/
+  // getVerifyChecklist have already run their course), so a new upload here
+  // would just be silently unreachable evidence, never checked by anything.
+  if (sub.status === SubmissionStatus.Verified || sub.status === SubmissionStatus.Rejected) {
+    return { ok: false, error: t("alreadyProcessed") };
+  }
 
   if (!file || file.size === 0) return { ok: false, error: t("fileRequired") };
   if (file.size > MAX_DOC_BYTES) return { ok: false, error: t("fileTooLarge") };
