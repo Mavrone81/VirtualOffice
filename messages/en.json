@@ -1347,6 +1347,7 @@
     "legacyReconciliationPending": "Can't un-mark — this associate has an older payout awaiting reconciliation for this month.",
     "reasonRequired": "A reason is required.",
     "recomputeBusy": "System busy — the payment was NOT recorded. Please try again.",
+    "auditUnavailable": "This couldn't be recorded in the audit trail, so it was NOT done. Please try again in a moment.",
     "reauthFailed": "Password confirmation failed.",
     "titleRequired": "Title is required.",
     "messageBodyRequired": "Message body is required.",

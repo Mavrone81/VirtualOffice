@@ -5,7 +5,7 @@ import { computeTransactionCommission, type LineInput, type UplineInput, type Sp
 import { toLineInput, toSplit, toUpline } from "./inputs";
 import { reconcileWithSettled } from "./settle";
 import { recomputePendingPayout } from "@/server/payouts/totals";
-import { logAudit } from "@/lib/audit";
+import { auditTx } from "@/lib/audit";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
@@ -174,21 +174,25 @@ export async function runCommissionTx(db: Db, transactionId: string): Promise<Ru
 export const COMMISSION_TX_OPTIONS = { timeout: 15_000, maxWait: 5_000 };
 
 /** Thin wrapper for callers outside an existing transaction. */
-export async function runCommission(transactionId: string): Promise<number> {
-  const result = await prisma.$transaction((db) => runCommissionTx(db, transactionId), COMMISSION_TX_OPTIONS);
-  await auditRunResult(transactionId, result);
+export async function runCommission(transactionId: string, actorUserId: string | null): Promise<number> {
+  const result = await prisma.$transaction(async (db) => {
+    const r = await runCommissionTx(db, transactionId);
+    await auditRunResultTx(db, transactionId, r, actorUserId);
+    return r;
+  }, COMMISSION_TX_OPTIONS);
   return result.lineCount;
 }
 
 // C3: a recompute that moves a Pending payout's total, or writes adjustments against
-// settled commission, is recorded (actor resolved from the session when there is one).
-// Logged after commit, same as before R-4 — this never guards a write, so it's safe
-// outside the transaction whose outcome it's describing.
-export async function auditRunResult(transactionId: string, result: RunResult): Promise<void> {
+// settled commission, is recorded. Audit reliability (Tier A,
+// reviews/audit-reliability.md): written through the recompute's OWN transaction
+// client, as its last statements — if the record can't be written, the recompute
+// rolls back with it (AuditWriteError), so money never moves unrecorded.
+export async function auditRunResultTx(db: Db, transactionId: string, result: RunResult, actorUserId: string | null): Promise<void> {
   for (const r of result.recomputed) {
-    await logAudit({ action: "payout.updated", entityType: "MonthlyPayout", entityId: r.payoutId, before: r.before, after: { ...r.after, reason: "commission.recomputed", transactionId } });
+    await auditTx(db, { action: "payout.updated", entityType: "MonthlyPayout", entityId: r.payoutId, before: r.before, after: { ...r.after, reason: "commission.recomputed", transactionId }, actorUserId });
   }
   if (result.adjustments.length) {
-    await logAudit({ action: "commission.adjusted", entityType: "SalesTransaction", entityId: transactionId, after: { settledLineIds: result.settledLineIds, written: result.adjustments } });
+    await auditTx(db, { action: "commission.adjusted", entityType: "SalesTransaction", entityId: transactionId, after: { settledLineIds: result.settledLineIds, written: result.adjustments }, actorUserId });
   }
 }

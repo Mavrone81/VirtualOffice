@@ -11,7 +11,7 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 // DevSecOps's P3 probe: a hook right after buildCatchupPlan runs, to land a
 // concurrent recompute inside the window between the pre-lock plan and the lock.
@@ -29,7 +29,8 @@ vi.mock("@/server/payouts/catchup", async (orig) => {
 });
 
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 import { runPayouts, previewPayoutRun, reconcileLegacyPayout, setPayoutStatus } from "./actions";
 
 const TAG = "M5CFFIX-";
@@ -143,7 +144,7 @@ describe("Architect C1: an existing Pending settlement payout must be released w
     await assertConservation(a);
     await assertNeverPaidWhileNegative(a);
 
-    const audited = vi.mocked(logAudit).mock.calls.map(([x]) => x);
+    const audited = auditedEntries(logAudit, auditTx);
     expect(audited.some((x) => x.action === "payout.carried_forward" && x.entityId === payout.id)).toBe(true);
     // §3: the policy name is recorded on the run 2 audit (the one that released it).
     const runAudits = audited.filter((x) => x.action === "payouts.run" && (x.after as { month?: string }).month === "2197-01");

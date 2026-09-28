@@ -11,10 +11,11 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 import { submitSale, editSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "./actions";
 
 const TAG = "M2EDIT-";
@@ -126,7 +127,7 @@ describe("M2: editing a split after SD + admin approval", () => {
   });
 
   it("audit for the edit records the split before/after", () => {
-    const edits = vi.mocked(logAudit).mock.calls.filter(([a]) => a.action === "sale.edited");
+    const edits = auditedEntries(logAudit, auditTx).filter((a) => a.action === "sale.edited").map((a) => [a]);
     expect(edits.length).toBeGreaterThan(0);
     expect(edits.every(([a]) => a.before !== undefined && a.after !== undefined)).toBe(true);
   });

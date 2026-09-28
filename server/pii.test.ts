@@ -1,18 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { decryptRawMock, logAuditMock } = vi.hoisted(() => ({
+// Audit-before-reveal (reviews/audit-reliability.md): the access is recorded
+// through auditTx FIRST; if that throws, nothing is decrypted or returned.
+const { decryptRawMock, logAuditMock, order } = vi.hoisted(() => ({
   decryptRawMock: vi.fn(),
   logAuditMock: vi.fn(),
+  order: [] as string[],
 }));
-vi.mock("@/lib/crypto", () => ({ decryptPiiRaw: decryptRawMock }));
-vi.mock("@/lib/audit", () => ({ logAudit: logAuditMock }));
+vi.mock("@/lib/crypto", () => ({ decryptPiiRaw: (b: string) => { order.push("decrypt"); return decryptRawMock(b); } }));
+vi.mock("@/lib/db", () => ({ prisma: {} }));
+vi.mock("@/auth", () => ({ auth: async () => null }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), auditTx: (_db: unknown, e: unknown) => { order.push("audit"); return logAuditMock(e); } }));
 
-import { decryptPiiAudited, readNric } from "@/server/pii";
+import { decryptPiiAudited, readNric, PiiAuditUnavailableError } from "@/server/pii";
 
 beforeEach(() => {
   decryptRawMock.mockReset();
   logAuditMock.mockReset();
   logAuditMock.mockResolvedValue(undefined);
+  order.length = 0;
 });
 
 describe("decryptPiiAudited", () => {
@@ -28,6 +34,7 @@ describe("decryptPiiAudited", () => {
       blob: "v1:x", field: "nric", subjectType: "Associate", subjectId: "a1", actorUserId: "u9",
     });
     expect(out).toBe("S1234567A");
+    expect(order).toEqual(["audit", "decrypt"]); // recorded before revealed
     expect(logAuditMock).toHaveBeenCalledTimes(1);
     expect(logAuditMock).toHaveBeenCalledWith({
       action: "decrypt_pii", entityType: "Associate", entityId: "a1",
@@ -35,10 +42,18 @@ describe("decryptPiiAudited", () => {
     });
   });
 
-  it("returns null and does not audit when the raw decrypt throws", async () => {
+  it("returns null when the raw decrypt throws (the access attempt is still recorded)", async () => {
     decryptRawMock.mockImplementation(() => { throw new Error("bad ciphertext"); });
     expect(await decryptPiiAudited({ blob: "v1:bad", field: "bankAccount", subjectType: "Candidate", subjectId: "c1" })).toBeNull();
-    expect(logAuditMock).not.toHaveBeenCalled();
+    expect(logAuditMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("a failed audit throws PiiAuditUnavailableError and never decrypts", async () => {
+    logAuditMock.mockRejectedValue(new Error("audit table unwritable"));
+    decryptRawMock.mockReturnValue("S1234567A");
+    await expect(decryptPiiAudited({ blob: "v1:x", field: "nric", subjectType: "Associate", subjectId: "a1", actorUserId: "u9" }))
+      .rejects.toBeInstanceOf(PiiAuditUnavailableError);
+    expect(order).toEqual(["audit"]);
   });
 });
 
@@ -62,7 +77,7 @@ describe("readNric (SEC-12)", () => {
     expect(out).toBe("S9988776C");
     expect(decryptRawMock).not.toHaveBeenCalled();
     expect(logAuditMock).toHaveBeenCalledWith({
-      action: "pii.plaintext_read", entityType: "VendorReferral", entityId: "v2", after: { field: "vendorSignerNric" }, actorUserId: undefined,
+      action: "pii.plaintext_read", entityType: "VendorReferral", entityId: "v2", after: { field: "vendorSignerNric" }, actorUserId: null, // no actor passed → session lookup (none here)
     });
   });
 
@@ -70,6 +85,16 @@ describe("readNric (SEC-12)", () => {
     decryptRawMock.mockImplementation(() => { throw new Error("bad ciphertext"); });
     await expect(readNric({ blob: "v1:corrupt", field: "companyWitnessNric", subjectType: "PetsAshesAgreement", subjectId: "p2" }))
       .rejects.toThrow(/failed to decrypt companyWitnessNric/);
-    expect(logAuditMock).not.toHaveBeenCalled();
+    expect(logAuditMock).toHaveBeenCalledTimes(1); // the attempt was recorded first
+  });
+
+  it("a failed audit throws PiiAuditUnavailableError on both branches, nothing returned", async () => {
+    logAuditMock.mockRejectedValue(new Error("audit table unwritable"));
+    decryptRawMock.mockReturnValue("S1234567A");
+    await expect(readNric({ blob: "v1:x", field: "applicant1Nric", subjectType: "PetsAshesAgreement", subjectId: "p1", actorUserId: "u9" }))
+      .rejects.toBeInstanceOf(PiiAuditUnavailableError);
+    await expect(readNric({ blob: "S9988776C", field: "vendorSignerNric", subjectType: "VendorReferral", subjectId: "v2", actorUserId: "u9" }))
+      .rejects.toBeInstanceOf(PiiAuditUnavailableError);
+    expect(decryptRawMock).not.toHaveBeenCalled();
   });
 });

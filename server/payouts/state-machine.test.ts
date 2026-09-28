@@ -20,7 +20,7 @@ vi.mock("@/lib/db", () => {
 vi.mock("@/server/access", () => ({ getAdminPrincipal: async () => ({ userId: "u1", role: "Admin" }) }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 import { setPayoutStatus } from "./actions";
 import { prisma } from "@/lib/db";
 beforeEach(() => { vi.clearAllMocks(); payout.updatedCount = 1; payout.total = "100"; });
@@ -65,8 +65,8 @@ describe("setPayoutStatus state machine", () => {
     expect(vi.mocked(prisma.monthlyPayout.updateMany).mock.calls[0][0]).toMatchObject({
       where: { id: "p1", payoutStatus: "Approved", totalPayable: new Prisma.Decimal("100") },
     });
-    const { logAudit } = await import("@/lib/audit");
-    expect(vi.mocked(logAudit).mock.calls[0][0]).toMatchObject({
+    const { auditTx } = await import("@/lib/audit");
+    expect(vi.mocked(auditTx).mock.calls[0][1]).toMatchObject({ // Tier A: recorded inside the transition's transaction
       action: "payout.Paid", actorUserId: "u1",
       before: { status: "Approved", total: "100.00" }, after: { status: "Paid", total: "100.00" },
     });

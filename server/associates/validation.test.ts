@@ -3,14 +3,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { authMock, prismaMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
-    associate: { findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
+    associate: { findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: "a-new", ...data })) },
   },
 }));
 
 vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
+// Tier A writes run write + audit in a transaction: run the callback on the same mock.
+(prismaMock as Record<string, unknown>).$transaction = vi.fn(async (fn: (db: unknown) => unknown) => fn(prismaMock));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { createAssociate } from "@/server/associates/actions";
 
@@ -19,7 +22,7 @@ beforeEach(() => {
   authMock.mockResolvedValue({ user: { id: "admin1", role: "Admin", associateId: null } });
   prismaMock.associate.findFirst.mockResolvedValue(null);
   prismaMock.associate.findUnique.mockResolvedValue(null);
-  prismaMock.associate.create.mockResolvedValue({});
+  prismaMock.associate.create.mockResolvedValue({ id: "a-new" } as never);
 });
 
 describe("createAssociate validation", () => {
