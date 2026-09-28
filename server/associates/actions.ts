@@ -6,7 +6,7 @@ import { hash } from "@node-rs/argon2";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole, isFullAdmin, downlineIds } from "@/lib/rbac";
+import { isAdminRole, isFullAdmin, downlineIds, roleForDesignation } from "@/lib/rbac";
 import { encryptPII } from "@/lib/crypto";
 import { auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "./payee-audit";
@@ -249,10 +249,24 @@ export async function updateAssociate(
     await prisma.$transaction(async (db) => {
       const before = await db.associate.findUniqueOrThrow({ where: { id }, select: PAYEE });
       const after = await db.associate.update({ where: { id }, data, select: PAYEE });
+      // The login role is DERIVED from the designation (roleForDesignation), and
+      // recruitment/nav/permissions check the role — so a promotion that only
+      // changed the designation left the old role in force (Bug 001, 28 Sep:
+      // promoted to Sales Manager, still couldn't recruit). Keep them in step.
+      // Office roles (Admin/Accounts) are assigned, never derived: left alone.
+      let roleChange: { from: string; to: string } | null = null;
+      if (before.designation !== after.designation) {
+        const user = await db.user.findUnique({ where: { associateId: id }, select: { id: true, role: true } });
+        const to = roleForDesignation(after.designation);
+        if (user && !isAdminRole(user.role) && user.role !== to) {
+          await db.user.update({ where: { id: user.id }, data: { role: to } });
+          roleChange = { from: user.role, to };
+        }
+      }
       await auditTx(db, {
         action: "associate.updated", entityType: "Associate", entityId: id, actorUserId: actor,
-        before: { designation: before.designation, payee: maskedPayee(before) },
-        after: { designation: after.designation, payee: maskedPayee(after), nricChanged: !!v.nric, bankAccountChanged: !!v.bankAccountNumber },
+        before: { designation: before.designation, payee: maskedPayee(before), ...(roleChange ? { role: roleChange.from } : {}) },
+        after: { designation: after.designation, payee: maskedPayee(after), nricChanged: !!v.nric, bankAccountChanged: !!v.bankAccountNumber, ...(roleChange ? { role: roleChange.to } : {}) },
       });
     });
   } catch (e) {
