@@ -301,7 +301,13 @@ jobs:
             # current main while the image came from `:latest` — so migrations could be
             # applied from a NEWER revision than the app image being started. Source and
             # image must be the same revision or `migrate` is running against the wrong code.
-            git fetch --depth=1 origin "$DEPLOY_SHA"
+            # 🔴 NOT `--depth=1`. Measured on a real full clone: a shallow fetch writes
+            # .git/shallow, sets is-shallow-repository=true and TRUNCATES history
+            # (275 reachable commits -> 254 in the test), and it persists. The host's
+            # clone is a full one that other things may rely on; a deploy must not
+            # quietly convert it. A normal fetch of main is enough — the sha we deploy
+            # is main's head, or (for a rollback) an ancestor of it.
+            git fetch origin main
             git checkout --detach "$DEPLOY_SHA"
             # F7/A: pull and run the immutable per-commit tag, never `:latest`.
             # `:latest` is mutable and is whatever build pushed last, which is not
@@ -348,7 +354,18 @@ jobs:
             # assume it is already serving. Fail closed if it never answers.
             RUNNING=""
             for i in $(seq 1 30); do
-              BODY="$(curl -fsS --max-time 5 http://localhost:3000/api/health || true)"
+              # Ask the CONTAINER, over its own loopback, not the host's port.
+              # 🔴 NEVER use the host's localhost:3000 here. This box is shared: host
+              # port 3000 belongs to a DIFFERENT application, and
+              # docker-compose.prod.yml publishes this app on 127.0.0.1:10502:3000.
+              # Querying the host port would poll for 90s and fail every deploy — and if
+              # that other application ever answered /api/health with a `sha` field, this
+              # check would happily verify the WRONG application. That is precisely the
+              # failure this step exists to catch, reproduced inside the step itself.
+              # `exec` is also independent of the published mapping, so it keeps working
+              # if the host port is ever changed.
+              BODY="$(cd /root/VirtualOffice && docker compose -f docker-compose.prod.yml exec -T app \
+                node -e 'fetch("http://127.0.0.1:3000/api/health").then(r=>r.text()).then(t=>console.log(t))' 2>/dev/null || true)"
               RUNNING="$(printf '%s' "$BODY" | grep -o '"sha":"[^"]*"' | cut -d'"' -f4 || true)"
               [ -n "$RUNNING" ] && break
               sleep 3
