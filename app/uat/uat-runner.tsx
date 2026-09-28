@@ -92,7 +92,7 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
               onChange={(e) => setDraft(e.target.value)}
               onBlur={commitTester}
               onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-              placeholder="e.g. Angeline"
+              placeholder="e.g. Tester 1"
               className="h-11 w-64 rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none"
             />
             <datalist id="uat-testers">
