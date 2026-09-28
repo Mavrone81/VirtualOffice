@@ -48,6 +48,18 @@ jobs:
   audit:
     name: Dependency advisories (high + critical)
     runs-on: ubuntu-latest
+    # 🔴 READ BEFORE REMOVING THIS FLAG (note added 2026-09-28, DevSecOps):
+    # Removing this flag does NOT affect required checks — `audit` is intentionally
+    # NOT a required check, and must not become one. Only the `credential-shape`
+    # job below ("Credential-shaped literals") is required.
+    #
+    # Why this note exists, for whoever removes the flag: while the flag is here this
+    # job reports SUCCESS even when it finds advisories, so making it required looks
+    # harmless — and would become a repo-wide merge block the moment you delete this
+    # line, because the dev/build-toolchain advisories it reports are expected and are
+    # triaged by reachability, not cleared. If `audit` has been made required in the
+    # meantime, UN-REQUIRE IT FIRST, then remove this flag. Check the branch
+    # protection settings; do not assume.
     continue-on-error: true # REMOVE on/after 2026-10-11 to make this blocking (DevSecOps)
     steps:
       - uses: actions/checkout@v4
