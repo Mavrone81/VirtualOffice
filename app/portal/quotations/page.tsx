@@ -23,6 +23,7 @@ export default async function PortalQuotationsPage() {
   const session = await auth();
   const associateId = session?.user.associateId ?? null;
   const t = await getTranslations("portal");
+  const tq = await getTranslations("quotations");
 
   const subs = associateId
     ? await prisma.salesSubmission.findMany({
@@ -100,7 +101,7 @@ export default async function PortalQuotationsPage() {
                   {!closed && (
                     <div className="space-y-2">
                       <DocketUpload submissionId={s.id} />
-                      <div className="text-[11px] text-muted-2">{t("quotations.signOr")}</div>
+                      <div className="text-[11px] text-muted-2">{tq("signOr")}</div>
                       <SignQuotation submissionId={s.id} />
                     </div>
                   )}
