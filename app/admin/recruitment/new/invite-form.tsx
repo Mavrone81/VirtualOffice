@@ -19,7 +19,9 @@ export function InviteForm({
 }: {
   uplines: { code: string; label: string }[];
   baseUrl: string;
-  /** Non-admin recruiters: the only teams they may recruit into (Sep 2026). */
+  /** The teams this recruiter may place a candidate into: their own teams for a
+   *  non-admin (Sep 2026), every active team for a Business Admin. Empty or absent
+   *  falls back to free text (e.g. before any team has been created). */
   teamOptions?: string[];
 }) {
   const t = useTranslations("recruitment");
