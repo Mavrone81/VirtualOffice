@@ -16,6 +16,10 @@ vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// MD B2: getRequiredDocumentGate now refuses outright when the flag is off
+// (a separate, dedicated test covers that refusal) — this file tests the
+// feature's own real behaviour, which only exists with the flag on.
+vi.mock("@/lib/env", async (orig) => ({ ...(await orig<typeof import("@/lib/env")>()), env: { ...(await orig<typeof import("@/lib/env")>()).env, A17_CLOSED_DEAL_FLOW: true } }));
 
 import { getRequiredDocumentGate } from "@/server/sales/actions";
 

@@ -24,6 +24,10 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/storage", () => ({ putObject: putObjectMock, getObject: vi.fn(), deleteObject: deleteObjectMock }));
 vi.mock("@/lib/file-type", () => ({ assertUpload: assertMock }));
 vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), auditTx: auditTxMock }));
+// MD B2: addSubmissionRequiredDocument now refuses outright when the flag is
+// off (a separate, dedicated test covers that refusal) — this file tests the
+// feature's own real behaviour, which only exists with the flag on.
+vi.mock("@/lib/env", async (orig) => ({ ...(await orig<typeof import("@/lib/env")>()), env: { ...(await orig<typeof import("@/lib/env")>()).env, A17_CLOSED_DEAL_FLOW: true } }));
 
 import { AuditWriteError } from "@/lib/audit";
 import { addSubmissionRequiredDocument } from "@/server/sales/actions";
