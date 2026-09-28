@@ -11,10 +11,11 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 import { submitSale, editSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "./actions";
 
 const TAG = "SEC5EDIT-";
@@ -109,7 +110,7 @@ describe("SEC-5: split edits vs split approvals", () => {
     expect(s.clientName).toBe(TAG + "Renamed");
     expect(s.sdApprovedAt).not.toBeNull();
     expect(s.splitAdminApprovedAt).not.toBeNull();
-    const audit = vi.mocked(logAudit).mock.calls.map(([a]) => a).filter((a) => a.action === "sale.edited" && a.entityId === id).pop()!;
+    const audit = auditedEntries(logAudit, auditTx).filter((a) => a.action === "sale.edited" && a.entityId === id).pop()!;
     expect(audit.after).toMatchObject({ splitChanged: false, approvalsCleared: false });
   });
 
@@ -128,7 +129,7 @@ describe("SEC-5: split edits vs split approvals", () => {
     const s = await read(id);
     expect(s.sdApprovedAt).toBeNull();
     expect(s.splitAdminApprovedAt).toBeNull();
-    const audit = vi.mocked(logAudit).mock.calls.map(([a]) => a).filter((a) => a.action === "sale.edited" && a.entityId === id).pop()!;
+    const audit = auditedEntries(logAudit, auditTx).filter((a) => a.action === "sale.edited" && a.entityId === id).pop()!;
     expect(audit.after).toMatchObject({ splitChanged: true, approvalsCleared: true });
     expect(JSON.stringify(audit.before)).not.toBe(JSON.stringify({ ...(audit.after as object), splitChanged: undefined, approvalsCleared: undefined }));
   });

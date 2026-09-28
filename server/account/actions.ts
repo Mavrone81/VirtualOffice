@@ -8,7 +8,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { can } from "@/lib/rbac";
-import { logAudit } from "@/lib/audit";
+import { auditTx, AuditWriteError } from "@/lib/audit";
 import { sendMail, resetPasswordEmail } from "@/lib/mail";
 import { generateTempPassword } from "@/lib/temp-password";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
@@ -70,11 +70,20 @@ export async function resetPassword(token: string, newPassword: string): Promise
     where: { resetTokenHash: sha256(token), resetTokenExpiresAt: { gt: new Date() } },
   });
   if (!user) return { ok: false, error: t("resetLinkInvalid") };
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash: await hash(newPassword), resetTokenHash: null, resetTokenExpiresAt: null, mustResetPassword: false },
-  });
-  await logAudit({ action: "password.reset_self", entityType: "User", entityId: user.id, actorUserId: user.id });
+  const passwordHash = await hash(newPassword);
+  // Tier A (reviews/audit-reliability.md): a security change and its record commit together.
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.user.update({
+        where: { id: user.id },
+        data: { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null, mustResetPassword: false },
+      });
+      await auditTx(db, { action: "password.reset_self", entityType: "User", entityId: user.id, actorUserId: user.id });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") }; // the token stays valid: retry
+    throw e;
+  }
   return { ok: true };
 }
 
@@ -95,8 +104,16 @@ export async function changePassword(
   const ok = await verify(user.passwordHash, currentPassword);
   if (!ok) return { ok: false, error: t("currentPasswordIncorrect") };
 
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hash(newPassword), mustResetPassword: false } });
-  await logAudit({ action: "password.changed", entityType: "User", entityId: user.id, actorUserId: user.id });
+  const passwordHash = await hash(newPassword);
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.user.update({ where: { id: user.id }, data: { passwordHash, mustResetPassword: false } });
+      await auditTx(db, { action: "password.changed", entityType: "User", entityId: user.id, actorUserId: user.id });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   return { ok: true };
 }
 
@@ -111,7 +128,17 @@ export async function resetAssociatePassword(associateId: string): Promise<{ ok:
   if (!assoc.user) return { ok: false, error: t("noLoginToReset") };
 
   const tempPassword = generateTempPassword();
-  await prisma.user.update({ where: { id: assoc.user.id }, data: { passwordHash: await hash(tempPassword), mustResetPassword: true } });
-  await logAudit({ action: "password.reset_by_admin", entityType: "User", entityId: assoc.user.id, actorUserId: session.user.id, after: { associateId } });
+  const passwordHash = await hash(tempPassword);
+  const userId = assoc.user.id;
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.user.update({ where: { id: userId }, data: { passwordHash, mustResetPassword: true } });
+      await auditTx(db, { action: "password.reset_by_admin", entityType: "User", entityId: userId, actorUserId: session.user.id, after: { associateId } });
+    });
+  } catch (e) {
+    // Nothing changed, and the temp password is never shown.
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   return { ok: true, tempPassword };
 }

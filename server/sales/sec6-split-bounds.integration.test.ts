@@ -11,10 +11,11 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 import { splitBoundViolations } from "@/server/commission/split-bounds";
 import { submitSale, editSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale, approveSplitException } from "./actions";
 
@@ -137,7 +138,7 @@ describe("B-S6: over-net splits are allowed with a warning, and need a Business 
     });
   };
   const version = async (id: string) => (await state(id)).splitEditedAt?.toISOString() ?? null;
-  const audits = (action: string, id: string) => vi.mocked(logAudit).mock.calls.map(([a]) => a).filter((a) => a.action === action && a.entityId === id);
+  const audits = (action: string, id: string) => auditedEntries(logAudit, auditTx).filter((a) => a.action === action && a.entityId === id);
   const ACCOUNTS = { user: { associateId: null, id: "22222222-2222-2222-2222-222222222222", role: "Accounts" } };
 
   /** A submitted sale whose split pushes the closer below zero, with split + quotation approved and a signed doc, ready to close. */

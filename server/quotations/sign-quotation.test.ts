@@ -9,10 +9,12 @@ const { authMock, prismaMock, putObjectMock, renderMock } = vi.hoisted(() => ({
 
 vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
+// Tier A: the signed document is linked + audited in one transaction; run it on the same mock.
+(prismaMock as Record<string, unknown>).$transaction = vi.fn(async (fn: (db: unknown) => unknown) => fn(prismaMock));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
-vi.mock("@/lib/storage", () => ({ putObject: putObjectMock }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
+vi.mock("@/lib/storage", () => ({ putObject: putObjectMock, deleteObject: vi.fn() }));
 vi.mock("@/lib/file-type", () => ({ assertUpload: () => "png" }));
 vi.mock("@/lib/pdf/quotation", () => ({ renderQuotationPdf: renderMock }));
 

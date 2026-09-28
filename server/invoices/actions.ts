@@ -8,11 +8,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { canManageSignedInvoice } from "@/lib/invoice-access";
-import { logAudit } from "@/lib/audit";
+import { auditTx, AuditWriteError } from "@/lib/audit";
 import { putObject, deleteObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { recomputeEligibilityTx } from "@/server/commission/eligibility";
-import { auditRunResult, COMMISSION_TX_OPTIONS } from "@/server/commission/run";
+import { auditRunResultTx, COMMISSION_TX_OPTIONS } from "@/server/commission/run";
 import { recomputeAmountCollected } from "@/server/transactions/amount-collected";
 import { hasLinkedSettledLine, hasUnreconciledLegacyPayout } from "@/server/invoices/settled-check";
 
@@ -68,8 +68,16 @@ export async function uploadSignedInvoice(invoiceId: string, file: File): Promis
 
   const key = `invoices/${invoice.id}/signed-${randomUUID()}.pdf`;
   await putObject(key, Buffer.from(bytes));
-  await prisma.invoice.update({ where: { id: invoice.id }, data: { signedPdfFileKey: key } });
-  await logAudit({ action: "invoice.signed_uploaded", entityType: "Invoice", entityId: invoice.id, actorUserId: session.user.id });
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.invoice.update({ where: { id: invoice.id }, data: { signedPdfFileKey: key } });
+      await auditTx(db, { action: "invoice.signed_uploaded", entityType: "Invoice", entityId: invoice.id, actorUserId: session.user.id, after: { fileKey: key } });
+    });
+  } catch (e) {
+    await deleteObject(key); // not linked to the invoice — don't leave it behind
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/portal/invoices");
   revalidatePath("/admin/invoices");
   return { ok: true };
@@ -168,18 +176,19 @@ async function refuseIfSettled(db: Prisma.TransactionClient, transactionId: stri
  *
  * M1 (Architect money review): if recomputeAmountCollected finds the raw sum
  * over the sale amount (a duplicate invoice, a schedule bug), the clamp still
- * caps the stored value, but this audits `transaction.over_collected` (after
- * commit, same as every other audit here) and returns `overCollected: true`
+ * caps the stored value, but this audits `transaction.over_collected` (inside
+ * the transaction, Tier A — see reviews/audit-reliability.md) and returns `overCollected: true`
  * so the caller can surface it — never silently swallowed.
  */
 async function markPaidOrUnpaid(
   transactionId: string,
   actorUserId: string,
   applyCas: (db: Prisma.TransactionClient) => Promise<{ count: number }>,
+  audit: () => { action: string; entityType: string; entityId: string; before?: Prisma.InputJsonValue; after?: Prisma.InputJsonValue },
   opts?: { guard?: (db: Prisma.TransactionClient) => Promise<string | null> },
 ): Promise<
   | { ok: true; run: Awaited<ReturnType<typeof recomputeEligibilityTx>>["run"]; overCollected: boolean }
-  | { ok: false; error: "alreadyProcessed" | "recomputeBusy" | string }
+  | { ok: false; error: "alreadyProcessed" | "recomputeBusy" | "auditUnavailable" | string }
 > {
   try {
     const result = await prisma.$transaction(async (db) => {
@@ -192,15 +201,21 @@ async function markPaidOrUnpaid(
       if (res.count !== 1) throw new AlreadyProcessed();
       const collected = await recomputeAmountCollected(db, transactionId);
       const elig = await recomputeEligibilityTx(db, transactionId);
+      // Audit reliability (Tier A): the ledger recompute, the over-collection flag
+      // and the mark itself are recorded in THIS transaction — if any audit write
+      // fails, the payment is not recorded either (AuditWriteError → rollback).
+      await auditRunResultTx(db, transactionId, elig.run, actorUserId);
+      if (collected.overCollected) {
+        await auditTx(db, { action: "transaction.over_collected", entityType: "SalesTransaction", entityId: transactionId, actorUserId, after: collected.overCollected });
+      }
+      await auditTx(db, { ...audit(), actorUserId });
       return { ...elig, overCollected: collected.overCollected };
     }, COMMISSION_TX_OPTIONS);
-    if (result.overCollected) {
-      await logAudit({ action: "transaction.over_collected", entityType: "SalesTransaction", entityId: transactionId, actorUserId, after: result.overCollected });
-    }
     return { ok: true, run: result.run, overCollected: !!result.overCollected };
   } catch (e) {
     if (e instanceof Blocked) return { ok: false, error: e.reasonKey };
     if (e instanceof AlreadyProcessed) return { ok: false, error: "alreadyProcessed" };
+    if (e instanceof AuditWriteError) return { ok: false, error: "auditUnavailable" };
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2028") return { ok: false, error: "recomputeBusy" };
     throw e;
   }
@@ -237,6 +252,7 @@ export async function markInvoicePaid(
           paymentAckFileKey: ack.key,
         },
       }),
+      () => ({ action: "invoice.marked_paid", entityType: "Invoice", entityId: invoiceId, after: { method: payment?.method ?? null, reference: payment?.reference?.trim() || null, ackFileKey: ack.key } }),
     );
   } catch (e) {
     await deleteObject(ack.key);
@@ -246,9 +262,6 @@ export async function markInvoicePaid(
     await deleteObject(ack.key);
     return { ok: false, error: t(result.error) };
   }
-
-  await auditRunResult(invoice.transactionId, result.run);
-  await logAudit({ action: "invoice.marked_paid", entityType: "Invoice", entityId: invoiceId, actorUserId: session.user.id, after: { method: payment?.method ?? null, reference: payment?.reference?.trim() || null, ackFileKey: ack.key } });
 
   revalidatePath("/admin/invoices");
   revalidatePath("/admin/commission");
@@ -287,6 +300,7 @@ export async function markInstallmentPaid(
           paidReference: payment?.reference?.trim() || null,
         },
       }),
+      () => ({ action: "installment.marked_paid", entityType: "InstallmentSchedule", entityId: scheduleId, after: { method: payment?.method ?? null, reference: payment?.reference?.trim() || null, ackFileKey: ack.key } }),
     );
   } catch (e) {
     await deleteObject(ack.key);
@@ -296,12 +310,6 @@ export async function markInstallmentPaid(
     await deleteObject(ack.key);
     return { ok: false, error: t(result.error) };
   }
-
-  await auditRunResult(entry.plan.transactionId, result.run);
-  await logAudit({
-    action: "installment.marked_paid", entityType: "InstallmentSchedule", entityId: scheduleId, actorUserId: session.user.id,
-    after: { method: payment?.method ?? null, reference: payment?.reference?.trim() || null, ackFileKey: ack.key },
-  });
 
   revalidatePath("/admin/invoices");
   revalidatePath("/admin/commission");
@@ -340,19 +348,17 @@ export async function markInvoiceUnpaid(invoiceId: string, reason: string): Prom
         data: { status: InvoiceStatus.Outstanding, paidDate: null, paidMarkedById: null, paidMethod: null, paidReference: null, paymentAckFileKey: null },
       });
     },
+    // DevLead: the ack/method/reference being cleared are recoverable from this
+    // audit's `before` — otherwise the first ack is lost with no trace once a
+    // later mark overwrites the key. Evaluated inside the transaction, after the CAS.
+    () => ({
+      action: "invoice.marked_unpaid", entityType: "Invoice", entityId: invoiceId,
+      before: { method: captured.cleared?.paidMethod ?? null, reference: captured.cleared?.paidReference ?? null, ackFileKey: captured.cleared?.paymentAckFileKey ?? null },
+      after: { reason: trimmedReason },
+    }),
     { guard: (db) => refuseIfSettled(db, invoice.transactionId) },
   );
   if (!result.ok) return { ok: false, error: t(result.error) };
-
-  await auditRunResult(invoice.transactionId, result.run);
-  // DevLead: the ack/method/reference being cleared are recoverable from this
-  // audit's `before` — otherwise the first ack is lost with no trace once a
-  // later mark overwrites the key.
-  await logAudit({
-    action: "invoice.marked_unpaid", entityType: "Invoice", entityId: invoiceId, actorUserId: session.user.id,
-    before: { method: captured.cleared?.paidMethod ?? null, reference: captured.cleared?.paidReference ?? null, ackFileKey: captured.cleared?.paymentAckFileKey ?? null },
-    after: { reason: trimmedReason },
-  });
 
   revalidatePath("/admin/invoices");
   revalidatePath("/admin/commission");
@@ -389,16 +395,14 @@ export async function markInstallmentUnpaid(scheduleId: string, reason: string):
         data: { paid: false, paidDate: null, paidMethod: null, paidReference: null, paymentAckFileKey: null },
       });
     },
+    () => ({
+      action: "installment.marked_unpaid", entityType: "InstallmentSchedule", entityId: scheduleId,
+      before: { method: captured.cleared?.paidMethod ?? null, reference: captured.cleared?.paidReference ?? null, ackFileKey: captured.cleared?.paymentAckFileKey ?? null },
+      after: { reason: trimmedReason },
+    }),
     { guard: (db) => refuseIfSettled(db, entry.plan.transactionId) },
   );
   if (!result.ok) return { ok: false, error: t(result.error) };
-
-  await auditRunResult(entry.plan.transactionId, result.run);
-  await logAudit({
-    action: "installment.marked_unpaid", entityType: "InstallmentSchedule", entityId: scheduleId, actorUserId: session.user.id,
-    before: { method: captured.cleared?.paidMethod ?? null, reference: captured.cleared?.paidReference ?? null, ackFileKey: captured.cleared?.paymentAckFileKey ?? null },
-    after: { reason: trimmedReason },
-  });
 
   revalidatePath("/admin/invoices");
   revalidatePath("/admin/commission");

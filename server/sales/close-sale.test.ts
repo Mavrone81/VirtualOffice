@@ -15,7 +15,7 @@ vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) =>
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 // The SEC-6 Net-to-Closer bound has its own tests (split-bounds.test.ts, sec6-split-bounds.integration.test.ts).
 vi.mock("@/server/commission/split-bounds", () => ({ splitBoundViolations: vi.fn(async () => []) }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 vi.mock("@/server/commission/run", () => ({ runCommission: runCommissionMock }));
 
 import { adminApproveSplit, closeSale } from "@/server/sales/actions";
@@ -26,7 +26,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   prismaMock.salesSubmission.update.mockResolvedValue({});
   prismaMock.salesSubmission.updateMany.mockResolvedValue({ count: 1 });
-  prismaMock.$transaction.mockResolvedValue("tx-1");
+  // Tier A writes (split sign-off) run write + audit in a transaction on the same mock;
+  // closeSale's big booking transaction is short-circuited to "tx-1" per test below.
+  prismaMock.$transaction.mockImplementation(async (fn: (db: typeof prismaMock) => unknown) => fn(prismaMock));
   runCommissionMock.mockResolvedValue(1);
 });
 
@@ -109,10 +111,11 @@ describe("closeSale", () => {
   it("mints the transaction when both flows are approved and a signed doc is present", async () => {
     authMock.mockResolvedValue({ user: { associateId: "a1", id: "u1" } });
     prismaMock.salesSubmission.findUnique.mockResolvedValue(ready);
+    prismaMock.$transaction.mockResolvedValueOnce("tx-1");
     const r = await closeSale("s1");
     expect(r.ok).toBe(true);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
-    expect(runCommissionMock).toHaveBeenCalledWith("tx-1");
+    expect(runCommissionMock).toHaveBeenCalledWith("tx-1", "u1"); // the actor is passed explicitly (Tier A audit)
   });
 
   it("no-ops when the sale already has a transaction", async () => {

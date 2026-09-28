@@ -9,7 +9,7 @@ vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 // The recruitment module transitively imports a JSX PDF renderer + mail/storage;
 // mock them so this unit test doesn't load them.
 vi.mock("@/lib/pdf/agreement", () => ({ renderAgreementPdf: vi.fn() }));

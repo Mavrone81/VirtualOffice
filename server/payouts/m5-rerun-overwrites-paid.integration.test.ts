@@ -10,10 +10,11 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { prisma } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { logAudit, auditTx } from "@/lib/audit";
+import { auditedEntries } from "@/lib/test-fixtures";
 import { submitSale, approveQuotation, approveSubmissionSplit, adminApproveSplit, closeSale } from "@/server/sales/actions";
 import { markInvoicePaid } from "@/server/invoices/actions";
 import { fakePdfFile } from "@/lib/test-fixtures";
@@ -148,7 +149,7 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
   it("audit for a re-run records each payout written, with its amounts", () => {
     // On 0f89098 the only entry is payouts.run { month, count }. Required: one entry per
     // payout written, with amounts (before/after for an updated Pending payout).
-    const calls = vi.mocked(logAudit).mock.calls.map(([a]) => a);
+    const calls = auditedEntries(logAudit, auditTx);
     const adj = calls.filter((a) => a.action === "payout.adjustment_created");
     expect(adj).toHaveLength(1);
     expect(adj[0].after).toMatchObject({ total: "400.00", seq: 1 });
@@ -208,14 +209,14 @@ describe("M5: runPayouts re-run vs an already-Paid payout", () => {
     await prisma.commissionStructureVersion.update({
       where: { id: sv.id }, data: { rateSnapshot: { ...(sv.rateSnapshot as object), closingCommPct: "12" } as never },
     });
-    await runCommission(tx1.id);
+    await runCommission(tx1.id, null);
 
     const settledAfter = await prisma.commissionLedger.findMany({ where: { transactionId: tx1.id, payoutId: paidPayoutId } });
     expect(settledAfter.map((l) => [l.id, l.amount.toFixed(2)])).toEqual(settledBefore.map((l) => [l.id, l.amount.toFixed(2)]));
     const delta = await prisma.commissionLedger.findMany({ where: { transactionId: tx1.id, associateId: closerId, payoutId: null } });
     expect(delta.map((l) => l.amount.toFixed(2))).toEqual(["200.00"]); // net 1000 now vs 800 settled
     // C3: the recompute that wrote an adjustment against settled commission is audited.
-    const adjusted = vi.mocked(logAudit).mock.calls.map(([a]) => a).filter((a) => a.action === "commission.adjusted" && a.entityId === tx1.id);
+    const adjusted = auditedEntries(logAudit, auditTx).filter((a) => a.action === "commission.adjusted" && a.entityId === tx1.id);
     expect(adjusted).toHaveLength(1);
     expect(JSON.stringify(adjusted[0].after)).toContain('"amount":"200"');
 

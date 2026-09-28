@@ -5,15 +5,17 @@ const { authMock, prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     team: { findUnique: vi.fn() },
     teamMember: { upsert: vi.fn() },
-    associate: { update: vi.fn() },
+    associate: { update: vi.fn(), findUnique: vi.fn(async () => ({ directUplineId: null })) },
   },
 }));
 
 vi.mock("@/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
+// Tier A writes run write + audit in a transaction: run the callback on the same mock.
+(prismaMock as Record<string, unknown>).$transaction = vi.fn(async (fn: (db: unknown) => unknown) => fn(prismaMock));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { addTeamMember } from "@/server/teams/actions";
 

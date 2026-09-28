@@ -16,10 +16,10 @@ vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) =>
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 // The SEC-6 Net-to-Closer bound has its own tests (split-bounds.test.ts, sec6-split-bounds.integration.test.ts).
 vi.mock("@/server/commission/split-bounds", () => ({ splitBoundViolations: vi.fn(async () => []) }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/audit")>()), logAudit: vi.fn(), auditTx: vi.fn() }));
 
 import { editSale, type SubmitSaleInput } from "@/server/sales/actions";
-import { logAudit } from "@/lib/audit";
+import { auditTx } from "@/lib/audit";
 
 const base: SubmitSaleInput & { id: string } = {
   id: "sub1",
@@ -77,7 +77,8 @@ describe("editSale", () => {
 
     // both writes run inside one $transaction, and the edit is audited
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
-    expect(logAudit).toHaveBeenCalledWith(expect.objectContaining({ action: "sale.edited", entityId: "sub1" }));
+    // Tier A: the audit is written inside that same transaction
+    expect(auditTx).toHaveBeenCalledWith(prismaMock, expect.objectContaining({ action: "sale.edited", entityId: "sub1" }));
   });
 
   it("forbids a caller who is not the closing associate", async () => {
