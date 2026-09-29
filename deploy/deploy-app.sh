@@ -27,6 +27,11 @@
 # `set -o pipefail` is a bash-ism that aborts dash on line 1, which would look
 # identical to the script running and succeeding quietly.
 #
+# CWD GUARD: the compose file below is a RELATIVE path, so a wrong cwd must fail
+# HERE — before the login below — rather than part-way through. Placement is the
+# point, not just presence.
+[ -f docker-compose.prod.yml ] || { echo "deploy-app: docker-compose.prod.yml not found in $(pwd) — run this from the repo root, before any credential is used" >&2; exit 1; }
+#
 # Usage (from /root/VirtualOffice, checkout already pinned to $DEPLOY_SHA):
 #   GHCR_TOKEN=... GHCR_USER=... APP_IMAGE=... DEPLOY_SHA=... sh deploy/deploy-app.sh
 set -eu
