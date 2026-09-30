@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX } from "./name-card-limits";
+import { D } from "./money";
 
 export { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX };
 
@@ -9,8 +10,16 @@ export { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX };
 // cited above each schema for the source of truth.
 //
 // Shared primitives ----------------------------------------------------------
+// Decimal(14,2)'s own max representable value (12 integer digits + 2dp) —
+// Added with product pricing, 2026-09-30: `.max(20)` below bounds
+// the STRING length, not the numeric magnitude, so a syntactically valid
+// 20-char amount could still overflow the column and throw a raw Postgres
+// error (a 500) instead of a clean invalidInput. Bounding it here covers
+// every existing `money` field too (e.g. closingCommFixed), not just pricing.
+const MONEY_MAX = "999999999999.99";
 // Decimal(14,2) SGD currency amounts, stored as strings (prisma/schema.prisma).
-const money = z.string().trim().regex(/^\d+(\.\d{1,2})?$/, "money").max(20);
+const money = z.string().trim().regex(/^\d+(\.\d{1,2})?$/, "money").max(20)
+  .refine((v) => D(v).lessThanOrEqualTo(MONEY_MAX), "moneyTooLarge");
 // Decimal(7,4) / Decimal(14,4) percentage or rate values, stored as strings.
 const rate = z.string().trim().regex(/^\d+(\.\d{1,4})?$/, "rate").max(20);
 // Opaque DB id (uuid primary/foreign key).
@@ -126,6 +135,63 @@ export const comCodeSchema = z.object({
 export type ComCodeInput = z.infer<typeof comCodeSchema>;
 
 // ---------------------------------------------------------------------------
+// Product pricing (2026-09-30) — separate from commission/companyCut, which
+// stay on their own versioned path (CommissionStructureVersion). `listedPrice`
+// is required here (the admin form always requires it going forward) even
+// though the DB column is nullable (existing rows predate this feature).
+//
+// ONE shared shape + ONE shared business-rule function, used two ways:
+//   - `productPricingShape`/`pricingRefine` are folded into `productSchema`
+//     below, so product CREATION enforces the same rules.
+//   - `productPricingSchema` below wraps the SAME shape/refine with `.strict()`
+//     for the standalone pricing-only update endpoint (server/products/
+//     actions.ts's updateProductPricing) — PRICING FIELDS ONLY, structurally:
+//     any other key (commission, codes, effectiveDate, ...) fails validation
+//     rather than being silently ignored.
+// ---------------------------------------------------------------------------
+const instalmentOptionEnum = z.enum(["None", "Months12", "Months12or24"]);
+
+const productPricingShape = {
+  listedPrice: money,
+  discountedPrice: money.optional(),
+  instalmentOption: instalmentOptionEnum,
+  bookingFee: money.optional(),
+  monthlyInstalment12: money.optional(),
+  monthlyInstalment24: money.optional(),
+};
+
+type ProductPricingShape = {
+  listedPrice: string;
+  discountedPrice?: string;
+  instalmentOption: z.infer<typeof instalmentOptionEnum>;
+  bookingFee?: string;
+  monthlyInstalment12?: string;
+  monthlyInstalment24?: string;
+};
+
+function pricingRefine(v: ProductPricingShape, ctx: z.RefinementCtx): void {
+  // Decimal-safe compare — never Number(), which can lose precision on a
+  // 14-digit money string in a way a plain float comparison would not show.
+  if (v.discountedPrice !== undefined && D(v.discountedPrice).greaterThan(D(v.listedPrice))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["discountedPrice"], message: "discountedPriceExceedsListed" });
+  }
+  if (v.instalmentOption !== "None") {
+    if (v.bookingFee === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["bookingFee"], message: "bookingFeeRequired" });
+    }
+    if (v.monthlyInstalment12 === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["monthlyInstalment12"], message: "monthlyInstalment12Required" });
+    }
+  }
+  if (v.instalmentOption === "Months12or24" && v.monthlyInstalment24 === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["monthlyInstalment24"], message: "monthlyInstalment24Required" });
+  }
+}
+
+export const productPricingSchema = z.object(productPricingShape).strict().superRefine(pricingRefine);
+export type ProductPricingInput = z.infer<typeof productPricingSchema>;
+
+// ---------------------------------------------------------------------------
 // Products — mirrors ProductInput (server/products/actions.ts)
 // ---------------------------------------------------------------------------
 export const productSchema = z.object({
@@ -145,7 +211,8 @@ export const productSchema = z.object({
   externalCompanyRetainedPct: rate.optional(),
   defaultCompanyId: id.optional(),
   effectiveDate: dateStr,
-});
+  ...productPricingShape,
+}).superRefine(pricingRefine);
 export type ProductSchemaInput = z.infer<typeof productSchema>;
 
 // ---------------------------------------------------------------------------
