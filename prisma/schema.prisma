@@ -80,6 +80,17 @@ enum ProductActiveStatus {
   Inactive
 }
 
+// Product pricing (portal-facing sale price + instalment plan) — separate
+// from commission/companyCut, which stay on their own versioned path
+// (CommissionStructureVersion). None = one-time payment, no instalment
+// fields; Months12 = a 12-month plan only; Months12or24 = the buyer can
+// choose either term, so BOTH monthly amounts are collected up front.
+enum InstalmentOption {
+  None
+  Months12
+  Months12or24
+}
+
 enum CommissionType {
   Percentage
   Fixed
@@ -451,6 +462,20 @@ model Product {
   requiredDocuments      Json    @default("[]") @map("required_documents")
   // A-17 Q4: drives automatic Pet Ash agreement generation at submit (§4).
   requiresAshesAgreement Boolean @default(false) @map("requires_ashes_agreement")
+
+  // Pricing (2026-09-30): nullable because existing rows predate this
+  // feature — the admin form REQUIRES listedPrice for any create/edit going
+  // forward (lib/schemas.ts productPricingSchema), but the column itself
+  // must accept null so this migration is additive, no backfill. The three
+  // instalment amount fields are server-nulled whenever instalmentOption
+  // doesn't call for them (see server/products/actions.ts), never left to
+  // the UI alone to hide.
+  listedPrice         Decimal?          @map("listed_price") @db.Decimal(14, 2)
+  discountedPrice     Decimal?          @map("discounted_price") @db.Decimal(14, 2)
+  instalmentOption    InstalmentOption  @default(None) @map("instalment_option")
+  bookingFee          Decimal?          @map("booking_fee") @db.Decimal(14, 2)
+  monthlyInstalment12 Decimal?          @map("monthly_instalment_12") @db.Decimal(14, 2)
+  monthlyInstalment24 Decimal?          @map("monthly_instalment_24") @db.Decimal(14, 2)
 
   comCodes Comcode[]
   versions CommissionStructureVersion[]
