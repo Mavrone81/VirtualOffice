@@ -1,18 +1,30 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { CommissionType, ComValueType, ProductActiveStatus, Prisma } from "@prisma/client";
+import { CommissionType, ComValueType, InstalmentOption, ProductActiveStatus, Prisma } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/rbac";
 import { auditTx, AuditWriteError } from "@/lib/audit";
 import { validate as validateInput } from "@/lib/validate";
-import { productSchema, comCodeSchema, addProductRequiredDocumentSchema, MAX_REQUIRED_DOCUMENTS_PER_PRODUCT } from "@/lib/schemas";
+import {
+  productSchema,
+  comCodeSchema,
+  addProductRequiredDocumentSchema,
+  MAX_REQUIRED_DOCUMENTS_PER_PRODUCT,
+  productPricingSchema,
+  type ProductPricingInput,
+} from "@/lib/schemas";
 import { generateRequirementKey } from "@/lib/product-requirement-key";
 import { env } from "@/lib/env";
 
 // Managing products / com codes / rates is Admin-only (docs/05_RBAC.md §3).
+// `manage_products` is in rbac.ts's ADMIN_ONLY_CAPABILITIES, so `can(role,
+// "manage_products")` is exactly `isFullAdmin(role)` today (Accounts, which
+// passes `isAdminRole`, is excluded) — this ONE gate already covers both
+// createProduct and updateProductPricing below; it is not a separate,
+// possibly-drifting check per action.
 async function requireAdmin() {
   const session = await auth();
   if (!session || !can(session.user.role, "manage_products")) return null;
@@ -36,6 +48,18 @@ export type ProductInput = {
   externalCompanyRetainedPct?: string;
   defaultCompanyId?: string;
   effectiveDate: string;
+  // Pricing (2026-09-30) — see lib/schemas.ts productPricingShape/pricingRefine
+  // for the shared shape + business rules; ProductPricingInput below. Optional
+  // HERE (the raw, not-yet-validated input type) only so the pre-pricing
+  // admin form still compiles while its pricing fields are optional —
+  // productSchema itself still REQUIRES listedPrice/instalmentOption at
+  // runtime; validateInput() below returns invalidInput if they're missing.
+  listedPrice?: string;
+  discountedPrice?: string;
+  instalmentOption?: "None" | "Months12" | "Months12or24";
+  bookingFee?: string;
+  monthlyInstalment12?: string;
+  monthlyInstalment24?: string;
 };
 
 const valueType = (v?: "Percentage" | "Absolute") => (v === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage);
@@ -61,6 +85,55 @@ function validate(i: ProductInput): string | null {
   if (i.commissionType === "Percentage" && !i.closingCommPct) return "closingPctRequired";
   if (i.commissionType === "Fixed" && !i.closingCommFixed) return "closingFixedRequired";
   return null;
+}
+
+function instalmentOptionOf(o: "None" | "Months12" | "Months12or24"): InstalmentOption {
+  if (o === "Months12") return InstalmentOption.Months12;
+  if (o === "Months12or24") return InstalmentOption.Months12or24;
+  return InstalmentOption.None;
+}
+
+/** Maps validated pricing input to the exact `product.update`/`.create` data
+ *  shape — including nulling every instalment field the chosen option does
+ *  NOT call for, unconditionally. This runs server-side regardless of what
+ *  the caller sent, so a stale bookingFee/monthly value from before an
+ *  option change can never survive in the DB just because the UI stopped
+ *  showing its input. */
+function pricingData(p: ProductPricingInput) {
+  const needsInstalment = p.instalmentOption !== "None";
+  const needsBothMonths = p.instalmentOption === "Months12or24";
+  return {
+    listedPrice: p.listedPrice,
+    discountedPrice: p.discountedPrice ?? null,
+    instalmentOption: instalmentOptionOf(p.instalmentOption),
+    bookingFee: needsInstalment ? (p.bookingFee ?? null) : null,
+    monthlyInstalment12: needsInstalment ? (p.monthlyInstalment12 ?? null) : null,
+    monthlyInstalment24: needsBothMonths ? (p.monthlyInstalment24 ?? null) : null,
+  };
+}
+
+type PricingColumns = {
+  listedPrice: Prisma.Decimal | null;
+  discountedPrice: Prisma.Decimal | null;
+  instalmentOption: InstalmentOption;
+  bookingFee: Prisma.Decimal | null;
+  monthlyInstalment12: Prisma.Decimal | null;
+  monthlyInstalment24: Prisma.Decimal | null;
+};
+
+/** Pricing-only before/after for the audit row — money values as fixed
+ *  2dp decimal strings (never a JS number, and never Decimal's own
+ *  toString(), which strips trailing zeros — "999.00" must read as
+ *  "999.00" in the audit record, not "999"), nothing else from the product. */
+function pricingSnapshot(p: PricingColumns) {
+  return {
+    listedPrice: p.listedPrice?.toFixed(2) ?? null,
+    discountedPrice: p.discountedPrice?.toFixed(2) ?? null,
+    instalmentOption: p.instalmentOption,
+    bookingFee: p.bookingFee?.toFixed(2) ?? null,
+    monthlyInstalment12: p.monthlyInstalment12?.toFixed(2) ?? null,
+    monthlyInstalment24: p.monthlyInstalment24?.toFixed(2) ?? null,
+  } satisfies Prisma.InputJsonValue;
 }
 
 export async function createProduct(input: ProductInput): Promise<{ ok: boolean; error?: string }> {
@@ -98,15 +171,65 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
         defaultCompanyId: validInput.defaultCompanyId || null,
         activeStatus: ProductActiveStatus.Active,
         effectiveDate: eff,
+        ...pricingData(validInput),
       },
     });
     await db.commissionStructureVersion.create({
       data: { productCode: product.productCode, productId: product.id, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
     });
-    await auditTx(db, { action: "product.created", entityType: "Product", entityId: product.id, actorUserId: admin.user.id, after: { productCode: product.productCode, effectiveDate: eff.toISOString(), rates: rateSnapshot(validInput) } });
+    await auditTx(db, { action: "product.created", entityType: "Product", entityId: product.id, actorUserId: admin.user.id, after: { productCode: product.productCode, effectiveDate: eff.toISOString(), rates: rateSnapshot(validInput), pricing: pricingSnapshot(product) } });
     });
   } catch (e) {
     if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
+  revalidatePath("/admin/products");
+  return { ok: true };
+}
+
+// Thrown INSIDE the transaction, caught outside it — same shape as
+// RequirementNotFound further down this file: the not-found decision has to
+// be made from the read taken inside the transaction, not an earlier one.
+class ProductNotFound extends Error {}
+
+/** Editing an existing product's PRICING ONLY (2026-09-30) —
+ *  deliberately separate from `changeRates`: commission/companyCut changes
+ *  stay on their own effective-dated versioned path and must NOT be
+ *  touched here. `productPricingSchema` is `.strict()`, so a payload
+ *  carrying any other key (e.g. a stray `commissionType`) fails validation
+ *  rather than silently ignoring or applying it — structural enforcement,
+ *  not a convention someone could forget to follow at a call site. */
+export async function updateProductPricing(productId: string, pricing: ProductPricingInput): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const v = validateInput(productPricingSchema, pricing);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+
+  const data = pricingData(validInput);
+  // Tier A (money the buyer pays): the change and its record commit together.
+  // `before` is read INSIDE this same transaction, immediately ahead of the
+  // write — not from an earlier, un-transactional lookup — so the audit's
+  // "before" is never stale against a concurrent edit landing in between.
+  try {
+    await prisma.$transaction(async (db) => {
+      const existing = await db.product.findUnique({ where: { id: productId } });
+      if (!existing) throw new ProductNotFound();
+      const before = pricingSnapshot(existing);
+      const updated = await db.product.update({ where: { id: productId }, data });
+      await auditTx(db, {
+        action: "product.pricing_updated",
+        entityType: "Product",
+        entityId: productId,
+        actorUserId: admin.user.id,
+        before,
+        after: pricingSnapshot(updated),
+      });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    if (e instanceof ProductNotFound) return { ok: false, error: t("notFound") };
     throw e;
   }
   revalidatePath("/admin/products");

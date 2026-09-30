@@ -43,3 +43,26 @@ export function formatSGD(v: Numeric): string {
       .toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   );
 }
+
+// ---------------------------------------------------------------------------
+// Product pricing (2026-09-30) — the one place this arithmetic happens, so
+// the portal/admin UI never computes money itself.
+// ---------------------------------------------------------------------------
+
+/** The price a buyer actually pays: the discount if one is set, else the
+ *  listed price. A selection, not a calculation — nothing to round here. */
+export function effectivePrice(listed: Numeric, discounted: Numeric | null | undefined): Prisma.Decimal {
+  return discounted == null ? D(listed) : D(discounted);
+}
+
+/** Soft admin hint only (no DB constraint behind it, 2026-09-30): the
+ *  total a buyer pays across the instalment plan. `monthly * months` is
+ *  exact for Decimal(14,2) inputs and a whole-number `months` (no fractional
+ *  digits are introduced), so ALL rounding in this function happens exactly
+ *  once, at the very end, on the summed total — never per-term. Stated
+ *  explicitly because rounding before vs. after summing can give different
+ *  money for other shapes of this calculation, even though this one exact
+ *  input shape doesn't currently exercise that difference. */
+export function instalmentTotal(bookingFee: Numeric, monthly: Numeric, months: number): Prisma.Decimal {
+  return round2(D(bookingFee).add(D(monthly).mul(months)));
+}
