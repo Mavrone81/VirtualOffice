@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { PercentAmountInput } from "@/components/ui/percent-amount-input";
 import { createProduct, type ProductInput } from "@/server/products/actions";
 import { computeProductPreview, isOverAllocated } from "@/lib/commission-preview";
+import { PricingCard, emptyPricing, type PricingValue } from "../pricing-card";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -35,6 +36,13 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
     isExternal: false, effectiveDate: today, defaultCompanyId: companies[0]?.id,
   });
   const set = (patch: Partial<ProductInput>) => setF((p) => ({ ...p, ...patch }));
+  const [pricing, setPricing] = useState<PricingValue>(emptyPricing);
+  const setPricingPatch = (patch: Partial<PricingValue>) => setPricing((p) => ({ ...p, ...patch }));
+
+  const pricingIncomplete =
+    !pricing.listedPrice ||
+    (pricing.instalmentOption !== "None" && (!pricing.bookingFee || !pricing.monthlyInstalment12)) ||
+    (pricing.instalmentOption === "Months12or24" && !pricing.monthlyInstalment24);
 
   // Live breakdown so the admin sees exactly how the product pays out (§6A.2).
   const preview = useMemo(() => {
@@ -54,10 +62,20 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
     }
   }, [f, salesPreview]);
 
+  const orUndef = (s: string) => (s.trim() === "" ? undefined : s);
+
   function submit() {
     setError(undefined);
     start(async () => {
-      const r = await createProduct(f);
+      const r = await createProduct({
+        ...f,
+        listedPrice: pricing.listedPrice,
+        discountedPrice: orUndef(pricing.discountedPrice),
+        instalmentOption: pricing.instalmentOption,
+        bookingFee: orUndef(pricing.bookingFee),
+        monthlyInstalment12: orUndef(pricing.monthlyInstalment12),
+        monthlyInstalment24: orUndef(pricing.monthlyInstalment24),
+      });
       if (r.ok) router.push("/admin/products");
       else setError(r.error ?? t("couldNotCreate"));
     });
@@ -95,6 +113,8 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
           </label>
         </div>
       </Card>
+
+      <PricingCard value={pricing} onChange={setPricingPatch} />
 
       <Card className="p-5">
         <h2 className="mb-4 font-display text-[17px] text-ink">{t("commissionHeading")}</h2>
@@ -189,7 +209,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
       </Card>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
-      <Button onClick={submit} disabled={pending || !f.productCode || !f.productName}>
+      <Button onClick={submit} disabled={pending || !f.productCode || !f.productName || pricingIncomplete}>
         {pending ? tc("creating") : t("createProductBtn")}
       </Button>
     </div>
