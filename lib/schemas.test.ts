@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { saleSchema, comCodeSchema, productSchema, newAssociateSchema, onboardingSchema } from "./schemas";
+import { saleSchema, comCodeSchema, productSchema, productPricingSchema, newAssociateSchema, onboardingSchema } from "./schemas";
 import { validate } from "./validate";
 
 describe("saleSchema", () => {
@@ -91,6 +91,8 @@ describe("comCodeSchema", () => {
   });
 });
 
+const VALID_PRICING = { listedPrice: "199.99", instalmentOption: "None" as const };
+
 describe("productSchema", () => {
   it("accepts a valid Percentage product and rejects a missing required rate", () => {
     const ok = productSchema.safeParse({
@@ -104,6 +106,7 @@ describe("productSchema", () => {
       sdOverridePct: "5",
       isExternal: false,
       effectiveDate: "2026-01-01",
+      ...VALID_PRICING,
     });
     expect(ok.success).toBe(true);
     expect(
@@ -117,6 +120,7 @@ describe("productSchema", () => {
         sdOverridePct: "5",
         isExternal: false,
         effectiveDate: "2026-01-01",
+        ...VALID_PRICING,
       }).success,
     ).toBe(false);
   });
@@ -132,8 +136,113 @@ describe("productSchema", () => {
         sdOverridePct: "5",
         isExternal: false,
         effectiveDate: "2026-01-01",
+        ...VALID_PRICING,
       }).success,
     ).toBe(false);
+  });
+  it("rejects a product with no pricing at all (listedPrice/instalmentOption required)", () => {
+    expect(
+      productSchema.safeParse({
+        productCode: "P1",
+        productName: "Funeral Plan",
+        commissionType: "Percentage",
+        closingCommPct: "10",
+        companyCutPct: "40",
+        asmOverridePct: "5",
+        smOverridePct: "10",
+        sdOverridePct: "5",
+        isExternal: false,
+        effectiveDate: "2026-01-01",
+        // no listedPrice, no instalmentOption
+      }).success,
+    ).toBe(false);
+  });
+
+  it("a valid Fixed-commission product (closingCommFixed, the money helper's other real caller) still passes after the money-max bound", () => {
+    const ok = productSchema.safeParse({
+      productCode: "P1",
+      productName: "Funeral Plan",
+      commissionType: "Fixed",
+      closingCommFixed: "1500.00",
+      companyCutPct: "40",
+      asmOverridePct: "5",
+      smOverridePct: "10",
+      sdOverridePct: "5",
+      isExternal: false,
+      effectiveDate: "2026-01-01",
+      ...VALID_PRICING,
+    });
+    expect(ok.success).toBe(true);
+  });
+});
+
+describe("productPricingSchema", () => {
+  const base = { listedPrice: "199.99", instalmentOption: "None" as const };
+
+  it("accepts listedPrice alone with instalmentOption None", () => {
+    expect(productPricingSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("rejects a negative listedPrice", () => {
+    expect(productPricingSchema.safeParse({ ...base, listedPrice: "-1.00" }).success).toBe(false);
+  });
+
+  it("rejects more than 2 decimal places", () => {
+    expect(productPricingSchema.safeParse({ ...base, listedPrice: "199.999" }).success).toBe(false);
+  });
+
+  describe("money is bounded to what Decimal(14,2) can actually store", () => {
+    it("accepts the boundary itself: 12 integer digits (999999999999.99)", () => {
+      expect(productPricingSchema.safeParse({ ...base, listedPrice: "999999999999.99" }).success).toBe(true);
+    });
+    it("rejects one digit past it: 13 integer digits (1000000000000.00)", () => {
+      expect(productPricingSchema.safeParse({ ...base, listedPrice: "1000000000000.00" }).success).toBe(false);
+    });
+  });
+
+  describe("discountedPrice <= listedPrice, both halves of the bound", () => {
+    it("accepts a discount equal to the listed price (the boundary itself)", () => {
+      expect(productPricingSchema.safeParse({ ...base, listedPrice: "100.00", discountedPrice: "100.00" }).success).toBe(true);
+    });
+    it("accepts a discount strictly below the listed price", () => {
+      expect(productPricingSchema.safeParse({ ...base, listedPrice: "100.00", discountedPrice: "99.99" }).success).toBe(true);
+    });
+    it("rejects a discount even 0.01 above the listed price", () => {
+      const r = productPricingSchema.safeParse({ ...base, listedPrice: "100.00", discountedPrice: "100.01" });
+      expect(r.success).toBe(false);
+    });
+  });
+
+  describe("instalment fields required only when the option calls for them", () => {
+    it("None: bookingFee/monthly fields are NOT required", () => {
+      expect(productPricingSchema.safeParse({ listedPrice: "199.99", instalmentOption: "None" }).success).toBe(true);
+    });
+    it("Months12: bookingFee + monthlyInstalment12 required, monthlyInstalment24 NOT", () => {
+      expect(productPricingSchema.safeParse({ listedPrice: "199.99", instalmentOption: "Months12" }).success).toBe(false);
+      expect(
+        productPricingSchema.safeParse({
+          listedPrice: "199.99", instalmentOption: "Months12", bookingFee: "20.00", monthlyInstalment12: "16.66",
+        }).success,
+      ).toBe(true);
+    });
+    it("Months12or24: monthlyInstalment24 is ALSO required (not just bookingFee + 12)", () => {
+      expect(
+        productPricingSchema.safeParse({
+          listedPrice: "199.99", instalmentOption: "Months12or24", bookingFee: "20.00", monthlyInstalment12: "16.66",
+          // monthlyInstalment24 missing
+        }).success,
+      ).toBe(false);
+      expect(
+        productPricingSchema.safeParse({
+          listedPrice: "199.99", instalmentOption: "Months12or24", bookingFee: "20.00", monthlyInstalment12: "16.66", monthlyInstalment24: "8.33",
+        }).success,
+      ).toBe(true);
+    });
+  });
+
+  it("PRICING FIELDS ONLY: an extra non-pricing key (e.g. commissionType) is rejected, not silently ignored", () => {
+    const r = productPricingSchema.safeParse({ ...base, commissionType: "Fixed" });
+    expect(r.success).toBe(false);
   });
 });
 

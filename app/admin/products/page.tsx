@@ -24,6 +24,8 @@ export default async function ProductsPage() {
     include: { comCodes: true, defaultCompany: true },
     orderBy: { productCode: "asc" },
   });
+  const priceOf = (p: (typeof products)[number]) =>
+    p.listedPrice == null ? t("priceNotSet") : `S$${p.listedPrice.toFixed(2)}`;
 
   return (
     <>
@@ -49,10 +51,19 @@ export default async function ProductsPage() {
                   {p.productCategory ?? "—"} · {p.defaultCompany?.name ?? t("noDefaultEntity")} · eff. {format(p.effectiveDate, "dd MMM yyyy")}
                 </div>
               </div>
-              <div className="text-right text-[12px]">
-                <div className="text-muted">{t("closing")}</div>
-                <div className="font-display text-[18px] text-ink">
-                  {p.commissionType === CommissionType.Fixed ? `S$${p.closingCommFixed ?? 0}` : `${p.closingCommPct ?? 0}%`}
+              <div className="flex items-start gap-6">
+                <div className="text-right text-[12px]">
+                  <div className="text-muted">{t("listedPriceLabel")}</div>
+                  <div className={`font-display text-[18px] ${p.listedPrice == null ? "text-muted-2" : "text-ink"}`}>{priceOf(p)}</div>
+                  <Link href={`/admin/products/${p.id}/edit-pricing`} className="text-[12px] text-action hover:underline">
+                    {t("editPricing")}
+                  </Link>
+                </div>
+                <div className="text-right text-[12px]">
+                  <div className="text-muted">{t("closing")}</div>
+                  <div className="font-display text-[18px] text-ink">
+                    {p.commissionType === CommissionType.Fixed ? `S$${p.closingCommFixed ?? 0}` : `${p.closingCommPct ?? 0}%`}
+                  </div>
                 </div>
               </div>
             </div>
