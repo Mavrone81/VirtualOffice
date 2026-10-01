@@ -4,13 +4,18 @@ import { prisma } from "@/lib/db";
 // Fail-open on infra error (a DB hiccup must not lock everyone out);
 // fail-closed once a real lockout is active.
 
-export type RateAction = "login" | "password_reset" | "onboard_submit" | "esign_submit";
+export type RateAction = "login" | "password_reset" | "onboard_submit" | "esign_submit" | "onboard_check_address";
 
 export const LIMITS: Record<RateAction, number> = {
   login: 5,
   password_reset: 5,
   onboard_submit: 10,
   esign_submit: 10,
+  // Own bucket from onboard_submit's — a debounced fit-check fires per
+  // keystroke pause, but only an INVALID token or a terminal-stage
+  // candidate ever increments it (see homeAddressWouldTruncate), so normal
+  // typing volume never approaches this; it only bounds token-guessing.
+  onboard_check_address: 10,
 };
 
 export const WINDOW_MS = 15 * 60_000;
