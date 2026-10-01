@@ -44,6 +44,13 @@ export function formatSGD(v: Numeric): string {
   );
 }
 
+/** "12.5000" -> "12.50%", "7.1250" -> "7.13%" (half-up, via round2 — Decimal-
+ *  safe, never Number().toFixed on a float string). Display only: the stored
+ *  value keeps its full precision, and no calculation rounds through this. */
+export function formatPercent(v: Numeric): string {
+  return round2(v).toFixed(2) + "%";
+}
+
 // ---------------------------------------------------------------------------
 // Product pricing (2026-09-30) — the one place this arithmetic happens, so
 // the portal/admin UI never computes money itself.
