@@ -22,14 +22,20 @@ const STATUS_TONE: Record<string, Tone> = {
   Rejected: "danger", Terminated: "danger", Incomplete: "danger", Ineligible: "danger",
 };
 
-export function StatusPill({ status, tone }: { status: string; tone?: Tone }) {
+// `status` always picks the tone (keyed by the raw enum member, shared
+// across entities). `label` is an optional override for when the enum
+// member's shared translation doesn't fit THIS entity — e.g. "Active" reads
+// as 在职 ("in active employment"), right for an associate but wrong for a
+// product or any other non-person record; pass the entity's own distinct
+// copy instead of letting it fall through to the person-oriented one.
+export function StatusPill({ status, tone, label }: { status: string; tone?: Tone; label?: string }) {
   const tr = useTranslations("status");
   const toneCls = tone ?? STATUS_TONE[status] ?? "neutral";
   // Translate the enum member; fall back to the humanized English label.
-  const label = tr.has(status) ? tr(status) : humanize(status);
+  const resolvedLabel = label ?? (tr.has(status) ? tr(status) : humanize(status));
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tones[toneCls]}`}>
-      {label}
+      {resolvedLabel}
     </span>
   );
 }

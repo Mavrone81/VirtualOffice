@@ -4,7 +4,7 @@ import { formatSGD, D, effectivePrice as computeEffectivePrice } from "@/lib/mon
 import type { PortalCatalogueProduct } from "@/server/products/portal-catalogue";
 import { CommissionBlock } from "./commission-cut";
 
-export function ProductCard({ p, t }: { p: PortalCatalogueProduct; t: (key: string) => string }) {
+export function ProductCard({ p, t, tc }: { p: PortalCatalogueProduct; t: (key: string) => string; tc: (key: string) => string }) {
   const effective = p.listedPrice != null ? computeEffectivePrice(p.listedPrice, p.discountedPrice).toFixed(2) : null;
   const hasDiscount = p.discountedPrice != null && p.listedPrice != null;
 
@@ -18,7 +18,7 @@ export function ProductCard({ p, t }: { p: PortalCatalogueProduct; t: (key: stri
             {p.productCategory ?? "—"} · {p.companyName}
           </div>
         </div>
-        <StatusPill status={p.activeStatus} />
+        <StatusPill status={p.activeStatus} label={p.activeStatus === "Active" ? tc("active") : tc("inactive")} />
       </div>
 
       <div className="mt-3">
