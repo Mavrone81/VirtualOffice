@@ -71,6 +71,21 @@ export function effectivePrice(listed: Numeric, discounted: Numeric | null | und
   return discounted == null ? D(listed) : D(discounted);
 }
 
+export type ClosingBasis = "ListedPrice" | "DiscountedPrice";
+
+/** Closing basis (2026-10-01): commission, company cut and the overrides are
+ *  all calculated against WHICHEVER price the product's `closingBasis`
+ *  names — an explicit per-product choice, unlike `effectivePrice` above
+ *  (which always prefers a discount when one exists). Falls back to
+ *  `listed` when `basis` is `DiscountedPrice` but `discounted` is missing:
+ *  the server rejects that combination at write time (lib/schemas.ts
+ *  pricingRefine), so this function should never see it in practice, but a
+ *  "should never" is not a guarantee a row from before this invariant
+ *  existed, or a caller that bypasses validation, can rely on. */
+export function closingPrice(listed: Numeric, discounted: Numeric | null | undefined, basis: ClosingBasis): Prisma.Decimal {
+  return basis === "DiscountedPrice" && discounted != null ? D(discounted) : D(listed);
+}
+
 /** Soft admin hint only (no DB constraint behind it, 2026-09-30): the
  *  total a buyer pays across the instalment plan. `monthly * months` is
  *  exact for Decimal(14,2) inputs and a whole-number `months` (no fractional

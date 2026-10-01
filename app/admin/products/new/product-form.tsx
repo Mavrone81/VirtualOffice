@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { PercentAmountInput } from "@/components/ui/percent-amount-input";
 import { createProduct, type ProductInput } from "@/server/products/actions";
 import { computeProductPreview, isOverAllocated } from "@/lib/commission-preview";
+import { closingPrice } from "@/lib/money";
 import { PricingCard, emptyPricing, type PricingValue } from "../pricing-card";
 
 const selectCls =
@@ -24,8 +25,11 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
-  // Preview-only sale amount (not stored on the product; the real amount is per transaction).
-  const [salesPreview, setSalesPreview] = useState("10000");
+  // Fallback preview-only sale amount, used ONLY until a listed price is
+  // entered — once there is one, the preview switches to the product's own
+  // selected closing price (listed or discounted, per closingBasis) so the
+  // admin sees the real figure, not a stand-in (closing-basis spec, 01 Oct).
+  const [salesPreviewFallback, setSalesPreviewFallback] = useState("10000");
   const [f, setF] = useState<ProductInput>({
     productCode: "", productName: "", commissionType: "Percentage",
     // Every % is of the SALES AMOUNT. Defaults set by the project owner 2026-09-26 (B-10):
@@ -44,12 +48,18 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
     (pricing.instalmentOption !== "None" && (!pricing.bookingFee || !pricing.monthlyInstalment12)) ||
     (pricing.instalmentOption === "Months12or24" && !pricing.monthlyInstalment24);
 
+  // The real closing price once a listed price is entered; the fallback
+  // input otherwise (never stored — purely a stand-in for the preview).
+  const salesAmount = pricing.listedPrice
+    ? closingPrice(pricing.listedPrice, pricing.discountedPrice || null, pricing.closingBasis).toString()
+    : salesPreviewFallback || "0";
+
   // Live breakdown so the admin sees exactly how the product pays out (§6A.2).
   const preview = useMemo(() => {
     if (f.isExternal) return null;
     try {
       return computeProductPreview({
-        salesAmount: salesPreview || "0",
+        salesAmount,
         closing: f.commissionType === "Fixed"
           ? { value: f.closingCommFixed || "0", percent: false }
           : { value: f.closingCommPct || "0", percent: true },
@@ -60,7 +70,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
     } catch {
       return null;
     }
-  }, [f, salesPreview]);
+  }, [f, salesAmount]);
 
   const orUndef = (s: string) => (s.trim() === "" ? undefined : s);
 
@@ -71,6 +81,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
         ...f,
         listedPrice: pricing.listedPrice,
         discountedPrice: orUndef(pricing.discountedPrice),
+        closingBasis: pricing.closingBasis,
         instalmentOption: pricing.instalmentOption,
         bookingFee: orUndef(pricing.bookingFee),
         monthlyInstalment12: orUndef(pricing.monthlyInstalment12),
@@ -150,7 +161,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
                   valueType={f.companyCutType ?? "Percentage"}
                   onValueChange={(v) => set({ companyCutPct: v })}
                   onTypeChange={(tp) => set({ companyCutType: tp })}
-                  base={Number(salesPreview) || undefined}
+                  base={Number(salesAmount) || undefined}
                   placeholder="2"
                 />
               </div>
@@ -162,7 +173,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
                   valueType={f.smOverrideType ?? "Percentage"}
                   onValueChange={(v) => set({ smOverridePct: v })}
                   onTypeChange={(tp) => set({ smOverrideType: tp })}
-                  base={Number(salesPreview) || undefined}
+                  base={Number(salesAmount) || undefined}
                   placeholder="5"
                 />
               </div>
@@ -174,18 +185,24 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
                   valueType={f.sdOverrideType ?? "Percentage"}
                   onValueChange={(v) => set({ sdOverridePct: v })}
                   onTypeChange={(tp) => set({ sdOverrideType: tp })}
-                  base={Number(salesPreview) || undefined}
+                  base={Number(salesAmount) || undefined}
                   placeholder="3"
                 />
               </div>
             </div>
 
-            {/* Live breakdown — every % is of the Sales Amount (§6A.2). */}
+            {/* Live breakdown — every % is of the selected closing price (§6A.2, closing-basis spec). */}
             <div className="mt-5 rounded-lg border border-line bg-paper-50 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Label htmlFor="salesprev" className="mb-0">{t("previewSalesAmountLabel")}</Label>
-                <Input id="salesprev" className="h-9 w-40" value={salesPreview} onChange={(e) => setSalesPreview(e.target.value)} placeholder="10000" />
-              </div>
+              {pricing.listedPrice ? (
+                <p className="mb-3 text-[12px] text-muted-2">
+                  {pricing.closingBasis === "DiscountedPrice" ? t("previewOnDiscountedPrice") : t("previewOnListedPrice")}
+                </p>
+              ) : (
+                <div className="mb-3 flex items-center gap-2">
+                  <Label htmlFor="salesprev" className="mb-0">{t("previewSalesAmountLabel")}</Label>
+                  <Input id="salesprev" className="h-9 w-40" value={salesPreviewFallback} onChange={(e) => setSalesPreviewFallback(e.target.value)} placeholder="10000" />
+                </div>
+              )}
               {preview ? (
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-[13px]">
                   <dt className="text-body">{t("closingAmountPct")}</dt><dd className="text-right font-medium text-ink">{money(preview.closing)}</dd>
