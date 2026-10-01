@@ -1269,3 +1269,63 @@ model UatResult {
   @@index([testerName])
   @@map("uat_results")
 }
+
+// ---------------------------------------------------------------------------
+// B-9: Marketing libraries (Flyers / EDMs / Customisation / Greetings).
+// Purely additive — no existing table is touched. Per ADR-0002 rev 3 and
+// the migration-design review.
+// ---------------------------------------------------------------------------
+enum MarketingCategory {
+  Flyers
+  EDMs
+  // The enum value stays "Customisation" even if the admin-facing label ever
+  // changes (the owner's A-15 naming question) — that's an i18n copy change,
+  // never a data migration.
+  Customisation
+  Greetings
+}
+
+model MarketingCollection {
+  id          String            @id @default(uuid()) @db.Uuid
+  category    MarketingCategory
+  name        String // e.g. "Christmas 2026"
+  createdById String?           @map("created_by") @db.Uuid
+  // "No expiry" means no TTL, not "no way to retire one" — archiving hides a
+  // collection (and its assets) from associates without deleting anything.
+  archivedAt  DateTime?         @map("archived_at")
+  assets      MarketingAsset[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("marketing_collections")
+}
+
+model MarketingAsset {
+  id           String              @id @default(uuid()) @db.Uuid
+  collectionId String              @map("collection_id") @db.Uuid
+  // Restrict, not Cascade (code review): a cascade would delete the row
+  // but leave the file orphaned on disk. The delete-collection action must
+  // remove every asset's file first, then the assets, then the collection.
+  collection   MarketingCollection @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+  fileKey      String              @map("file_key")
+  fileName     String              @map("file_name")
+  mimeType     String              @map("mime_type") // sniffed type, never the client-supplied one (SEC-11)
+  sizeBytes    Int                 @map("size_bytes") // load-bearing: the library storage budget sums this
+  sha256       String // per-collection dedupe (ADR-0002 U2) — see the partial unique index below
+  archivedAt   DateTime?           @map("archived_at")
+  uploadedById String?             @map("uploaded_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([collectionId])
+  // ADR-0002 U2: dedupe is per collection and only among active (non-
+  // archived) assets, so re-uploading the same content after archiving the
+  // original isn't blocked. Prisma's schema DSL can't express a PARTIAL
+  // unique index, so this is NOT declared with @@unique here — the guarded
+  // migration.sql is the source of truth:
+  //   CREATE UNIQUE INDEX ... ON marketing_assets(collection_id, sha256)
+  //   WHERE archived_at IS NULL;
+  @@map("marketing_assets")
+}

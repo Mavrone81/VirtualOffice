@@ -12,6 +12,7 @@ export function AppShell({
   area,
   user,
   badges,
+  marketingLibraryEnabled,
   alerts = [],
   period,
   children,
@@ -19,6 +20,7 @@ export function AppShell({
   area: ShellArea;
   user: ShellUser;
   badges?: Record<string, number>;
+  marketingLibraryEnabled?: boolean;
   alerts?: Alert[];
   period?: string;
   children: React.ReactNode;
@@ -26,7 +28,14 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <div className="min-h-screen bg-paper">
-      <Sidebar area={area} user={user} badges={badges} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <Sidebar
+        area={area}
+        user={user}
+        badges={badges}
+        marketingLibraryEnabled={marketingLibraryEnabled}
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+      />
       <div className="lg:pl-[240px]">
         <Topbar area={area} user={user} alerts={alerts} period={period} onMenu={() => setMobileOpen(true)} />
         <main className="px-4 py-6 lg:px-8 lg:py-8">{children}</main>

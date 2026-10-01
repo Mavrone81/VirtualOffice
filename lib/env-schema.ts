@@ -73,6 +73,16 @@ export const envSchema = z.object({
   // mind, so a Legacy row is purged only once the owner opts it in too.
   NRIC_RETENTION_INCLUDE_LEGACY: bool.default(false),
   GST_ENABLED: bool.default(false),
+  // B-9 (Marketing libraries): build-now-ship-later. The 20 MB upload needs
+  // the owner's nginx client_max_body_size override on 165 first (ADR-0002),
+  // so the feature stays code-complete but hidden from nav until the owner
+  // flips this — off by default so a normal deploy of this branch changes nothing.
+  MARKETING_LIBRARY_ENABLED: bool.default(false),
+  // ADR-0002 decision 4: total size across every non-archived marketing
+  // asset. Admin UI warns at 80%, new uploads are refused at 100%. 2048 MB
+  // (2 GB) is a placeholder default pending the owner's actual number —
+  // changing it needs no code change, just this env var.
+  MARKETING_LIBRARY_SOFT_CAP_MB: z.coerce.number().int().default(2048),
   GST_RATE: z.coerce.number().default(9),
 
   TZ: z.string().default("Asia/Singapore"),

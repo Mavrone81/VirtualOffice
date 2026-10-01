@@ -3,6 +3,7 @@ import { SubmissionStatus } from "@prisma/client";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole } from "@/lib/rbac";
 import { noticeAudienceWhere } from "@/lib/notices";
 import { initialsOf, currentPeriod } from "@/lib/utils";
@@ -54,7 +55,14 @@ export default async function PortalLayout({ children }: { children: React.React
   const alerts = [{ labelKey: "notices", count: unreadNotices, href: "/portal/notices" }];
 
   return (
-    <AppShell area="portal" user={user} badges={{ notices: unreadNotices, splitApprovals }} alerts={alerts} period={currentPeriod(locale)}>
+    <AppShell
+      area="portal"
+      user={user}
+      badges={{ notices: unreadNotices, splitApprovals }}
+      marketingLibraryEnabled={env.MARKETING_LIBRARY_ENABLED}
+      alerts={alerts}
+      period={currentPeriod(locale)}
+    >
       {children}
     </AppShell>
   );
