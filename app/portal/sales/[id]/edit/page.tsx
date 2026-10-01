@@ -1,11 +1,12 @@
 import { redirect, notFound } from "next/navigation";
 import { format } from "date-fns";
-import { ProductActiveStatus, ApprovalStatus, AssociateStatus, SubmissionStatus } from "@prisma/client";
+import { ApprovalStatus, AssociateStatus, SubmissionStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { SaleForm, type FormProduct, type SaleFormInitial } from "../../new/sale-form";
+import { SaleForm, type SaleFormInitial } from "../../new/sale-form";
+import { fetchActiveSalesWizardProducts, toFormProducts } from "@/server/products/sales-wizard-products";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit sale · Enshrine Portal" };
@@ -22,19 +23,8 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
   // Only editable while still Submitted (before admin approves the quotation).
   if (s.status !== SubmissionStatus.Submitted) redirect(`/portal/sales/${id}`);
 
-  const products = await prisma.product.findMany({
-    where: { activeStatus: ProductActiveStatus.Active, archivedAt: null },
-    include: { comCodes: { where: { active: true } }, defaultCompany: true },
-    orderBy: { productCode: "asc" },
-  });
-  const formProducts: FormProduct[] = products.map((p) => ({
-    id: p.id,
-    productCode: p.productCode,
-    productName: p.productName,
-    companyName: p.defaultCompany?.name ?? "—",
-    requiresAshesAgreement: p.requiresAshesAgreement,
-    comCodes: p.comCodes.map((c) => ({ id: c.id, label: c.label, valueType: c.valueType, value: c.value.toString() })),
-  }));
+  const products = await fetchActiveSalesWizardProducts();
+  const formProducts = toFormProducts(products);
 
   const associates = await prisma.associate.findMany({
     where: { associateStatus: AssociateStatus.Active, approvalStatus: ApprovalStatus.Approved, archivedAt: null },

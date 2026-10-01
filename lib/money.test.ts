@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { D, round2, pctOf, effectivePrice, instalmentTotal, formatPercent } from "./money";
+import { D, round2, pctOf, effectivePrice, instalmentTotal, formatPercent, formatByValueType, formatSGD } from "./money";
 
 // Every expected figure below is a hand-derived literal, computed
 // independently of the implementation — never asserted against whatever
@@ -106,5 +106,25 @@ describe("formatPercent — 2dp display, ROUND_HALF_UP, Decimal not Number", () 
 
   test("100 -> 100.00%", () => {
     expect(formatPercent("100")).toBe("100.00%");
+  });
+});
+
+describe("formatByValueType — render by the field's OWN type, never assume Percentage", () => {
+  test("Percentage case: formatted as a percentage", () => {
+    expect(formatByValueType("12.5000", "Percentage")).toBe("12.50%");
+  });
+
+  test("Absolute case: formatted as money, not a percentage", () => {
+    expect(formatByValueType("250.00", "Absolute")).toBe("S$250.00");
+  });
+
+  // The control: the exact bug this function exists to prevent is an
+  // Absolute dollar figure printed with a trailing "%" (formatPercent run on
+  // a $ value regardless of type). A real Absolute value must never contain
+  // "%" anywhere in its rendered output.
+  test("CONTROL — an Absolute value's rendered string never contains a % sign", () => {
+    const rendered = formatByValueType("250.00", "Absolute");
+    expect(rendered).not.toContain("%");
+    expect(rendered).toBe(formatSGD("250.00")); // same as calling the money formatter directly
   });
 });

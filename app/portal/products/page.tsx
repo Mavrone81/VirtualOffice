@@ -13,6 +13,7 @@ export const metadata = { title: "Products & services · Enshrine Portal" };
 // this page's rendering).
 export default async function PortalProductsPage() {
   const t = await getTranslations("products");
+  const tc = await getTranslations("common");
   const cards = await getPortalProductCatalogue();
 
   return (
@@ -23,7 +24,7 @@ export default async function PortalProductsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {cards.map((p) => (
-            <ProductCard key={p.id} p={p} t={t} />
+            <ProductCard key={p.id} p={p} t={t} tc={tc} />
           ))}
         </div>
       )}
