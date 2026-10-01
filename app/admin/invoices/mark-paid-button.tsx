@@ -16,9 +16,9 @@ type Kind = "invoice" | "installment";
 type Method = "Cash" | "Credit" | "Bank";
 
 /**
- * B-7: Mark Paid gains a required payment-acknowledgement upload — Confirm
- * stays disabled until a file is attached, both for invoices and (now)
- * installments, which lose their old one-click path.
+ * Owner ruling (reverses #21): the payment-acknowledgement upload is
+ * optional, both for invoices and installments — Confirm no longer waits
+ * on a file being attached.
  */
 export function MarkPaidButton({ id, kind }: { id: string; kind: Kind }) {
   const t = useTranslations("invoices");
@@ -31,7 +31,6 @@ export function MarkPaidButton({ id, kind }: { id: string; kind: Kind }) {
   const [err, setErr] = useState<string>();
 
   function confirm() {
-    if (!file) { setErr(t("ackRequired")); return; }
     setErr(undefined);
     start(async () => {
       const r = kind === "invoice"
@@ -72,7 +71,7 @@ export function MarkPaidButton({ id, kind }: { id: string; kind: Kind }) {
       </div>
       {err && <Banner tone="danger">{err}</Banner>}
       <div className="flex items-center gap-2">
-        <Button size="sm" disabled={!file || pending} onClick={confirm}>
+        <Button size="sm" disabled={pending} onClick={confirm}>
           {pending ? "…" : t("payment.confirm")}
         </Button>
         <button type="button" className="text-muted hover:underline" onClick={() => setDialog(false)}>{t("payment.cancel")}</button>

@@ -1,8 +1,9 @@
-// B-7 — the payment acknowledgement is required to mark paid (SEC-11
-// checked), and un-mark is Business Admin only, requires a reason, and is
-// refused when the transaction's commission is already settled in an
-// Approved or Paid payout. Real throwaway Postgres (needs DATABASE_URL);
-// fake data only, cleaned up.
+// B-7 — the payment acknowledgement is OPTIONAL on mark-paid (owner ruling,
+// reverses #21's "required"); when one is attached it's still SEC-11 checked
+// (magic-byte sniffed, size-capped). Un-mark is Business Admin only, requires
+// a reason, and is refused when the transaction's commission is already
+// settled in an Approved or Paid payout. Real throwaway Postgres (needs
+// DATABASE_URL); fake data only, cleaned up.
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
 const who: { session: unknown } = { session: null };
@@ -55,43 +56,65 @@ afterAll(async () => {
   await prisma.company.deleteMany({ where: { id: companyId } });
 });
 
-describe("mark-paid requires a valid payment acknowledgement (SEC-11)", () => {
-  it("refuses an invoice mark-paid with no file, an oversized file, or a bad type — nothing is written", async () => {
+describe("mark-paid's payment acknowledgement is optional, but SEC-11 checked when given", () => {
+  it("an invoice mark-paid with no file succeeds with a null ack key; an oversized or bad-type file is still refused and writes nothing", async () => {
     who.session = BUSINESS_ADMIN;
     const tx = await mkTransaction("NOACK", 1000);
     const inv = await prisma.invoice.create({ data: { transactionId: tx.id, companyId, invoiceNumber: TAG + "NOACK", amount: 1000, status: "Outstanding" as never } });
 
-    expect((await markInvoicePaid(inv.id, new File([], "empty.pdf"))).ok).toBe(false);
     const notADoc = new File([new TextEncoder().encode("just some text, not a pdf/image")], "fake.pdf", { type: "application/pdf" });
     expect((await markInvoicePaid(inv.id, notADoc))).toEqual({ ok: false, error: "invalidFileType" });
 
-    const row = await prisma.invoice.findUniqueOrThrow({ where: { id: inv.id } });
-    expect(row.status).toBe("Outstanding");
-    expect(row.paymentAckFileKey).toBeNull();
+    // DevLead (gate review): the ack becoming OPTIONAL must not also drop the
+    // size cap's own test coverage — MAX_ACK_BYTES is still enforced in
+    // storePaymentAck, and production is unguarded by a test that nobody
+    // checks once the "no file" case (which shared this test) is gone.
+    const oversized = new File([new Uint8Array(10_000_001)], "big.pdf", { type: "application/pdf" });
+    expect((await markInvoicePaid(inv.id, oversized))).toEqual({ ok: false, error: "fileTooLarge" });
 
-    // A genuine PDF succeeds and records the key.
+    const stillOutstanding = await prisma.invoice.findUniqueOrThrow({ where: { id: inv.id } });
+    expect(stillOutstanding.status).toBe("Outstanding");
+    expect(stillOutstanding.paymentAckFileKey).toBeNull();
+
+    // No file at all (null, or a zero-byte File — the UI's "nothing chosen"
+    // shape) is no longer a refusal: it marks Paid with a null ack key.
+    expect((await markInvoicePaid(inv.id, null)).ok).toBe(true);
+    const paid = await prisma.invoice.findUniqueOrThrow({ where: { id: inv.id } });
+    expect(paid.status).toBe("Paid");
+    expect(paid.paymentAckFileKey).toBeNull();
+  });
+
+  it("a genuine PDF still succeeds and records the key, for both invoice and installment", async () => {
+    who.session = BUSINESS_ADMIN;
+    const tx = await mkTransaction("WITHACK", 1000);
+    const inv = await prisma.invoice.create({ data: { transactionId: tx.id, companyId, invoiceNumber: TAG + "WITHACK", amount: 1000, status: "Outstanding" as never } });
     expect((await markInvoicePaid(inv.id, fakePdfFile())).ok).toBe(true);
     const paid = await prisma.invoice.findUniqueOrThrow({ where: { id: inv.id } });
     expect(paid.status).toBe("Paid");
     expect(paid.paymentAckFileKey).toMatch(new RegExp(`^payment-acks/${inv.id}/`));
   });
 
-  it("an installment mark-paid also requires the ack, and persists its own method/reference/ack columns", async () => {
+  it("an installment mark-paid also accepts no ack, and persists its own method/reference/ack columns when one is given", async () => {
     who.session = BUSINESS_ADMIN;
     const tx = await mkTransaction("INSACK", 300);
     const plan = await prisma.installmentPlan.create({ data: { transactionId: tx.id, totalAmount: 300, deposit: 0, installmentCount: 1 } });
     const s = await prisma.installmentSchedule.create({ data: { planId: plan.id, sequence: 1, dueAmount: 300, paid: false } });
 
-    expect((await markInstallmentPaid(s.id, new File([], "empty.pdf"))).ok).toBe(false);
-    let row = await prisma.installmentSchedule.findUniqueOrThrow({ where: { id: s.id } });
-    expect(row.paid).toBe(false);
+    const noAckResult = await markInstallmentPaid(s.id, new File([], "empty.pdf"), { method: "Cash" as never });
+    expect(noAckResult.ok).toBe(true);
+    const noAckRow = await prisma.installmentSchedule.findUniqueOrThrow({ where: { id: s.id } });
+    expect(noAckRow.paid).toBe(true);
+    expect(noAckRow.paymentAckFileKey).toBeNull();
 
-    expect((await markInstallmentPaid(s.id, fakePdfFile(), { method: "Bank" as never, reference: "REF-1" })).ok).toBe(true);
-    row = await prisma.installmentSchedule.findUniqueOrThrow({ where: { id: s.id } });
-    expect(row.paid).toBe(true);
-    expect(row.paidMethod).toBe("Bank");
-    expect(row.paidReference).toBe("REF-1");
-    expect(row.paymentAckFileKey).toMatch(new RegExp(`^payment-acks/${s.id}/`));
+    const tx2 = await mkTransaction("INSACK2", 300);
+    const plan2 = await prisma.installmentPlan.create({ data: { transactionId: tx2.id, totalAmount: 300, deposit: 0, installmentCount: 1 } });
+    const s2 = await prisma.installmentSchedule.create({ data: { planId: plan2.id, sequence: 1, dueAmount: 300, paid: false } });
+    expect((await markInstallmentPaid(s2.id, fakePdfFile(), { method: "Bank" as never, reference: "REF-1" })).ok).toBe(true);
+    const row2 = await prisma.installmentSchedule.findUniqueOrThrow({ where: { id: s2.id } });
+    expect(row2.paid).toBe(true);
+    expect(row2.paidMethod).toBe("Bank");
+    expect(row2.paidReference).toBe("REF-1");
+    expect(row2.paymentAckFileKey).toMatch(new RegExp(`^payment-acks/${s2.id}/`));
   });
 });
 

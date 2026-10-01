@@ -84,18 +84,19 @@ export async function uploadSignedInvoice(invoiceId: string, file: File): Promis
 }
 
 /**
- * B-7: the payment acknowledgement required to mark an invoice/installment
- * Paid. Same SEC-11 posture as uploadSignedInvoice — magic-byte sniffed, never
- * trusting the browser's declared type — widened to PDF/JPG/PNG per the spec.
- * `prefix` scopes the storage key to the invoice/schedule id (never a raw key
- * in a URL — ADR-0001; the serving route looks this column up by record id).
+ * Owner ruling (reverses #21): the payment acknowledgement attached when
+ * marking an invoice/installment Paid is now OPTIONAL — callers only invoke
+ * this when a file was actually chosen; a bare "no file" never reaches here.
+ * Same SEC-11 posture as uploadSignedInvoice — magic-byte sniffed, never
+ * trusting the browser's declared type — PDF/JPG/PNG. `prefix` scopes the
+ * storage key to the invoice/schedule id (never a raw key in a URL —
+ * ADR-0001; the serving route looks this column up by record id).
  */
 async function storePaymentAck(
   prefix: string,
   file: File,
   t: (key: string) => string,
 ): Promise<{ ok: true; key: string } | { ok: false; error: string }> {
-  if (!file || file.size === 0) return { ok: false, error: t("fileRequired") };
   if (file.size > MAX_ACK_BYTES) return { ok: false, error: t("fileTooLarge") };
 
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -223,7 +224,7 @@ async function markPaidOrUnpaid(
 
 export async function markInvoicePaid(
   invoiceId: string,
-  ackFile: File,
+  ackFile: File | null,
   payment?: { method: InvoicePaymentMethod; reference?: string },
 ): Promise<{ ok: boolean; error?: string; overCollected?: boolean }> {
   const t = await getTranslations("errors");
@@ -233,7 +234,10 @@ export async function markInvoicePaid(
   const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
   if (!invoice) return { ok: false, error: t("notFound") };
 
-  const ack = await storePaymentAck(invoiceId, ackFile, t);
+  // Owner ruling (reverses #21): the ack is optional now — a null/empty
+  // file just means no ack was attached, not a refusal.
+  const ack: { ok: true; key: string | null } | { ok: false; error: string } =
+    ackFile && ackFile.size > 0 ? await storePaymentAck(invoiceId, ackFile, t) : { ok: true, key: null };
   if (!ack.ok) return ack;
 
   // DevSecOps: delete the just-stored ack on ANY failure path — a handled
@@ -255,11 +259,11 @@ export async function markInvoicePaid(
       () => ({ action: "invoice.marked_paid", entityType: "Invoice", entityId: invoiceId, after: { method: payment?.method ?? null, reference: payment?.reference?.trim() || null, ackFileKey: ack.key } }),
     );
   } catch (e) {
-    await deleteObject(ack.key);
+    if (ack.key) await deleteObject(ack.key);
     throw e;
   }
   if (!result.ok) {
-    await deleteObject(ack.key);
+    if (ack.key) await deleteObject(ack.key);
     return { ok: false, error: t(result.error) };
   }
 
@@ -271,7 +275,7 @@ export async function markInvoicePaid(
 
 export async function markInstallmentPaid(
   scheduleId: string,
-  ackFile: File,
+  ackFile: File | null,
   payment?: { method: InvoicePaymentMethod; reference?: string },
 ): Promise<{ ok: boolean; error?: string; overCollected?: boolean }> {
   const t = await getTranslations("errors");
@@ -284,7 +288,8 @@ export async function markInstallmentPaid(
   });
   if (!entry) return { ok: false, error: t("notFound") };
 
-  const ack = await storePaymentAck(scheduleId, ackFile, t);
+  const ack: { ok: true; key: string | null } | { ok: false; error: string } =
+    ackFile && ackFile.size > 0 ? await storePaymentAck(scheduleId, ackFile, t) : { ok: true, key: null };
   if (!ack.ok) return ack;
 
   let result: Awaited<ReturnType<typeof markPaidOrUnpaid>>;
@@ -303,11 +308,11 @@ export async function markInstallmentPaid(
       () => ({ action: "installment.marked_paid", entityType: "InstallmentSchedule", entityId: scheduleId, after: { method: payment?.method ?? null, reference: payment?.reference?.trim() || null, ackFileKey: ack.key } }),
     );
   } catch (e) {
-    await deleteObject(ack.key);
+    if (ack.key) await deleteObject(ack.key);
     throw e;
   }
   if (!result.ok) {
-    await deleteObject(ack.key);
+    if (ack.key) await deleteObject(ack.key);
     return { ok: false, error: t(result.error) };
   }
 

@@ -419,13 +419,12 @@
       "reference": "Reference no.",
       "confirm": "Confirm paid",
       "cancel": "Cancel",
-      "ackLabel": "Payment acknowledgement (required)",
+      "ackLabel": "Payment acknowledgement (optional)",
       "ackHint": "PDF, JPG or PNG"
     },
     "viewAck": "View acknowledgement",
     "markUnpaidReason": "Reason (required)",
     "markUnpaidConfirm": "Confirm",
-    "ackRequired": "A payment acknowledgement is required.",
     "ackUploadError": "That file couldn't be uploaded — {reason}."
   },
   "notices": {
