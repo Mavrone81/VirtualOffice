@@ -1,76 +1,33 @@
 import { z } from "zod";
+import { envSchema } from "./env-schema";
 
-// Server-side environment contract (see docs/06_Environment_Configuration.md).
-// Only import this from server code. Fails fast on misconfiguration.
-const bool = z.preprocess((v) => v === "true" || v === true, z.boolean());
+export { envSchema };
 
-const schema = z.object({
-  DATABASE_URL: z.string().min(1),
-  DIRECT_URL: z.string().min(1).optional(),
-  AUTH_SECRET: z.string().min(1),
-  AUTH_URL: z.string().optional(),
-  // 32-byte key as 64 hex chars for AES-256-GCM PII encryption.
-  PII_ENCRYPTION_KEY: z.string().min(64),
-  PII_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
+/** Render zod's issues as one line per variable, e.g. `AUTH_SECRET: Required`.
+ *
+ *  🔴 This exists because the previous `console.error("…", z.treeifyError(err))` printed
+ *  `{ errors: [], properties: { AUTH_SECRET: { errors: [Array] } } }` — console's depth limit
+ *  elides the messages as `[Array]`, so the one piece of information the reader needs (which
+ *  variable, and why) was exactly the piece that got dropped. A diagnostic that hides its own
+ *  finding is worse than none, because it still looks like it reported.
+ */
+export function formatEnvIssues(error: z.ZodError): string[] {
+  const byPath = new Map<string, string[]>();
+  for (const issue of error.issues) {
+    const key = issue.path.length ? issue.path.join(".") : "(root)";
+    const list = byPath.get(key) ?? [];
+    list.push(issue.message);
+    byPath.set(key, list);
+  }
+  return [...byPath.entries()].map(([key, msgs]) => `${key}: ${msgs.join("; ")}`).sort();
+}
 
-  // Local-filesystem object storage root. In prod this is a mounted Docker
-  // volume (/data/uploads); in dev it defaults to a repo-relative folder.
-  STORAGE_DIR: z.string().default(".uploads"),
-
-  // Transactional email (SMTP). All optional — when unset, mail is logged
-  // instead of sent so dev/build/CI work without a relay (see lib/mail.ts).
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().int().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  SMTP_SECURE: bool.default(false),
-  EMAIL_FROM: z.string().default("Enshrine Virtual Office <no-reply@enshrine.com.sg>"),
-  EMAIL_REPLY_TO: z.string().optional(),
-
-  INVOICE_NUMBER_FORMAT: z.string().default("INV-{COMPANY}-{YYYY}-{SEQ}"),
-  INVOICE_MODE: z.enum(["per-company", "consolidated"]).default("per-company"),
-  COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD: z.coerce.number().int().default(3),
-  OVERRIDE_CHAIN_DEPTH: z.coerce.number().int().default(2),
-  // M5-CF §3: how runPayouts treats an associate whose unattached net is <= 0.
-  // Default `hold` is today's M5 behaviour. the project owner switches this to `carry_forward`
-  // on 165 (a config change, his go) only after the first CF run in prod is signed
-  // off against bank records (§2b). `company_absorbs`/`recover` are not implemented.
-  PAYOUT_NET_NEGATIVE_POLICY: z.enum(["hold", "carry_forward", "company_absorbs", "recover"]).default("hold"),
-
-  // Admin AI assistant (chat bubble). Optional — when ANTHROPIC_API_KEY is
-  // unset the assistant endpoint returns a friendly "not configured" message
-  // instead of failing the build/boot. The key is read server-side only and is
-  // never sent to the browser.
-  ANTHROPIC_API_KEY: z.string().optional(),
-  ANTHROPIC_MODEL: z.string().default("claude-opus-4-8"),
-
-  PAYMENT_GATEWAY_ENABLED: bool.default(false),
-  FESTIVE_AI_ENABLED: bool.default(false),
-  // A-17 (✚5, design note §9): the new quotation -> closed-deal -> verify
-  // flow, OFF until phase 2 (needs SEC-12 deployed + verified first). `bool`
-  // above only ever turns true on the exact string "true" — anything unset
-  // or unparseable is OFF, never a silent enable.
-  A17_CLOSED_DEAL_FLOW: bool.default(false),
-  NRIC_RETENTION_DAILY_CAP: z.coerce.number().int().positive().default(200),
-  // A-17 §4a (DevLead: the first activation needs the owner's explicit go,
-  // like every other prod data write): off means the opportunistic trigger
-  // is a no-op and "Run now" is refused. Preview (dry run) is unaffected —
-  // it never writes, so the owner can review counts before enabling this.
-  NRIC_RETENTION_ENABLED: bool.default(false),
-  // Whether Legacy (pre-A-17) rejected rows are in scope at all, separate
-  // from the main switch above — Q13/Q15 were decided with the new flow in
-  // mind, so a Legacy row is purged only once the owner opts it in too.
-  NRIC_RETENTION_INCLUDE_LEGACY: bool.default(false),
-  GST_ENABLED: bool.default(false),
-  GST_RATE: z.coerce.number().default(9),
-
-  TZ: z.string().default("Asia/Singapore"),
-});
-
-const parsed = schema.safeParse(process.env);
+const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
-  console.error("❌ Invalid environment variables:", z.treeifyError(parsed.error));
-  throw new Error("Invalid environment configuration");
+  const lines = formatEnvIssues(parsed.error);
+  console.error("Invalid environment variables:");
+  for (const line of lines) console.error(`  - ${line}`);
+  throw new Error(`Invalid environment configuration (${lines.length}): ${lines.join(" | ")}`);
 }
 
 export const env = parsed.data;
