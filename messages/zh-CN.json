@@ -77,6 +77,7 @@
     "nameCard": "名片",
     "auditLog": "审计日志",
     "uat": "验收测试",
+    "companyData": "公司资料",
     "dashboard": "仪表板",
     "mySales": "我的销售",
     "myCommissions": "我的佣金",
@@ -1452,6 +1453,7 @@
     "associateCodeRequired": "伙伴代码为必填项。",
     "associateCodeNotFound": "伙伴代码未找到。",
     "vendorNameRequired": "供应商名称为必填项。",
+    "signatoryNameRequired": "签署人姓名为必填项。",
     "notSignedIn": "未登录。",
     "newPasswordTooShort": "新密码至少需要 {min} 个字符。",
     "passwordSameAsCurrent": "新密码必须与当前密码不同。",
@@ -1826,5 +1828,19 @@
     "convert": "转为交易",
     "void": "作废",
     "fromChip": "来自 {code}"
+  },
+  "company": {
+    "pageTitle": "公司资料",
+    "pageSubtitle": "盖印在新伙伴协议上的签署人姓名及签名。",
+    "signatoryNameLabel": "签署人姓名",
+    "signatureLabel": "签名",
+    "noSignature": "尚未上传签名",
+    "uploadSignature": "上传签名",
+    "replaceSignature": "更换签名",
+    "removeSignature": "移除签名",
+    "pngOnlyHint": "仅限 PNG 格式，最大 5MB。",
+    "saveBtn": "保存",
+    "savedAt": "最后更新于 {date}",
+    "couldNotSave": "保存失败。"
   }
 }

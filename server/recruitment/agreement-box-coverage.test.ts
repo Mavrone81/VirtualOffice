@@ -35,12 +35,14 @@ function mkTempDir(prefix: string): string {
 // `@/lib/pdf/agreement`.
 // ---------------------------------------------------------------------------
 
-const { prismaMock, putObjectMock, rateLimitMock } = vi.hoisted(() => ({
+const { prismaMock, putObjectMock, getObjectMock, rateLimitMock } = vi.hoisted(() => ({
   prismaMock: {
     candidate: { findUnique: vi.fn(), update: vi.fn() },
     associate: { findUnique: vi.fn() },
+    companySignatory: { findUnique: vi.fn() },
   },
   putObjectMock: vi.fn(),
+  getObjectMock: vi.fn(),
   rateLimitMock: {
     checkRateLimit: vi.fn(async () => ({ allowed: true })),
     recordFailure: vi.fn(),
@@ -53,7 +55,7 @@ vi.mock("@/lib/rate-limit", () => rateLimitMock);
 vi.mock("@/auth", () => ({ auth: async () => null }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/storage", () => ({ putObject: putObjectMock, getObject: vi.fn() }));
+vi.mock("@/lib/storage", () => ({ putObject: putObjectMock, getObject: getObjectMock }));
 vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(), onboardingInviteEmail: vi.fn(), approvalEmail: vi.fn() }));
 // Deliberately NOT mocking @/lib/pdf/agreement, @/lib/crypto or @/lib/labels
 // — the whole point is to run the real renderer against what the real
@@ -315,7 +317,7 @@ const MUTUALLY_EXCLUSIVE_PAIRS: { active: string; inactive: string; note: string
   { active: "commencementOnCheckbox", inactive: "commencementImmediateCheckbox", note: "commencementDate is set in this fixture" },
   { active: "spouseWorkingYes", inactive: "spouseWorkingNo", note: "spouseConflict is true in this fixture" },
 ];
-const IMAGE_FIELDS = new Set(["signatureImage"]);
+const IMAGE_FIELDS = new Set(["signatureImage", "companySignatureImage"]);
 // commencementOnDate is text but only drawn alongside commencementOnCheckbox
 // (same `if (a.commencementDate)` branch) — it goes through the ordinary
 // non-empty-text census below, not the mark-pair category, since it IS text.
@@ -342,7 +344,17 @@ beforeEach(() => {
     directUpline: { fullName: "Grace Ong", associateCode: "A1000" },
   });
   prismaMock.candidate.update.mockResolvedValue({});
+  // CR-0001: a configured signatory — this IS the "maximal" case for the
+  // company's own half of the agreement, same convention as every other
+  // field here (the real producer path, not a hand-built AgreementData).
+  prismaMock.companySignatory.findUnique.mockResolvedValue({
+    signatoryName: "Jane Director",
+    signatureFileKey: "company/signatory-signature.png",
+  });
   putObjectMock.mockResolvedValue(undefined);
+  getObjectMock.mockResolvedValue(
+    Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+  );
 });
 
 /** Every optional field in onboardingSchema populated — the "maximal"
@@ -411,7 +423,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     // Built-in control: the census reports how many boxes it checked, per the
     // standing "a tool must report how many inputs it consumed" rule.
     console.log(`agreement-box-coverage: ${total} total boxes, ${categorized.length} exempt/categorized, ${expectedTextCount} expected non-empty`);
-    expect(expectedTextCount).toBe(26); // pre-registered count, cross-check only — the per-entry assertions below are the real test
+    expect(expectedTextCount).toBe(27); // pre-registered count, cross-check only — the per-entry assertions below are the real test (was 26 before CR-0001; CR-0001 adds companySignatureImage to IMAGE_FIELDS and companySignatoryName as a new non-exempt text field, net +1)
   });
 
   test("every non-exempt text box receives real, non-empty text from the real producer path", async () => {
@@ -427,7 +439,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     }
     // Built-in control: input count.
     console.log(`agreement-box-coverage: checked ${checked.length} text boxes for non-empty content`);
-    expect(checked.length).toBe(26); // built-in control: a census over the wrong subject set reports 0 failures for the wrong reason
+    expect(checked.length).toBe(27); // built-in control: a census over the wrong subject set reports 0 failures for the wrong reason (was 26 before CR-0001, see the PRE-REGISTRATION test above)
     expect(failures).toEqual([]);
   });
 
