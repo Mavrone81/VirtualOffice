@@ -77,7 +77,10 @@ fi
 up_out="$DEST/vo-uploads-$stamp.tar.gz.gpg"
 up_path=$(docker volume inspect -f '{{ .Mountpoint }}' "$UPLOADS_VOLUME" 2>/dev/null)
 if [ -n "$up_path" ] && [ -d "$up_path" ]; then
-  if tar -czf - -C "$up_path" . | encrypt_to "$up_out"; then
+  # ADR-0002 N5 / B-9: uploads-in-progress live under STORAGE_DIR/.tmp
+  # (renamed into place only once fully written and hashed) — never back up
+  # a half-written file.
+  if tar -czf - --exclude=./.tmp -C "$up_path" . | encrypt_to "$up_out"; then
     if verify_encrypted "$up_out"; then
       echo "$(ts) $TAG wrote $up_out ($(du -h "$up_out" | cut -f1))"
     else

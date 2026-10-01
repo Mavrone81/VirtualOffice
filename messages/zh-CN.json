@@ -1660,15 +1660,6 @@
     "error": "抱歉，出了点问题，请重试。",
     "forbidden": "该助手仅供管理员使用。"
   },
-  "marketing": {
-    "customisation": {
-      "title": "定制服务",
-      "subtitle": "个性化营销物料",
-      "howTitle": "如何申请定制",
-      "howBody": "个性化营销物料（定制传单、电子直邮、节日祝福及其他设计）由专人安排。请联系 Yiling 说明需求，她会告知方案与所需时间。",
-      "feeNote": "注意：定制服务为收费项目。"
-    }
-  },
   "referrals": {
     "list": {
       "title": "转介伙伴列表",
@@ -1828,6 +1819,43 @@
     "convert": "转为交易",
     "void": "作废",
     "fromChip": "来自 {code}"
+  },
+  "adminMarketing": {
+    "subtitle": "按类别管理的命名文件集合，PDF/JPG/PNG，每个文件最大 20 MB。经纪人可浏览并下载；除非您将其存档或删除，否则不会过期。",
+    "libraryUsage": "已使用 {used}，共 {cap}",
+    "libraryNearCap": "营销资料库即将达到存储上限——管理员应尽快存档或删除不需要的文件。",
+    "cat": {
+      "flyers": "宣传单",
+      "edms": "电子邮件营销",
+      "customisation": "定制",
+      "greetings": "祝福贺卡"
+    },
+    "newCollectionHeading": "新建合集",
+    "collectionName": "名称",
+    "collectionNamePlaceholder": "例如：2026 圣诞节",
+    "createCollection": "创建",
+    "emptyLibrary": "暂无合集。",
+    "emptyCollection": "此合集尚未上传任何文件。",
+    "assetCount": "{count, plural, =0 {暂无文件} other {# 个文件}}",
+    "archived": "已存档",
+    "uploadAction": "上传文件",
+    "uploading": "上传中…",
+    "archive": "存档",
+    "unarchive": "取消存档",
+    "delete": "删除",
+    "deleteConfirm": "删除此合集？其中的所有文件都将被移除，且无法撤销。",
+    "uploadError": "文件上传失败 — {reason}。",
+    "fileTooLarge": "文件必须小于 20 MB。"
+  },
+  "portalMarketing": {
+    "subtitle": "浏览并下载。",
+    "cat": {
+      "flyers": "宣传单",
+      "edms": "电子邮件营销",
+      "greetings": "祝福贺卡",
+      "customisation": "定制服务"
+    },
+    "empty": "暂无内容。"
   },
   "company": {
     "pageTitle": "公司资料",

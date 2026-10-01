@@ -169,6 +169,11 @@ export const portalNav: NavGroup[] = [
           { labelKey: "nameCard", href: "/portal/name-card", icon: IdCard },
           { labelKey: "flyers", icon: Image },
           { labelKey: "edm", icon: Mail },
+          // B-9: this now serves the same download library as flyers/edm/
+          // greetings — but Customisation itself pre-dates B-9, so its href
+          // stays unconditional (unlike those three, which are flag-gated
+          // below via MARKETING_LIBRARY_NAV_SLUG). The shipping config
+          // (flag off) must keep this link working exactly as it did before.
           { labelKey: "chineseNameMenu", href: "/portal/marketing/customisation", icon: Palette },
           { labelKey: "greetings", icon: PartyPopper },
         ],
@@ -217,3 +222,36 @@ export const portalNav: NavGroup[] = [
 
 export const navByArea = { admin: adminNav, portal: portalNav } as const;
 export type ShellArea = keyof typeof navByArea;
+
+// B-9: these items have no href above — the underlying pages exist
+// (app/{admin,portal}/marketing/[category]) but 404 while
+// MARKETING_LIBRARY_ENABLED is off, and nav.ts can't read that flag itself
+// (see the comment above chineseNameMenu: importing @/lib/env here broke
+// the shell for every signed-in user). The shell reads the flag server-side
+// and passes it down as a prop instead; this map is pure data (safe to
+// import from client code) letting the sidebar turn a labelKey into the
+// matching /[area]/marketing/<slug> route.
+//
+// Deliberately NOT flyers/edm/greetings/customisation-portal's full set:
+// the portal's "chineseNameMenu" (Customisation) pre-dates B-9 and already
+// carries its own unconditional href above, so it's absent here on purpose
+// — adding it back would make withMarketingLibraryHref a no-op for it
+// either way (it only fills a MISSING href), but an entry for an item that
+// never needs filling is misleading, not merely redundant. The admin-side
+// "customisation" item has no such history (B-9 is its first page) and
+// stays flag-gated like flyers/edm/greetings.
+export const MARKETING_LIBRARY_NAV_SLUG: Record<string, string> = {
+  flyers: "flyers",
+  edm: "edms",
+  customisation: "customisation",
+  greetings: "greetings",
+};
+
+// Pure (no React, no env) so the sidebar's decision is directly testable —
+// only ever fills in an href that's currently missing, so a NavItem that's
+// unwired for a reason OTHER than this flag (nothing in that set today) is
+// left alone.
+export function withMarketingLibraryHref(item: NavItem, area: ShellArea, marketingLibraryEnabled: boolean): NavItem {
+  const slug = MARKETING_LIBRARY_NAV_SLUG[item.labelKey];
+  return slug && marketingLibraryEnabled && !item.href ? { ...item, href: `/${area}/marketing/${slug}` } : item;
+}

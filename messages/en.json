@@ -1660,15 +1660,6 @@
     "error": "Sorry, something went wrong. Please try again.",
     "forbidden": "The assistant is available to admins only."
   },
-  "marketing": {
-    "customisation": {
-      "title": "Customisation",
-      "subtitle": "Personalised marketing collateral",
-      "howTitle": "How to request customisation",
-      "howBody": "Custom marketing collateral (personalised flyers, EDMs, greetings and other designs) is arranged personally. Contact Yiling with what you need and she will advise on options and turnaround.",
-      "feeNote": "Note: customisation work is chargeable — a fee applies."
-    }
-  },
   "referrals": {
     "list": {
       "title": "Referral Partner List",
@@ -1828,6 +1819,43 @@
     "convert": "Convert to transaction",
     "void": "Void",
     "fromChip": "From {code}"
+  },
+  "adminMarketing": {
+    "subtitle": "Named collections of PDF/JPG/PNG files, up to 20 MB each. Associates browse and download; nothing expires until you archive or delete it.",
+    "libraryUsage": "{used} of {cap} used",
+    "libraryNearCap": "The marketing library is close to its storage limit — an admin should archive or delete unused files soon.",
+    "cat": {
+      "flyers": "Flyers",
+      "edms": "EDMs",
+      "customisation": "Customisation",
+      "greetings": "Greetings"
+    },
+    "newCollectionHeading": "New collection",
+    "collectionName": "Name",
+    "collectionNamePlaceholder": "e.g. Christmas 2026",
+    "createCollection": "Create",
+    "emptyLibrary": "No collections yet.",
+    "emptyCollection": "No files uploaded to this collection yet.",
+    "assetCount": "{count, plural, =0 {No files} =1 {1 file} other {# files}}",
+    "archived": "Archived",
+    "uploadAction": "Upload file",
+    "uploading": "Uploading…",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this collection? Every file in it will be removed. This can't be undone.",
+    "uploadError": "That file couldn't be uploaded — {reason}.",
+    "fileTooLarge": "File must be under 20 MB."
+  },
+  "portalMarketing": {
+    "subtitle": "Browse and download.",
+    "cat": {
+      "flyers": "Flyers",
+      "edms": "EDMs",
+      "greetings": "Greetings",
+      "customisation": "Customisation"
+    },
+    "empty": "Nothing here yet."
   },
   "company": {
     "pageTitle": "Company Data",

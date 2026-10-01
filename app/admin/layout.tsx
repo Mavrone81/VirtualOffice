@@ -6,6 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ApprovalStatus, OnboardingStage, SubmissionStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { env } from "@/lib/env";
 import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { initialsOf, currentPeriod } from "@/lib/utils";
 import { AppShell } from "@/components/shell/app-shell";
@@ -53,7 +54,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ];
 
   return (
-    <AppShell area="admin" user={user} badges={{ recruit, quotations, referrals }} alerts={alerts} period={currentPeriod(locale)}>
+    <AppShell
+      area="admin"
+      user={user}
+      badges={{ recruit, quotations, referrals }}
+      marketingLibraryEnabled={env.MARKETING_LIBRARY_ENABLED}
+      alerts={alerts}
+      period={currentPeriod(locale)}
+    >
       {children}
       {/* Admin-only AI assistant (server-gated too at /api/assistant). */}
       {isFullAdmin(session.user.role) && <ChatBubble />}

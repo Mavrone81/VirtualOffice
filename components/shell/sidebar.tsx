@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LogOut, KeyRound, ChevronDown } from "lucide-react";
 import type { AppRole } from "@prisma/client";
-import { navByArea, type NavItem, type ShellArea } from "@/lib/nav";
+import { navByArea, withMarketingLibraryHref, type NavItem, type ShellArea } from "@/lib/nav";
 import { doSignOut } from "@/lib/auth-actions";
 
 export type ShellUser = { name: string; roleLabel: string; initials: string; subtitle?: string; role?: AppRole };
@@ -33,12 +33,14 @@ export function Sidebar({
   area,
   user,
   badges = {},
+  marketingLibraryEnabled = false,
   mobileOpen,
   onClose,
 }: {
   area: ShellArea;
   user: ShellUser;
   badges?: Record<string, number>;
+  marketingLibraryEnabled?: boolean;
   mobileOpen: boolean;
   onClose: () => void;
 }) {
@@ -50,12 +52,16 @@ export function Sidebar({
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const visible = (i: NavItem) => !i.roles || (user.role != null && i.roles.includes(user.role));
+  // Marketing-library items ship with no href (see lib/nav.ts) so the flag
+  // can gate them without importing @/lib/env into this client bundle — the
+  // flag crosses the server/client boundary as this one boolean prop instead.
+  const withMarketingHref = (i: NavItem) => withMarketingLibraryHref(i, area, marketingLibraryEnabled);
   const groups = navByArea[area]
     .map((g) => ({
       ...g,
       items: g.items
         .filter(visible)
-        .map((i) => (i.children ? { ...i, children: i.children.filter(visible) } : i))
+        .map((i) => (i.children ? { ...i, children: i.children.filter(visible).map(withMarketingHref) } : withMarketingHref(i)))
         .filter((i) => !i.children || i.children.length > 0),
     }))
     .filter((g) => g.items.length > 0);

@@ -25,12 +25,16 @@ describe("i18n key parity (en vs zh-CN)", () => {
   });
 
   // A-15 revised by owner ruling 28 Sep: the associate Marketing menu item and its
-  // page title read "Customisation" (same wording as the admin library), not 中文名.
+  // page title read "Customisation" (same wording as the admin library), not 中文名
+  // — supersedes the earlier Q10 (26 Sep) split-by-portal ruling.
+  // B-9: the associate Customisation page itself became the download library, so
+  // the title now lives at portalMarketing.cat.customisation instead of its own
+  // removed "marketing.customisation" page copy — same (superseding) ruling, new key.
   it("the associate Customisation menu item and its page title read Customisation", () => {
     expect(en.nav.chineseNameMenu).toBe(en.nav.customisation);
     expect(zhCN.nav.chineseNameMenu).toBe(zhCN.nav.customisation);
-    expect(en.marketing.customisation.title).toBe(en.nav.customisation);
-    expect(zhCN.marketing.customisation.title).toBe(zhCN.nav.customisation);
+    expect(en.portalMarketing.cat.customisation).toBe(en.nav.customisation);
+    expect(zhCN.portalMarketing.cat.customisation).toBe(zhCN.nav.customisation);
   });
 
   it("the admin Marketing library keeps the Customisation label", () => {
