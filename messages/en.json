@@ -1411,6 +1411,7 @@
     "clientNameRequired": "Client name is required.",
     "addProductLine": "Add at least one product line.",
     "alreadyProcessed": "Already processed",
+    "amountLocked": "The sale amount can't be changed once the agreement has a signature on file.",
     "pendingSdApproval": "Pending SD approval of the commission split.",
     "quotationNotApproved": "The quotation has not been approved for generation yet.",
     "legacyReadOnly": "History (old process) — this record predates the new transaction flow. Sale terms can't be changed.",

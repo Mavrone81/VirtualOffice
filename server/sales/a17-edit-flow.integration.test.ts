@@ -9,6 +9,7 @@ vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) =>
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { prisma } from "@/lib/db";
+import { AshesAgreementStatus } from "@prisma/client";
 
 const TAG = "A17EDIT-";
 let companyId = "", ashesProductId = "", plainProductId = "", closerId = "";
@@ -96,14 +97,34 @@ describe("editSale — legacy refusal + content_version", () => {
   });
 });
 
-describe("editSale — C2 signature void", () => {
-  it("voids a signed agreement on a money edit (amount change), keeping the signed file as history", async () => {
+describe("editSale — C2 signature void (non-amount terms only)", () => {
+  // CHANGED, not because it went red — because it asserted behaviour this
+  // ruling supersedes. The original test here was "voids a signed agreement
+  // on a money edit (amount change), keeping the signed file as history",
+  // and it asserted r.ok === true with the agreement reset to Draft. PD's
+  // ruling (settled after three revisions, see the "sale amount lock"
+  // describe block below) makes that exact outcome wrong: an amount-
+  // changing edit against a signed agreement must now be REFUSED, never
+  // silently voided. Updating this test to match the new intended
+  // behaviour meant moving its TRIGGER to a genuine non-amount term change
+  // (a payment-plan edit, same amount) — the void-and-resign mechanism
+  // itself is still real and still covered, just no longer reachable via
+  // the amount. This is the distinction that matters at review: the
+  // guarantee (void-and-resign exists for real term changes) survives
+  // intact; only the amount's own path to it was removed, on purpose, by
+  // the ruling — not by this test going red and getting patched to pass.
+  it("voids a signed agreement on a non-money term change (product swap), keeping the signed file as history", async () => {
     const subId = await submitAshesSale(1000);
     const sub = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { ashesAgreement: { select: { id: true } } } });
     await markSigned(sub.ashesAgreement!.id);
 
     who.session = { user: { associateId: closerId, id: closerId } };
-    const r = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Full Payment", lines: [{ productId: ashesProductId, lineSaleAmount: 1500, comCodeIds: [] }] });
+    // Same amount (1000), different payment plan — a real ashesChanged term
+    // that is NOT the sale amount, so the amount lock must not apply here.
+    const r = await editSale({
+      id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Installment", installmentCount: 3,
+      lines: [{ productId: ashesProductId, lineSaleAmount: 1000, comCodeIds: [] }],
+    });
     expect(r.ok).toBe(true);
 
     const agreement = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: sub.ashesAgreement!.id } });
@@ -134,6 +155,138 @@ describe("editSale — C2 signature void", () => {
     const agreement = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: sub.ashesAgreement!.id } });
     expect(agreement.status).toBe("Signed");
     expect(agreement.signatureVersion).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sale amount lock (PD ruling, settled after three revisions). Scope: once
+// the Pet Ash agreement carries a real signature (status is not Draft), an
+// amount-changing edit is refused outright — never silently voided and
+// resigned. Closes the window where a ClosedDeal sale's status stays
+// Submitted all the way through the client's e-signature (there is no
+// QuotationApproved step for this flow), so without this, the closing
+// associate alone could edit the amount after a real signature with no
+// admin step at all.
+// ---------------------------------------------------------------------------
+describe("editSale — sale amount lock", () => {
+  // Defence in depth, per enum value: assert each AshesAgreementStatus value
+  // explicitly, so a lock-applies/doesn't-apply decision is never implicit.
+  it("REJECTS an amount-changing edit when the agreement is Signed — audited, signature untouched", async () => {
+    const subId = await submitAshesSale(1000);
+    const sub = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { ashesAgreement: { select: { id: true } } } });
+    await markSigned(sub.ashesAgreement!.id);
+
+    who.session = { user: { associateId: closerId, id: closerId } };
+    const r = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Full Payment", lines: [{ productId: ashesProductId, lineSaleAmount: 1500, comCodeIds: [] }] });
+    expect(r).toEqual({ ok: false, error: "amountLocked" });
+
+    // The signature must be left completely untouched — no void, no resign,
+    // no column cleared. This is the defect the old behaviour had: a silent
+    // void where the reader expects a hard refusal.
+    const agreement = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: sub.ashesAgreement!.id } });
+    expect(agreement.status).toBe("Signed");
+    expect(agreement.signatureVersion).toBe(0);
+    expect(agreement.applicantSignatureKey).toBe("fake/sig.png");
+    expect(agreement.agreementPdfKey).toBe("fake/agreement.pdf");
+    expect(agreement.signedPdfSha256).toBe("a".repeat(64));
+
+    // And the submission itself must be untouched too — a refusal before the
+    // transaction, not a partial write.
+    const after = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { saleAmount: true, contentVersion: true } });
+    expect(after.saleAmount.toNumber()).toBe(1000);
+    expect(after.contentVersion).toBe(0);
+
+    const voided = await prisma.auditLog.findMany({ where: { entityId: sub.ashesAgreement!.id, action: "ashes.signature_voided" } });
+    expect(voided).toHaveLength(0);
+    const locked = await prisma.auditLog.findMany({ where: { entityId: subId, action: "sale.amount_edit_locked" } });
+    expect(locked).toHaveLength(1);
+    expect(locked[0].afterJson).toMatchObject({ agreementStatus: "Signed" });
+  });
+
+  it("REJECTS an amount-changing edit when the agreement is Superseded", async () => {
+    const subId = await submitAshesSale(1000);
+    const sub = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { ashesAgreement: { select: { id: true } } } });
+    await markSigned(sub.ashesAgreement!.id);
+
+    who.session = { user: { associateId: closerId, id: closerId } };
+    // Same amount, product swap away from ashes — supersedes the signed row
+    // (✎6), not an amount change, so this setup step itself is unaffected
+    // by the lock.
+    const setup = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Full Payment", lines: [{ productId: plainProductId, lineSaleAmount: 1000, comCodeIds: [] }] });
+    expect(setup.ok).toBe(true);
+    const superseded = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: sub.ashesAgreement!.id } });
+    expect(superseded.status).toBe("Superseded");
+
+    const r = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Full Payment", lines: [{ productId: plainProductId, lineSaleAmount: 1500, comCodeIds: [] }] });
+    expect(r).toEqual({ ok: false, error: "amountLocked" });
+
+    const agreement = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: sub.ashesAgreement!.id } });
+    expect(agreement.status).toBe("Superseded"); // unchanged by the rejected edit
+    const after = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { saleAmount: true } });
+    expect(after.saleAmount.toNumber()).toBe(1000);
+  });
+
+  it("CONTROL: the identical amount-changing edit SUCCEEDS while the agreement is Draft (never signed)", async () => {
+    const subId = await submitAshesSale(1000);
+    const sub = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { ashesAgreement: { select: { id: true, status: true } } } });
+    expect(sub.ashesAgreement!.status).toBe("Draft");
+
+    who.session = { user: { associateId: closerId, id: closerId } };
+    const r = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Full Payment", lines: [{ productId: ashesProductId, lineSaleAmount: 1500, comCodeIds: [] }] });
+    // Without this control, a rejection-only test suite would pass even
+    // against a path that rejects every edit unconditionally.
+    expect(r.ok).toBe(true);
+    const after = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { saleAmount: true } });
+    expect(after.saleAmount.toNumber()).toBe(1500);
+  });
+
+  // BEFORE/AFTER CONTROL on the OTHER dimension (submission status, not
+  // agreement status) — this feature does not widen editSale's existing
+  // Submitted-only gate; this proves that gate already locks an amount edit
+  // at the right point, rather than assuming it.
+  //
+  // The ruling names "Submitted → QuotationApproved" — that is Legacy's
+  // transition, and for THIS flow (ClosedDeal) it is unreachable:
+  // approveQuotation explicitly refuses ClosedDeal rows (server/sales/
+  // actions.ts, "a ClosedDeal row must never reach QuotationApproved via
+  // this path") — verifySale's Submitted → Verified is ClosedDeal's real
+  // admin-approval transition. This is not a gap against the ruling:
+  // QuotationApproved is Legacy's instance of the exact same condition
+  // editSale already checks (status !== Submitted), and this test proves
+  // that single mechanism directly — it doesn't need a second, Legacy-only
+  // fixture repeating the same proof under a different status name. Status
+  // is set directly rather than driving the full verifySale pipeline
+  // (ledger/split-approval machinery is out of scope for this test).
+  it("BEFORE/AFTER CONTROL (submission status): an amount edit succeeds while Submitted, refused once the submission leaves Submitted via admin approval", async () => {
+    const subId = await submitAshesSale(1000);
+    who.session = { user: { associateId: closerId, id: closerId } };
+
+    const before = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Full Payment", lines: [{ productId: ashesProductId, lineSaleAmount: 1200, comCodeIds: [] }] });
+    expect(before.ok).toBe(true);
+
+    await prisma.salesSubmission.update({ where: { id: subId }, data: { status: "Verified" as never } });
+    const after = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", paymentPlan: "Full Payment", lines: [{ productId: ashesProductId, lineSaleAmount: 1500, comCodeIds: [] }] });
+    expect(after).toEqual({ ok: false, error: "alreadyProcessed" });
+  });
+
+  it("does not lock a non-amount edit, even when the agreement is Signed (scoped to amount only)", async () => {
+    const subId = await submitAshesSale(1000);
+    const sub = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { ashesAgreement: { select: { id: true } } } });
+    await markSigned(sub.ashesAgreement!.id);
+
+    who.session = { user: { associateId: closerId, id: closerId } };
+    // Same amount (1000), client contact only — must still succeed, matching
+    // "editSale — C2 signature void" coverage of the same shape.
+    const r = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Ashes Client", clientContact: "+65 9123 4567", paymentPlan: "Full Payment", lines: [{ productId: ashesProductId, lineSaleAmount: 1000, comCodeIds: [] }] });
+    expect(r.ok).toBe(true);
+  });
+
+  // 🔴 Exhaustiveness guard: if AshesAgreementStatus ever grows a 4th value,
+  // this breaks instead of silently leaving it unclassified by the lock
+  // above (which only ever asks "is it Draft?" — a new value defaults to
+  // "locks" today, but that default has never been a reviewed decision).
+  it("ENUM EXHAUSTIVENESS: AshesAgreementStatus is exactly {Draft, Signed, Superseded} — a new value must be a reviewed decision, not a silent default", () => {
+    expect(Object.values(AshesAgreementStatus).sort()).toEqual(["Draft", "Signed", "Superseded"].sort());
   });
 });
 
