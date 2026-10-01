@@ -370,6 +370,7 @@ model Associate {
   closedSubmissions       SalesSubmission[]  @relation("SubmissionCloser")
   closedTransactions      SalesTransaction[] @relation("TransactionCloser")
   quotations              Quotation[]
+  paymentVouchers         PaymentVoucher[]
   ledgerLines             CommissionLedger[]
   payouts                 MonthlyPayout[]
   vendorReferrals         VendorReferral[]
@@ -785,6 +786,7 @@ model SalesTransaction {
   invoices        Invoice[]
   installmentPlan InstallmentPlan?
   ledgerLines     CommissionLedger[]
+  paymentVouchers PaymentVoucher[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -947,6 +949,7 @@ model MonthlyPayout {
   seq                Int                @default(0)
   kind               PayoutKind         @default(Regular)
   ledgerLines        CommissionLedger[]
+  paymentVouchers    PaymentVoucher[]
   associateName      String             @map("associate_name")
   designation        Designation
   personalCommission Decimal            @default(0) @map("personal_commission") @db.Decimal(14, 2)
@@ -1164,6 +1167,50 @@ model CompanySignatory {
   createdAt        DateTime @default(now()) @map("created_at")
 
   @@map("company_signatory")
+}
+
+// A-7: payment voucher per settling payout. One instalment sale paid across
+// N payouts gets N vouchers (seq 1..N, ordered by settlement — paidDate,
+// then payoutMonth, then payoutId — never by issue/download order); a sale
+// paid in one go gets exactly one, numbered 1. Frozen at issue: everything
+// below the first lookup for a given (transactionId, associateId,
+// payoutId) runs exactly once — a later line Cancelled, or another payout
+// settling more on the same transaction, never changes an already-issued
+// voucher's content. Purely additive, no backfill: a transaction/payout
+// pair simply has no voucher until first downloaded.
+model PaymentVoucher {
+  id            String           @id @default(uuid()) @db.Uuid
+  transactionId String           @map("transaction_id") @db.Uuid
+  transaction   SalesTransaction @relation(fields: [transactionId], references: [id])
+  associateId   String           @map("associate_id") @db.Uuid
+  associate     Associate        @relation(fields: [associateId], references: [id])
+  payoutId      String           @map("payout_id") @db.Uuid
+  payout        MonthlyPayout    @relation(fields: [payoutId], references: [id])
+  reference     String           @unique
+  // 1-based position among this (transaction, associate)'s SETTLING
+  // payouts, ordered by (paidDate, payoutMonth, payoutId) — never a count
+  // of already-issued vouchers (that races two different payouts onto the
+  // same seq/reference when issued concurrently).
+  seq           Int
+  // Denormalized at issue, deliberately — an admin editing the associate's
+  // name/code or the transaction's code later must not rewrite an already-
+  // issued voucher's content.
+  associateName   String  @map("associate_name")
+  associateCode   String  @map("associate_code")
+  transactionCode String  @map("transaction_code")
+  clientInitials  String  @map("client_initials")
+  payoutMonths    String[] @map("payout_months")
+  paidDate        DateTime @map("paid_date")
+  // VoucherLine[] (server/vouchers/get-or-create.ts) — this payout's own
+  // settled lines only, frozen at issue.
+  lines         Json
+  totalPaid     Decimal  @map("total_paid") @db.Decimal(14, 2)
+  issuedAt      DateTime @default(now()) @map("issued_at")
+  issuedById    String?  @map("issued_by") @db.Uuid
+
+  @@unique([transactionId, associateId, payoutId])
+  @@index([transactionId, associateId])
+  @@map("payment_vouchers")
 }
 
 model AuditLog {
