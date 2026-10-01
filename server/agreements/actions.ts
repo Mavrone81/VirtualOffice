@@ -268,20 +268,49 @@ export async function signAshesAgreement(
   }
   // A new key every time (never reused): an old signed file is never
   // overwritten, even across a void/supersede/re-sign cycle (ADR-0001).
+  // N2: the object write stays OUTSIDE the transaction, deliberately —
+  // an orphaned PDF in storage with no row pointing at it is acceptable
+  // (nothing reads storage without a key from the DB first); a row that
+  // says Signed with no recorded PDF is not. Don't make the object write
+  // transactional; make everything that follows it atomic instead.
   const pdfKey = `submissions/${submissionId}/${randomUUID()}.pdf`;
   await putObject(pdfKey, pdf.buffer);
   const signedPdfSha256 = createHash("sha256").update(pdf.buffer).digest("hex");
-  await prisma.petsAshesAgreement.update({ where: { id: agreement.id }, data: { agreementPdfKey: pdfKey, signedPdfSha256 } });
-  await prisma.submissionDocument.create({
-    data: { submissionId, kind: "Signed", fileKey: pdfKey, fileName: pdf.filename, uploadedById: session.user.id },
-  });
-
-  await logAudit({
-    action: "ashes_agreement.signed",
-    entityType: "PetsAshesAgreement",
-    entityId: agreement.id,
-    actorUserId: session.user.id,
-  });
+  // N2 (reviews/a17-flag-on-preconditions.md §2.4): the pdfKey/hash write,
+  // the docket row and the audit used to be three separate statements plus
+  // a best-effort logAudit — a crash between any of them left the row
+  // Signed with no PDF, in production, for every sale needing a Pet Ash
+  // agreement (Legacy or ClosedDeal), regardless of the flag. One
+  // transaction now, with auditTx (Tier A) instead of logAudit, so an
+  // audit failure rolls back the pdfKey/docket write too rather than
+  // leaving an unaudited state change.
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.petsAshesAgreement.update({ where: { id: agreement.id }, data: { agreementPdfKey: pdfKey, signedPdfSha256 } });
+      await db.submissionDocument.create({
+        data: { submissionId, kind: "Signed", fileKey: pdfKey, fileName: pdf!.filename, uploadedById: session.user.id },
+      });
+      await auditTx(db, {
+        action: "ashes_agreement.signed",
+        entityType: "PetsAshesAgreement",
+        entityId: agreement.id,
+        actorUserId: session.user.id,
+      });
+    });
+  } catch (e) {
+    // Same revert-to-Draft shape as the render-failure catch above, keyed
+    // on this call's own signatureKey with agreementPdfKey still null — the
+    // transaction rolling back is what guarantees that condition still
+    // holds here, so this can never revert a row a DIFFERENT, successful
+    // sign already attached a PDF to.
+    await prisma.petsAshesAgreement.updateMany({
+      where: { id: agreement.id, status: AshesAgreementStatus.Signed, applicantSignatureKey: signatureKey, agreementPdfKey: null },
+      data: { status: AshesAgreementStatus.Draft, signedAt: null, applicantSignatureKey: null, signedTerms: Prisma.DbNull },
+    });
+    await deleteObject(signatureKey).catch(() => {});
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    return { ok: false, error: t("signingFailed") };
+  }
   revalidatePath("/portal/agreements");
   revalidatePath("/portal/quotations");
   revalidatePath(`/portal/sales/${submissionId}/agreement`);
