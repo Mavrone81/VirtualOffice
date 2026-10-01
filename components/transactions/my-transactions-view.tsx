@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { formatSGD } from "@/lib/money";
 import { dashboardScopeIds, dashboardMetrics } from "@/server/dashboard/metrics";
 import { myTransactionRows, type TransactionVariant } from "@/server/transactions/queries";
+import { listVouchersForTransactions, type VoucherListEntry } from "@/server/vouchers/get-or-create";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { MyTransactionsTable } from "./my-transactions-table";
@@ -27,6 +28,17 @@ export async function MyTransactionsView({ variant }: { variant: TransactionVari
 
   const scopeIds = session && me ? await dashboardScopeIds(session.user.role, me) : me ? [me] : [];
   const [metrics, rows] = await Promise.all([dashboardMetrics(scopeIds), myTransactionRows(variant)]);
+
+  // A-6: the Received tab's last column is the Payment Voucher (A-7) — read
+  // from what the signed-in associate can actually access, never a link
+  // rendered speculatively. Batched: one call for the whole page, not one
+  // per row. Always scoped to `me` (own share), so canReadVoucher's "own
+  // voucher only" rule is satisfied by construction, not by the UI being
+  // careful — see listVouchersForTransactions's own doc comment.
+  let vouchers: Map<string, VoucherListEntry[]> | undefined;
+  if (variant === "received" && session && me && rows) {
+    vouchers = await listVouchersForTransactions(rows.map((r) => r.id), me, { associateId: me, role: session.user.role });
+  }
 
   return (
     <>
@@ -58,7 +70,7 @@ export async function MyTransactionsView({ variant }: { variant: TransactionVari
       </div>
 
       {me ? (
-        <MyTransactionsTable rows={rows ?? []} me={me} />
+        <MyTransactionsTable rows={rows ?? []} me={me} variant={variant} vouchers={vouchers} />
       ) : (
         <p className="text-[13px] text-muted">{tp("dashboard.noProfile")}</p>
       )}
