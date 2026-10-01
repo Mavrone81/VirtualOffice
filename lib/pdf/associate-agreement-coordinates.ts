@@ -173,12 +173,18 @@ export const AGREEMENT_FIELD_BOXES: Record<string, FieldBox> = {
   spouseCompanyName: { page: 7, x: 154.6, y: 173.9, width: 206.6, height: 14 },
   spouseDesignation: { page: 7, x: 126.7, y: 186.8, width: 234.5, height: 14 },
   // spouseWorking (Yes/No): not a text field — no blank or underline at all,
-  // a human circles/strikes one word. AD's ruling: draw a circle
+  // a human circles/strikes one word. The owner's ruling: draw a circle
   // (stampCircle) around whichever word applies when AgreementData.
   // spouseConflict is true/false; circle neither when it's null/undefined
-  // (same "no data, no mark" rule as every other blank). These are the
-  // TIGHT text bbox for each word — pad by ~2.5pt in stampCircle so the
-  // ellipse doesn't hug the glyphs.
+  // (same "no data, no mark" rule as every other blank).
+  // 🔴 This box is NOT what stampCircle draws from any more (see
+  // AGREEMENT_CIRCLE_WORD_INK below) — kept here only as the coarse region
+  // other code (the mark-pair coverage census) still keys off, and because
+  // it's still a reasonable pdftotext-reported "tight bbox". It measurably
+  // OVER-states the real printed ink on both axes (most on height: 11.07 vs
+  // the word's actual ~6.6pt ink height) — exactly the box-vs-measured gap
+  // AGREEMENT_FIELD_RULE_Y closed for rule positions; AGREEMENT_CIRCLE_WORD_INK
+  // closes the same gap for these two circle targets.
   spouseWorkingYes: { page: 7, x: 470.68, y: 162.83, width: 14.55, height: 11.07 },
   spouseWorkingNo: { page: 7, x: 493.01, y: 162.83, width: 12.22, height: 11.07 },
 
@@ -276,4 +282,23 @@ export const AGREEMENT_FIELD_RULE_Y: Record<keyof typeof AGREEMENT_FIELD_BOXES, 
   associateIdOfficial: 726.72, // light-grey interior divider (see correction above); never stamped anyway (the project owner's ruling)
   tier1ManagerOfficial: 744.72, // light-grey interior divider (see correction above); renderer aligns to its label instead by choice, not by necessity
   tier2ManagerOfficial: 762.72, // the table's own real bottom border
+};
+
+/**
+ * Ink extents of the "Yes"/"No" glyphs themselves, measured directly off a
+ * rendered raster of the pristine master — NOT the pdftotext-reported
+ * bounding box in `AGREEMENT_FIELD_BOXES` above, which is measurably larger
+ * than the real ink on both axes (most on height: 11.07pt box vs ~6.6pt of
+ * actual ink). `stampCircle` derives its ellipse from THIS table.
+ * Space: top-left, page-relative, same convention as everything else in
+ * this file. Measured at 600dpi (0.12pt/px grid) via Ghostscript, cross-
+ * checked against a second, independent rasterizer at the same and finer
+ * (1200dpi) resolution — all agreed within one 600dpi pixel. 300dpi was
+ * tried and discarded: it disagreed with both by ~0.3pt, consistent with
+ * quantisation (a known trap on this exact page — see the CIRCLE_PAD
+ * history this table replaces), not a second real measurement.
+ */
+export const AGREEMENT_CIRCLE_WORD_INK: Record<"spouseWorkingYes" | "spouseWorkingNo", { minX: number; minY: number; maxX: number; maxY: number }> = {
+  spouseWorkingYes: { minX: 470.72, minY: 165.15, maxX: 484.76, maxY: 171.75 },
+  spouseWorkingNo: { minX: 492.81, minY: 165.15, maxX: 504.69, maxY: 171.75 },
 };
