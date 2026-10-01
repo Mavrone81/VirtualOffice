@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { D, round2, pctOf, effectivePrice, instalmentTotal } from "./money";
+import { D, round2, pctOf, effectivePrice, instalmentTotal, formatPercent } from "./money";
 
 // Every expected figure below is a hand-derived literal, computed
 // independently of the implementation — never asserted against whatever
@@ -70,5 +70,41 @@ describe("instalmentTotal — soft admin hint (no DB constraint behind it)", () 
 
   test("months=0 (degenerate, e.g. a plan with no term yet): just the booking fee", () => {
     expect(instalmentTotal("250.00", "80.00", 0).toFixed(2)).toBe("250.00");
+  });
+});
+
+describe("formatPercent — 2dp display, ROUND_HALF_UP, Decimal not Number", () => {
+  test("12.5000 -> 12.50% (plain truncation to 2dp, no rounding decision made)", () => {
+    expect(formatPercent("12.5000")).toBe("12.50%");
+  });
+
+  // 12.5000 and 7.1250 are both EXACTLY representable in IEEE-754 binary, so
+  // a buggy Number(v).toFixed(2) would pass these two by coincidence — they
+  // prove 2dp truncation, not the rounding MODE. 7.1250 is the first one that
+  // actually pins half-up: half-even would give 7.12, half-up gives 7.13.
+  test("7.1250 -> 7.13% (half-up; half-even would give 7.12)", () => {
+    expect(formatPercent("7.1250")).toBe("7.13%");
+  });
+
+  // 1.005 and 2.675 are NOT exactly representable in binary floating point —
+  // 1.005 is actually stored as ~1.00499999999999989..., so Number(1.005)
+  // .toFixed(2) gives "1.00", not "1.01". These two cases fail under a float
+  // implementation specifically (not just an unproven rounding mode); they
+  // only pass through Prisma.Decimal (decimal.js), which parses the DECIMAL
+  // STRING exactly rather than coercing through a binary float first.
+  test("1.0050 -> 1.01% (fails under Number().toFixed — binary float stores ~1.00499999...)", () => {
+    expect(formatPercent("1.0050")).toBe("1.01%");
+  });
+
+  test("2.6750 -> 2.68% (same float trap: binary float stores ~2.67499999...)", () => {
+    expect(formatPercent("2.6750")).toBe("2.68%");
+  });
+
+  test("0 -> 0.00%", () => {
+    expect(formatPercent("0")).toBe("0.00%");
+  });
+
+  test("100 -> 100.00%", () => {
+    expect(formatPercent("100")).toBe("100.00%");
   });
 });
