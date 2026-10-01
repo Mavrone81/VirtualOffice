@@ -16,6 +16,8 @@ import {
   productPricingSchema,
   type ProductPricingInput,
   type ProductPricingRawInput,
+  productDetailsSchema,
+  type ProductDetailsRawInput,
 } from "@/lib/schemas";
 import { generateRequirementKey } from "@/lib/product-requirement-key";
 import { env } from "@/lib/env";
@@ -238,6 +240,88 @@ export async function updateProductPricing(productId: string, pricing: ProductPr
         actorUserId: admin.user.id,
         before,
         after: pricingSnapshot(updated),
+      });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    if (e instanceof ProductNotFound) return { ok: false, error: t("notFound") };
+    throw e;
+  }
+  revalidatePath("/admin/products");
+  return { ok: true };
+}
+
+type ProductDetailsColumns = PricingColumns & {
+  productName: string;
+  productCategory: string | null;
+  defaultCompanyId: string | null;
+};
+
+/** Details-edit before/after for the audit row — the pricing snapshot plus
+ *  name/category/default-company, nothing else from the product (no
+ *  commission/company-cut/override field, which this action never writes). */
+function productDetailsSnapshot(p: ProductDetailsColumns) {
+  return {
+    productName: p.productName,
+    productCategory: p.productCategory,
+    defaultCompanyId: p.defaultCompanyId,
+    ...pricingSnapshot(p),
+  } satisfies Prisma.InputJsonValue;
+}
+
+/** Editing an existing product's NAME/CATEGORY/DEFAULT COMPANY/PRICING in one
+ *  screen (2026-10-01) — the combined "edit product" admin screen, replacing
+ *  the pricing-only edit above (`updateProductPricing` stays in place,
+ *  unused by the new screen once Frontend migrates it, rather than being
+ *  removed out from under its current caller in the same change).
+ *  `productDetailsSchema` is `.strict()`, so it structurally excludes:
+ *    - productCode: READ-ONLY. SaleLineItem carries no productId at all,
+ *      only a copied productCode — the one link from a historical sale line
+ *      back to a product (Architect,
+ *      reviews/product-field-live-vs-snapshot-map-2026-10-01.md). A caller
+ *      that sends it fails validation rather than it being silently applied
+ *      or silently dropped.
+ *    - commissionType/closingCommPct/closingCommFixed/companyCutPct+Type/
+ *      smOverridePct+Type/sdOverridePct+Type/isExternal/
+ *      externalCompanyRetainedPct: already versioned via
+ *      CommissionStructureVersion, resolved by salesDate at close —
+ *      changeRates' own write path, not duplicated here.
+ *  requiredDocuments/requiresAshesAgreement are LIVE by design (resolved
+ *  fresh against the current product at every gate check, never
+ *  snapshotted) and have their own add/remove/toggle actions — this one
+ *  never reads or writes them. */
+export async function updateProduct(productId: string, input: ProductDetailsRawInput): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const v = validateInput(productDetailsSchema, input);
+  if (!v.ok) return { ok: false, error: t("invalidInput") };
+  const validInput = v.data;
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+
+  const data = {
+    productName: validInput.productName.trim(),
+    productCategory: validInput.productCategory?.trim() || null,
+    defaultCompanyId: validInput.defaultCompanyId || null,
+    ...pricingData(validInput),
+  };
+  // Tier A (money the buyer pays, via the pricing fields in this same
+  // write): the change and its record commit together. `before` is read
+  // INSIDE this same transaction, immediately ahead of the write — not from
+  // an earlier, un-transactional lookup — so the audit's "before" is never
+  // stale against a concurrent edit landing in between.
+  try {
+    await prisma.$transaction(async (db) => {
+      const existing = await db.product.findUnique({ where: { id: productId } });
+      if (!existing) throw new ProductNotFound();
+      const before = productDetailsSnapshot(existing);
+      const updated = await db.product.update({ where: { id: productId }, data });
+      await auditTx(db, {
+        action: "product.details_updated",
+        entityType: "Product",
+        entityId: productId,
+        actorUserId: admin.user.id,
+        before,
+        after: productDetailsSnapshot(updated),
       });
     });
   } catch (e) {

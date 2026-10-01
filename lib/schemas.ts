@@ -216,6 +216,43 @@ export type ProductPricingInput = z.infer<typeof productPricingSchema>;
 export type ProductPricingRawInput = z.input<typeof productPricingSchema>;
 
 // ---------------------------------------------------------------------------
+// Product details edit (2026-10-01) — the combined "edit product" screen:
+// name/category/default company + pricing, in ONE action/transaction
+// (server/products/actions.ts's updateProduct), replacing the pricing-only
+// edit screen. Deliberately excludes:
+//   - productCode: structurally READ-ONLY. SaleLineItem carries no
+//     productId at all, only a copied productCode — the one link from a
+//     historical sale line back to a product (Architect,
+//     reviews/product-field-live-vs-snapshot-map-2026-10-01.md). `.strict()`
+//     fences it off the same way this schema already fences off commission
+//     fields, rather than relying on the form not to send it.
+//   - commissionType/closingCommPct/closingCommFixed/companyCutPct+Type/
+//     smOverridePct+Type/sdOverridePct+Type/isExternal/
+//     externalCompanyRetainedPct: already versioned via
+//     CommissionStructureVersion and resolved by salesDate at close —
+//     changeRates is their own write path; duplicating them here would give
+//     two actions write access to the same columns.
+//   - requiredDocuments/requiresAshesAgreement: LIVE by design (resolved
+//     fresh against the current product at every gate check, never
+//     snapshotted) — their own add/remove/toggle actions, not part of an
+//     edit-and-replace screen.
+// ---------------------------------------------------------------------------
+export const productDetailsShape = {
+  productName: name,
+  productCategory: z.string().trim().max(100).optional(),
+  defaultCompanyId: id.optional(),
+  ...productPricingShape,
+};
+export const productDetailsSchema = z.object(productDetailsShape).strict().superRefine(pricingRefine);
+// Output type (post-parse) — what updateProduct works with internally.
+export type ProductDetailsInput = z.infer<typeof productDetailsSchema>;
+// Input type (pre-parse) — what a caller (the server action's own parameter,
+// a test) supplies; matches productPricingSchema's own input/output split
+// above for the same reason (a future defaulted field, e.g. closingBasis
+// once lane A lands, stays optional here without another edit).
+export type ProductDetailsRawInput = z.input<typeof productDetailsSchema>;
+
+// ---------------------------------------------------------------------------
 // Products — mirrors ProductInput (server/products/actions.ts)
 // ---------------------------------------------------------------------------
 export const productSchema = z.object({
