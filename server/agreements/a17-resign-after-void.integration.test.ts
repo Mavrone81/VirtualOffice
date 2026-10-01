@@ -100,10 +100,14 @@ describe("re-sign after C2 void, with a forced render failure on the re-sign att
     const firstSha = signed.signedPdfSha256!;
     expect(await getObject(firstKey)).not.toBeNull();
 
-    // C2 void: a non-amount term change while still needed (payment plan) —
-    // the sale amount lock (PD ruling) now refuses an amount-changing edit
-    // against a signed agreement outright instead of voiding it, so this
-    // void must come from a genuine non-money term change instead.
+    // CHANGED, not because it went red — because its SETUP step used an
+    // amount change (1000 → 1500) to reach a voided-signed-agreement state,
+    // and the sale amount lock (PD ruling) makes that specific trigger now
+    // refused outright instead of voiding. This test's actual subject (a
+    // forced render failure on re-sign — see the test name) is untouched;
+    // only the mechanism for getting INTO that starting state changed, to a
+    // genuine non-money term change (payment plan) that remains a real,
+    // legitimate void trigger under the new ruling.
     const voidEdit = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Resign After Void", paymentPlan: "Installment", installmentCount: 3, lines: [{ productId: ashesProductId, lineSaleAmount: 1000, comCodeIds: [] }] });
     expect(voidEdit.ok).toBe(true);
     const voided = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: signed.id } });

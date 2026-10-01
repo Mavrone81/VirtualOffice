@@ -98,11 +98,21 @@ describe("editSale — legacy refusal + content_version", () => {
 });
 
 describe("editSale — C2 signature void (non-amount terms only)", () => {
-  // PD ruling (settled after three revisions, supersedes the prior behaviour
-  // this test used to assert): an amount-changing edit against a signed
-  // agreement is now REFUSED, never silently voided — see the "sale amount
-  // lock" describe block below. The void-and-resign path stays live for a
-  // genuine non-money term change (plan/deposit/products), covered here.
+  // CHANGED, not because it went red — because it asserted behaviour this
+  // ruling supersedes. The original test here was "voids a signed agreement
+  // on a money edit (amount change), keeping the signed file as history",
+  // and it asserted r.ok === true with the agreement reset to Draft. PD's
+  // ruling (settled after three revisions, see the "sale amount lock"
+  // describe block below) makes that exact outcome wrong: an amount-
+  // changing edit against a signed agreement must now be REFUSED, never
+  // silently voided. Updating this test to match the new intended
+  // behaviour meant moving its TRIGGER to a genuine non-amount term change
+  // (a payment-plan edit, same amount) — the void-and-resign mechanism
+  // itself is still real and still covered, just no longer reachable via
+  // the amount. This is the distinction that matters at review: the
+  // guarantee (void-and-resign exists for real term changes) survives
+  // intact; only the amount's own path to it was removed, on purpose, by
+  // the ruling — not by this test going red and getting patched to pass.
   it("voids a signed agreement on a non-money term change (product swap), keeping the signed file as history", async () => {
     const subId = await submitAshesSale(1000);
     const sub = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: subId }, select: { ashesAgreement: { select: { id: true } } } });
@@ -235,13 +245,18 @@ describe("editSale — sale amount lock", () => {
   // Submitted-only gate; this proves that gate already locks an amount edit
   // at the right point, rather than assuming it.
   //
-  // Named "QuotationApproved" in the ruling, but for THIS flow (ClosedDeal)
-  // that transition is unreachable: approveQuotation explicitly refuses
-  // ClosedDeal rows (server/sales/actions.ts, "a ClosedDeal row must never
-  // reach QuotationApproved via this path") — verifySale's Submitted →
-  // Verified is the real admin-approval transition here. Status is set
-  // directly rather than driving the full verifySale pipeline (ledger/
-  // split-approval machinery is out of scope for this test).
+  // The ruling names "Submitted → QuotationApproved" — that is Legacy's
+  // transition, and for THIS flow (ClosedDeal) it is unreachable:
+  // approveQuotation explicitly refuses ClosedDeal rows (server/sales/
+  // actions.ts, "a ClosedDeal row must never reach QuotationApproved via
+  // this path") — verifySale's Submitted → Verified is ClosedDeal's real
+  // admin-approval transition. This is not a gap against the ruling:
+  // QuotationApproved is Legacy's instance of the exact same condition
+  // editSale already checks (status !== Submitted), and this test proves
+  // that single mechanism directly — it doesn't need a second, Legacy-only
+  // fixture repeating the same proof under a different status name. Status
+  // is set directly rather than driving the full verifySale pipeline
+  // (ledger/split-approval machinery is out of scope for this test).
   it("BEFORE/AFTER CONTROL (submission status): an amount edit succeeds while Submitted, refused once the submission leaves Submitted via admin approval", async () => {
     const subId = await submitAshesSale(1000);
     who.session = { user: { associateId: closerId, id: closerId } };
