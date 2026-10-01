@@ -140,6 +140,14 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
             <Label htmlFor="ecp">{t("details.ecNumber")}</Label>
             <Input id="ecp" value={f.emergencyContactNumber ?? ""} onChange={(e) => set({ emergencyContactNumber: e.target.value })} />
           </div>
+          <div>
+            <Label htmlFor="ecr">{t("details.ecRelationship")}</Label>
+            <Input id="ecr" value={f.emergencyContactRelationship ?? ""} onChange={(e) => set({ emergencyContactRelationship: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="eca">{t("details.ecAddress")}</Label>
+            <Input id="eca" value={f.emergencyContactAddress ?? ""} onChange={(e) => set({ emergencyContactAddress: e.target.value })} />
+          </div>
           <div className="sm:col-span-2">
             <Label htmlFor="spouseConflict">{t("details.spouseConflict")}</Label>
             <select
