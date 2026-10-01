@@ -13,3 +13,29 @@ export function canManageSignedInvoice(
   if (isAdminRole(principal.role)) return true;
   return !!principal.associateId && principal.associateId === invoice.closingAssociateId;
 }
+
+/**
+ * B-7 (owner ruling): who may view a payment acknowledgement — the closing
+ * associate (same "uploading associate" notion as canManageSignedInvoice,
+ * above), their upline, or admin. "Upline" here is the two tiers the
+ * register tracks on Associate — `directUplineId` and `secondUplineId` —
+ * not a recursive walk (AD, 2026-10-02): there's no existing notion
+ * of "upline" deeper than that stored anywhere in the schema, and
+ * `downlineIds()` in lib/rbac.ts walks the opposite direction.
+ */
+export function canViewPaymentAck(
+  invoice: {
+    closingAssociateId: string;
+    closingAssociateDirectUplineId: string | null;
+    closingAssociateSecondUplineId: string | null;
+  },
+  principal: { associateId: string | null; role: AppRole },
+): boolean {
+  if (isAdminRole(principal.role)) return true;
+  if (!principal.associateId) return false;
+  return (
+    principal.associateId === invoice.closingAssociateId ||
+    principal.associateId === invoice.closingAssociateDirectUplineId ||
+    principal.associateId === invoice.closingAssociateSecondUplineId
+  );
+}

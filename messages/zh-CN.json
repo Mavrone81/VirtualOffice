@@ -419,13 +419,12 @@
       "reference": "参考编号",
       "confirm": "确认已付款",
       "cancel": "取消",
-      "ackLabel": "付款证明（必填）",
+      "ackLabel": "付款证明（选填）",
       "ackHint": "PDF、JPG 或 PNG"
     },
     "viewAck": "查看付款证明",
     "markUnpaidReason": "原因（必填）",
     "markUnpaidConfirm": "确认",
-    "ackRequired": "必须上传付款证明。",
     "ackUploadError": "文件上传失败 — {reason}。"
   },
   "notices": {
