@@ -492,7 +492,7 @@ describe("renderAgreementPdf — spouse circle must not touch the '/' between Ye
   // DIFFERENTIAL can't see a stroke that lands exactly ON a pixel the slash
   // itself already darkens — that pixel is dark in BOTH renders, so it never
   // counts as "added", even though the stroke is genuinely touching real
-  // ink there. `agreement-circle-ink-intersection.test.ts` is the
+  // ink there. `agreement-circle-ink-intersection.integration.test.ts` is the
   // authoritative check for this property (two independently measured ink
   // masks, intersected, with a planted-overlap control proving the check
   // can report a positive) — this test stays as a second, cheap, poppler-

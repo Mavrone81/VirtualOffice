@@ -5,7 +5,7 @@ import { tmpdir } from "os";
 import { join, dirname } from "path";
 import { AGREEMENT_FIELD_BOXES, type FieldBox } from "@/lib/pdf/associate-agreement-coordinates";
 
-// Tmpfs hotfix (2026-10-01) — same convention as lib/pdf/agreement.test.ts's
+// Tmpfs hotfix (2026-10-01) — same convention as lib/pdf/agreement.integration.test.ts's
 // own mkTempDir: always the live tmpdir(), and the cleanup-proof test below
 // asserts against these exact tracked paths rather than scanning tmpdir()
 // for a prefix (unsafe under this file's own parallel unit-test workers).
@@ -25,7 +25,7 @@ function mkTempDir(prefix: string): string {
 // Why this has to be `submitOnboarding` and not `renderAgreementPdf` called
 // directly: a hand-built AgreementData fixture can supply a value for ANY
 // field, including one the real app never collects — see
-// `lib/pdf/agreement.test.ts`'s own `BASE` + per-test overrides, which is
+// `lib/pdf/agreement.integration.test.ts`'s own `BASE` + per-test overrides, which is
 // exactly why it doesn't (and per the standing review, can't) catch this
 // class of defect. Driving the real producer means only mocking the I/O
 // boundaries (DB, object storage, rate limiter, mail, translations) and
@@ -65,7 +65,7 @@ import { submitOnboarding, type OnboardingSubmission } from "./actions";
 
 // ---------------------------------------------------------------------------
 // pdftotext-bbox helpers, intentionally duplicated (not imported) from
-// `lib/pdf/agreement.test.ts` — that file's helpers aren't exported, and
+// `lib/pdf/agreement.integration.test.ts` — that file's helpers aren't exported, and
 // this test lives in a different directory driving a different entry point
 // (`submitOnboarding`, not `renderAgreementPdf` directly); keeping this
 // file's own small, self-contained copy avoids a cross-directory test-to-
@@ -105,7 +105,7 @@ function pdfWords(bytes: Buffer, page: number): Word[] {
  *  read from the rendered PDF itself, never assumed from what was asked to
  *  stamp there.
  *
- *  tol=2.5, not agreement.test.ts's own tol=1: measured (this file's first
+ *  tol=2.5, not agreement.integration.test.ts's own tol=1: measured (this file's first
  *  run) that `signatureName`/`signatureNric` anchor their baseline at the
  *  box's own bottom edge (`SIGNATURE_NAME_LABEL_BASELINE` sits 0.17pt above
  *  `box.y+box.height`), so any stamped value with a descender ("Nathan")
@@ -124,7 +124,7 @@ function textInBoxRow(bytes: Buffer, box: FieldBox): string {
 
 /** Rasterize one page for a dark-pixel probe — needed for the vector marks
  *  (checkbox X, circle ellipse, signature image) that pdftotext can't see
- *  at all. Same convention as agreement.test.ts's own `rasterizePage`. */
+ *  at all. Same convention as agreement.integration.test.ts's own `rasterizePage`. */
 function rasterizePage(bytes: Buffer, page: number, dpi = 200): { isDark: (xPt: number, yPt: number) => boolean } {
   const file = toTempPdf(bytes);
   const dir = mkTempDir("agbox-raster-");
@@ -179,12 +179,12 @@ function hasInkInBox(raster: { isDark: (x: number, y: number) => boolean }, box:
 
 /** Fraction of non-white pixels in the padded region AROUND `box`, EXCLUDING
  *  `box` itself — ported unchanged (same pads, same 150dpi, same threshold
- *  convention) from `lib/pdf/agreement.test.ts`'s own proven circle
+ *  convention) from `lib/pdf/agreement.integration.test.ts`'s own proven circle
  *  detector. Required because `spouseWorkingYes`/`spouseWorkingNo`'s boxes
  *  ARE the tight bbox of the master's own printed "Yes"/"No" glyphs — a
  *  same-box ink check would read true whether or not `stampCircle` ran at
  *  all (confirmed empirically below before this was written down, not
- *  assumed from the comment in agreement.test.ts). */
+ *  assumed from the comment in agreement.integration.test.ts). */
 function annulusInkFraction(
   bytes: Buffer,
   page: number,
@@ -234,8 +234,8 @@ function annulusInkFraction(
     rmSync(dirname(file), { recursive: true, force: true });
   }
 }
-const CIRCLE_FULL_PAD = 6, CIRCLE_NARROW_PAD = 2; // same values as agreement.test.ts's proven yesPad/noPad
-const CIRCLE_INK_THRESHOLD = 0.02; // same threshold as agreement.test.ts
+const CIRCLE_FULL_PAD = 6, CIRCLE_NARROW_PAD = 2; // same values as agreement.integration.test.ts's proven yesPad/noPad
+const CIRCLE_INK_THRESHOLD = 0.02; // same threshold as agreement.integration.test.ts
 
 /** Fraction of dark pixels in `box` shrunk inward by `shrink` on every
  *  side — required because the checkbox boxes ARE the printed square's own
@@ -508,7 +508,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     expect(interiorInkFraction(page7, AGREEMENT_FIELD_BOXES.commencementOnCheckbox, CHECKBOX_SHRINK)).toBeGreaterThan(CHECKBOX_INK_THRESHOLD);
     expect(interiorInkFraction(page7, AGREEMENT_FIELD_BOXES.commencementImmediateCheckbox, CHECKBOX_SHRINK)).toBeLessThan(CHECKBOX_INK_THRESHOLD);
     // spouseWorkingYes / spouseWorkingNo: annulus sampling (same pads/
-    // threshold as lib/pdf/agreement.test.ts's own proven circle detector)
+    // threshold as lib/pdf/agreement.integration.test.ts's own proven circle detector)
     // to avoid the master's own printed "Yes"/"No" glyphs, which the tight
     // box IS the bbox of regardless of whether stampCircle drew a ring.
     expect(annulusInkFraction(pdf, 7, AGREEMENT_FIELD_BOXES.spouseWorkingYes, { top: CIRCLE_FULL_PAD, bottom: CIRCLE_FULL_PAD, left: CIRCLE_FULL_PAD, right: CIRCLE_NARROW_PAD })).toBeGreaterThan(CIRCLE_INK_THRESHOLD);
@@ -525,7 +525,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
 });
 
 describe("temp-dir cleanup (tmpfs hotfix, 2026-10-01)", () => {
-  // Same convention and same reasoning as lib/pdf/agreement.test.ts's own
+  // Same convention and same reasoning as lib/pdf/agreement.integration.test.ts's own
   // cleanup-proof test — this file's helpers were copied from there (agbox-*
   // vs agpdf-*, same leak). Scoped to this test's own tracked paths, not a
   // directory-wide tmpdir() scan, for the same parallel-worker reason.

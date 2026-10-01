@@ -5,7 +5,7 @@ import { readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-// Tmpfs hotfix (2026-10-01): same convention as lib/pdf/agreement.test.ts's
+// Tmpfs hotfix (2026-10-01): same convention as lib/pdf/agreement.integration.test.ts's
 // own mkTempDir — this directory was never removed, one of several leak
 // classes found; on a small or tmpfs-backed /tmp, that accumulation across
 // repeated suite runs can exhaust it. Tracked so the cleanup-proof test
@@ -19,7 +19,7 @@ import { PAGE_SIZE, AGREEMENT_CIRCLE_WORD_INK, MASTER_TEMPLATE_PATH } from "@/li
 // ---------------------------------------------------------------------------
 // The AUTHORITATIVE check for "does the spouse Yes/No circle touch anything
 // it shouldn't" (2026-09-30). Exists because a with/without DIFFERENTIAL
-// (agreement.test.ts's own older check, kept alongside this one) is blind by
+// (agreement.integration.test.ts's own older check, kept alongside this one) is blind by
 // construction to a stroke landing exactly on a pixel the target glyph
 // ALREADY darkens: that pixel reads dark in both the "circled" and the
 // "neither" render, so a diff never counts it as "added", even though the
@@ -308,7 +308,7 @@ describe("temp-dir cleanup (tmpfs hotfix, 2026-10-01)", () => {
   // circle-ink-gs-* was never removed, one of several leak classes found
   // tonight. Scoped to this test's own tracked paths, not a directory-wide
   // tmpdir() scan, for the same
-  // parallel-worker reason as lib/pdf/agreement.test.ts's own proof test —
+  // parallel-worker reason as lib/pdf/agreement.integration.test.ts's own proof test —
   // a SEPARATE test from the three above, so it adds nothing to their own
   // (already load-sensitive) elapsed time.
   test("every directory gsRasterize creates is removed again — not merely assumed", async () => {

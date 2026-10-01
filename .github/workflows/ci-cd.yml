@@ -86,8 +86,8 @@ jobs:
       #
       # 🔴 THREE binaries are needed, not the one the failure named. Enumerated from
       # the test source rather than from the error text: `pdfinfo`
-      # (lib/pdf/agreement.test.ts:70), `pdftotext` (:78, :87) and `pdftoppm`
-      # (:33, :265). Installing only what the error named would have produced a
+      # (lib/pdf/agreement.integration.test.ts:99), `pdftotext` (:112, :127) and `pdftoppm`
+      # (:53, :185). Installing only what the error named would have produced a
       # second red run on `pdftotext`. All three ship in `poppler-utils`. The tests
       # also invoke `sh`, which is POSIX and needs no install.
       #
@@ -101,7 +101,7 @@ jobs:
       # stroke geometry specifically (it previously under-rendered it and
       # reported a false clean pass at a setting later found visibly
       # touching; see lib/pdf/agreement.ts's CIRCLE_PAD_HORIZONTAL/VERTICAL
-      # comment). agreement-circle-ink-intersection.test.ts shells out to
+      # comment). agreement-circle-ink-intersection.integration.test.ts shells out to
       # `gs`, installed and asserted the same way as poppler-utils above.
       - name: Install poppler-utils and ghostscript (PDF tests shell out to both)
         run: |

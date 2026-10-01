@@ -317,7 +317,7 @@ export const onboardingSchema = z.object({
   emergencyContactNumber: z.string().trim().max(30).optional(),
   // Owner ruling 2026-10-01: optional, en + zh, flows to the agreement boxes
   // when given and stays blank when not (see
-  // server/recruitment/agreement-box-coverage.test.ts).
+  // server/recruitment/agreement-box-coverage.integration.test.ts).
   emergencyContactRelationship: z.string().trim().max(100).optional(),
   emergencyContactAddress: z.string().trim().max(500).optional(),
   paymentMethod: z.enum(["PayNow", "Bank Transfer"]),
