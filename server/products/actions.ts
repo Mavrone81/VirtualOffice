@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { CommissionType, ComValueType, InstalmentOption, ProductActiveStatus, Prisma } from "@prisma/client";
+import { CommissionType, ComValueType, InstalmentOption, ClosingBasis, ProductActiveStatus, Prisma } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -15,6 +15,7 @@ import {
   MAX_REQUIRED_DOCUMENTS_PER_PRODUCT,
   productPricingSchema,
   type ProductPricingInput,
+  type ProductPricingRawInput,
 } from "@/lib/schemas";
 import { generateRequirementKey } from "@/lib/product-requirement-key";
 import { env } from "@/lib/env";
@@ -60,6 +61,11 @@ export type ProductInput = {
   bookingFee?: string;
   monthlyInstalment12?: string;
   monthlyInstalment24?: string;
+  // Closing basis (2026-10-01) — see lib/schemas.ts closingBasisEnum/
+  // pricingRefine. Optional here for the same reason the pricing fields
+  // above are: productPricingSchema/productSchema default it server-side
+  // (to "ListedPrice") even if a not-yet-updated caller omits it.
+  closingBasis?: "ListedPrice" | "DiscountedPrice";
 };
 
 const valueType = (v?: "Percentage" | "Absolute") => (v === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage);
@@ -93,6 +99,10 @@ function instalmentOptionOf(o: "None" | "Months12" | "Months12or24"): Instalment
   return InstalmentOption.None;
 }
 
+function closingBasisOf(b: "ListedPrice" | "DiscountedPrice"): ClosingBasis {
+  return b === "DiscountedPrice" ? ClosingBasis.DiscountedPrice : ClosingBasis.ListedPrice;
+}
+
 /** Maps validated pricing input to the exact `product.update`/`.create` data
  *  shape — including nulling every instalment field the chosen option does
  *  NOT call for, unconditionally. This runs server-side regardless of what
@@ -109,6 +119,7 @@ function pricingData(p: ProductPricingInput) {
     bookingFee: needsInstalment ? (p.bookingFee ?? null) : null,
     monthlyInstalment12: needsInstalment ? (p.monthlyInstalment12 ?? null) : null,
     monthlyInstalment24: needsBothMonths ? (p.monthlyInstalment24 ?? null) : null,
+    closingBasis: closingBasisOf(p.closingBasis),
   };
 }
 
@@ -119,6 +130,7 @@ type PricingColumns = {
   bookingFee: Prisma.Decimal | null;
   monthlyInstalment12: Prisma.Decimal | null;
   monthlyInstalment24: Prisma.Decimal | null;
+  closingBasis: ClosingBasis;
 };
 
 /** Pricing-only before/after for the audit row — money values as fixed
@@ -133,6 +145,7 @@ function pricingSnapshot(p: PricingColumns) {
     bookingFee: p.bookingFee?.toFixed(2) ?? null,
     monthlyInstalment12: p.monthlyInstalment12?.toFixed(2) ?? null,
     monthlyInstalment24: p.monthlyInstalment24?.toFixed(2) ?? null,
+    closingBasis: p.closingBasis,
   } satisfies Prisma.InputJsonValue;
 }
 
@@ -199,7 +212,7 @@ class ProductNotFound extends Error {}
  *  carrying any other key (e.g. a stray `commissionType`) fails validation
  *  rather than silently ignoring or applying it — structural enforcement,
  *  not a convention someone could forget to follow at a call site. */
-export async function updateProductPricing(productId: string, pricing: ProductPricingInput): Promise<{ ok: boolean; error?: string }> {
+export async function updateProductPricing(productId: string, pricing: ProductPricingRawInput): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const v = validateInput(productPricingSchema, pricing);
   if (!v.ok) return { ok: false, error: t("invalidInput") };
