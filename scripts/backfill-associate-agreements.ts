@@ -59,7 +59,7 @@ async function backupOnce(key: string) {
   if (cur) await putObject(bak, cur);
 }
 
-async function main() {
+export async function main() {
   const candidates = await prisma.candidate.findMany({
     where: { signedAgreementFileKey: { not: null } },
     include: {
@@ -80,6 +80,19 @@ async function main() {
     let sigDataUrl: string | null = null;
     const sig = await getObject(`candidates/${c.id}/signature.png`);
     if (sig) sigDataUrl = `data:image/png;base64,${sig.toString("base64")}`;
+
+    // CR-0001: the company signatory SNAPSHOT already on this row — never a
+    // live CompanySignatory read. This script re-renders an agreement signed
+    // in the past; the signatory on file today may not be who/what was
+    // stamped at the real signing moment, and the whole point of the
+    // snapshot columns is that a later signatory change never rewrites
+    // history. Absent for every row signed before this feature existed —
+    // correctly renders as no stamp, not an invented one.
+    let companySignatureDataUrl: string | null = null;
+    if (c.companySignatureFileKeyAtSigning) {
+      const companySig = await getObject(c.companySignatureFileKeyAtSigning);
+      if (companySig) companySignatureDataUrl = `data:image/png;base64,${companySig.toString("base64")}`;
+    }
 
     let nricMasked: string | null = null;
     if (p.nric) { try { nricMasked = maskNric(decryptPiiRaw(p.nric)); } catch { nricMasked = null; } }
@@ -104,6 +117,8 @@ async function main() {
       // data implying otherwise.
       tier1Manager: formatUplineOrNA(c.intendedDirectUpline),
       tier2Manager: formatUplineOrNA(c.intendedDirectUpline?.directUpline),
+      companySignatoryName: c.companySignatoryNameAtSigning,
+      companySignatureDataUrl,
     };
 
     const pdf = await renderAgreementPdf(data);
@@ -118,4 +133,10 @@ async function main() {
   }
   console.log("backfill complete");
 }
-main().finally(() => prisma.$disconnect());
+// Guarded so a test can import this module and call main() directly (e.g.
+// with WRITE/REASON set per-test via vi.resetModules() + dynamic import)
+// without the script also auto-running and disconnecting prisma underneath
+// it. Only runs unguarded when executed directly: `pnpm tsx scripts/...`.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().finally(() => prisma.$disconnect());
+}
