@@ -515,6 +515,8 @@
       "address": "Residential address",
       "ecName": "Emergency contact name",
       "ecNumber": "Emergency contact number",
+      "ecRelationship": "Emergency contact relationship",
+      "ecAddress": "Emergency contact address",
       "spouseConflict": "Is your spouse working for or supplying a funeral / afterlife company?",
       "spouseConflictHint": "Conflict-of-interest declaration. If yes, please name the spouse and their company below.",
       "conflictNo": "No",

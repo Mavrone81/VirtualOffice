@@ -515,6 +515,8 @@
       "address": "住址",
       "ecName": "紧急联系人姓名",
       "ecNumber": "紧急联系人电话",
+      "ecRelationship": "紧急联系人关系",
+      "ecAddress": "紧急联系人地址",
       "spouseConflict": "您的配偶是否在殡葬／后事相关公司工作或为其供应商？",
       "spouseConflictHint": "利益冲突声明。如是，请在下方填写配偶姓名及其公司。",
       "conflictNo": "否",

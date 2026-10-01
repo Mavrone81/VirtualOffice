@@ -48,7 +48,7 @@ vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(), onboardingInviteEmail: vi.fn()
 // — the whole point is to run the real renderer against what the real
 // producer builds.
 
-import { submitOnboarding } from "./actions";
+import { submitOnboarding, type OnboardingSubmission } from "./actions";
 
 // ---------------------------------------------------------------------------
 // pdftotext-bbox helpers, intentionally duplicated (not imported) from
@@ -230,37 +230,25 @@ const CHECKBOX_INK_THRESHOLD = 0.05; // clears the 0% (undrawn) / measured 32.6%
 
 // ---------------------------------------------------------------------------
 // FALSIFIABLE PREDICTION — written before this test was run, from reading
-// the producer code (server/recruitment/actions.ts:342-374) and the
-// onboarding schema (lib/schemas.ts:218-256), NOT from the rendered output.
-// A surprise (a box outside this list rendering empty, or a listed one
-// rendering non-empty when it shouldn't) is the finding, not a thing to
-// quietly reconcile away.
+// the producer code (server/recruitment/actions.ts) and the onboarding
+// schema (lib/schemas.ts), NOT from the rendered output. A surprise (a box
+// outside this list rendering empty, or a listed one rendering non-empty
+// when it shouldn't) is the finding, not a thing to quietly reconcile away.
 //
-// Two DIFFERENT exemption categories, kept apart deliberately — an open
-// question and an already-decided ruling read the same in a single flat
-// "allow-list" and must not be conflated:
+// 2026-10-01 owner ruling: emergencyContactRelationship and
+// emergencyContactAddress are now collected (optional, en + zh) and wired to
+// the agreement boxes — this CLOSES the open question that used to exempt
+// them here (see git history for the prior OPEN_QUESTION_ALLOW_LIST entries
+// and their stated end condition). They're covered below by a dedicated
+// fill/blank pair test, not an allow-list entry.
 //
-// OPEN_QUESTION_ALLOW_LIST (2 entries — ONLY these two; per-entry criterion
-// is "does this field have a producer?", and neither does):
-//   - emergencyContactRelationship, emergencyContactAddress: NO producer
-//     exists. Confirmed by direct code read, not the pre-existing test
-//     fixture: the object literal built at server/recruitment/actions.ts
-//     :342-374 has no `emergencyRelationship`/`emergencyAddress` key at
-//     all, and the onboarding schema (lib/schemas.ts:218-256) never
-//     defines or collects these two values — this is not an unwired value,
-//     the form never asks. This is an OPEN QUESTION FOR THE PROJECT OWNER
-//     (queued as "the emergency address / relationship form question"), not
-//     a design choice made here.
-//     REMOVE THIS ENTRY when that question is answered and the field is
-//     either wired up or deliberately dropped from the form — an exemption
-//     with no end condition is a permanent licence for a blank box on a
-//     signed legal document.
+// One exemption category remains, an already-decided ruling, never queued:
 //
-// NEVER_STAMPED_BY_DESIGN (1 entry — already decided, not queued anywhere):
+// NEVER_STAMPED_BY_DESIGN (1 entry):
 //   - associateIdOfficial: deliberately never stamped, on any call —
 //     the project owner's ruling that the signed PDF is never modified
-//     after signing (lib/pdf/agreement.ts:441-446). No producer either, but for a
-//     different reason than the two above: this one is closed, not open.
+//     after signing (lib/pdf/agreement.ts:441-446). No producer, and
+//     permanently so — this is closed, not open.
 //
 // MUTUALLY-EXCLUSIVE MARK PAIRS (4 boxes, own category — "non-empty value"
 // doesn't apply to a vector mark, and only one member of each pair can ever
@@ -275,7 +263,7 @@ const CHECKBOX_INK_THRESHOLD = 0.05; // clears the 0% (undrawn) / measured 32.6%
 // IMAGE FIELD (1 box, own category): signatureImage — not text, checked by
 // ink presence via rasterization rather than textInBoxRow.
 //
-// Everything else (24 boxes) is predicted to render non-empty text in this
+// Everything else (26 boxes) is predicted to render non-empty text in this
 // maximal-submission fixture.
 //
 // SURPRISE ENCOUNTERED AND RESOLVED WHILE BUILDING THIS TEST, kept in the
@@ -289,15 +277,6 @@ const CHECKBOX_INK_THRESHOLD = 0.05; // clears the 0% (undrawn) / measured 32.6%
 // STAMPED mark). Neither surprise was in the producer code; both were the
 // harness not yet proven against the real render.
 // ---------------------------------------------------------------------------
-
-const OPEN_QUESTION_ALLOW_LIST: Record<string, string> = {
-  emergencyContactRelationship:
-    "No producer: never set at server/recruitment/actions.ts:342-374, never collected by lib/schemas.ts:218-256. " +
-    "An open question with the project owner, queued 2026-09-29 — remove this entry once answered.",
-  emergencyContactAddress:
-    "No producer: never set at server/recruitment/actions.ts:342-374, never collected by lib/schemas.ts:218-256. " +
-    "An open question with the project owner, queued 2026-09-29 — remove this entry once answered.",
-};
 
 const NEVER_STAMPED_BY_DESIGN: Record<string, string> = {
   associateIdOfficial:
@@ -350,6 +329,8 @@ function maximalSubmission() {
     residentialAddress: "1 Example Avenue, #01-01, Singapore 123456",
     emergencyContactName: "Devi Nathan",
     emergencyContactNumber: "98765432",
+    emergencyContactRelationship: "Sister",
+    emergencyContactAddress: "9 Example Street, #05-10, Singapore 654321",
     paymentMethod: "PayNow" as const,
     paynowNumber: "91234567",
     agreementAccepted: true,
@@ -365,18 +346,22 @@ function maximalSubmission() {
   };
 }
 
-async function renderMaximalAgreementPdf(): Promise<Buffer> {
-  const r = await submitOnboarding("tok-coverage", maximalSubmission());
+async function renderAgreementPdfFrom(submission: OnboardingSubmission): Promise<Buffer> {
+  const r = await submitOnboarding("tok-coverage", submission);
   expect(r).toEqual({ ok: true });
   const call = putObjectMock.mock.calls.find(([key]) => String(key).endsWith("signed-agreement.pdf"));
   if (!call) throw new Error("submitOnboarding did not store a signed-agreement.pdf — nothing to check");
   return call[1] as Buffer;
 }
 
+async function renderMaximalAgreementPdf(): Promise<Buffer> {
+  return renderAgreementPdfFrom(maximalSubmission());
+}
+
 /** The actual per-entry check the "non-empty" census runs, factored out so
  *  it can be exercised directly (not just through the committed
  *  categorization) by the control test below — "does adding a real,
- *  producer-backed field to the open-question list make the check fail?" */
+ *  producer-backed field to an exemption list make the check fail?" */
 function findEmptyExemptedBoxes(pdf: Buffer, exemptList: Record<string, string>): string[] {
   const stillHasText: string[] = [];
   for (const name of Object.keys(exemptList)) {
@@ -390,7 +375,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
   test("PRE-REGISTRATION: every category accounts for exactly the boxes it claims, count is a cross-check only", () => {
     const total = Object.keys(AGREEMENT_FIELD_BOXES).length;
     const markPairKeys = MUTUALLY_EXCLUSIVE_PAIRS.flatMap((p) => [p.active, p.inactive]);
-    const categorized = [...Object.keys(OPEN_QUESTION_ALLOW_LIST), ...Object.keys(NEVER_STAMPED_BY_DESIGN), ...markPairKeys, ...Array.from(IMAGE_FIELDS)];
+    const categorized = [...Object.keys(NEVER_STAMPED_BY_DESIGN), ...markPairKeys, ...Array.from(IMAGE_FIELDS)];
     // Every key must be classified exactly once — a key in two categories, or
     // a category naming a key that isn't a real box, is itself a finding.
     for (const k of categorized) expect(AGREEMENT_FIELD_BOXES).toHaveProperty(k);
@@ -399,7 +384,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     // Built-in control: the census reports how many boxes it checked, per the
     // standing "a tool must report how many inputs it consumed" rule.
     console.log(`agreement-box-coverage: ${total} total boxes, ${categorized.length} exempt/categorized, ${expectedTextCount} expected non-empty`);
-    expect(expectedTextCount).toBe(24); // pre-registered count, cross-check only — the per-entry assertions below are the real test
+    expect(expectedTextCount).toBe(26); // pre-registered count, cross-check only — the per-entry assertions below are the real test
   });
 
   test("every non-exempt text box receives real, non-empty text from the real producer path", async () => {
@@ -408,42 +393,57 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     const checked: string[] = [];
     const failures: string[] = [];
     for (const [name, box] of Object.entries(AGREEMENT_FIELD_BOXES)) {
-      if (name in OPEN_QUESTION_ALLOW_LIST || name in NEVER_STAMPED_BY_DESIGN || markPairKeys.has(name) || IMAGE_FIELDS.has(name)) continue;
+      if (name in NEVER_STAMPED_BY_DESIGN || markPairKeys.has(name) || IMAGE_FIELDS.has(name)) continue;
       checked.push(name);
       const text = textInBoxRow(pdf, box);
       if (!text.trim()) failures.push(name);
     }
     // Built-in control: input count.
     console.log(`agreement-box-coverage: checked ${checked.length} text boxes for non-empty content`);
-    expect(checked.length).toBe(24); // built-in control: a census over the wrong subject set reports 0 failures for the wrong reason
+    expect(checked.length).toBe(26); // built-in control: a census over the wrong subject set reports 0 failures for the wrong reason
     expect(failures).toEqual([]);
   });
 
-  test("PER-ENTRY CONTROL: a producer-backed field on the open-question list would be caught, not waved through", async () => {
+  test("PER-ENTRY CONTROL: a producer-backed field wrongly added to the never-stamped exemption would be caught, not waved through", async () => {
     const pdf = await renderMaximalAgreementPdf();
     // fullName demonstrably HAS a producer (c.fullName, always set) — this is
-    // the false allow-list entry this control proves the check would reject.
-    const wrongList = { ...OPEN_QUESTION_ALLOW_LIST, fullName: "WRONG — fullName has a real producer, placed here only to prove the check fires" };
+    // the false exemption entry this control proves the check would reject.
+    const wrongList = { ...NEVER_STAMPED_BY_DESIGN, fullName: "WRONG — fullName has a real producer, placed here only to prove the check fires" };
     const falselyExempted = findEmptyExemptedBoxes(pdf, wrongList);
     // A field with a real producer is NOT expected to render blank — so if it
-    // were wrongly allow-listed, findEmptyExemptedBoxes (which only flags an
+    // were wrongly exempted, findEmptyExemptedBoxes (which only flags an
     // exempted box that unexpectedly HAS text) would name it here. Assert the
-    // control actually distinguishes the two real entries from the planted
-    // wrong one, rather than asserting a bare non-zero count.
+    // control actually distinguishes the real entry from the planted wrong
+    // one, rather than asserting a bare non-zero count.
     expect(falselyExempted).toEqual(["fullName"]);
-    // And the two REAL entries must NOT be flagged by the same check — they
-    // really do render blank, so a working check leaves them alone.
-    expect(findEmptyExemptedBoxes(pdf, OPEN_QUESTION_ALLOW_LIST)).toEqual([]);
+    // And the real entry must NOT be flagged by the same check — it really
+    // does render blank, so a working check leaves it alone.
+    expect(findEmptyExemptedBoxes(pdf, NEVER_STAMPED_BY_DESIGN)).toEqual([]);
   });
 
-  test("open-question boxes render blank, and each carries a written, falsifiable reason with a stated end condition", async () => {
-    const pdf = await renderMaximalAgreementPdf();
-    for (const [name, reason] of Object.entries(OPEN_QUESTION_ALLOW_LIST)) {
-      expect(reason.length).toBeGreaterThan(20); // a real sentence, not a placeholder
-      expect(reason).toMatch(/open question|remove this entry/i); // must state it's open + removable, not permanent
-      const box = AGREEMENT_FIELD_BOXES[name];
-      expect(textInBoxRow(pdf, box).trim()).toBe("");
-    }
+  // Split into two tests (not two render calls in one test) deliberately —
+  // putObjectMock.mock.calls accumulates across calls within a single test,
+  // and .find() returns the FIRST match, so a second render in the same test
+  // would silently read back the first render's PDF. beforeEach's
+  // vi.clearAllMocks() gives each test its own clean call history instead.
+  test("emergency contact relationship/address: fill the boxes when the fields are given (owner ruling 2026-10-01)", async () => {
+    // Also covered, redundantly, by the general census above; asserted
+    // directly here because this is the behaviour the ruling specifically
+    // requires, not an incidental pass of a broader loop.
+    const filled = await renderMaximalAgreementPdf();
+    expect(textInBoxRow(filled, AGREEMENT_FIELD_BOXES.emergencyContactRelationship).trim()).not.toBe("");
+    expect(textInBoxRow(filled, AGREEMENT_FIELD_BOXES.emergencyContactAddress).trim()).not.toBe("");
+  });
+
+  test("emergency contact relationship/address: stay blank when the fields are not given (owner ruling 2026-10-01)", async () => {
+    // The fields are optional — a submission omitting them must still
+    // succeed, and the boxes must render blank, not error or stale text.
+    const { emergencyContactRelationship, emergencyContactAddress, ...withoutExtras } = maximalSubmission();
+    void emergencyContactRelationship;
+    void emergencyContactAddress;
+    const blank = await renderAgreementPdfFrom(withoutExtras);
+    expect(textInBoxRow(blank, AGREEMENT_FIELD_BOXES.emergencyContactRelationship).trim()).toBe("");
+    expect(textInBoxRow(blank, AGREEMENT_FIELD_BOXES.emergencyContactAddress).trim()).toBe("");
   });
 
   test("never-stamped-by-design boxes render blank, and the reason states it's a closed ruling, not an open question", async () => {
