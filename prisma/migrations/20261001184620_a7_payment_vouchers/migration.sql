@@ -1,5 +1,5 @@
 -- A-7: payment voucher per settling payout (build-plan A stream, item A-7;
--- Samuel Q42, decided (b) — one voucher per payout, not per transaction).
+-- Owner ruling Q42, decided (b) — one voucher per payout, not per transaction).
 -- Purely additive: one new table, no change to any existing one. No
 -- backfill — a (transaction, associate, payout) triple simply has no
 -- voucher until first downloaded; getOrCreateVoucher issues it on demand.
