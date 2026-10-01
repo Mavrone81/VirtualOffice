@@ -1,11 +1,13 @@
-import { pctOf, formatSGD, D } from "@/lib/money";
+import { pctOf, formatSGD } from "@/lib/money";
+import { commissionDisplay } from "@/lib/commission-display";
 
-// Commission only, as configured for this product — shown to the associate.
-// Company cut is not shown here: it is internal commission structure, kept
+// Commission only, as configured for this product — shown to the associate,
+// the same way for every product regardless of how it's sourced. Company
+// cut is not shown here at all: it is internal commission structure, kept
 // in the admin area, and selected out of the portal's own product read
 // entirely (server/products/portal-catalogue.ts), not merely omitted from
-// this render. External products don't use this block at all — see the
-// isExternal branch in product-card.tsx.
+// this render. Renders nothing when there's no real commission to show
+// (null or zero, by design for some products) — see lib/commission-display.ts.
 export function CommissionBlock({
   commissionType,
   closingCommPct,
@@ -20,6 +22,9 @@ export function CommissionBlock({
   effectivePrice: string | null;
   t: (key: string) => string;
 }) {
+  const display = commissionDisplay(commissionType, closingCommPct, closingCommFixed);
+  if (display == null) return null;
+
   const commissionAmount =
     effectivePrice != null && commissionType === "Percentage" && closingCommPct != null ? pctOf(effectivePrice, closingCommPct) : null;
 
@@ -27,7 +32,7 @@ export function CommissionBlock({
     <div className="mt-3 text-[12px] text-muted">
       {t("closing")}{" "}
       <b className="text-ink">
-        {commissionType === "Fixed" ? formatSGD(D(closingCommFixed ?? "0")) : `${closingCommPct ?? 0}%`}
+        {display}
         {commissionAmount != null && ` (${formatSGD(commissionAmount)})`}
       </b>
     </div>
