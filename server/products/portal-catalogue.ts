@@ -1,12 +1,15 @@
 import { Prisma, ProductActiveStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
-// Portal catalogue (2026-09-30): associates see commission only, not company
-// cut, which stays internal to the admin area. Company cut is SELECTED OUT
-// here, not merely left out of the client-side mapping below, so
-// companyCutPct/companyCutType never leave the database in the first place
-// for this read path. See portal-catalogue.integration.test.ts for the
-// proof (with a control that fails if this select is widened).
+// Portal catalogue (2026-10-01): associates see commission only. Company cut
+// AND the external-provider retained percentage are both internal commission
+// structure that belongs in the admin-only views, not here — both are
+// SELECTED OUT of this query, not merely left out of the client-side mapping
+// below, so neither reaches the database result for this read path at all.
+// See portal-catalogue.integration.test.ts for the proof (with controls that
+// fail if this select is widened to include either field). Every product
+// shows the same commission treatment regardless of how it's sourced, so
+// isExternal itself isn't needed by this read either — dropped along with it.
 export const PORTAL_PRODUCT_SELECT = {
   id: true,
   productCode: true,
@@ -22,8 +25,6 @@ export const PORTAL_PRODUCT_SELECT = {
   commissionType: true,
   closingCommPct: true,
   closingCommFixed: true,
-  isExternal: true,
-  externalCompanyRetainedPct: true,
   defaultCompany: { select: { name: true } },
 } satisfies Prisma.ProductSelect;
 
@@ -56,8 +57,6 @@ export type PortalCatalogueProduct = {
   commissionType: "Percentage" | "Fixed";
   closingCommPct: string | null;
   closingCommFixed: string | null;
-  isExternal: boolean;
-  externalCompanyRetainedPct: string | null;
 };
 
 export async function getPortalProductCatalogue(): Promise<PortalCatalogueProduct[]> {
@@ -78,7 +77,5 @@ export async function getPortalProductCatalogue(): Promise<PortalCatalogueProduc
     commissionType: p.commissionType,
     closingCommPct: p.closingCommPct?.toFixed(4) ?? null,
     closingCommFixed: p.closingCommFixed?.toFixed(2) ?? null,
-    isExternal: p.isExternal,
-    externalCompanyRetainedPct: p.externalCompanyRetainedPct?.toFixed(4) ?? null,
   }));
 }
