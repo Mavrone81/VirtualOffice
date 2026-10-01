@@ -135,6 +135,19 @@ describe("runStuckSignedCheck — alert only, never writes to the row", () => {
   // on wall-clock timing, testing the actual property ("refused while
   // held, available once released") rather than hoping two promises
   // overlap at the database level.
+  //
+  // Known, accepted trade: this REQUIRES a connection pool of at least 2 —
+  // the holder transaction occupies one connection for the whole test,
+  // and runStuckSignedCheck's own $transaction needs a second. At
+  // connection_limit=1 this would deadlock (the holder waits on
+  // `holderMayRelease`, which waits on the check completing, which can't
+  // get a connection) and hang to Prisma's pool timeout rather than fail
+  // cleanly. Checked: neither this codebase's DATABASE_URL convention nor
+  // ci-cd.yml's pins connection_limit anywhere, so Prisma's default (CPU-
+  // count-based, comfortably >1 on any real runner) applies. The old
+  // version's flake was an environment dependence on pool SCHEDULING; this
+  // is a much smaller, deterministic (not probabilistic) dependence on
+  // pool SIZE — accepted deliberately, not unexamined.
   it("a concurrent run is refused while another genuinely holds the lock, and succeeds once it's released", async () => {
     // `const holderTx = prisma.$transaction(fn)` returns immediately — it
     // does NOT block until `fn` has run BEGIN and taken the lock. The first
@@ -146,23 +159,76 @@ describe("runStuckSignedCheck — alert only, never writes to the row", () => {
     // waits on an explicit signal the holder resolves ONLY after its own
     // `pg_try_advisory_xact_lock` call has returned `locked: true` — a
     // fact, not an elapsed-time guess.
+    // Two more failure-diagnosis paths, found in review (DevLead), fixed
+    // then re-measured rather than taken on description alone — the first
+    // review message overstated the second one, and the retraction is as
+    // informative as the original claim.
+    //
+    // (1) VERIFIED, by reproducing it on the pre-fix code: if the holder's
+    // own precondition (`locked` true) is false, `confirmLockHeld` never
+    // fires and `await lockConfirmedHeld` below waits forever. Measured on
+    // the version without this fix: 30.42s real duration (this project's
+    // configured testTimeout), surfacing as an "Unhandled Rejection:
+    // AssertionError: expected false to be true" with no mention of the
+    // actual cause. Fixed by rejecting `lockConfirmedHeld` too, from the
+    // same catch — measured after the fix: 9ms, "Error: test precondition:
+    // holder failed to take the advisory lock".
+    //
+    // (2) NOT observed to hang, measured both ways: if
+    // `expect(whileHeld.ran).toBe(false)` itself fails, the un-awaited
+    // `holderTx` is simply abandoned when the test throws — vitest stops
+    // awaiting the test immediately, it does not wait on every promise the
+    // test ever created. Measured with the production guard neutered
+    // (`if (false)` in place of the real check, forcing exactly this
+    // assertion to fail): 104ms, clean `AssertionError`, no timeout, no
+    // unhandled rejection, with or without the try/finally below. The
+    // try/finally stays anyway, for a real reason that just isn't "it
+    // would otherwise hang": it releases the lock and the holder's pool
+    // connection promptly on a failing run instead of leaving them to the
+    // garbage collector, which matters if a later test in this file ever
+    // needs the same lock. Describing it as preventing a hang would have
+    // been repeating the first review message's own overstatement into
+    // committed code.
     let releaseHolder!: () => void;
     let confirmLockHeld!: () => void;
+    let failLockHeld!: (e: unknown) => void;
     const holderMayRelease = new Promise<void>((resolve) => { releaseHolder = resolve; });
-    const lockConfirmedHeld = new Promise<void>((resolve) => { confirmLockHeld = resolve; });
+    const lockConfirmedHeld = new Promise<void>((resolve, reject) => { confirmLockHeld = resolve; failLockHeld = reject; });
     const holderTx = prisma.$transaction(async (db) => {
-      const lock = await db.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(${STUCK_CHECK_LOCK_KEY}) AS locked`;
-      expect(lock[0]?.locked).toBe(true);
-      confirmLockHeld();
+      try {
+        const lock = await db.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(${STUCK_CHECK_LOCK_KEY}) AS locked`;
+        if (!lock[0]?.locked) throw new Error("test precondition: holder failed to take the advisory lock");
+        confirmLockHeld();
+      } catch (e) {
+        failLockHeld(e); // the awaiter below fails WITH a reason instead of timing out
+        throw e; // still rolls this transaction back
+      }
       await holderMayRelease; // keep this transaction (and the lock) open until the test says so
-    });
+    }, { timeout: 20_000 });
+    // Explicit, because Prisma's own default transaction timeout is 5000ms
+    // — far below what this test needs to hold the lock open across the
+    // concurrent attempt below (a real window of ~100ms, measured). DevLead
+    // reproduced the 5s default firing mid-test (a 6s injected delay after
+    // lockConfirmedHeld): the holder aborts and releases the lock EARLY,
+    // so the concurrent attempt legitimately succeeds and the test fails
+    // with "expected true to be false" at ~6054ms — nothing in that output
+    // names a timeout, so the failure accuses the lock when the real cause
+    // is the holder's transaction budget. 20s is comfortably over the
+    // ~100ms real window (headroom for contention, same reasoning as this
+    // file's STUCK_AGE_MS) while staying under this project's 30s
+    // testTimeout, so the transaction aborts before the test itself would
+    // — one mechanism (remove the premature timeout), not a second one
+    // layered on top to catch it after the fact.
+    holderTx.catch(() => {}); // the diagnosis travels via lockConfirmedHeld; this only silences an unhandled rejection
     await lockConfirmedHeld;
 
-    const whileHeld = await runStuckSignedCheck({ trigger: "manual", actorUserId: null, skipCooldown: true });
-    expect(whileHeld.ran).toBe(false); // refused — the lock really was held, not just "probably" held
-
-    releaseHolder();
-    await holderTx; // commit, releasing the advisory lock
+    try {
+      const whileHeld = await runStuckSignedCheck({ trigger: "manual", actorUserId: null, skipCooldown: true });
+      expect(whileHeld.ran).toBe(false); // refused — the lock really was held, not just "probably" held
+    } finally {
+      releaseHolder(); // always, even when the assertion above fails — never leave the lock held past this test
+      await holderTx.catch(() => {});
+    }
 
     const afterRelease = await runStuckSignedCheck({ trigger: "manual", actorUserId: null, skipCooldown: true });
     expect(afterRelease.ran).toBe(true); // available again once the holder is gone — not permanently stuck
