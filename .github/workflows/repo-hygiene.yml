@@ -82,3 +82,87 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit "${failed:-0}"
+
+  owner-name-delta:
+    name: Owner name delta
+    runs-on: ubuntu-latest
+    # No `continue-on-error` at JOB level, now or later — same reason as the job above: it
+    # would also cover the self-test, the one step whose purpose is to prove this check is not
+    # silently measuring nothing. An exemption, if ever needed, goes on the scan step only.
+    #
+    # 🔴 WHY THIS JOB EXISTS. "No new code, comment or commit message contains the owner's
+    # personal name" is a BLOCKING rule, but nothing enforced it: it surfaced only when a
+    # reviewer remembered to run the matcher by hand. In one evening that manual check caught
+    # three separate violations and a fourth reached a pushed branch. A category that blocks a
+    # merge should not depend on someone remembering to measure it.
+    #
+    # 🔴 THE PATTERN IS A SECRET, NOT A LITERAL. Committing the name — or a regex spelling it —
+    # would put the thing being removed into the check that removes it, in history that is
+    # explicitly out of scope for the cleanup. The scanner's output is counts and paths only.
+    #
+    # 🔴 KNOWN LIMIT: a PR from a FORK receives no secrets, so this job would exit 2 (cannot
+    # determine) rather than pass. That is the correct direction — a check that cannot run must
+    # not report success — but it means fork PRs need the name checked by hand. All of this
+    # project's PRs come from branches in this repository today.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the scan compares two revisions and walks the commit range between
+          # them. A shallow clone would make `rev-list base..head` wrong or empty, and an empty
+          # range would report zero message hits for the wrong reason.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 🔴 Never exempt this step. It proves the configured pattern is a valid regex, is not
+      # empty or absurdly short (which would match every line), and does NOT match the neutral
+      # replacement wording — a pattern that matched "the project owner" would flag every
+      # correct fix, and a check that goes red for the wrong reason gets switched off.
+      # It also proves the tree walker is non-vacuous against a certainly-present token.
+      # STATED LIMIT, in the script's own header: this cannot prove the pattern is the RIGHT
+      # name. That failure is silent and is caught only by comparing this job's base count
+      # against the team's published matcher record.
+      - name: Self-test the owner-name matcher's shape claims
+        env:
+          OWNER_NAME_PATTERN: ${{ secrets.OWNER_NAME_PATTERN }}
+        run: node .github/scripts/owner-name-delta-scan.mjs --self-test
+
+      - name: Scan for added occurrences of the owner's name
+        env:
+          OWNER_NAME_PATTERN: ${{ secrets.OWNER_NAME_PATTERN }}
+          # On a pull_request, compare the PR's base against its head. On a push to main,
+          # compare the pushed range. `github.event.before` is all-zeros for a branch's first
+          # push, which the scanner rejects as "cannot determine" rather than passing.
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          # No install: the scanner is dependency-free, stdlib only.
+          node .github/scripts/owner-name-delta-scan.mjs 2>&1 | tee owner-scan.txt || failed=1
+          {
+            echo "## Owner name delta"
+            echo
+            if [ "${failed:-0}" = "0" ]; then
+              echo "No added occurrences in tracked content, and no commit message in the range carries the name."
+            else
+              echo "This change adds the owner's personal name to tracked content, to a commit"
+              echo "message, or both. The scan below names the files and commits; it deliberately"
+              echo "does **not** quote the matched text."
+              echo
+              echo "Fix it with neutral wording — \"the project owner\", \"owner ruling <date>\" —"
+              echo "keeping each comment's meaning. Pre-existing occurrences are a known backlog and"
+              echo "are **not** what this gate fails on; it fails on a POSITIVE DELTA only."
+              echo
+              echo "A commit message cannot be cleaned up later: git history is out of scope for the"
+              echo "name removal, so a message hit has to be amended before the branch is merged."
+              echo
+              echo "Counted in **occurrences**, not files: a file count cannot see a new occurrence"
+              echo "inside a file that already contained one."
+            fi
+            echo
+            echo '```'
+            cat owner-scan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "${failed:-0}"
