@@ -165,7 +165,7 @@
     "statPendingApproval": "待批准",
     "statApprovedActive": "已批准且在职",
     "statAwaitingReview": "待审核",
-    "statInvoiceBrands": "开票主体",
+    "statInvoiceBrands": "公司主体",
     "statInvoiceBrandsSub": "账单实体",
     "statProducts": "产品",
     "statCommissionStructures": "佣金结构",
@@ -173,8 +173,8 @@
     "myDashboardSubtitle": "全部团队——全公司业绩",
     "totalTransactionValue": "交易总额",
     "grossCommissionTransacted": "累计成交佣金总额",
-    "grossCommissionPaid": "已发放商佣总额",
-    "grossCommissionPaidSub": "已支付给经纪人",
+    "totalAmountCollected": "已收款总额",
+    "totalAmountCollectedSub": "来自客户的收款",
     "allTeams": "全部团队合计"
   },
   "associates": {

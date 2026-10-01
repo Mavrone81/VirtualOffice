@@ -61,16 +61,18 @@ export async function dashboardMetrics(scopeIds: string[] | null): Promise<Dashb
 }
 
 /**
- * B-1: "Total gross commission paid" (admin dashboard) — the sum of Paid
- * MonthlyPayouts, org-wide. Derived from the payout's own status (R-6), not
- * from ledger lines: an Approved-but-unpaid payout doesn't count yet.
+ * B-1: "Total amount collected" (admin dashboard) — org-wide sum of
+ * SalesTransaction.amountCollected, i.e. money actually collected from
+ * customers (owner's ruling, 02 Oct: "Paid" means collected from customers,
+ * not money paid OUT to associates — this tile previously summed Paid
+ * MonthlyPayouts, the opposite direction, and its own sub-label said so:
+ * "Paid out to associates"). amountCollected is maintained server-side in
+ * the same transaction as recording a payment (server/transactions/
+ * amount-collected.ts), never derived or re-aggregated here.
  */
-export async function totalGrossCommissionPaid(): Promise<ReturnType<typeof sum>> {
-  const paid = await prisma.monthlyPayout.findMany({
-    where: { payoutStatus: PayoutStatus.Paid },
-    select: { totalPayable: true },
-  });
-  return sum(paid.map((p) => p.totalPayable));
+export async function totalAmountCollected(): Promise<ReturnType<typeof sum>> {
+  const tx = await prisma.salesTransaction.findMany({ select: { amountCollected: true } });
+  return sum(tx.map((t) => t.amountCollected));
 }
 
 /**
