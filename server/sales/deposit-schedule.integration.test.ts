@@ -1,4 +1,4 @@
-// A-0 deposit row (Samuel, Q9): the deposit becomes installment schedule
+// A-0 deposit row (owner, Q9): the deposit becomes installment schedule
 // sequence 0. Accounts marks it paid like any installment (moves
 // amountCollected, A-0), but it does NOT count toward the N-installment
 // eligibility threshold. Real throwaway Postgres (needs DATABASE_URL); fake

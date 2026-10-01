@@ -22,7 +22,7 @@
   Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01EvKLWJaD5mh77pk9qK4hAf
   ```
-  Use `git -c user.email="samuel.fu@rmagroup.com.sg" -c user.name="Samuel Fu"`.
+  Use `git -c user.email="you@example.com" -c user.name="Your Name"`.
 - **Branch/push:** commit directly to `main`, **do NOT push** (user pushes explicitly; push auto-deploys via GitHub Actions, and the new migration must then be applied on prod migrate-deploy-ONLY, no seed).
 
 ---

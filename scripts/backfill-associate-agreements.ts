@@ -3,12 +3,12 @@
  * official V.2026-04 format. New agreements already use it; this rewrites the
  * ones signed before the format change.
  *
- * 🔴 RULING (28 Sep 2026, Samuel, via the MD): the signed PDF is the record of
+ * 🔴 RULING (28 Sep 2026, the owner, via the MD): the signed PDF is the record of
  * what the associate signed and is NEVER modified after signing. This script's
  * entire purpose — overwriting an existing signedAgreementFileKey — is now
  * AGAINST that policy as a routine action. It is kept, not deleted, because a
  * legitimate authorised one-off use may still arise and it holds the backup
- * logic; it must NEVER be run against real records without Samuel's explicit
+ * logic; it must NEVER be run against real records without the owner's explicit
  * go on the day. Nothing runs it tonight regardless — this is the code-level
  * guard for whenever "later" arrives, not a green light now.
  *
@@ -29,7 +29,7 @@
  * a builder/deps container joined to the compose network with vo_uploads mounted
  * and STORAGE_DIR=/data/uploads:
  *   pnpm tsx scripts/backfill-associate-agreements.ts                 # dry run (default)
- *   WRITE=1 REASON="Samuel go 2026-10-xx" pnpm tsx scripts/backfill-associate-agreements.ts
+ *   WRITE=1 REASON="owner go 2026-10-xx" pnpm tsx scripts/backfill-associate-agreements.ts
  */
 import { PrismaClient } from "@prisma/client";
 import { getObject, putObject } from "@/lib/storage";
@@ -41,7 +41,7 @@ const prisma = new PrismaClient();
 const WRITE = process.env.WRITE === "1";
 const REASON = process.env.REASON?.trim();
 if (WRITE && !REASON) {
-  console.error("Refusing to write: WRITE=1 requires REASON=\"...\" stating why this run is authorised (Samuel's go, dated).");
+  console.error("Refusing to write: WRITE=1 requires REASON=\"...\" stating why this run is authorised (the owner's go, dated).");
   process.exit(1);
 }
 
@@ -100,7 +100,7 @@ async function main() {
       spouseCompany: p.spouseCompany ?? null, spouseDesignation: p.spouseDesignation ?? null,
       emergencyName: p.emergencyContactName ?? null, emergencyContact: p.emergencyContactNumber ?? null,
       // Associate ID intentionally NOT set — renderAgreementPdf never stamps
-      // it regardless (Samuel's ruling), so passing it here would be dead
+      // it regardless (owner ruling), so passing it here would be dead
       // data implying otherwise.
       tier1Manager: formatUplineOrNA(c.intendedDirectUpline),
       tier2Manager: formatUplineOrNA(c.intendedDirectUpline?.directUpline),

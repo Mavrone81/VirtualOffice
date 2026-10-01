@@ -19,7 +19,7 @@ import { StatusPill } from "@/components/ui/status-pill";
  *
  * Eligibility: designations that cannot recruit see the "not eligible yet"
  * state instead of the table. The rule is lib/rbac canRecruit (Manager and
- * above — A9, Samuel 2026-09-26: the PDF wins over the earlier 1 Sep AM+
+ * above — A9, owner ruling 2026-09-26: the PDF wins over the earlier 1 Sep AM+
  * decision; Sales Assistant Manager is no longer eligible).
  */
 export async function RecruitmentView({ mode, basePath, tab, mgr }: {
@@ -125,7 +125,7 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
                 <th className={th}>{t("col.designation")}</th>
                 {showUpline && <th className={th}>{t("col.upline")}</th>}
                 {mode === "people" ? (
-                  // Contact + date of birth deliberately NOT shown to uplines (Samuel, 2026-09-22).
+                  // Contact + date of birth deliberately NOT shown to uplines (owner ruling, 2026-09-22).
                   <th className={th}>{tc("status")}</th>
                 ) : (
                   <>

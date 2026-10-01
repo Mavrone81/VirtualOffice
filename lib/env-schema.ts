@@ -43,7 +43,7 @@ export const envSchema = z.object({
   COMMISSION_PAYOUT_INSTALLMENT_THRESHOLD: z.coerce.number().int().default(3),
   OVERRIDE_CHAIN_DEPTH: z.coerce.number().int().default(2),
   // M5-CF §3: how runPayouts treats an associate whose unattached net is <= 0.
-  // Default `hold` is today's M5 behaviour. Samuel switches this to `carry_forward`
+  // Default `hold` is today's M5 behaviour. The owner switches this to `carry_forward`
   // on 165 (a config change, his go) only after the first CF run in prod is signed
   // off against bank records (§2b). `company_absorbs`/`recover` are not implemented.
   PAYOUT_NET_NEGATIVE_POLICY: z.enum(["hold", "carry_forward", "company_absorbs", "recover"]).default("hold"),

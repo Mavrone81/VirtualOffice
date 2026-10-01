@@ -17,7 +17,7 @@ import { runCommissionTx, auditRunResultTx, COMMISSION_TX_OPTIONS } from "./run"
  *   drift or forbid a legitimate short plan. A plan needs at least one real
  *   installment to ever become Eligible — an empty schedule always stays
  *   PendingCollection, it never trivially satisfies min(threshold, 0) = 0.
- *   The deposit (sequence 0, Samuel Q9) is the entry fee, not one of the N
+ *   The deposit (sequence 0, owner Q9) is the entry fee, not one of the N
  *   installments, so it never counts toward paidCount or N.
  *
  * Callers that already hold the FOR UPDATE lock on this sales_transactions row
