@@ -513,6 +513,7 @@
       "religionFreeThinker": "Free Thinker",
       "religionOthers": "Others",
       "address": "Residential address",
+      "addressFitWarning": "This address is longer than the signed agreement can show — it will appear cut off on the printed form. You can continue, or shorten it to fit.",
       "ecName": "Emergency contact name",
       "ecNumber": "Emergency contact number",
       "ecRelationship": "Emergency contact relationship",
