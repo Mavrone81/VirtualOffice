@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { D, round2, pctOf, effectivePrice, instalmentTotal, formatPercent, formatByValueType, formatSGD } from "./money";
+import { D, round2, pctOf, effectivePrice, closingPrice, instalmentTotal, formatPercent, formatByValueType, formatSGD } from "./money";
 
 // Every expected figure below is a hand-derived literal, computed
 // independently of the implementation — never asserted against whatever
@@ -45,6 +45,28 @@ describe("effectivePrice — discounted ?? listed (a selection, nothing to round
 
   test("a discount set: the discounted price wins, not the listed one", () => {
     expect(effectivePrice("199.99", "149.99").toFixed(2)).toBe("149.99");
+  });
+});
+
+describe("closingPrice — explicit per-product basis, NOT auto-preferring a discount", () => {
+  test("basis ListedPrice: the listed price, even though a discount is set (the discount is NOT auto-preferred, unlike effectivePrice)", () => {
+    expect(closingPrice("199.99", "149.99", "ListedPrice").toFixed(2)).toBe("199.99");
+  });
+
+  test("basis ListedPrice, no discount at all: the listed price", () => {
+    expect(closingPrice("19.99", null, "ListedPrice").toFixed(2)).toBe("19.99");
+  });
+
+  test("basis DiscountedPrice, a discount set: the discounted price", () => {
+    expect(closingPrice("199.99", "149.99", "DiscountedPrice").toFixed(2)).toBe("149.99");
+  });
+
+  test("basis DiscountedPrice but discounted is null: falls back to listed, defensively — the server rejects this combination at write time (lib/schemas.ts pricingRefine), so this proves the DEFENSIVE path, not a reachable one", () => {
+    expect(closingPrice("199.99", null, "DiscountedPrice").toFixed(2)).toBe("199.99");
+  });
+
+  test("basis DiscountedPrice but discounted is undefined: same defensive fallback", () => {
+    expect(closingPrice("199.99", undefined, "DiscountedPrice").toFixed(2)).toBe("199.99");
   });
 });
 

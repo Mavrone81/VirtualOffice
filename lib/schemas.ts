@@ -150,6 +150,12 @@ export type ComCodeInput = z.infer<typeof comCodeSchema>;
 //     rather than being silently ignored.
 // ---------------------------------------------------------------------------
 const instalmentOptionEnum = z.enum(["None", "Months12", "Months12or24"]);
+// Closing basis (2026-10-01): which price commission/company cut/overrides
+// are calculated against. Independent of instalmentOption — see
+// prisma/schema.prisma's ClosingBasis comment. Defaults to "ListedPrice" so
+// every existing caller (admin form not yet updated, every pre-closing-basis
+// test fixture) keeps working unchanged, matching the DB column's default.
+const closingBasisEnum = z.enum(["ListedPrice", "DiscountedPrice"]);
 
 const productPricingShape = {
   listedPrice: money,
@@ -158,6 +164,7 @@ const productPricingShape = {
   bookingFee: money.optional(),
   monthlyInstalment12: money.optional(),
   monthlyInstalment24: money.optional(),
+  closingBasis: closingBasisEnum.default("ListedPrice"),
 };
 
 type ProductPricingShape = {
@@ -167,6 +174,7 @@ type ProductPricingShape = {
   bookingFee?: string;
   monthlyInstalment12?: string;
   monthlyInstalment24?: string;
+  closingBasis: z.infer<typeof closingBasisEnum>;
 };
 
 function pricingRefine(v: ProductPricingShape, ctx: z.RefinementCtx): void {
@@ -174,6 +182,14 @@ function pricingRefine(v: ProductPricingShape, ctx: z.RefinementCtx): void {
   // 14-digit money string in a way a plain float comparison would not show.
   if (v.discountedPrice !== undefined && D(v.discountedPrice).greaterThan(D(v.listedPrice))) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["discountedPrice"], message: "discountedPriceExceedsListed" });
+  }
+  // Owner's ruling (closing-basis-spec-2026-10-01.md): DiscountedPrice is a
+  // valid basis ONLY when a discount is actually set. Clearing the discount
+  // while the basis is still DiscountedPrice is rejected here rather than
+  // silently falling back — the UI is expected to switch the basis back to
+  // ListedPrice itself, so a normal edit never reaches this branch.
+  if (v.closingBasis === "DiscountedPrice" && v.discountedPrice === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["closingBasis"], message: "closingBasisRequiresDiscount" });
   }
   if (v.instalmentOption !== "None") {
     if (v.bookingFee === undefined) {
@@ -189,7 +205,15 @@ function pricingRefine(v: ProductPricingShape, ctx: z.RefinementCtx): void {
 }
 
 export const productPricingSchema = z.object(productPricingShape).strict().superRefine(pricingRefine);
+// Output type (post-parse): closingBasis is always present, defaulted where
+// the caller omitted it — this is what updateProductPricing/createProduct
+// work with internally, after validateInput() has run.
 export type ProductPricingInput = z.infer<typeof productPricingSchema>;
+// Input type (pre-parse): closingBasis is optional, matching the DB/zod
+// default — this is what a CALLER (a server-action parameter, a test) may
+// supply, so a form that hasn't been updated to send closingBasis yet still
+// type-checks and gets "ListedPrice" at validation time.
+export type ProductPricingRawInput = z.input<typeof productPricingSchema>;
 
 // ---------------------------------------------------------------------------
 // Products — mirrors ProductInput (server/products/actions.ts)

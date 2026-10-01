@@ -74,7 +74,10 @@ async function seedProductRaw(code: string) {
       commissionType: "Percentage", closingCommPct: "10", companyCutPct: "2",
       smOverridePct: "5", sdOverridePct: "3", isExternal: false,
       effectiveDate: new Date("2099-01-01"),
-      listedPrice: "999.99", discountedPrice: "888.88", instalmentOption: "None",
+      // closingBasis deliberately NOT the default (ListedPrice) — a clobber
+      // that reset it back to the default would otherwise be indistinguishable
+      // from "left untouched" in the assertions below.
+      listedPrice: "999.99", discountedPrice: "888.88", instalmentOption: "None", closingBasis: "DiscountedPrice",
     },
   });
 }
@@ -165,6 +168,7 @@ describe("changeRates and updateProductPricing write the SAME row without clobbe
     expect(row.closingCommPct?.toFixed(4)).toBe("25.0000"); // proves changeRates DID run
     expect(row.listedPrice?.toFixed(2)).toBe("999.99"); // unchanged from the raw seed
     expect(row.discountedPrice?.toFixed(2)).toBe("888.88");
+    expect(row.closingBasis).toBe("DiscountedPrice"); // unchanged from the raw seed, not reset to the default
   });
 
   it("updateProductPricing leaves the commission and effectiveDate columns untouched", async () => {
@@ -176,6 +180,55 @@ describe("changeRates and updateProductPricing write the SAME row without clobbe
     expect(after.closingCommPct?.toFixed(4)).toBe(seeded.closingCommPct?.toFixed(4));
     expect(after.companyCutPct.toFixed(4)).toBe(seeded.companyCutPct.toFixed(4));
     expect(after.effectiveDate.toISOString()).toBe(seeded.effectiveDate.toISOString());
+  });
+});
+
+describe("updateProductPricing — closingBasis (2026-10-01)", () => {
+  it("is part of the audit before/after, in the same transaction as the rest of pricing", async () => {
+    const id = await freshProduct(TAG + "CB-AUDIT1");
+    const before = await prisma.product.findUniqueOrThrow({ where: { id } });
+    expect(before.closingBasis).toBe("ListedPrice"); // the DB/zod default, never sent explicitly by freshProduct
+
+    const r = await updateProductPricing(id, {
+      listedPrice: "500.00", discountedPrice: "450.00", instalmentOption: "None", closingBasis: "DiscountedPrice",
+    });
+    expect(r).toEqual({ ok: true });
+
+    const rows = await prisma.auditLog.findMany({ where: { entityId: id, action: "product.pricing_updated" } });
+    expect(rows).toHaveLength(1);
+    expect(JSON.stringify(rows[0].beforeJson)).toContain("ListedPrice");
+    expect(JSON.stringify(rows[0].afterJson)).toContain("DiscountedPrice");
+
+    const after = await prisma.product.findUniqueOrThrow({ where: { id } });
+    expect(after.closingBasis).toBe("DiscountedPrice");
+  });
+
+  it("accepts DiscountedPrice when discountedPrice is set in the SAME call (a normal edit, not just a pre-existing discount)", async () => {
+    const id = await freshProduct(TAG + "CB-OK1");
+    const r = await updateProductPricing(id, { listedPrice: "500.00", discountedPrice: "400.00", instalmentOption: "None", closingBasis: "DiscountedPrice" });
+    expect(r).toEqual({ ok: true });
+  });
+
+  it("rejects DiscountedPrice with no discountedPrice (invalidInput), and leaves the row untouched — the edge case named in the spec", async () => {
+    const id = await freshProduct(TAG + "CB-REJECT1", { discountedPrice: "900.00" });
+    const before = await prisma.product.findUniqueOrThrow({ where: { id } });
+
+    // Clearing the discount while the basis is still DiscountedPrice — the
+    // UI is expected to switch the basis back to ListedPrice itself, so this
+    // models the server catching a client that didn't (or a direct caller).
+    const r = await updateProductPricing(id, { listedPrice: "999.99", instalmentOption: "None", closingBasis: "DiscountedPrice" });
+    expect(r).toEqual({ ok: false, error: "invalidInput" });
+
+    const after = await prisma.product.findUniqueOrThrow({ where: { id } });
+    expect(after.discountedPrice?.toFixed(2)).toBe(before.discountedPrice?.toFixed(2));
+    expect(after.closingBasis).toBe(before.closingBasis);
+
+    // Positive control: the SAME payload, basis switched back to ListedPrice
+    // (what the UI actually does), succeeds — proving the rejection above is
+    // about the DiscountedPrice+no-discount combination specifically, not
+    // about clearing a discount in general.
+    const control = await updateProductPricing(id, { listedPrice: "999.99", instalmentOption: "None", closingBasis: "ListedPrice" });
+    expect(control).toEqual({ ok: true });
   });
 });
 

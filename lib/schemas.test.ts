@@ -174,6 +174,24 @@ describe("productSchema", () => {
     });
     expect(ok.success).toBe(true);
   });
+
+  it("closingBasis DiscountedPrice with no discountedPrice is rejected on CREATE too, not only on the pricing-only update schema", () => {
+    const r = productSchema.safeParse({
+      productCode: "P1",
+      productName: "Funeral Plan",
+      commissionType: "Percentage",
+      closingCommPct: "10",
+      companyCutPct: "40",
+      asmOverridePct: "5",
+      smOverridePct: "10",
+      sdOverridePct: "5",
+      isExternal: false,
+      effectiveDate: "2026-01-01",
+      ...VALID_PRICING,
+      closingBasis: "DiscountedPrice",
+    });
+    expect(r.success).toBe(false);
+  });
 });
 
 describe("productPricingSchema", () => {
@@ -243,6 +261,40 @@ describe("productPricingSchema", () => {
   it("PRICING FIELDS ONLY: an extra non-pricing key (e.g. commissionType) is rejected, not silently ignored", () => {
     const r = productPricingSchema.safeParse({ ...base, commissionType: "Fixed" });
     expect(r.success).toBe(false);
+  });
+
+  describe("closingBasis (2026-10-01) — defaults to ListedPrice, and DiscountedPrice requires an actual discount", () => {
+    it("omitted entirely: defaults to ListedPrice (every pre-closing-basis caller keeps working)", () => {
+      const r = productPricingSchema.safeParse(base);
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.closingBasis).toBe("ListedPrice");
+    });
+
+    it("explicit ListedPrice, no discount set: accepted", () => {
+      expect(productPricingSchema.safeParse({ ...base, closingBasis: "ListedPrice" }).success).toBe(true);
+    });
+
+    it("explicit ListedPrice while a discount IS set: accepted — the basis, not the presence of a discount, decides", () => {
+      expect(productPricingSchema.safeParse({ ...base, discountedPrice: "99.99", closingBasis: "ListedPrice" }).success).toBe(true);
+    });
+
+    it("DiscountedPrice with a discount set: accepted", () => {
+      expect(productPricingSchema.safeParse({ ...base, discountedPrice: "99.99", closingBasis: "DiscountedPrice" }).success).toBe(true);
+    });
+
+    it("DiscountedPrice with NO discount set: rejected (invalidInput), not silently treated as ListedPrice", () => {
+      const r = productPricingSchema.safeParse({ ...base, closingBasis: "DiscountedPrice" });
+      expect(r.success).toBe(false);
+    });
+
+    it("DiscountedPrice with discountedPrice explicitly undefined (a cleared field, the real UI shape): still rejected", () => {
+      const r = productPricingSchema.safeParse({ ...base, discountedPrice: undefined, closingBasis: "DiscountedPrice" });
+      expect(r.success).toBe(false);
+    });
+
+    it("rejects an unknown closingBasis value", () => {
+      expect(productPricingSchema.safeParse({ ...base, closingBasis: "Negotiated" }).success).toBe(false);
+    });
   });
 });
 

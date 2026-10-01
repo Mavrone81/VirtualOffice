@@ -24,6 +24,7 @@ export default async function EditProductPricingPage({ params }: { params: Promi
       productName: true,
       listedPrice: true,
       discountedPrice: true,
+      closingBasis: true,
       instalmentOption: true,
       bookingFee: true,
       monthlyInstalment12: true,
@@ -36,6 +37,7 @@ export default async function EditProductPricingPage({ params }: { params: Promi
   const initial: PricingValue = {
     listedPrice: product.listedPrice?.toFixed(2) ?? "",
     discountedPrice: product.discountedPrice?.toFixed(2) ?? "",
+    closingBasis: product.closingBasis,
     instalmentOption: product.instalmentOption,
     bookingFee: product.bookingFee?.toFixed(2) ?? "",
     monthlyInstalment12: product.monthlyInstalment12?.toFixed(2) ?? "",

@@ -1,12 +1,16 @@
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
-import { formatSGD, D, effectivePrice as computeEffectivePrice } from "@/lib/money";
+import { formatSGD, D, effectivePrice as computeEffectivePrice, closingPrice } from "@/lib/money";
 import type { PortalCatalogueProduct } from "@/server/products/portal-catalogue";
-import { CommissionBlock } from "./commission-cut";
+import { CommissionBlock, type Translator } from "./commission-cut";
 
-export function ProductCard({ p, t, tc }: { p: PortalCatalogueProduct; t: (key: string) => string; tc: (key: string) => string }) {
+export function ProductCard({ p, t, tc }: { p: PortalCatalogueProduct; t: Translator; tc: (key: string) => string }) {
+  // What the buyer pays — unaffected by closingBasis, which only selects what
+  // commission is calculated on (owner's words: "it should be the same as
+  // listed price … commission, upline comm etc. are calculated based on closing").
   const effective = p.listedPrice != null ? computeEffectivePrice(p.listedPrice, p.discountedPrice).toFixed(2) : null;
   const hasDiscount = p.discountedPrice != null && p.listedPrice != null;
+  const closingBasisPrice = p.listedPrice != null ? closingPrice(p.listedPrice, p.discountedPrice, p.closingBasis).toFixed(2) : null;
 
   return (
     <Card className="p-5">
@@ -58,7 +62,8 @@ export function ProductCard({ p, t, tc }: { p: PortalCatalogueProduct; t: (key: 
         commissionType={p.commissionType}
         closingCommPct={p.closingCommPct}
         closingCommFixed={p.closingCommFixed}
-        effectivePrice={effective}
+        closingBasisPrice={closingBasisPrice}
+        closingBasis={p.closingBasis}
         t={t}
       />
     </Card>
