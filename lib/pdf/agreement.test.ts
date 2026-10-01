@@ -356,10 +356,19 @@ describe("renderAgreementPdf — spouse Yes/No circle (drawn, not text)", () => 
   // annulusInkFraction is now a top-level helper (see its own definition
   // above, near the other PDF helpers) — hoisted out of this describe so the
   // cleanup-proof test can exercise it too.
-  const FULL = 6; // catches the stroke reliably on a side with no neighbour
-  const NARROW = 2; // the side facing the other word — inside the ~7.8pt gap
-  const yesPad = { top: FULL, bottom: FULL, left: FULL, right: NARROW }; // No is to the right
-  const noPad = { top: FULL, bottom: FULL, left: NARROW, right: FULL }; // Yes is to the left
+  // The ellipse is word-ink-derived with three pads, not one (see agreement.ts:
+  // CIRCLE_PAD_HORIZONTAL_INNER=0.90 on the side facing the "/" divider,
+  // CIRCLE_PAD_HORIZONTAL_OUTER=2.5 on the far side, CIRCLE_PAD_VERTICAL=9.0)
+  // — far taller than the old box-derived ellipse (box height 11.07pt vs the
+  // word's own ~6.6pt ink height). This annulus window is sized generously
+  // above every pad actually in play, on both the wider outer side and the
+  // taller vertical axis, so it stays valid across a pad change of this
+  // size without needing a matching edit here.
+  const FULL_H = 6; // comfortably above CIRCLE_PAD_HORIZONTAL_OUTER(2.5) — the side with no neighbour
+  const NARROW_H = 2; // the side facing the other word — comfortably above CIRCLE_PAD_HORIZONTAL_INNER(0.90)
+  const FULL_V = 12; // comfortably above CIRCLE_PAD_VERTICAL(9.0) + stroke half-width(0.6) + margin
+  const yesPad = { top: FULL_V, bottom: FULL_V, left: FULL_H, right: NARROW_H }; // No is to the right
+  const noPad = { top: FULL_V, bottom: FULL_V, left: NARROW_H, right: FULL_H }; // Yes is to the left
 
   test("circles Yes when spouseConflict is true", async () => {
     const pdf = await renderAgreementPdf({ ...BASE, spouseConflict: true });
@@ -479,6 +488,16 @@ describe("renderAgreementPdf — spouse circle must not touch the '/' between Ye
   // isolates exactly the pixels the circle itself adds — the tight bbox
   // check elsewhere can't be reused here because "/" and "Yes"/"No" are only
   // ~2.5pt apart, well inside any plausible annulus pad.
+  // 🔴 KNOWN BLIND SPOT, kept and not silently fixed in place: a with/without
+  // DIFFERENTIAL can't see a stroke that lands exactly ON a pixel the slash
+  // itself already darkens — that pixel is dark in BOTH renders, so it never
+  // counts as "added", even though the stroke is genuinely touching real
+  // ink there. `agreement-circle-ink-intersection.test.ts` is the
+  // authoritative check for this property (two independently measured ink
+  // masks, intersected, with a planted-overlap control proving the check
+  // can report a positive) — this test stays as a second, cheap, poppler-
+  // only signal for the "added ink appeared out of nowhere" case, which it
+  // still genuinely covers.
   const SLASH_BBOX = { x: 487.729, y: 162.832, width: 490.509 - 487.729, height: 173.902 - 162.832 };
 
   async function pixelsCircleAddsInsideSlash(spouseConflict: boolean): Promise<number> {
