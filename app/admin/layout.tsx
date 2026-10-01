@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { sdAutoElapsedWhere } from "@/lib/approval";
 import { runNricRetentionOpportunistic } from "@/server/agreements/nric-retention-engine";
+import { runStuckSignedCheckOpportunistic } from "@/server/agreements/stuck-signed-reconciler";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ApprovalStatus, OnboardingStage, SubmissionStatus } from "@prisma/client";
 import { auth } from "@/auth";
@@ -22,6 +23,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // A-17 §4a: the NRIC retention purge's opportunistic trigger — runs after
   // this response is sent, at most once a day, and never affects the page.
   after(runNricRetentionOpportunistic);
+  // N2 residual: detects a PetsAshesAgreement left at Signed with no
+  // agreementPdfKey (a crash between the sign CAS and the pdfKey
+  // transaction). Alert only — see server/agreements/stuck-signed-
+  // reconciler.ts for why this never writes to the row itself. Same
+  // opportunistic shape as the NRIC trigger above, its own 1h cooldown.
+  after(runStuckSignedCheckOpportunistic);
 
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
   const [recruit, quotations, referrals] = await Promise.all([
