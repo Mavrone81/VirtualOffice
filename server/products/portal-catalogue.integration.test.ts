@@ -41,6 +41,7 @@ const ALLOWED_TOP_LEVEL_KEYS = [
   "activeStatus",
   "listedPrice",
   "discountedPrice",
+  "closingBasis",
   "instalmentOption",
   "bookingFee",
   "monthlyInstalment12",

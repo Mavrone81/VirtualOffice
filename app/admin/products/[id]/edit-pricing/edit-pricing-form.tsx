@@ -29,6 +29,7 @@ export function EditPricingForm({ productId, initial }: { productId: string; ini
       const r = await updateProductPricing(productId, {
         listedPrice: pricing.listedPrice,
         discountedPrice: orUndef(pricing.discountedPrice),
+        closingBasis: pricing.closingBasis,
         instalmentOption: pricing.instalmentOption,
         bookingFee: orUndef(pricing.bookingFee),
         monthlyInstalment12: orUndef(pricing.monthlyInstalment12),

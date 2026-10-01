@@ -7,7 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { isFullAdmin } from "@/lib/rbac";
-import { formatPercent, formatByValueType } from "@/lib/money";
+import { formatSGD, formatPercent, formatByValueType } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,7 @@ export default async function ProductsPage() {
                 <div className="text-right text-[12px]">
                   <div className="text-muted">{t("closing")}</div>
                   <div className="font-display text-[18px] text-ink">
-                    {p.commissionType === CommissionType.Fixed ? `S$${p.closingCommFixed ?? 0}` : formatPercent(p.closingCommPct ?? 0)}
+                    {p.commissionType === CommissionType.Fixed ? formatSGD(p.closingCommFixed ?? 0) : formatPercent(p.closingCommPct ?? 0)}
                   </div>
                 </div>
               </div>
