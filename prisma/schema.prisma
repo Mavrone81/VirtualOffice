@@ -91,6 +91,16 @@ enum InstalmentOption {
   Months12or24
 }
 
+// Closing basis (2026-10-01): which of the product's two prices commission,
+// company cut and the overrides are calculated against. Independent of
+// InstalmentOption/discountedPrice above — this only selects WHICH price is
+// "the closing price" (lib/money.ts closingPrice()); it does not change how
+// money is computed once that price is chosen.
+enum ClosingBasis {
+  ListedPrice
+  DiscountedPrice
+}
+
 enum CommissionType {
   Percentage
   Fixed
@@ -476,6 +486,11 @@ model Product {
   bookingFee          Decimal?          @map("booking_fee") @db.Decimal(14, 2)
   monthlyInstalment12 Decimal?          @map("monthly_instalment_12") @db.Decimal(14, 2)
   monthlyInstalment24 Decimal?          @map("monthly_instalment_24") @db.Decimal(14, 2)
+  // Closing basis (2026-10-01): additive, NOT NULL with a DB default so
+  // every pre-existing row becomes ListedPrice (owner's ruling — "it should
+  // be the same as listed price") without a backfill. zod defaults new
+  // writes to the same value when the caller omits it.
+  closingBasis        ClosingBasis      @default(ListedPrice) @map("closing_basis")
 
   comCodes Comcode[]
   versions CommissionStructureVersion[]

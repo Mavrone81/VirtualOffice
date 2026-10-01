@@ -18,6 +18,7 @@ export const PORTAL_PRODUCT_SELECT = {
   activeStatus: true,
   listedPrice: true,
   discountedPrice: true,
+  closingBasis: true,
   instalmentOption: true,
   bookingFee: true,
   monthlyInstalment12: true,
@@ -50,6 +51,7 @@ export type PortalCatalogueProduct = {
   activeStatus: string;
   listedPrice: string | null;
   discountedPrice: string | null;
+  closingBasis: "ListedPrice" | "DiscountedPrice";
   instalmentOption: "None" | "Months12" | "Months12or24";
   bookingFee: string | null;
   monthlyInstalment12: string | null;
@@ -70,6 +72,7 @@ export async function getPortalProductCatalogue(): Promise<PortalCatalogueProduc
     activeStatus: p.activeStatus,
     listedPrice: p.listedPrice?.toFixed(2) ?? null,
     discountedPrice: p.discountedPrice?.toFixed(2) ?? null,
+    closingBasis: p.closingBasis,
     instalmentOption: p.instalmentOption,
     bookingFee: p.bookingFee?.toFixed(2) ?? null,
     monthlyInstalment12: p.monthlyInstalment12?.toFixed(2) ?? null,

@@ -12,9 +12,14 @@ const selectCls =
 
 export type InstalmentOption = "None" | "Months12" | "Months12or24";
 
+// Mirrors the Prisma `ClosingBasis` enum (lib/schemas.ts productPricingShape)
+// — which price commission/upline comm are calculated on.
+export type ClosingBasis = "ListedPrice" | "DiscountedPrice";
+
 export type PricingValue = {
   listedPrice: string;
   discountedPrice: string;
+  closingBasis: ClosingBasis;
   instalmentOption: InstalmentOption;
   bookingFee: string;
   monthlyInstalment12: string;
@@ -24,6 +29,7 @@ export type PricingValue = {
 export const emptyPricing: PricingValue = {
   listedPrice: "",
   discountedPrice: "",
+  closingBasis: "ListedPrice",
   instalmentOption: "None",
   bookingFee: "",
   monthlyInstalment12: "",
@@ -90,10 +96,31 @@ export function PricingCard({ value, onChange }: { value: PricingValue; onChange
             id="discountedPrice"
             inputMode="decimal"
             value={value.discountedPrice}
-            onChange={(e) => set({ discountedPrice: sanitizeAmountInput(e.target.value) })}
+            onChange={(e) => {
+              const discountedPrice = sanitizeAmountInput(e.target.value);
+              // Clearing the discount while the basis is DiscountedPrice would
+              // hit the server's rejection on a normal edit — switch back to
+              // Listed here so that path is never reached (owner ruling).
+              const closingBasis = discountedPrice.trim() === "" && value.closingBasis === "DiscountedPrice" ? "ListedPrice" : value.closingBasis;
+              set({ discountedPrice, closingBasis });
+            }}
             placeholder="4500.00"
           />
           {discountExceeds && <p className="mt-1 text-[12px] text-danger">{t("discountedPriceExceedsListed")}</p>}
+        </div>
+        <div>
+          <Label htmlFor="closingBasis">{t("closingBasisLabel")}</Label>
+          <select
+            id="closingBasis"
+            className={selectCls}
+            value={value.closingBasis}
+            onChange={(e) => set({ closingBasis: e.target.value as ClosingBasis })}
+          >
+            <option value="ListedPrice">{t("closingBasisListed")}</option>
+            <option value="DiscountedPrice" disabled={!validNumber(value.discountedPrice)}>
+              {t("closingBasisDiscounted")}
+            </option>
+          </select>
         </div>
         <div>
           <Label htmlFor="instalmentOption">{t("instalmentOptionLabel")}</Label>
