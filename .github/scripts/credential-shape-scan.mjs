@@ -10,8 +10,9 @@
 //
 // Usage: node .github/scripts/credential-shape-scan.mjs [--json]
 // Exit 0 = no unexplained hit. Exit 1 = at least one. Exit 2 = bad allow-list.
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 
 const ROOT = process.cwd();
 const ALLOWLIST = ".github/credential-shape-allowlist.tsv";
@@ -95,19 +96,52 @@ const FALLBACK = new RegExp(IDENT + String.raw`\s*[:=]` + GAP + String.raw`(?:\?
 const MIN_PASSWORD_LENGTH = 12; // = MIN_SEED_PASSWORD_LENGTH (lib/seed-guard.ts)
 const PASSWORD_FAMILY = /password|passwd|passphrase/i;
 
-const SKIP_DIRS = new Set(["node_modules", ".git", ".next", "dist", "build", "coverage"]);
 const BINARY_EXT = /\.(png|jpe?g|gif|ico|pdf|woff2?|ttf|eot|zip|xlsx?|docx?|pptx?|webp|avif|mp4|svg)$/i;
 
 let skippedLarge = 0;
-function walk(dir, out = []) {
-  for (const name of readdirSync(dir)) {
-    if (SKIP_DIRS.has(name)) continue;
-    const full = join(dir, name);
-    const st = statSync(full);
-    if (st.isDirectory()) walk(full, out);
-    else if (BINARY_EXT.test(name)) continue;
-    else if (st.size >= 2_000_000) skippedLarge++; // too big to be hand-written source; counted, not hidden
-    else out.push(relative(ROOT, full).split(sep).join("/"));
+let skippedAbsent = 0;
+
+// 🔴 TRACKED FILES, NOT A WORKING-TREE WALK. The previous version walked the working tree with
+// readdirSync and skipped only a hardcoded directory list, so it had no .gitignore awareness and
+// read ignored files. On a developer's machine that meant it scanned their own `.env` and
+// reported, by name and by character count, the length of a live local secret — in a message
+// that lands in gate records and kit READMEs. A scanner whose output describes what it found in
+// an untracked file is a disclosure path of its own, which is the same class leak-scan.sh was
+// fixed for after its v1 printed absolute paths and disclosed the local username.
+//
+// It also meant a false RED locally while CI (a clean checkout, no .env) stayed green — so the
+// check disagreed with itself depending on where it ran, and the local answer was the wrong one.
+//
+// `git ls-files` is the right population for the same reason document-file-scan.mjs states in
+// its own header: it is what actually ships. An untracked credential cannot reach the repository,
+// so it is not what this gate is for; a tracked one is caught either way. Both sibling scans in
+// this directory already enumerate this way — this one was the outlier.
+function trackedFiles() {
+  try {
+    return execFileSync("git", ["ls-files", "-z"], { maxBuffer: 64 * 1024 * 1024 })
+      .toString("utf8").split("\0").filter(Boolean);
+  } catch {
+    console.error("cannot list tracked files (git unavailable or not a repository) — refusing to assume OK");
+    process.exit(2);
+  }
+}
+
+// Tracked, text, and small enough to be hand-written source.
+export function sourceFiles(files = trackedFiles()) {
+  const out = [];
+  for (const rel of files) {
+    if (BINARY_EXT.test(rel)) continue;
+    let st;
+    try {
+      st = statSync(join(ROOT, rel));
+    } catch {
+      // Tracked but not on disk — a staged deletion, or a sparse/partial checkout. Counted, not
+      // hidden: silently skipping files is how a scan reports a clean 0 over work it never read.
+      skippedAbsent++;
+      continue;
+    }
+    if (st.size >= 2_000_000) { skippedLarge++; continue; } // too big to be hand-written source
+    out.push(rel);
   }
   return out;
 }
@@ -272,13 +306,35 @@ if (process.argv.includes("--self-test")) {
     if (!ok) bad++;
     console.log(`${ok ? "ok  " : "FAIL"} ${label} — expected [${expected}], got [${got}]`);
   }
+  // 🔴 ENUMERATION claims, added with the switch from a working-tree walk to tracked files.
+  // The failure this guards is specific: a scanner that reads untracked files reports a live
+  // local secret's name and length, and disagrees with CI depending on where it runs.
+  const tracked = trackedFiles();
+  const scanned = sourceFiles(tracked);
+  if (scanned.length === 0) {
+    bad++; console.log("FAIL enumeration — 0 files to scan; a 0-hit result from that would prove nothing");
+  } else {
+    console.log(`ok   enumeration — ${scanned.length} tracked text file(s) of ${tracked.length} tracked`);
+  }
+  const trackedSet = new Set(tracked);
+  const strays = scanned.filter((f) => !trackedSet.has(f));
+  if (strays.length > 0) { bad++; console.log(`FAIL enumeration — ${strays.length} scanned file(s) are not tracked`); }
+  else console.log("ok   enumeration — every scanned file is tracked (no working-tree strays)");
+  // Conditional but the one that matters in practice: if a local .env exists, it must be excluded.
+  if (existsSync(join(ROOT, ".env"))) {
+    if (scanned.includes(".env")) { bad++; console.log("FAIL enumeration — a local .env is present AND would be scanned"); }
+    else console.log("ok   enumeration — a local .env is present and is correctly excluded");
+  } else {
+    console.log("note enumeration — no local .env here, so the exclusion is untested this run (it is asserted structurally above)");
+  }
+
   console.log(bad === 0 ? `self-test: all ${SELF_TEST_CASES.length} shape claims hold` : `self-test: ${bad} of ${SELF_TEST_CASES.length} shape claims BROKEN`);
   process.exit(bad === 0 ? 0 : 1);
 }
 
 const seen = new Set();
 const counters = { empty: 0, short: 0 };
-for (const file of walk(ROOT)) {
+for (const file of sourceFiles()) {
   hits.push(...scanSource(file, readFileSync(join(ROOT, file), "utf8"), allow, used, counters, seen));
 }
 skippedEmpty = counters.empty;
@@ -301,12 +357,12 @@ skippedShort = counters.short;
 const unused = [...allow.keys()].filter((k) => !used.has(k));
 const pending = unused.filter((k) => !existsSync(join(ROOT, k.split("\u0000")[0])));
 const stale = unused.filter((k) => existsSync(join(ROOT, k.split("\u0000")[0])));
-if (process.argv.includes("--json")) console.log(JSON.stringify({ hits, stale: stale.length, pending: pending.length, skippedEmpty, skippedShort, skippedLarge }, null, 2));
+if (process.argv.includes("--json")) console.log(JSON.stringify({ hits, stale: stale.length, pending: pending.length, skippedEmpty, skippedShort, skippedLarge, skippedAbsent }, null, 2));
 console.log(
   `Scanned for credential-shaped literals: ${allow.size} allow-listed, ` +
   `${skippedEmpty} empty-string, ` +
   `${skippedShort} password-family literal(s) under ${MIN_PASSWORD_LENGTH} chars, ` +
-  `${skippedLarge} file(s) over 2 MB, ` +
+  `${skippedLarge} file(s) over 2 MB, ${skippedAbsent} tracked file(s) absent from the worktree, ` +
   `${pending.length} pending (file not in this tree yet), ` +
   `${hits.length} unexplained.`,
 );
