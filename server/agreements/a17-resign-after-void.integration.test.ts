@@ -100,8 +100,11 @@ describe("re-sign after C2 void, with a forced render failure on the re-sign att
     const firstSha = signed.signedPdfSha256!;
     expect(await getObject(firstKey)).not.toBeNull();
 
-    // C2 void: amount change while still needed.
-    const voidEdit = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Resign After Void", paymentPlan: "Full Payment", lines: [{ productId: ashesProductId, lineSaleAmount: 1500, comCodeIds: [] }] });
+    // C2 void: a non-amount term change while still needed (payment plan) —
+    // the sale amount lock (PD ruling) now refuses an amount-changing edit
+    // against a signed agreement outright instead of voiding it, so this
+    // void must come from a genuine non-money term change instead.
+    const voidEdit = await editSale({ id: subId, salesDate: "2026-08-01", clientName: "Resign After Void", paymentPlan: "Installment", installmentCount: 3, lines: [{ productId: ashesProductId, lineSaleAmount: 1000, comCodeIds: [] }] });
     expect(voidEdit.ok).toBe(true);
     const voided = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: signed.id } });
     expect(voided.status).toBe("Draft");
