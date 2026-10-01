@@ -1,10 +1,10 @@
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, beforeAll } from "vitest";
 import { execFileSync } from "child_process";
 import { writeFileSync, mkdtempSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { renderAgreementPdf, formatUplineOrNA, fitText, ruleOpts, type AgreementData } from "@/lib/pdf/agreement";
+import { renderAgreementPdf, formatUplineOrNA, fitText, ruleOpts, wouldTruncate, type AgreementData } from "@/lib/pdf/agreement";
 import { assertMasterTemplateSha256, MASTER_TEMPLATE_PATH, AGREEMENT_FIELD_BOXES, AGREEMENT_FIELD_RULE_Y, type FieldBox } from "@/lib/pdf/associate-agreement-coordinates";
 
 // ---------------------------------------------------------------------------
@@ -627,5 +627,44 @@ describe("fitText — boundary cases (DevLead's ask, direct not rendered)", () =
     const result = fitText(font, text, box(0.5));
     expect(result.size).toBe(7);
     expect(result.lines).toEqual(["W…"]); // 1 original char retained + ellipsis, per the length>1 floor
+  });
+});
+
+describe("wouldTruncate — homeAddress fit warning (item 5), boundary measured with the real font", () => {
+  // Binary search the longest run of "A"s that still fits the REAL
+  // homeAddress box at the 7pt floor (the most permissive size fitText
+  // tries — narrower text at a smaller size fits more width) — a measured
+  // boundary, not an assumed character count.
+  let fits: string;
+  let overflow: string;
+
+  beforeAll(async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.TimesRoman);
+    const boxWidth = AGREEMENT_FIELD_BOXES.homeAddress.width;
+    let lo = 0;
+    let hi = 200;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (font.widthOfTextAtSize("A".repeat(mid), 7) <= boxWidth) lo = mid;
+      else hi = mid - 1;
+    }
+    expect(font.widthOfTextAtSize("A".repeat(lo), 7)).toBeLessThanOrEqual(boxWidth);
+    expect(font.widthOfTextAtSize("A".repeat(lo + 1), 7)).toBeGreaterThan(boxWidth);
+    fits = "A".repeat(lo);
+    overflow = "A".repeat(lo + 1);
+  });
+
+  test("a value at the measured fit boundary does not truncate", async () => {
+    await expect(wouldTruncate(fits)).resolves.toBe(false);
+  });
+
+  test("one character past the measured boundary truncates", async () => {
+    await expect(wouldTruncate(overflow)).resolves.toBe(true);
+  });
+
+  test("empty or whitespace-only value never truncates (matches stampField's own blank-draws-nothing rule)", async () => {
+    await expect(wouldTruncate("")).resolves.toBe(false);
+    await expect(wouldTruncate("   ")).resolves.toBe(false);
   });
 });

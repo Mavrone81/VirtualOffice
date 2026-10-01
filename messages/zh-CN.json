@@ -513,6 +513,7 @@
       "religionFreeThinker": "无宗教信仰",
       "religionOthers": "其他",
       "address": "住址",
+      "addressFitWarning": "此地址超出签署协议可显示的长度，打印版上会被截断显示。您可以继续提交，也可以将地址缩短以完整显示。",
       "ecName": "紧急联系人姓名",
       "ecNumber": "紧急联系人电话",
       "ecRelationship": "紧急联系人关系",
