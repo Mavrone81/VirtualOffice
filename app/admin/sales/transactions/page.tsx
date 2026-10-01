@@ -5,8 +5,8 @@ import { CommissionEligibility, Designation } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
 import { humanize } from "@/lib/labels";
-import { teamScopeIds } from "@/lib/team";
 import { transactionWhere, parseTransactionSearch, type TransactionSearch } from "@/server/sales/transaction-filters";
+import { transactionFilterOptions, MANAGER_DESIGNATIONS } from "@/server/sales/transaction-filter-options";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -15,8 +15,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata = { title: "Transactions · Enshrine Admin" };
 
-const MANAGER_DESIGNATIONS: Designation[] = [Designation.SalesManager, Designation.SalesDirector];
-
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<TransactionSearch> }) {
   const t = await getTranslations("sales");
   const tf = await getTranslations("filters");
@@ -24,15 +22,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
 
   const rawSp = await searchParams;
   const sp = parseTransactionSearch(rawSp);
-
-  const [products, closers, managers, teamMemberIds] = await Promise.all([
-    prisma.product.findMany({ select: { productCode: true, productName: true }, orderBy: { productName: "asc" } }),
-    prisma.associate.findMany({ select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
-    sp.designation && MANAGER_DESIGNATIONS.includes(sp.designation)
-      ? prisma.associate.findMany({ where: { designation: sp.designation }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } })
-      : Promise.resolve([]),
-    sp.team ? teamScopeIds(sp.team) : Promise.resolve(undefined),
-  ]);
+  const { products, closers, managers, teamMemberIds } = await transactionFilterOptions(sp);
 
   const filtersActive = Boolean(sp.designation || sp.team || sp.from || sp.to || sp.product || sp.eligibility || sp.closer);
 
