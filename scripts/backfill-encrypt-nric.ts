@@ -10,7 +10,7 @@
  * It aborts unless the session reports transaction_read_only = on, same as
  * scripts/backfill-payout-ids.ts (M5).
  *
- * APPLY (the project owner's go; run through the tools image, deploy/vo-run-tool.sh, so
+ * APPLY (the owner's go; run through the tools image, deploy/vo-run-tool.sh, so
  * PII_ENCRYPTION_KEY is read from the .env allow-list, never passed on the
  * command line — P-4; see deploy/TOOLS.md):
  *   deploy/vo-run-tool.sh "$SHA" backfill-encrypt-nric.ts --digest "$DIGEST" \

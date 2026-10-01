@@ -3,7 +3,7 @@
 Backfill dry runs and applies (M5 payout ids, A-0 amountCollected, SEC-12 NRIC) run from the **tools** image that CI builds
 and pushes as `ghcr.io/mavrone81/virtualoffice-tools:<git sha>`, through `deploy/vo-run-tool.sh`.
 - **Nothing is built on 165.**
-- Every run needs **the project owner's go**; an apply needs its own.
+- Every run needs **the owner's go**; an apply needs its own.
 
 ## What the wrapper enforces
 - **Pinned image:**
@@ -26,7 +26,7 @@ and pushes as `ghcr.io/mavrone81/virtualoffice-tools:<git sha>`, through `deploy
 - **Clean-up:** the image is removed afterwards. Nothing shared is ever pruned.
 
 ## Runbook block
-As root on 165, with the project owner's go:
+As root on 165, with the owner's go:
 ```sh
 cd /root/VirtualOffice && git log -1 --oneline        # the deployed commit
 SHA=$(git rev-parse HEAD)
@@ -50,18 +50,18 @@ deploy/vo-run-tool.sh "$SHA" backfill-encrypt-nric.ts --digest "$DIGEST" --vars 
 docker logout ghcr.io
 ```
 
-## The GHCR package (the project owner's settings)
+## The GHCR package (the owner's settings)
 - The first push to `main` after this lands **creates a new package**, `ghcr.io/mavrone81/virtualoffice-tools`. Its
-  **visibility and who can pull it are the project owner's settings.**
+  **visibility and who can pull it are the owner's settings.**
 - **Contents:** only code that's already in the repo:
   - no secrets and no `.env`;
   - the seed is fake after W2-a;
   - it's built after the history purge, so no pre-purge commit ever has a tools image.
 - **If the package is private:** 165 needs a **read-only pull token**, passed on stdin at run time (see the block above) and
   logged out after.
-- **Cost:** GitHub Packages is, to our understanding, free for public packages (not verified against the project owner's plan). A private
+- **Cost:** GitHub Packages is, to our understanding, free for public packages (not verified against the owner's plan). A private
   package counts toward his storage quota.
-- **Retention (optional, the project owner's call, since it deletes):**
+- **Retention (optional, the owner's call, since it deletes):**
   - with `actions/delete-package-versions` (`package-name: virtualoffice-tools`, `package-type: container`,
     `min-versions-to-keep: 30`, about 10 pushes including the provenance manifests) as a step after the tools push;
   - or by hand in the package settings.

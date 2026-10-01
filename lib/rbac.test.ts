@@ -13,7 +13,7 @@ describe("roleForDesignation — AppRole is derived from the sales designation (
   });
 });
 
-describe("canRecruit — invite candidate is Manager and above (A9, the project owner 2026-09-26)", () => {
+describe("canRecruit — invite candidate is Manager and above (A9, owner ruling 2026-09-26)", () => {
   it("SM, SD and Business Admin can recruit", () => {
     for (const r of [AppRole.SalesManager, AppRole.SalesDirector, AppRole.Admin]) {
       expect(canRecruit(r)).toBe(true);
