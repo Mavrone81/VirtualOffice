@@ -1235,7 +1235,13 @@
         "share": "My comm share",
         "received": "Nett comm received",
         "balance": "Balance comm receivable",
-        "invoice": "Invoice"
+        "invoice": "Invoice",
+        "voucher": "Payment Voucher"
+      },
+      "voucher": {
+        "notIssued": "Download ↓",
+        "pending": "…",
+        "failed": "Couldn't download — try again."
       }
     }
   },

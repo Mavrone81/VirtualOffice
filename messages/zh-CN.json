@@ -1235,7 +1235,13 @@
         "share": "我的佣金份额",
         "received": "已收净佣金",
         "balance": "应收佣金余额",
-        "invoice": "发票"
+        "invoice": "发票",
+        "voucher": "付款凭证"
+      },
+      "voucher": {
+        "notIssued": "下载 ↓",
+        "pending": "…",
+        "failed": "下载失败，请重试。"
       }
     }
   },
