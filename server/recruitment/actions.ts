@@ -17,7 +17,7 @@ import { encryptPII, maskNric } from "@/lib/crypto";
 import { putObject, getObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { humanize } from "@/lib/labels";
-import { renderAgreementPdf, formatUplineOrNA } from "@/lib/pdf/agreement";
+import { renderAgreementPdf, formatUplineOrNA, wouldTruncate } from "@/lib/pdf/agreement";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "@/server/associates/payee-audit";
@@ -393,6 +393,39 @@ export async function submitOnboarding(
   revalidatePath("/admin/recruitment");
   revalidatePath(`/admin/recruitment/${c.id}`);
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// homeAddress fit warning (item 5) — this file is "use server", so this
+// export is a PUBLIC callable endpoint on its own, not merely a helper for
+// the onboarding page. Gated exactly like submitOnboarding above: rate-limit
+// by token first, then a real token lookup, before doing any work — never
+// callable anonymously. Returns true when the value WOULD be truncated on
+// the signed agreement (i.e. the caller should show the warning) — true on
+// every refusal path too (rate-limited, bad token, terminal stage, over the
+// schema's own max(500)), since silently telling an unverified caller "you
+// fit" is the wrong failure mode for a legal-document warning.
+// ---------------------------------------------------------------------------
+export async function homeAddressWouldTruncate(token: string, value: string): Promise<boolean> {
+  if (!(await checkRateLimit(token, "onboard_check_address")).allowed) return true;
+
+  const c = await prisma.candidate.findUnique({ where: { onboardingToken: token } });
+  if (!c) {
+    await recordFailure(token, "onboard_check_address");
+    return true;
+  }
+  if (c.onboardingStage === OnboardingStage.Approved || c.onboardingStage === OnboardingStage.Rejected) {
+    await recordFailure(token, "onboard_check_address");
+    return true;
+  }
+
+  const trimmed = value.trim();
+  // Bound BEFORE building a PDFDocument — this endpoint is reachable ahead
+  // of full submission validation, so enforce onboardingSchema's own
+  // residentialAddress max(500) here too rather than trusting the caller.
+  if (trimmed.length > 500) return true;
+
+  return wouldTruncate(trimmed);
 }
 
 // ---------------------------------------------------------------------------
