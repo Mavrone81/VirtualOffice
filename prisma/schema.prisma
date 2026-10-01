@@ -311,6 +311,12 @@ model Candidate {
   photoFileKey           String?         @map("photo_file_key")
   agreementFileKey       String?         @map("agreement_file_key")
   signedAgreementFileKey String?         @map("signed_agreement_file_key")
+  // CR-0001: the CompanySignatory snapshot taken at the same moment
+  // signedAgreementFileKey is set (signAtSubmission), so a later change to
+  // CompanySignatory never alters an already-signed agreement. Null until
+  // signed; never read live at render/view time once set.
+  companySignatoryNameAtSigning     String? @map("company_signatory_name_at_signing")
+  companySignatureFileKeyAtSigning  String? @map("company_signature_file_key_at_signing")
   invitedById            String?         @map("invited_by") @db.Uuid
   invitedBy              User?           @relation("CandidateInvitedBy", fields: [invitedById], references: [id])
   reviewedById           String?         @map("reviewed_by") @db.Uuid
@@ -349,6 +355,11 @@ model Associate {
   bankAccountNumber      String?         @map("bank_account_number") // encrypted
   agreementFileKey       String?         @map("agreement_file_key")
   signedAgreementFileKey String?         @map("signed_agreement_file_key")
+  // CR-0001: copied verbatim from Candidate at approveCandidate, the same way
+  // signedAgreementFileKey is copied — never re-derived from a live
+  // CompanySignatory read.
+  companySignatoryNameAtSigning     String? @map("company_signatory_name_at_signing")
+  companySignatureFileKeyAtSigning  String? @map("company_signature_file_key_at_signing")
   photoFileKey           String?         @map("photo_file_key")
   joinDate               DateTime?       @map("join_date") @db.Date
   approvalStatus         ApprovalStatus  @default(Pending) @map("approval_status")
@@ -1131,6 +1142,28 @@ model PetsAshesAgreement {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("pets_ashes_agreements")
+}
+
+// CR-0001: the company's signatory + signature stamped onto the associate
+// onboarding agreement ("the company side" of lib/pdf/agreement.ts, currently
+// blank). A singleton, not a new field on Company — Company's three rows
+// (ENS/EPP/EAP) are per-entity invoicing identities; no Associate is linked
+// to any of them, and the onboarding agreement is one document regardless of
+// which entity later invoices that associate's sales. `singleton` + its
+// unique constraint make a second row a DB error, not a race condition —
+// writers always upsert `where: { singleton: true }`.
+model CompanySignatory {
+  id               String   @id @default(uuid()) @db.Uuid
+  singleton        Boolean  @default(true) @unique
+  signatoryName    String   @map("signatory_name")
+  // Follows the Company.stampFileKey convention: a stored file key, not
+  // inline image data.
+  signatureFileKey String?  @map("signature_file_key")
+  updatedById      String?  @map("updated_by") @db.Uuid
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("company_signatory")
 }
 
 model AuditLog {

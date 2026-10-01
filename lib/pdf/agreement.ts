@@ -176,6 +176,15 @@ const FOOTER_NOTE_BASELINE = 806.5;
 export const CIRCLE_PAD_HORIZONTAL_INNER = 0.90;
 export const CIRCLE_PAD_HORIZONTAL_OUTER = 2.5;
 export const CIRCLE_PAD_VERTICAL = 9.0;
+// companySignatoryName: like signedAtNote, there is no printed master rule
+// or label at all — the "SIGNED by the Abovementioned Company" block (page 7,
+// y=[328.86,348.83], pdftotext -bbox) has no "Name:" sub-line the way the
+// associate block does (y=[398.86,408.83]), so this is entirely our own
+// placement in the blank space between that block and the associate block
+// below it (y=[378.86,...]). Same convention as SIGNATURE_NAME_LABEL_BASELINE:
+// baseline sits 0.2pt above the name box's own bottom edge (see
+// companySignatoryName in associate-agreement-coordinates.ts, y=360+14.9).
+const COMPANY_SIGNATORY_NAME_BASELINE = 374.7;
 
 export type AgreementData = {
   fullName: string;
@@ -208,6 +217,14 @@ export type AgreementData = {
   associateId?: string | null;
   tier1Manager?: string | null;
   tier2Manager?: string | null;
+  // CR-0001: the company's own signatory, stamped into the "SIGNED by the
+  // Abovementioned Company" block. The caller passes the SNAPSHOT taken at
+  // signing (CompanySignatory.*AtSigning on the row being rendered), never a
+  // live CompanySignatory read, except at the one moment signing itself
+  // happens — see server/recruitment/actions.ts. A later change to the
+  // company's signatory must never alter an already-signed agreement.
+  companySignatoryName?: string | null;
+  companySignatureDataUrl?: string | null; // PNG data URL, same convention as signatureDataUrl
 };
 
 /** "made on the __ day of __ 20__" parts, in Singapore time (the server
@@ -506,6 +523,19 @@ export async function renderAgreementPdf(a: AgreementData): Promise<Buffer> {
   if (a.signatureDataUrl) {
     await stampSignatureImage(pdfDoc, pageOf(AGREEMENT_FIELD_BOXES.signatureImage.page), AGREEMENT_FIELD_BOXES.signatureImage, a.signatureDataUrl);
   }
+
+  // CR-0001: the company's own signature + printed name, right of the
+  // "SIGNED by the Abovementioned Company )" bracket — same convention as
+  // the associate's own signature block above, stamped independently (a
+  // candidate who hasn't been given a signature image yet, or a signatory
+  // with no stored name, still gets whichever half is present).
+  if (a.companySignatureDataUrl) {
+    await stampSignatureImage(pdfDoc, pageOf(AGREEMENT_FIELD_BOXES.companySignatureImage.page), AGREEMENT_FIELD_BOXES.companySignatureImage, a.companySignatureDataUrl);
+  }
+  stampField(
+    pageOf(AGREEMENT_FIELD_BOXES.companySignatoryName.page), font, AGREEMENT_FIELD_BOXES.companySignatoryName, a.companySignatoryName,
+    { baselineFromTop: COMPANY_SIGNATORY_NAME_BASELINE },
+  );
 
   const bytes = await pdfDoc.save();
   return Buffer.from(bytes);
