@@ -51,7 +51,7 @@ const CHECK_COOLDOWN_MS = 60 * 60 * 1000;
 // Arbitrary, fixed, and distinct from NRIC retention's own lock key
 // (481700301) — this job's advisory lock only ever needs to be held for the
 // length of this read + its one audit write.
-const STUCK_CHECK_LOCK_KEY = 481700477;
+export const STUCK_CHECK_LOCK_KEY = 481700477;
 
 export type StuckSignedAgreement = {
   id: string;

@@ -5,7 +5,7 @@
 // throwaway Postgres.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { detectStuckSignedAgreements, runStuckSignedCheck } from "./stuck-signed-reconciler";
+import { detectStuckSignedAgreements, runStuckSignedCheck, STUCK_CHECK_LOCK_KEY } from "./stuck-signed-reconciler";
 
 const TAG = "N2STUCK-";
 let closerId = "";
@@ -122,15 +122,49 @@ describe("runStuckSignedCheck — alert only, never writes to the row", () => {
     expect(third.ran).toBe(true);
   });
 
-  it("two concurrent runs (both skipping cooldown) race the advisory lock — exactly one actually runs", async () => {
-    // A fresh, isolated window: drain the cooldown first via a real run, then race two MORE skip-cooldown
-    // calls against each other. The advisory lock is per-connection/transaction, not per-cooldown-window,
-    // so both still contend for it regardless of the cooldown state.
-    const [a, b] = await Promise.all([
-      runStuckSignedCheck({ trigger: "manual", actorUserId: null, skipCooldown: true }),
-      runStuckSignedCheck({ trigger: "manual", actorUserId: null, skipCooldown: true }),
-    ]);
-    const ranCount = [a.ran, b.ran].filter(Boolean).length;
-    expect(ranCount).toBe(1); // the lock serializes them; the loser sees ran: false, not a crash
+  // NOT `Promise.all([runStuckSignedCheck(), runStuckSignedCheck()])`: that
+  // version raced the connection pool, not the lock. `$transaction`
+  // acquires a connection lazily, and a pool with a free connection at the
+  // time can run the two interactive transactions one after the other —
+  // the first commits (releasing the lock) before the second even opens.
+  // Both see `locked: true` then, and the test fails non-deterministically
+  // depending on pool/scheduling timing invisible from the test (measured:
+  // 10 standalone runs of that version gave 6 pass / 4 fail). This version
+  // holds the SAME lock key deterministically open in its own transaction
+  // first, so a concurrent attempt is GUARANTEED to find it held — no race
+  // on wall-clock timing, testing the actual property ("refused while
+  // held, available once released") rather than hoping two promises
+  // overlap at the database level.
+  it("a concurrent run is refused while another genuinely holds the lock, and succeeds once it's released", async () => {
+    // `const holderTx = prisma.$transaction(fn)` returns immediately — it
+    // does NOT block until `fn` has run BEGIN and taken the lock. The first
+    // version of this fix called runStuckSignedCheck right after that
+    // assignment with no await on anything confirming the lock was
+    // actually held yet, so it raced connection/query latency instead of
+    // the pool — same bug, moved one level down (measured: still 3/10
+    // failed standalone, `whileHeld.ran` coming back `true`). This version
+    // waits on an explicit signal the holder resolves ONLY after its own
+    // `pg_try_advisory_xact_lock` call has returned `locked: true` — a
+    // fact, not an elapsed-time guess.
+    let releaseHolder!: () => void;
+    let confirmLockHeld!: () => void;
+    const holderMayRelease = new Promise<void>((resolve) => { releaseHolder = resolve; });
+    const lockConfirmedHeld = new Promise<void>((resolve) => { confirmLockHeld = resolve; });
+    const holderTx = prisma.$transaction(async (db) => {
+      const lock = await db.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(${STUCK_CHECK_LOCK_KEY}) AS locked`;
+      expect(lock[0]?.locked).toBe(true);
+      confirmLockHeld();
+      await holderMayRelease; // keep this transaction (and the lock) open until the test says so
+    });
+    await lockConfirmedHeld;
+
+    const whileHeld = await runStuckSignedCheck({ trigger: "manual", actorUserId: null, skipCooldown: true });
+    expect(whileHeld.ran).toBe(false); // refused — the lock really was held, not just "probably" held
+
+    releaseHolder();
+    await holderTx; // commit, releasing the advisory lock
+
+    const afterRelease = await runStuckSignedCheck({ trigger: "manual", actorUserId: null, skipCooldown: true });
+    expect(afterRelease.ran).toBe(true); // available again once the holder is gone — not permanently stuck
   });
 });
