@@ -267,6 +267,21 @@ export function fitText(
   return { lines: [truncated + "…"], size };
 }
 
+/** Would `value` be truncated on the signed agreement's `homeAddress` box?
+ *  Reuses `fitText` against the SAME box and font the renderer stamps with —
+ *  one source of truth, no hard-coded character count. Embeds a throwaway
+ *  `PDFDocument` purely to get the real font metrics; nothing is rendered or
+ *  kept. Callers should bound input length themselves before calling this
+ *  (each call embeds and measures) — it does not bound it internally. */
+export async function wouldTruncate(value: string): Promise<boolean> {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.TimesRoman);
+  const { lines } = fitText(font, trimmed, AGREEMENT_FIELD_BOXES.homeAddress);
+  return lines[0] !== trimmed;
+}
+
 /** Draw `value` into `box` (top-left origin) on `page`, bottom-aligned
  *  within the box like handwriting resting on the form's printed line.
  *  A null/blank value draws nothing — the master's own blank line stands,

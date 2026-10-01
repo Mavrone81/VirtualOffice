@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { submitOnboarding, type OnboardingSubmission } from "@/server/recruitment/actions";
+import { submitOnboarding, homeAddressWouldTruncate, type OnboardingSubmission } from "@/server/recruitment/actions";
 import { SignaturePad } from "./signature-pad";
+
+// Debounce + blur pair keeps calls to the rate-limited (10/15min)
+// homeAddressWouldTruncate check well under its limit in normal use — see
+// reviews/homeaddress-warning-copy-2026-10-01.md §2.
+const ADDRESS_FIT_DEBOUNCE_MS = 550;
 
 // Stored (and printed on the agreement) as the English value; shown localised.
 const RELIGIONS = [
@@ -30,6 +35,25 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
     nric: "", paymentMethod: "PayNow", agreementAccepted: false,
   });
   const set = (patch: Partial<OnboardingSubmission>) => setF((p) => ({ ...p, ...patch }));
+
+  const [addressFitWarning, setAddressFitWarning] = useState(false);
+  // Synchronous (unlike React state) so the in-flight check below can tell,
+  // the moment its response arrives, whether the field has moved on since —
+  // a stale "would truncate" answer must never apply to a newer value.
+  const latestAddressRef = useRef("");
+  const addressCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (addressCheckTimer.current) clearTimeout(addressCheckTimer.current); }, []);
+  function checkAddressFit() {
+    const value = latestAddressRef.current;
+    const trimmed = value.trim();
+    if (!trimmed) { setAddressFitWarning(false); return; } // matches wouldTruncate's own empty-string behaviour — no call needed
+    homeAddressWouldTruncate(token, trimmed)
+      .then((truncates) => {
+        if (latestAddressRef.current !== value) return; // the field moved on; this answer is stale
+        setAddressFitWarning(truncates);
+      })
+      .catch(() => {}); // advisory only — a failed check must never break the form
+  }
   const religionLabel: Record<(typeof RELIGIONS)[number], string> = {
     Buddhism: t("details.religionBuddhism"),
     Taoism: t("details.religionTaoism"),
@@ -130,7 +154,33 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="addr">{t("details.address")}</Label>
-            <Input id="addr" value={f.residentialAddress ?? ""} onChange={(e) => set({ residentialAddress: e.target.value })} />
+            <Input
+              id="addr"
+              value={f.residentialAddress ?? ""}
+              aria-describedby={addressFitWarning ? "addr-fit-warning" : undefined}
+              onChange={(e) => {
+                const value = e.target.value;
+                set({ residentialAddress: value });
+                latestAddressRef.current = value;
+                setAddressFitWarning(false); // stale the moment the value changes — the next debounce/blur decides afresh
+                if (addressCheckTimer.current) clearTimeout(addressCheckTimer.current);
+                addressCheckTimer.current = setTimeout(checkAddressFit, ADDRESS_FIT_DEBOUNCE_MS);
+              }}
+              onBlur={() => {
+                if (addressCheckTimer.current) { clearTimeout(addressCheckTimer.current); addressCheckTimer.current = null; }
+                checkAddressFit();
+              }}
+            />
+            {addressFitWarning && (
+              <p
+                id="addr-fit-warning"
+                role="status"
+                aria-live="polite"
+                className="mt-1 rounded-md bg-gold/10 px-2.5 py-1.5 text-[12px] leading-snug text-gold"
+              >
+                {t("details.addressFitWarning")}
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="ecn">{t("details.ecName")}</Label>
