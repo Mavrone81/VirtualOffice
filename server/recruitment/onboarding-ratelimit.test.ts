@@ -10,6 +10,9 @@ const { prismaMock, putObjectMock, rateLimitMock } = vi.hoisted(() => {
       associate: {
         findUnique: vi.fn(),
       },
+      companySignatory: {
+        findUnique: vi.fn(),
+      },
     },
     putObjectMock: vi.fn(),
     rateLimitMock: {
@@ -60,6 +63,7 @@ beforeEach(() => {
     mobileNumber: "91234567",
     intendedTeam: null,
   });
+  prismaMock.companySignatory.findUnique.mockResolvedValue(null);
   putObjectMock.mockResolvedValue(undefined);
 });
 

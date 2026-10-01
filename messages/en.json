@@ -77,6 +77,7 @@
     "nameCard": "Name Card",
     "auditLog": "Audit Log",
     "uat": "UAT results",
+    "companyData": "Company Data",
     "dashboard": "Dashboard",
     "mySales": "My Sales",
     "myCommissions": "My Commissions",
@@ -1452,6 +1453,7 @@
     "associateCodeRequired": "Associate code is required.",
     "associateCodeNotFound": "Associate code not found.",
     "vendorNameRequired": "Vendor name is required.",
+    "signatoryNameRequired": "Signatory name is required.",
     "notSignedIn": "Not signed in.",
     "newPasswordTooShort": "New password must be at least {min} characters.",
     "passwordSameAsCurrent": "New password must differ from the current one.",
@@ -1826,5 +1828,19 @@
     "convert": "Convert to transaction",
     "void": "Void",
     "fromChip": "From {code}"
+  },
+  "company": {
+    "pageTitle": "Company Data",
+    "pageSubtitle": "The signatory name and signature stamped on new associate agreements.",
+    "signatoryNameLabel": "Signatory name",
+    "signatureLabel": "Signature",
+    "noSignature": "No signature uploaded",
+    "uploadSignature": "Upload signature",
+    "replaceSignature": "Replace signature",
+    "removeSignature": "Remove signature",
+    "pngOnlyHint": "PNG only, up to 5MB.",
+    "saveBtn": "Save",
+    "savedAt": "Last updated {date}",
+    "couldNotSave": "Could not save."
   }
 }
