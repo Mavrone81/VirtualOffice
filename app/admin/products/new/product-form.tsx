@@ -32,7 +32,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
   const [salesPreviewFallback, setSalesPreviewFallback] = useState("10000");
   const [f, setF] = useState<ProductInput>({
     productCode: "", productName: "", commissionType: "Percentage",
-    // Every % is of the SALES AMOUNT. Defaults set by the project owner 2026-09-26 (B-10):
+    // Every % is of the SALES AMOUNT. Defaults set by owner ruling 2026-09-26 (B-10):
     // closing 100 / company cut pool 10 / direct-upline 3 / second-upline 2.
     // Initial form values only — existing products keep whatever they were saved with.
     closingCommPct: "100", companyCutPct: "10", smOverridePct: "3", sdOverridePct: "2",

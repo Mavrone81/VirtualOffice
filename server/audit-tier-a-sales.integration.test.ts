@@ -64,13 +64,13 @@ describe("Tier A sales actions roll back when their audit can't be written", () 
   it("split exception approve: no approval stamp", async () => {
     const s = await mkSubmission("EX");
     await failAuditsFor("split.exception_approved");
-    const r = await approveSplitException(s.id, "approved by the project owner (fake)", s.splitEditedAt?.toISOString() ?? null, NEG);
+    const r = await approveSplitException(s.id, "approved by the owner (fake)", s.splitEditedAt?.toISOString() ?? null, NEG);
     expect(r).toEqual({ ok: false, error: "auditUnavailable" });
     const row = await prisma.salesSubmission.findUniqueOrThrow({ where: { id: s.id } });
     expect(row.splitExceptionApprovedAt).toBeNull();
 
     await clearAuditFaults();
-    expect(await approveSplitException(s.id, "approved by the project owner (fake)", s.splitEditedAt?.toISOString() ?? null, NEG)).toEqual({ ok: true });
+    expect(await approveSplitException(s.id, "approved by the owner (fake)", s.splitEditedAt?.toISOString() ?? null, NEG)).toEqual({ ok: true });
     expect(await prisma.auditLog.count({ where: { action: "split.exception_approved", entityId: s.id } })).toBe(1);
   });
 
