@@ -32,7 +32,7 @@ export function parseDotenv(text: string): Record<string, string> {
     if (eq <= 0) continue;
     const key = line.slice(0, eq).trim();
     if (!/^[A-Z0-9_]+$/.test(key)) continue;
-    let value = line.slice(eq + 1).trim();
+    const value = line.slice(eq + 1).trim();
     const quoted =
       (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
       (value.startsWith("'") && value.endsWith("'") && value.length >= 2);
