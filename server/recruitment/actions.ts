@@ -186,6 +186,8 @@ export type OnboardingSubmission = {
   residentialAddress?: string;
   emergencyContactName?: string;
   emergencyContactNumber?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactAddress?: string;
   paymentMethod: "PayNow" | "Bank Transfer";
   paynowNumber?: string;
   bankName?: string;
@@ -364,6 +366,10 @@ export async function submitOnboarding(
     spouseDesignation: s.spouseConflict ? s.spouseDesignation?.trim() || null : null,
     emergencyName: s.emergencyContactName?.trim() || null,
     emergencyContact: s.emergencyContactNumber?.trim() || null,
+    // Owner ruling 2026-10-01: optional — flows to the box when given, stays
+    // blank (no producer) when not.
+    emergencyRelationship: s.emergencyContactRelationship?.trim() || null,
+    emergencyAddress: s.emergencyContactAddress?.trim() || null,
     // Scoped exception (the project owner's ruling): "NA" here means a KNOWN absence
     // (this associate genuinely has no upline at this tier) — never used
     // for a field that's merely uncollected. Associate ID is deliberately
