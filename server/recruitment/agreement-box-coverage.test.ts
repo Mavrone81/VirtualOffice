@@ -1,9 +1,20 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { execFileSync } from "child_process";
-import { writeFileSync, mkdtempSync, readFileSync } from "fs";
+import { writeFileSync, mkdtempSync, readFileSync, rmSync, existsSync } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { join, dirname } from "path";
 import { AGREEMENT_FIELD_BOXES, type FieldBox } from "@/lib/pdf/associate-agreement-coordinates";
+
+// Tmpfs hotfix (2026-10-01) — same convention as lib/pdf/agreement.test.ts's
+// own mkTempDir: always the live tmpdir(), and the cleanup-proof test below
+// asserts against these exact tracked paths rather than scanning tmpdir()
+// for a prefix (unsafe under this file's own parallel unit-test workers).
+const createdTempDirs: string[] = [];
+function mkTempDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  createdTempDirs.push(dir);
+  return dir;
+}
 
 // ---------------------------------------------------------------------------
 // The allow-list test (2026-09-29): drives the REAL producer —
@@ -61,7 +72,7 @@ import { submitOnboarding, type OnboardingSubmission } from "./actions";
 // binary must fail loudly (ENOENT), never silently skip.
 // ---------------------------------------------------------------------------
 function toTempPdf(bytes: Buffer): string {
-  const dir = mkdtempSync(join(tmpdir(), "agbox-test-"));
+  const dir = mkTempDir("agbox-test-");
   const file = join(dir, "out.pdf");
   writeFileSync(file, bytes);
   return file;
@@ -70,9 +81,15 @@ function toTempPdf(bytes: Buffer): string {
 type Word = { text: string; xMin: number; yMin: number; xMax: number; yMax: number };
 
 function pdfWords(bytes: Buffer, page: number): Word[] {
-  const xml = execFileSync("pdftotext", ["-bbox", "-f", String(page), "-l", String(page), toTempPdf(bytes), "-"], {
-    encoding: "utf8",
-  });
+  const file = toTempPdf(bytes);
+  let xml: string;
+  try {
+    xml = execFileSync("pdftotext", ["-bbox", "-f", String(page), "-l", String(page), file, "-"], {
+      encoding: "utf8",
+    });
+  } finally {
+    rmSync(dirname(file), { recursive: true, force: true });
+  }
   const words: Word[] = [];
   const re = /<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/g;
   let m: RegExpExecArray | null;
@@ -108,34 +125,39 @@ function textInBoxRow(bytes: Buffer, box: FieldBox): string {
  *  at all. Same convention as agreement.test.ts's own `rasterizePage`. */
 function rasterizePage(bytes: Buffer, page: number, dpi = 200): { isDark: (xPt: number, yPt: number) => boolean } {
   const file = toTempPdf(bytes);
-  const dir = mkdtempSync(join(tmpdir(), "agbox-raster-"));
-  execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
-  const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
-  const buf = readFileSync(ppmPath);
-  let idx = 0;
-  function readToken(): string {
-    while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; }
-    while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
-    const start = idx;
-    while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
-    return buf.toString("ascii", start, idx);
+  const dir = mkTempDir("agbox-raster-");
+  try {
+    execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
+    const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
+    const buf = readFileSync(ppmPath);
+    let idx = 0;
+    function readToken(): string {
+      while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; }
+      while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
+      const start = idx;
+      while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
+      return buf.toString("ascii", start, idx);
+    }
+    const magic = readToken();
+    if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
+    const width = Number(readToken());
+    const height = Number(readToken());
+    readToken();
+    idx += 1;
+    const scale = dpi / 72;
+    const dataStart = idx;
+    return {
+      isDark(xPt: number, yPt: number): boolean {
+        const x = Math.round(xPt * scale), y = Math.round(yPt * scale);
+        if (x < 0 || y < 0 || x >= width || y >= height) return false;
+        const off = dataStart + (y * width + x) * 3;
+        return buf[off] < 150 && buf[off + 1] < 150 && buf[off + 2] < 150;
+      },
+    };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(dirname(file), { recursive: true, force: true });
   }
-  const magic = readToken();
-  if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
-  const width = Number(readToken());
-  const height = Number(readToken());
-  readToken();
-  idx += 1;
-  const scale = dpi / 72;
-  const dataStart = idx;
-  return {
-    isDark(xPt: number, yPt: number): boolean {
-      const x = Math.round(xPt * scale), y = Math.round(yPt * scale);
-      if (x < 0 || y < 0 || x >= width || y >= height) return false;
-      const off = dataStart + (y * width + x) * 3;
-      return buf[off] < 150 && buf[off + 1] < 150 && buf[off + 2] < 150;
-    },
-  };
 }
 
 /** Any dark pixel anywhere inside `box`, sampled on a fine grid. Safe ONLY
@@ -168,42 +190,47 @@ function annulusInkFraction(
   pad: { top: number; bottom: number; left: number; right: number },
 ): number {
   const file = toTempPdf(bytes);
-  const dir = mkdtempSync(join(tmpdir(), "agbox-raster-"));
-  const dpi = 150;
-  execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
-  const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
-  const buf = readFileSync(ppmPath);
-  let idx = 0;
-  function readToken(): string {
-    while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; }
-    while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
-    const start = idx;
-    while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
-    return buf.toString("ascii", start, idx);
-  }
-  const magic = readToken();
-  if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
-  const w = Number(readToken());
-  const h = Number(readToken());
-  readToken();
-  idx += 1;
-  const scale = dpi / 72;
-  const outer = { x: box.x - pad.left, y: box.y - pad.top, width: box.width + pad.left + pad.right, height: box.height + pad.top + pad.bottom };
-  const ox0 = Math.floor(outer.x * scale), oy0 = Math.floor(outer.y * scale);
-  const ox1 = Math.ceil((outer.x + outer.width) * scale), oy1 = Math.ceil((outer.y + outer.height) * scale);
-  const ix0 = Math.ceil(box.x * scale), iy0 = Math.ceil(box.y * scale);
-  const ix1 = Math.floor((box.x + box.width) * scale), iy1 = Math.floor((box.y + box.height) * scale);
-  let nonWhite = 0, total = 0;
-  for (let y = Math.max(0, oy0); y < Math.min(h, oy1); y++) {
-    for (let x = Math.max(0, ox0); x < Math.min(w, ox1); x++) {
-      if (x >= ix0 && x < ix1 && y >= iy0 && y < iy1) continue;
-      const off = idx + (y * w + x) * 3;
-      const r = buf[off], g = buf[off + 1], b = buf[off + 2];
-      total++;
-      if (r < 230 || g < 230 || b < 230) nonWhite++;
+  const dir = mkTempDir("agbox-raster-");
+  try {
+    const dpi = 150;
+    execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
+    const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
+    const buf = readFileSync(ppmPath);
+    let idx = 0;
+    function readToken(): string {
+      while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; }
+      while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
+      const start = idx;
+      while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
+      return buf.toString("ascii", start, idx);
     }
+    const magic = readToken();
+    if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
+    const w = Number(readToken());
+    const h = Number(readToken());
+    readToken();
+    idx += 1;
+    const scale = dpi / 72;
+    const outer = { x: box.x - pad.left, y: box.y - pad.top, width: box.width + pad.left + pad.right, height: box.height + pad.top + pad.bottom };
+    const ox0 = Math.floor(outer.x * scale), oy0 = Math.floor(outer.y * scale);
+    const ox1 = Math.ceil((outer.x + outer.width) * scale), oy1 = Math.ceil((outer.y + outer.height) * scale);
+    const ix0 = Math.ceil(box.x * scale), iy0 = Math.ceil(box.y * scale);
+    const ix1 = Math.floor((box.x + box.width) * scale), iy1 = Math.floor((box.y + box.height) * scale);
+    let nonWhite = 0, total = 0;
+    for (let y = Math.max(0, oy0); y < Math.min(h, oy1); y++) {
+      for (let x = Math.max(0, ox0); x < Math.min(w, ox1); x++) {
+        if (x >= ix0 && x < ix1 && y >= iy0 && y < iy1) continue;
+        const off = idx + (y * w + x) * 3;
+        const r = buf[off], g = buf[off + 1], b = buf[off + 2];
+        total++;
+        if (r < 230 || g < 230 || b < 230) nonWhite++;
+      }
+    }
+    return total === 0 ? 0 : nonWhite / total;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(dirname(file), { recursive: true, force: true });
   }
-  return total === 0 ? 0 : nonWhite / total;
 }
 const CIRCLE_FULL_PAD = 6, CIRCLE_NARROW_PAD = 2; // same values as agreement.test.ts's proven yesPad/noPad
 const CIRCLE_INK_THRESHOLD = 0.02; // same threshold as agreement.test.ts
@@ -481,6 +508,29 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     const page7 = rasterizePage(pdf, 7);
     for (const name of IMAGE_FIELDS) {
       expect(hasInkInBox(page7, AGREEMENT_FIELD_BOXES[name])).toBe(true);
+    }
+  });
+});
+
+describe("temp-dir cleanup (tmpfs hotfix, 2026-10-01)", () => {
+  // Same convention and same reasoning as lib/pdf/agreement.test.ts's own
+  // cleanup-proof test — this file's helpers were copied from there (agbox-*
+  // vs agpdf-*, same leak). Scoped to this test's own tracked paths, not a
+  // directory-wide tmpdir() scan, for the same parallel-worker reason.
+  test("every directory created while extracting text + rasterizing a real agreement is removed again — not merely assumed", async () => {
+    createdTempDirs.length = 0;
+    const pdf = await renderMaximalAgreementPdf();
+    textInBoxRow(pdf, AGREEMENT_FIELD_BOXES.fullName); // exercises toTempPdf via pdfWords
+    rasterizePage(pdf, 7); // exercises toTempPdf + its own raster dir
+    annulusInkFraction(pdf, 7, AGREEMENT_FIELD_BOXES.spouseWorkingYes, { top: CIRCLE_FULL_PAD, bottom: CIRCLE_FULL_PAD, left: CIRCLE_FULL_PAD, right: CIRCLE_NARROW_PAD }); // exercises toTempPdf + its own raster dir
+
+    // Control: a run that created nothing would make "every dir is gone"
+    // vacuously true. At least 4 dirs: toTempPdf x3, plus 2 raster dirs.
+    expect(createdTempDirs.length).toBeGreaterThanOrEqual(5);
+
+    for (const dir of createdTempDirs) {
+      expect(dir.startsWith(tmpdir())).toBe(true); // measured the LIVE tmpdir(), not a hardcoded "/tmp"
+      expect(existsSync(dir)).toBe(false);
     }
   });
 });

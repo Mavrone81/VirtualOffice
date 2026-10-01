@@ -1,11 +1,25 @@
 import { describe, test, expect, beforeAll } from "vitest";
 import { execFileSync } from "child_process";
-import { writeFileSync, mkdtempSync, readFileSync } from "fs";
+import { writeFileSync, mkdtempSync, readFileSync, rmSync, existsSync } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { join, dirname } from "path";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { renderAgreementPdf, formatUplineOrNA, fitText, ruleOpts, wouldTruncate, type AgreementData } from "@/lib/pdf/agreement";
 import { assertMasterTemplateSha256, MASTER_TEMPLATE_PATH, AGREEMENT_FIELD_BOXES, AGREEMENT_FIELD_RULE_Y, type FieldBox } from "@/lib/pdf/associate-agreement-coordinates";
+
+// Tmpfs hotfix (2026-10-01): every mkdtempSync below goes through this one
+// wrapper so (a) the directory is ALWAYS the live `tmpdir()` — never a
+// hardcoded "/tmp" that the shared box's TMPDIR override would silently
+// stop matching — and (b) the cleanup-proof test at the bottom of this file
+// can assert against the exact paths created, not a directory-wide "no
+// agpdf-* left" scan (which would false-positive on another vitest worker's
+// own in-flight directory under this file's 8-way unit-test parallelism).
+const createdTempDirs: string[] = [];
+function mkTempDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  createdTempDirs.push(dir);
+  return dir;
+}
 
 // ---------------------------------------------------------------------------
 // 🔴 REQUIRES poppler-utils on the machine running this file — specifically
@@ -22,7 +36,7 @@ import { assertMasterTemplateSha256, MASTER_TEMPLATE_PATH, AGREEMENT_FIELD_BOXES
 // ---------------------------------------------------------------------------
 
 function toTempPdf(bytes: Buffer): string {
-  const dir = mkdtempSync(join(tmpdir(), "agpdf-test-"));
+  const dir = mkTempDir("agpdf-test-");
   const file = join(dir, "out.pdf");
   writeFileSync(file, bytes);
   return file;
@@ -34,37 +48,45 @@ function toTempPdf(bytes: Buffer): string {
  *  pdftotext, so these need real pixels, not text. */
 function rasterizePage(bytes: Buffer, page: number, dpi = 300): { scale: number; width: number; height: number; isDark: (xPt: number, yPt: number) => boolean } {
   const file = toTempPdf(bytes);
-  const dir = mkdtempSync(join(tmpdir(), "agpdf-raster-"));
-  execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
-  const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
-  const buf = readFileSync(ppmPath);
-  // Minimal P6 PPM parser: header "P6\n<w> <h>\n<maxval>\n" then raw RGB bytes.
-  let idx = 0;
-  function readToken(): string {
-    while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; } // skip comments
-    while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
-    const start = idx;
-    while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
-    return buf.toString("ascii", start, idx);
+  const dir = mkTempDir("agpdf-raster-");
+  try {
+    execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
+    const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
+    const buf = readFileSync(ppmPath);
+    // Minimal P6 PPM parser: header "P6\n<w> <h>\n<maxval>\n" then raw RGB bytes.
+    let idx = 0;
+    function readToken(): string {
+      while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; } // skip comments
+      while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
+      const start = idx;
+      while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
+      return buf.toString("ascii", start, idx);
+    }
+    const magic = readToken();
+    if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
+    const width = Number(readToken());
+    const height = Number(readToken());
+    readToken(); // maxval
+    idx += 1; // single whitespace before binary data
+    const scale = dpi / 72;
+    const dataStart = idx;
+    // `buf` is already fully read into memory below — the returned isDark
+    // closure never touches disk again, so it's safe to remove both temp
+    // dirs here rather than leaking them for the rest of the suite.
+    return {
+      scale, width, height,
+      isDark(xPt: number, yPt: number): boolean {
+        const x = Math.round(xPt * scale), y = Math.round(yPt * scale);
+        if (x < 0 || y < 0 || x >= width || y >= height) return false;
+        const off = dataStart + (y * width + x) * 3;
+        const r = buf[off], g = buf[off + 1], b = buf[off + 2];
+        return r < 150 && g < 150 && b < 150;
+      },
+    };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(dirname(file), { recursive: true, force: true });
   }
-  const magic = readToken();
-  if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
-  const width = Number(readToken());
-  const height = Number(readToken());
-  readToken(); // maxval
-  idx += 1; // single whitespace before binary data
-  const scale = dpi / 72;
-  const dataStart = idx;
-  return {
-    scale, width, height,
-    isDark(xPt: number, yPt: number): boolean {
-      const x = Math.round(xPt * scale), y = Math.round(yPt * scale);
-      if (x < 0 || y < 0 || x >= width || y >= height) return false;
-      const off = dataStart + (y * width + x) * 3;
-      const r = buf[off], g = buf[off + 1], b = buf[off + 2];
-      return r < 150 && g < 150 && b < 150;
-    },
-  };
 }
 
 /** Page count via `pdfinfo`, NOT a `pdftotext` form-feed count — the master
@@ -72,15 +94,25 @@ function rasterizePage(bytes: Buffer, page: number, dpi = 300): { scale: number;
  *  `\f`-count reads 8 for a real 7-page document (confirmed against this
  *  exact master in reviews/agreement-pdf-pages-4-7-blanks.md). */
 function pdfPageCount(bytes: Buffer): number {
-  const out = execFileSync("pdfinfo", [toTempPdf(bytes)], { encoding: "utf8" });
-  const m = /^Pages:\s*(\d+)/m.exec(out);
-  if (!m) throw new Error(`pdfinfo produced no "Pages:" line — output:\n${out}`);
-  return Number(m[1]);
+  const file = toTempPdf(bytes);
+  try {
+    const out = execFileSync("pdfinfo", [file], { encoding: "utf8" });
+    const m = /^Pages:\s*(\d+)/m.exec(out);
+    if (!m) throw new Error(`pdfinfo produced no "Pages:" line — output:\n${out}`);
+    return Number(m[1]);
+  } finally {
+    rmSync(dirname(file), { recursive: true, force: true });
+  }
 }
 
 function pdfText(bytes: Buffer, page?: number): string {
   const args = page ? ["-f", String(page), "-l", String(page)] : [];
-  return execFileSync("pdftotext", [...args, toTempPdf(bytes), "-"], { encoding: "utf8" });
+  const file = toTempPdf(bytes);
+  try {
+    return execFileSync("pdftotext", [...args, file, "-"], { encoding: "utf8" });
+  } finally {
+    rmSync(dirname(file), { recursive: true, force: true });
+  }
 }
 
 type Word = { text: string; xMin: number; yMin: number; xMax: number; yMax: number };
@@ -89,9 +121,15 @@ type Word = { text: string; xMin: number; yMin: number; xMax: number; yMax: numb
  *  SAME space AGREEMENT_FIELD_BOXES is defined in, so a box's y-range can be
  *  compared directly against these without any conversion. */
 function pdfWords(bytes: Buffer, page: number): Word[] {
-  const xml = execFileSync("pdftotext", ["-bbox", "-f", String(page), "-l", String(page), toTempPdf(bytes), "-"], {
-    encoding: "utf8",
-  });
+  const file = toTempPdf(bytes);
+  let xml: string;
+  try {
+    xml = execFileSync("pdftotext", ["-bbox", "-f", String(page), "-l", String(page), file, "-"], {
+      encoding: "utf8",
+    });
+  } finally {
+    rmSync(dirname(file), { recursive: true, force: true });
+  }
   const words: Word[] = [];
   const re = /<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/g;
   let m: RegExpExecArray | null;
@@ -117,6 +155,75 @@ function textInBoxRow(bytes: Buffer, box: { page: number; x: number; y: number; 
     )
     .map((w) => w.text)
     .join(" ");
+}
+
+// The circle is vector graphics, invisible to pdftotext. Detected instead by
+// rasterizing and checking for ink in the ANNULUS between the tight text
+// bbox and the circle's own padded radius — NOT the tight bbox itself, which
+// already has non-white ink from the master's own printed "Yes"/"No" glyphs
+// regardless of whether a circle was drawn. Sampling the bbox alone would
+// pass even with stampCircle deleted entirely.
+// Per-side padding: "Yes" and "No" sit only ~7.8pt apart, so a symmetric pad
+// wide enough to catch the stroke on the OUTER side would sample past the
+// midpoint on the INNER side and pick up the neighbour's own circle — not
+// noise, literally the other word's ink, since the two sampling windows
+// would overlap in space. Pad small on the side facing the neighbour, full
+// pad everywhere else.
+// Top-level (not nested in a describe) so the cleanup-proof test below can
+// exercise it directly — it has its own raster dir, same leak class as
+// rasterizePage, and was the one site the proof test didn't reach.
+function annulusInkFraction(
+  bytes: Buffer,
+  page: number,
+  box: { x: number; y: number; width: number; height: number },
+  pad: { top: number; bottom: number; left: number; right: number },
+): number {
+  const file = toTempPdf(bytes);
+  const dir = mkTempDir("agpdf-raster-");
+  try {
+    const dpi = 150;
+    execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
+    const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
+    const buf = readFileSync(ppmPath);
+    // Minimal P6 PPM parser: header "P6\n<w> <h>\n<maxval>\n" then raw RGB bytes.
+    let idx = 0;
+    function readToken(): string {
+      while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; } // skip comments
+      while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
+      const start = idx;
+      while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
+      return buf.toString("ascii", start, idx);
+    }
+    const magic = readToken();
+    if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
+    const w = Number(readToken());
+    const h = Number(readToken());
+    readToken(); // maxval
+    idx += 1; // single whitespace before binary data
+    const scale = dpi / 72;
+    const outer = {
+      x: box.x - pad.left, y: box.y - pad.top,
+      width: box.width + pad.left + pad.right, height: box.height + pad.top + pad.bottom,
+    };
+    const ox0 = Math.floor(outer.x * scale), oy0 = Math.floor(outer.y * scale);
+    const ox1 = Math.ceil((outer.x + outer.width) * scale), oy1 = Math.ceil((outer.y + outer.height) * scale);
+    const ix0 = Math.ceil(box.x * scale), iy0 = Math.ceil(box.y * scale);
+    const ix1 = Math.floor((box.x + box.width) * scale), iy1 = Math.floor((box.y + box.height) * scale);
+    let nonWhite = 0, total = 0;
+    for (let y = Math.max(0, oy0); y < Math.min(h, oy1); y++) {
+      for (let x = Math.max(0, ox0); x < Math.min(w, ox1); x++) {
+        if (x >= ix0 && x < ix1 && y >= iy0 && y < iy1) continue; // inside tight bbox — skip
+        const off = idx + (y * w + x) * 3;
+        const r = buf[off], g = buf[off + 1], b = buf[off + 2];
+        total++;
+        if (r < 230 || g < 230 || b < 230) nonWhite++;
+      }
+    }
+    return total === 0 ? 0 : nonWhite / total;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(dirname(file), { recursive: true, force: true });
+  }
 }
 
 const BASE: AgreementData = {
@@ -246,67 +353,9 @@ describe("renderAgreementPdf — values present (page 1 + page 7 fields)", () =>
 });
 
 describe("renderAgreementPdf — spouse Yes/No circle (drawn, not text)", () => {
-  // The circle is vector graphics, invisible to pdftotext. Detected instead
-  // by rasterizing and checking for ink in the ANNULUS between the tight
-  // text bbox and the circle's own padded radius — NOT the tight bbox
-  // itself, which already has non-white ink from the master's own printed
-  // "Yes"/"No" glyphs regardless of whether a circle was drawn. Sampling the
-  // bbox alone would pass even with stampCircle deleted entirely.
-  // Per-side padding: "Yes" and "No" sit only ~7.8pt apart, so a symmetric
-  // pad wide enough to catch the stroke on the OUTER side would sample past
-  // the midpoint on the INNER side and pick up the neighbour's own circle —
-  // not noise, literally the other word's ink, since the two sampling
-  // windows would overlap in space. Pad small on the side facing the
-  // neighbour, full pad everywhere else.
-  function annulusInkFraction(
-    bytes: Buffer,
-    page: number,
-    box: { x: number; y: number; width: number; height: number },
-    pad: { top: number; bottom: number; left: number; right: number },
-  ): number {
-    const file = toTempPdf(bytes);
-    const dir = mkdtempSync(join(tmpdir(), "agpdf-raster-"));
-    const dpi = 150;
-    execFileSync("pdftoppm", ["-r", String(dpi), "-f", String(page), "-l", String(page), file, join(dir, "p")]);
-    const ppmPath = execFileSync("sh", ["-c", `ls ${dir}/p*.ppm`], { encoding: "utf8" }).trim();
-    const buf = readFileSync(ppmPath);
-    // Minimal P6 PPM parser: header "P6\n<w> <h>\n<maxval>\n" then raw RGB bytes.
-    let idx = 0;
-    function readToken(): string {
-      while (buf[idx] === 0x23) { while (buf[idx] !== 0x0a) idx++; idx++; } // skip comments
-      while (buf[idx] === 0x20 || buf[idx] === 0x0a || buf[idx] === 0x09 || buf[idx] === 0x0d) idx++;
-      const start = idx;
-      while (idx < buf.length && buf[idx] !== 0x20 && buf[idx] !== 0x0a && buf[idx] !== 0x09 && buf[idx] !== 0x0d) idx++;
-      return buf.toString("ascii", start, idx);
-    }
-    const magic = readToken();
-    if (magic !== "P6") throw new Error(`unexpected PPM magic ${magic}`);
-    const w = Number(readToken());
-    const h = Number(readToken());
-    readToken(); // maxval
-    idx += 1; // single whitespace before binary data
-    const scale = dpi / 72;
-    const outer = {
-      x: box.x - pad.left, y: box.y - pad.top,
-      width: box.width + pad.left + pad.right, height: box.height + pad.top + pad.bottom,
-    };
-    const ox0 = Math.floor(outer.x * scale), oy0 = Math.floor(outer.y * scale);
-    const ox1 = Math.ceil((outer.x + outer.width) * scale), oy1 = Math.ceil((outer.y + outer.height) * scale);
-    const ix0 = Math.ceil(box.x * scale), iy0 = Math.ceil(box.y * scale);
-    const ix1 = Math.floor((box.x + box.width) * scale), iy1 = Math.floor((box.y + box.height) * scale);
-    let nonWhite = 0, total = 0;
-    for (let y = Math.max(0, oy0); y < Math.min(h, oy1); y++) {
-      for (let x = Math.max(0, ox0); x < Math.min(w, ox1); x++) {
-        if (x >= ix0 && x < ix1 && y >= iy0 && y < iy1) continue; // inside tight bbox — skip
-        const off = idx + (y * w + x) * 3;
-        const r = buf[off], g = buf[off + 1], b = buf[off + 2];
-        total++;
-        if (r < 230 || g < 230 || b < 230) nonWhite++;
-      }
-    }
-    return total === 0 ? 0 : nonWhite / total;
-  }
-
+  // annulusInkFraction is now a top-level helper (see its own definition
+  // above, near the other PDF helpers) — hoisted out of this describe so the
+  // cleanup-proof test can exercise it too.
   const FULL = 6; // catches the stroke reliably on a side with no neighbour
   const NARROW = 2; // the side facing the other word — inside the ~7.8pt gap
   const yesPad = { top: FULL, bottom: FULL, left: FULL, right: NARROW }; // No is to the right
@@ -666,5 +715,38 @@ describe("wouldTruncate — homeAddress fit warning (item 5), boundary measured 
   test("empty or whitespace-only value never truncates (matches stampField's own blank-draws-nothing rule)", async () => {
     await expect(wouldTruncate("")).resolves.toBe(false);
     await expect(wouldTruncate("   ")).resolves.toBe(false);
+  });
+});
+
+describe("temp-dir cleanup (tmpfs hotfix, 2026-10-01)", () => {
+  // Every raster/rasterize-adjacent helper in this file mkdtemp'd a scratch
+  // directory and never removed it — on a small or tmpfs-backed /tmp, that
+  // accumulation across repeated suite runs can exhaust it. Scoped to the
+  // exact paths THIS test creates (via mkTempDir's tracking array), not a
+  // directory-wide "no agpdf-* left in tmpdir()" scan — this file's own unit
+  // tests run 8-way parallel, so a global scan would read another worker's
+  // legitimate in-flight directory as a leak and turn this into a new flake.
+  test("every directory created while rendering + rasterizing + text-extracting a real page is removed again — not merely assumed", async () => {
+    createdTempDirs.length = 0;
+    const pdf = await renderAgreementPdf(BASE);
+    expect(pdfPageCount(pdf)).toBe(7); // exercises toTempPdf
+    pdfText(pdf, 1); // exercises toTempPdf
+    pdfWords(pdf, 1); // exercises toTempPdf
+    rasterizePage(pdf, 1); // exercises toTempPdf + its own raster dir
+    annulusInkFraction(pdf, 7, { x: 0, y: 0, width: 1, height: 1 }, { top: 1, bottom: 1, left: 1, right: 1 }); // exercises toTempPdf + its own raster dir — the one site a blind spot here let leak 12 real directories, proven by mutation
+
+    // Control: a run that created nothing would make "every dir is gone"
+    // vacuously true — the exact failure shape this whole PR is about
+    // (identical to "0 leftovers" meaning "the helper never ran"). At least
+    // one dir per call above (toTempPdf x5, rasterizePage's + annulusInkFraction's own raster dirs).
+    expect(createdTempDirs.length).toBeGreaterThanOrEqual(6);
+
+    for (const dir of createdTempDirs) {
+      // Proves this measured the LIVE tmpdir() (so a TMPDIR override, like
+      // the one this whole incident forced onto every session tonight, is
+      // honoured) rather than a hardcoded "/tmp" assumption.
+      expect(dir.startsWith(tmpdir())).toBe(true);
+      expect(existsSync(dir)).toBe(false);
+    }
   });
 });
