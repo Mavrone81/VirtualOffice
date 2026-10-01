@@ -200,6 +200,24 @@ export const AGREEMENT_FIELD_BOXES: Record<string, FieldBox> = {
   associateIdOfficial: { page: 7, x: 143.04, y: 708.6, width: 409.46, height: 18.2 },
   tier1ManagerOfficial: { page: 7, x: 143.04, y: 726.8, width: 409.46, height: 18.0 },
   tier2ManagerOfficial: { page: 7, x: 143.04, y: 744.8, width: 409.46, height: 18.2 },
+
+  // CR-0001: the company signatory's signature + printed name, right of the
+  // "SIGNED by the Abovementioned Company )" bracket. Measured the same way
+  // as signatureImage above — pdftotext -bbox on the pristine master, top-
+  // left space: "SIGNED by the" y=[328.86,338.83], "Abovementioned Company"
+  // y=[338.86,348.83], bracket ")" at x=[240.94,243.94] on both lines, and
+  // (unlike the associate block) NOTHING ELSE printed anywhere in
+  // x=[244,548] y=[318.83,378.86] — confirmed by dumping every word in that
+  // band — so the whole span down to the next block ("SIGNED By the", y=
+  // 378.86) is free to use, mirroring how signatureImage uses its own
+  // available whitespace rather than hugging the two label lines. Split into
+  // an upper image region and a lower single-line name region (signature
+  // above the printed name, the usual convention for a signature block) —
+  // this split is ours, not measured off the master, since the master has no
+  // printed "Name:" sub-line for the company the way it does for the
+  // associate (signatureName/signatureNric above).
+  companySignatureImage: { page: 7, x: 258, y: 320.8, width: 116, height: 36.1 },
+  companySignatoryName: { page: 7, x: 258, y: 360, width: 116, height: 14.9 },
 };
 
 // 🔴 CORRECTION to a finding recorded here earlier the same evening (kept,
@@ -282,6 +300,8 @@ export const AGREEMENT_FIELD_RULE_Y: Record<keyof typeof AGREEMENT_FIELD_BOXES, 
   associateIdOfficial: 726.72, // light-grey interior divider (see correction above); never stamped anyway (owner ruling)
   tier1ManagerOfficial: 744.72, // light-grey interior divider (see correction above); renderer aligns to its label instead by choice, not by necessity
   tier2ManagerOfficial: 762.72, // the table's own real bottom border
+  companySignatureImage: null, // not text — signature image, our own placement in confirmed-blank space
+  companySignatoryName: null, // no rule found (the master has no "Name:" sub-line for the company block at all); gets an explicit baselineFromTop instead
 };
 
 /**
