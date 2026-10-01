@@ -26,7 +26,11 @@ export default class ZeroCollectedReporter implements Reporter {
     for (const m of modules) {
       let n = 0;
       try {
-        for (const _ of m.children.allTests()) n += 1;
+        // `allTests()` is a bare iterable — no `length`/`size` — so materialise it to count.
+        // Counting with `for (const _ of …)` needs a binding the loop never reads, which eslint
+        // reports as an unused variable; the repo has no `varsIgnorePattern` for `_`, so avoid
+        // the binding rather than add a shared-config exception for one call site.
+        n = Array.from(m.children.allTests()).length;
       } catch {
         n = 0; // a module too broken to enumerate is, for our purposes, a module that collected nothing
       }
