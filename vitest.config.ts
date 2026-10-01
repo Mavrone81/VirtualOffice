@@ -44,14 +44,28 @@ export default defineConfig({
         test: {
           name: "unit",
           include: ["server/**/*.test.ts", "lib/**/*.test.ts"],
-          exclude: ["server/**/*.integration.test.ts"],
+          // The bare `lib/**/*.test.ts` include above also matches
+          // `lib/**/*.integration.test.ts` (a `*` eats "agreement.integration"
+          // same as it eats "agreement"), so that glob needs its own exclude
+          // here — the server/**/*.integration.test.ts exclude below it does
+          // NOT reach lib/ at all. Two PDF tests that shell out to
+          // pdftoppm/pdftotext/pdfinfo/gs (lib/pdf/agreement.integration.test.ts,
+          // lib/pdf/agreement-circle-ink-intersection.integration.test.ts, both
+          // renamed by this change) were misfiled
+          // here as a result — unit's 5000ms default, no fileParallelism:false,
+          // competing 8-way with genuine unit tests. Renaming alone is a
+          // verified no-op without this exclude (and the matching include
+          // below): confirmed via `npx vitest list --project <name>` before
+          // trusting a green run, since a file matching no glob collects and
+          // reports nothing.
+          exclude: ["server/**/*.integration.test.ts", "lib/**/*.integration.test.ts"],
         },
       },
       {
         extends: true,
         test: {
           name: "integration",
-          include: ["server/**/*.integration.test.ts"],
+          include: ["server/**/*.integration.test.ts", "lib/**/*.integration.test.ts"],
           fileParallelism: false,
           // No project-level testTimeout existed anywhere in this file, so
           // every integration test ran on vitest's bare 5000ms default —

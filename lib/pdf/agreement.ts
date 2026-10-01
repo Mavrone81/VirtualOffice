@@ -170,7 +170,7 @@ const FOOTER_NOTE_BASELINE = 806.5;
 // worry) — re-verify all three whenever any pad changes.
 //
 // Exported (not just module-local consts) so the dedicated ink-mask
-// intersection test (agreement-circle-ink-intersection.test.ts) always
+// intersection test (agreement-circle-ink-intersection.integration.test.ts) always
 // verifies the REAL production values — a hardcoded copy in a test file
 // would silently stop tracking a constant the moment it changed.
 export const CIRCLE_PAD_HORIZONTAL_INNER = 0.90;
@@ -280,7 +280,7 @@ function signedAtSgt(date: Date): string {
  *  multi-line block still crosses it. Truncating a too-long value to one
  *  legible line is a smaller, more honest defect than text visibly
  *  overlapping the document's own printed rule. */
-/** Exported for direct boundary testing (agreement.test.ts) — the 4 shapes
+/** Exported for direct boundary testing (agreement.integration.test.ts) — the 4 shapes
  *  DevLead asked for (untouched / shrinks-to-exactly-minSize / truncates /
  *  degenerate single-char) depend on exact font metrics that are awkward to
  *  hit indirectly through a rendered PDF's pixels. */
