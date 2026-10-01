@@ -16,7 +16,7 @@ import type { Reporter } from "vitest/node";
  *  Vitest does print `(0 test)` per file — but it prints it 128 times, scrolled far above a total
  *  that looks survivable.
  *
- *  test/env-preflight.ts stops the commonest cause before the run starts. This reporter is the
+ *  lib/test-support/env-preflight.ts stops the commonest cause before the run starts. This reporter is the
  *  general case: it does not care WHY a file collected nothing.
  */
 export default class ZeroCollectedReporter implements Reporter {

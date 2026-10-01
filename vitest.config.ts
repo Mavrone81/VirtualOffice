@@ -30,14 +30,14 @@ export default defineConfig({
   test: {
     environment: "node",
     // Validate the environment ONCE here rather than letting lib/env.ts throw separately in
-    // every test file. See test/env-preflight.ts: the per-file throw turns a deliberate
+    // every test file. See lib/test-support/env-preflight.ts: the per-file throw turns a deliberate
     // fail-closed into a summary that reads like a partial pass, hiding how many tests never
     // ran. globalSetup applies to every project below.
-    globalSetup: ["./test/env-preflight.ts"],
+    globalSetup: ["./lib/test-support/env-preflight.ts"],
     // A file that collects 0 tests failed to LOAD; it did not run and report nothing. Vitest
     // prints "(0 test)" per file, but 100+ of those scroll above a total that reads as a few
-    // ordinary failures. This surfaces the count as one line. See test/zero-collected-reporter.ts.
-    reporters: ["default", "./test/zero-collected-reporter.ts"],
+    // ordinary failures. This surfaces the count as one line. See lib/test-support/zero-collected-reporter.ts.
+    reporters: ["default", "./lib/test-support/zero-collected-reporter.ts"],
     projects: [
       {
         extends: true,
