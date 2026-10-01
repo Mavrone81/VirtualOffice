@@ -54,19 +54,13 @@ export function ProductCard({ p, t }: { p: PortalCatalogueProduct; t: (key: stri
         </div>
       )}
 
-      {p.isExternal ? (
-        <div className="mt-3 text-[12px] text-muted">
-          {t("externalRetains")} <b className="text-ink">{p.externalCompanyRetainedPct ?? "0"}%</b>, {t("bulkToProvider")}
-        </div>
-      ) : (
-        <CommissionBlock
-          commissionType={p.commissionType}
-          closingCommPct={p.closingCommPct}
-          closingCommFixed={p.closingCommFixed}
-          effectivePrice={effective}
-          t={t}
-        />
-      )}
+      <CommissionBlock
+        commissionType={p.commissionType}
+        closingCommPct={p.closingCommPct}
+        closingCommFixed={p.closingCommFixed}
+        effectivePrice={effective}
+        t={t}
+      />
     </Card>
   );
 }
