@@ -13,7 +13,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // Associate Agreement — stamp values onto the master PDF, verbatim, rather
-// than re-typesetting it. Samuel's requirement is that the signed document
+// than re-typesetting it. The owner's requirement is that the signed document
 // look IDENTICAL to the master (header spacing, fonts, font types,
 // paragraphing) — the only way that's true by construction, not by
 // imitation, is to leave every page of the original untouched except the
@@ -230,7 +230,7 @@ function fmtIsoDate(v: string | null | undefined): string | null {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : v;
 }
 
-/** Page 7 "For Official Use" Tier 1/2 Manager — Samuel's SCOPED exception:
+/** Page 7 "For Official Use" Tier 1/2 Manager — the owner's SCOPED exception:
  *  "NA" is stamped only here, and only for a genuinely absent upline (a
  *  known fact), never generalised to a field that's merely uncollected
  *  (those stay blank, per stampField's own null/undefined -> no-op rule). */
@@ -440,7 +440,7 @@ export async function renderAgreementPdf(a: AgreementData): Promise<Buffer> {
   // AGREEMENT_FIELD_RULE_Y) — aligned to their own printed labels' baseline.
   stampField(pageOf(AGREEMENT_FIELD_BOXES.signatureName.page), font, AGREEMENT_FIELD_BOXES.signatureName, a.fullName, { baselineFromTop: SIGNATURE_NAME_LABEL_BASELINE });
   stampField(pageOf(AGREEMENT_FIELD_BOXES.signatureNric.page), font, AGREEMENT_FIELD_BOXES.signatureNric, a.nricMasked, { baselineFromTop: SIGNATURE_NRIC_LABEL_BASELINE });
-  // Samuel's ruling: relocated to the page-7 footer, clear of "Page 7 of 7 /
+  // Owner ruling: relocated to the page-7 footer, clear of "Page 7 of 7 /
   // V.2026-04" and the For Official Use table, in the master's own small
   // grey footer style — see FOOTER_GREY/FOOTER_FONT_SIZE and the box's own
   // derivation comment in associate-agreement-coordinates.ts. No master rule
@@ -483,13 +483,13 @@ export async function renderAgreementPdf(a: AgreementData): Promise<Buffer> {
   // ---- Page 7 (c): emergency contact.
   stampField(pageOf(AGREEMENT_FIELD_BOXES.emergencyContactName.page), font, AGREEMENT_FIELD_BOXES.emergencyContactName, a.emergencyName, ruleOpts("emergencyContactName"));
   stampField(pageOf(AGREEMENT_FIELD_BOXES.emergencyContactRelationship.page), font, AGREEMENT_FIELD_BOXES.emergencyContactRelationship, a.emergencyRelationship, ruleOpts("emergencyContactRelationship"));
-  // emergencyContactAddress: the field Samuel's truncation ruling is about —
+  // emergencyContactAddress: the field the owner's truncation ruling is about —
   // now has a real measured rule (shares emergencyContactNumber's, same row).
   stampField(pageOf(AGREEMENT_FIELD_BOXES.emergencyContactAddress.page), font, AGREEMENT_FIELD_BOXES.emergencyContactAddress, a.emergencyAddress, ruleOpts("emergencyContactAddress"));
   stampField(pageOf(AGREEMENT_FIELD_BOXES.emergencyContactNumber.page), font, AGREEMENT_FIELD_BOXES.emergencyContactNumber, a.emergencyContact, ruleOpts("emergencyContactNumber"));
 
   // ---- Page 7: For Official Use. Associate ID is deliberately NEVER
-  // stamped, on any call — Samuel's ruling: the signed PDF is never
+  // stamped, on any call — owner ruling: the signed PDF is never
   // modified after signing, and the code doesn't exist until approval runs
   // (nextAssociateCode() is called inside approveCandidate). No caller
   // should be passing a.associateId here; there is no branch that reads it

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// B-8 (Samuel, 2026-09-26): the admin can edit any associate's card, audited
+// B-8 (owner ruling, 2026-09-26): the admin can edit any associate's card, audited
 // with who, whose card, and before/after fields. An associate may only edit
 // their own card, and only their Chinese name — the title stays admin-only,
 // enforced server-side (not just left to the UI).

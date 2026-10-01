@@ -1,4 +1,4 @@
-// A-2 — profile card position band. Samuel's decided answer (docs/design/
+// A-2 — profile card position band. The owner's decided answer (docs/design/
 // a2-profile-band.md, uiux/design-specs): bands are PERCENTILES on
 // commission received, not absolute rank cutoffs.
 //

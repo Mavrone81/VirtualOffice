@@ -10,7 +10,7 @@
  * It CANNOT write: the Prisma client below only lets read operations through
  * (no model writes, no raw SQL), the runbook runs it in a read-only DB
  * session, and there is no apply mode. Applying is a separate, reviewed
- * change that needs Samuel's go because it writes production data — designed
+ * change that needs the owner's go because it writes production data — designed
  * the same way as M5's (scripts/backfill-payout-ids.ts): a hash-checked plan
  * (this script's --json prints the plan's own SHA-256, which the future
  * apply will require via --confirm), per-month before/after totals, and a

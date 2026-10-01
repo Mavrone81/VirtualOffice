@@ -70,7 +70,7 @@ export async function updateNameCard(input: { chineseName?: string; customTitle?
 }
 
 /**
- * Admin-only: edit ANY associate's name card (B-8, Samuel 2026-09-26 — the
+ * Admin-only: edit ANY associate's name card (B-8, owner ruling 2026-09-26 — the
  * login-page card is unchanged, this only covers portal/admin name cards).
  * Every edit is audited with who (actorUserId), whose card (associateId +
  * associateCode), and the before/after field values.

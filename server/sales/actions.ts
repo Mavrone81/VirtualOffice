@@ -156,7 +156,7 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
 
   const { lineData, saleAmount, needsAshesAgreement } = await resolveSaleLines(validInput.lines);
 
-  // B-S6 (Samuel: warn, don't block): a split that would book any commission line below
+  // B-S6 (owner ruling: warn, don't block): a split that would book any commission line below
   // zero is ALLOWED, but flagged — it needs a Business Admin split exception before closing.
   const violations = await splitBoundViolations(prisma, {
     salesDate: new Date(validInput.salesDate), closingAssociateId: closerId, lines: lineData,
@@ -708,7 +708,7 @@ export async function adminApproveSplit(
 
 /**
  * B-S6: a Business Admin approves a sale whose split books a commission line below zero
- * (Samuel 2026-09-26: warn, don't block — but require admin approval). Business Admin only
+ * (owner ruling 2026-09-26: warn, don't block — but require admin approval). Business Admin only
  * (not Accounts), a reason is required, and the approval is bound to (a) the split version
  * the admin's page rendered (SA-1 style CAS on splitEditedAt) and (b) a snapshot of the
  * negative lines as computed NOW, which closeSale re-checks with the rates then in force.
@@ -845,7 +845,7 @@ export async function approveQuotation(submissionId: string): Promise<{ ok: bool
   //
   // NOT the same condition as N4's Legacy-frozen check elsewhere in this
   // file: this refuses ClosedDeal; N4 refuses Legacy once the flag is on. A
-  // flow=Legacy row deliberately STAYS OPEN here — Samuel confirmed (28 Sep,
+  // flow=Legacy row deliberately STAYS OPEN here — the owner confirmed (28 Sep,
   // reviews/a17-flag-on-preconditions.md §3) that an in-flight Legacy sale
   // may finish through this same old workflow after the flag flips, losing
   // only edit/reject, not approve/close. One refusal and one deliberate
@@ -920,7 +920,7 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
   //
   // NOT the same condition as N4's Legacy-frozen check elsewhere in this
   // file: this refuses ClosedDeal; a flow=Legacy row deliberately STAYS OPEN
-  // here — Samuel confirmed (28 Sep, reviews/a17-flag-on-preconditions.md
+  // here — the owner confirmed (28 Sep, reviews/a17-flag-on-preconditions.md
   // §3) an in-flight Legacy sale may still close through this same old
   // workflow after the flag flips, losing only edit/reject. One refusal and
   // one deliberate non-refusal, same function, different flows — not a gap.
@@ -1060,7 +1060,7 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
       // 1¢ short). The last installment absorbs whatever rounding leaves over
       // so the schedule always sums to exactly (sale − deposit).
       const remaining = D(sub.saleAmount).sub(D(sub.deposit ?? 0));
-      // Deposit row (Samuel, Q9): sequence 0, so Accounts marks it paid with
+      // Deposit row (owner, Q9): sequence 0, so Accounts marks it paid with
       // the B-7 payment acknowledgement like any other installment — that's
       // what makes amountCollected (A-0) count the deposit as collected. It is
       // NOT one of the N installments (see eligibility.ts's `sequence > 0`

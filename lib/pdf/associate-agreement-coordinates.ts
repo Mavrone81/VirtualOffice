@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 // ---------------------------------------------------------------------------
 // Associate Agreement — stamp-onto-master coordinates.
 //
-// Samuel's requirement: the signed agreement must be visually IDENTICAL to
+// The owner's requirement: the signed agreement must be visually IDENTICAL to
 // the master (header spacing, fonts, font types, paragraphing) — so instead
 // of re-typesetting the document, we load the master PDF as-is and stamp
 // only the filled-in values onto it at fixed positions, page by page.
@@ -21,7 +21,7 @@ import { createHash } from "crypto";
 //   - a box is the SPACE AVAILABLE for the value (from just past the
 //     printed label to the next column divider / row border), not a single
 //     anchor point — the stamping code decides font size (shrink-to-fit)
-//     and wrapping inside it, per Samuel's "never overflowing" rule.
+//     and wrapping inside it, per the owner's "never overflowing" rule.
 // The stamping code (agreement.ts) does the one conversion to pdf-lib's
 // bottom-left page origin; nothing that measures a box needs to think
 // about that flip.
@@ -102,7 +102,7 @@ export const AGREEMENT_FIELD_BOXES: Record<string, FieldBox> = {
   // the ")" bracket, which sits at a fixed x=[240.9,243.9] on all four lines.
   signatureName: { page: 7, x: 85, y: 399, width: 152, height: 10 },
   signatureNric: { page: 7, x: 85, y: 409, width: 152, height: 10 },
-  // Samuel moved the signature image: NOT between the labels and the ")"
+  // The owner moved the signature image: NOT between the labels and the ")"
   // column (superseded — was { x: 145, y: 379, width: 91, height: 20 }, the
   // strip left of the bracket, spanning the company block's two lines),
   // but to the RIGHT of the ")" column (x=[240.94,243.94]), beside the
@@ -123,7 +123,7 @@ export const AGREEMENT_FIELD_BOXES: Record<string, FieldBox> = {
   // vs the stated ~66pt) needed a centre-vs-edge reading to reconcile rather
   // than picking one and dropping the other two.
   signatureImage: { page: 7, x: 257.0, y: 365.45, width: 147.0, height: 65.4 },
-  // "Signed ... via the onboarding portal" — Samuel's ruling: move it to the
+  // "Signed ... via the onboarding portal" — owner ruling: move it to the
   // FOOTER area at the bottom of page 7, in the master's own small grey
   // footer style, clear of both "Page 7 of 7 / V.2026-04" (measured via
   // pdftotext -bbox: y=[818.4,827.7]) and the For Official Use table's own
@@ -277,9 +277,9 @@ export const AGREEMENT_FIELD_RULE_Y: Record<keyof typeof AGREEMENT_FIELD_BOXES, 
   spouseWorkingNo: null, // not text — circle target
   emergencyContactName: 229.44,
   emergencyContactRelationship: 229.44,
-  emergencyContactAddress: 242.4, // the field Samuel's truncation ruling is about — now has a real measured anchor
+  emergencyContactAddress: 242.4, // the field the owner's truncation ruling is about — now has a real measured anchor
   emergencyContactNumber: 242.4,
-  associateIdOfficial: 726.72, // light-grey interior divider (see correction above); never stamped anyway (Samuel's ruling)
+  associateIdOfficial: 726.72, // light-grey interior divider (see correction above); never stamped anyway (owner ruling)
   tier1ManagerOfficial: 744.72, // light-grey interior divider (see correction above); renderer aligns to its label instead by choice, not by necessity
   tier2ManagerOfficial: 762.72, // the table's own real bottom border
 };

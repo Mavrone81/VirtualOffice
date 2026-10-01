@@ -32,7 +32,7 @@ async function requireAdmin() {
   return session;
 }
 
-// Recruitment invite is Manager and above (A9, Samuel 2026-09-26 — see lib/rbac canRecruit).
+// Recruitment invite is Manager and above (A9, owner ruling 2026-09-26 — see lib/rbac canRecruit).
 async function requireRecruiter() {
   const session = await auth();
   if (!session || !canRecruit(session.user.role)) return null;
@@ -370,7 +370,7 @@ export async function submitOnboarding(
     // blank (no producer) when not.
     emergencyRelationship: s.emergencyContactRelationship?.trim() || null,
     emergencyAddress: s.emergencyContactAddress?.trim() || null,
-    // Scoped exception (Samuel's ruling): "NA" here means a KNOWN absence
+    // Scoped exception (owner ruling): "NA" here means a KNOWN absence
     // (this associate genuinely has no upline at this tier) — never used
     // for a field that's merely uncollected. Associate ID is deliberately
     // NOT passed: the signed PDF is never modified after signing, and
