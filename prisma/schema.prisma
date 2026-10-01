@@ -1144,6 +1144,10 @@ model PetsAshesAgreement {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // N2 reconciler (server/agreements/stuck-signed-reconciler.ts): finds rows
+  // stuck at Signed with no agreementPdfKey (a crash between the sign CAS
+  // and the pdfKey transaction). Narrows on status first, same as the query.
+  @@index([status, signedAt])
   @@map("pets_ashes_agreements")
 }
 
