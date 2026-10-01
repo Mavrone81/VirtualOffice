@@ -22,6 +22,14 @@ const who: { session: unknown } = { session: null };
 vi.mock("@/auth", () => ({ auth: async () => who.session }));
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// approveCandidate's baseUrl() calls next/headers() when AUTH_URL isn't set
+// (the production early-return path, correct behaviour — CI's .env.example
+// has it commented out, unlike a local .env). Without this mock, headers()
+// throws "called outside a request scope" here, since this test's own
+// approvalEmail is mocked below and never reads the resulting link — so an
+// empty baseUrl() is harmless to what this test actually asserts (DB
+// columns, never the email mock's call arguments).
+vi.mock("next/headers", () => ({ headers: async () => new Map() }));
 vi.mock("@/lib/mail", () => ({ sendMail: vi.fn(async () => {}), onboardingInviteEmail: vi.fn(), approvalEmail: vi.fn() }));
 
 import { prisma } from "@/lib/db";
