@@ -93,4 +93,31 @@ describe("/api/files access control", () => {
     expect((await get(`..%2F..%2Fetc%2Fpasswd`)).status).toBe(400);
     expect(getObject).not.toHaveBeenCalled();
   });
+
+  // CR-0001 (the owner's ruling): the company signatory's signature is narrowed
+  // to Admin ONLY — not every isAdminRole, unlike every other admin-readable
+  // key in this route (logoFileKey/stampFileKey keep the broader access).
+  // Both halves required: an admin-type role that is NOT Admin must be
+  // refused, AND Admin must still be served — a route that refuses everyone,
+  // or lets every isAdminRole through, would pass a test asserting only one.
+  describe("company signatory signature — Admin only", () => {
+    const KEY = "companies/signatory/9f1c7e2a-signature.png";
+
+    it("refuses Accounts (an admin-type role, but not Admin)", async () => {
+      state.session = { user: { role: "Accounts", associateId: null } };
+      expect((await get(KEY)).status).toBe(403);
+      expect(getObject).not.toHaveBeenCalled();
+    });
+
+    it("refuses a non-admin associate, even for their own sale's namespace shape", async () => {
+      state.session = { user: { role: "SalesAssociate", associateId: ALICE } };
+      expect((await get(KEY)).status).toBe(403);
+      expect(getObject).not.toHaveBeenCalled();
+    });
+
+    it("positive control: Admin is served", async () => {
+      state.session = { user: { role: "Admin", associateId: null } };
+      expect(await get(KEY)).toEqual({ status: 200, body: KEY });
+    });
+  });
 });

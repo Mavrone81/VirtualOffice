@@ -3,7 +3,7 @@ import {
   FileText, Banknote, Megaphone, FolderOpen, Handshake, FileSignature,
   IdCard, FolderLock, Network, ScrollText, ClipboardCheck, Split, FileCheck,
   TrendingUp, Wallet, HandCoins, ListChecks, Mail, Image, Palette,
-  PartyPopper, Store, Sparkles, Landmark, Archive, type LucideIcon,
+  PartyPopper, Store, Sparkles, Landmark, Archive, Building2, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
 import { RECRUITER_ROLES } from "@/lib/roles";
@@ -113,6 +113,7 @@ export const adminNav: NavGroup[] = [
           { labelKey: "documents", href: "/admin/documents", icon: FolderOpen },
           { labelKey: "auditLog", href: "/admin/audit", icon: ScrollText, roles: ["Admin"] },
           { labelKey: "uat", href: "/admin/uat", icon: ClipboardCheck, roles: ["Admin"] },
+          { labelKey: "companyData", href: "/admin/company", icon: Building2, roles: ["Admin"] },
         ],
       },
     ],

@@ -332,6 +332,24 @@ export async function submitOnboarding(
   }
   await putObject(`candidates/${c.id}/signature.png`, Buffer.from(signatureBytes));
 
+  // CR-0001: snapshot the company signatory AT THIS MOMENT — the same write
+  // that sets signedAgreementFileKey below — so a later edit in the admin
+  // Company Data tab can never alter an already-signed agreement. Read live
+  // here, on purpose: this is the one place "live" is correct, because it IS
+  // the signing moment. Every other reader must use the snapshot columns,
+  // never this table, once a candidate/associate has signed.
+  const companySignatory = await prisma.companySignatory.findUnique({ where: { singleton: true } });
+  // The stamp on the PDF (below) and the DB snapshot (below, at the
+  // candidate.update) both come from this SAME read — never two separate
+  // queries that could observe two different signatories if one changed
+  // mid-request. The signature file itself follows the same PNG convention
+  // as the associate's own signature upload (assertUpload(["png"]) above).
+  let companySignatureDataUrl: string | null = null;
+  if (companySignatory?.signatureFileKey) {
+    const buf = await getObject(companySignatory.signatureFileKey);
+    if (buf) companySignatureDataUrl = `data:image/png;base64,${buf.toString("base64")}`;
+  }
+
   // Tier 1/2 Manager (page 7 "For Official Use") are knowable at signing —
   // the candidate signs before approval, so this is the INTENDED upline
   // chain, not the eventual associate record. One query gets both tiers.
@@ -377,6 +395,8 @@ export async function submitOnboarding(
     // nextAssociateCode() doesn't exist until approveCandidate runs anyway.
     tier1Manager: formatUplineOrNA(upline),
     tier2Manager: formatUplineOrNA(upline?.directUpline),
+    companySignatoryName: companySignatory?.signatoryName ?? null,
+    companySignatureDataUrl: companySignatureDataUrl,
   });
   signedAgreementFileKey = `candidates/${c.id}/signed-agreement.pdf`;
   await putObject(signedAgreementFileKey, agreementPdf);
@@ -387,6 +407,8 @@ export async function submitOnboarding(
       submittedPayload: payload,
       photoFileKey,
       signedAgreementFileKey,
+      companySignatoryNameAtSigning: companySignatory?.signatoryName ?? null,
+      companySignatureFileKeyAtSigning: companySignatory?.signatureFileKey ?? null,
       onboardingStage: OnboardingStage.SignedPendingApproval,
     },
   });
@@ -489,6 +511,12 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
         joinDate: new Date(),
         approvalStatus: ApprovalStatus.Approved,
         associateStatus: AssociateStatus.Active,
+        // CR-0001: copied verbatim from the candidate's at-signing snapshot,
+        // same as signedAgreementFileKey below — never re-read from
+        // CompanySignatory here, or a signatory change between signing and
+        // approval would silently restate history on the associate record.
+        companySignatoryNameAtSigning: c.companySignatoryNameAtSigning,
+        companySignatureFileKeyAtSigning: c.companySignatureFileKeyAtSigning,
       },
     });
 

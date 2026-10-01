@@ -12,6 +12,9 @@ const { prismaMock, putObjectMock, rateLimitMock } = vi.hoisted(() => {
       associate: {
         findUnique: vi.fn(),
       },
+      companySignatory: {
+        findUnique: vi.fn(),
+      },
     },
     putObjectMock: vi.fn(),
     rateLimitMock: {
@@ -54,6 +57,7 @@ beforeEach(() => {
     intendedTeam: null,
   });
   putObjectMock.mockResolvedValue(undefined);
+  prismaMock.companySignatory.findUnique.mockResolvedValue(null);
 });
 
 describe("submitOnboarding validation", () => {

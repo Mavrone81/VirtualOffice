@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { isAdminRole } from "@/lib/rbac";
+import { isAdminRole, isFullAdmin } from "@/lib/rbac";
 import { fileKeyFromSegments } from "@/lib/file-key";
 import { getObject, objectResponseHeaders } from "@/lib/storage";
 import { auditTx } from "@/lib/audit";
@@ -18,10 +18,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
   const key = fileKeyFromSegments(segments);
   if (!key) return new NextResponse("Bad request", { status: 400 });
 
-  // Admins/Accounts may read any object. Associates may read objects under their
-  // own associate namespace, plus documents on a sale they closed (their
-  // supporting/signed docket — key `submissions/<id>/…`).
-  if (!isAdminRole(session.user.role)) {
+  // CR-0001 (the owner's ruling, owner access-note review): the company
+  // signatory's signature image is a forgery vector a logo/stamp isn't — it
+  // alone is narrowed to Admin only, NOT every isAdminRole (Accounts is
+  // refused same as an associate). logoFileKey/stampFileKey keep the
+  // broader isAdminRole access below, unchanged.
+  if (key.startsWith("companies/signatory/")) {
+    if (!isFullAdmin(session.user.role)) return new NextResponse("Forbidden", { status: 403 });
+  } else if (!isAdminRole(session.user.role)) {
+    // Admins/Accounts may read any other object. Associates may read objects
+    // under their own associate namespace, plus documents on a sale they
+    // closed (their supporting/signed docket — key `submissions/<id>/…`).
     const assocId = session.user.associateId;
     let allowed = !!assocId && key.startsWith(`associates/${assocId}/`);
     if (!allowed && assocId && key.startsWith("submissions/")) {
