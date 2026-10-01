@@ -6,6 +6,7 @@ import {
   PAGE_SIZE,
   AGREEMENT_FIELD_BOXES,
   AGREEMENT_FIELD_RULE_Y,
+  AGREEMENT_CIRCLE_WORD_INK,
   assertMasterTemplateSha256,
   type FieldBox,
 } from "@/lib/pdf/associate-agreement-coordinates";
@@ -121,43 +122,60 @@ const SIGNATURE_NRIC_LABEL_BASELINE = 418.83;
 // own descender+clearance at FOOTER_FONT_SIZE), made explicit rather than
 // left to a silent default now that stampField no longer has one.
 const FOOTER_NOTE_BASELINE = 806.5;
-// stampCircle's own pad, pulled out as a named constant: measured the actual
-// gap available between "Yes"/"No" and the "/" between them (2.502pt) — the
-// old inline 2.5pt pad put the ellipse's rightmost point AT the "/"'s own
-// left edge (487.727 vs 487.729pt, functionally touching).
-// 🔴 THE FACT THAT PRODUCED THREE WRONG FIGURES BEFORE IT WAS WRITTEN DOWN:
-// `stampCircle`'s `borderWidth` (1.2) puts HALF its stroke width outside the
-// mathematical path — so the visible ink-to-slash gap is always
-// `CIRCLE_PAD − borderWidth/2` (0.6pt), never the pad value itself. Any
-// future tuning of this constant must subtract that 0.6pt before comparing
-// against a measured target, or the number quoted will be optimistic by
-// half a stroke width — exactly the error made three times tonight before
-// anyone wrote the subtraction down.
-// Measured effect, ink-mask intersection against the master's own "/" glyph
-// (Ghostscript-rendered, not poppler — poppler under-renders this specific
-// stroke geometry and reported a false clean pass at a setting later found
-// visibly touching). RESOLUTION MATTERS and cost real time before anyone
-// wrote it down: a first measurement at pad=1.0, 300dpi (0.24pt/px), read
-// 1.16pt/1.36pt clear — comfortably over the 1pt floor. Re-measured at
-// 600dpi (0.12pt/px) and independently via a second rendering engine: BOTH
-// read 0.96pt/1.08pt — identical to the digit, and UNDER the floor on the
-// tighter side. The 300dpi figure was a quantisation artefact (both the
-// ellipse edge and the slash edge round to the nearest coarse pixel,
-// inflating the gap), not a second real measurement — so a prior claim
-// that "0.8 and 1.0 measure identically, a plateau" was the same artefact
-// and is retracted; there is no plateau.
-// CIRCLE_PAD=0.6, verified at 600dpi with both instruments AND with the
-// strictest ink threshold (any ink at all, not just majority-covered
-// pixels): worst case 1.32pt, still clearing the 1pt floor with margin on
-// every combination checked, not just the one first tried. Enclosure
-// re-confirmed at the same resolution, BOTH axes (the ellipse must still
-// contain its own word after shrinking the pad, not just clear the slash
-// horizontally): Yes ellipse x=[469.44,486.36] y=[161.64,174.96] against
-// its word at x=[470.64,484.80] y=[165.12,171.72]; No ellipse
-// x=[491.76,506.28] against its word at x=[492.84,504.72] (same y) —
-// comfortable, not marginal. The master's own gaps here are 3.00pt (Yes)
-// and 2.76pt (No), so there's real headroom.
-const CIRCLE_PAD = 0.6;
+// `stampCircle`'s ellipse is built from the word's own measured ink extents
+// (AGREEMENT_CIRCLE_WORD_INK), not the field box: semi-axis = half the ink
+// extent on that axis, plus a pad. Three pads, not one:
+//
+// The horizontal pad is split into two, because the two sides of each word
+// face different constraints: the "/" divider sits close on one side (the
+// side facing the OTHER word) and bounds that pad tightly, while the far
+// side has no such neighbour and can take much more room without touching
+// anything — a single shared horizontal pad forces both sides to the
+// tighter figure, which is why the ellipse used to read as barely clearing
+// the word rather than sitting around it with visible space. `stampCircle`
+// takes which side faces the divider per call (Yes's divider-side is its
+// right; No's is its left) and applies CIRCLE_PAD_HORIZONTAL_INNER there,
+// CIRCLE_PAD_HORIZONTAL_OUTER on the far side — shifting the ellipse's
+// centre off the word's own geometric centre, not just widening it.
+//
+// The vertical pad is unchanged in kind (one shared value, both axes
+// symmetric) — the word's ink is much wider than tall (Yes: ~7pt half-width
+// vs ~3.3pt half-height), and full vertical enclosure of the letterforms
+// needs meaningfully more room than the horizontal inner pad allows, so it
+// cannot simply reuse that figure either.
+//
+// The drawn stroke (borderWidth below) extends half its width outside the
+// mathematical ellipse path, so the real outer reach on an axis is
+// `halfExtent + pad + borderWidth/2` — clearance to a neighbour is measured
+// from THAT edge, never from the pad value alone.
+// Verified by rendering (Ghostscript, 1200dpi minimum for any figure judged
+// against the 1pt floor — 600dpi is one order of magnitude coarser than the
+// sub-0.1pt differences these figures turn on, and produced a non-monotonic,
+// clearly-quantised table before this exact case forced the move to 1200dpi)
+// and intersecting two independently measured ink masks (the stroke's own
+// ink vs the neighbouring glyph's own ink), never a with/without
+// differential. Both the shipped intersection test's zero-overlap check
+// AND a separate, finer-grid distance measurement against the 1pt floor
+// itself clear it on the tighter word at every grid tested: 1.130pt
+// clearance at 600dpi, 1.101pt at 2400dpi — comfortable margin there — but
+// only 1.051pt at 1200dpi, a single 1200dpi grid step (0.06pt) above the
+// floor, stated exactly rather than rounded up to "ample" (a smaller inner
+// pad than an earlier candidate bought this back from sitting BELOW the
+// floor; see reviews/ for the full table and why the inner pad, not the
+// outer one, is the lever for this). Word-
+// enclosure has no stated floor but is re-confirmed at zero overlap, both
+// axes, at 600/1200/2400dpi for the values actually shipped, since a margin
+// that reads clear at one grid is not guaranteed to still be clear at a
+// finer one (measured directly on this exact geometry, not a general
+// worry) — re-verify all three whenever any pad changes.
+//
+// Exported (not just module-local consts) so the dedicated ink-mask
+// intersection test (agreement-circle-ink-intersection.test.ts) always
+// verifies the REAL production values — a hardcoded copy in a test file
+// would silently stop tracking a constant the moment it changed.
+export const CIRCLE_PAD_HORIZONTAL_INNER = 0.90;
+export const CIRCLE_PAD_HORIZONTAL_OUTER = 2.5;
+export const CIRCLE_PAD_VERTICAL = 9.0;
 
 export type AgreementData = {
   fullName: string;
@@ -348,19 +366,34 @@ function stampCheckbox(page: PDFPage, box: FieldBox): void {
   page.drawLine({ start: { x: right, y: topY - pad }, end: { x: left, y: bottomY + pad }, thickness: 1.2, color: INK });
 }
 
-/** Circle (never fill) whichever word applies, padded so the ellipse clears
- *  the glyphs rather than hugging them. Draws nothing for a null/undefined
- *  selection — same rule as every other blank; there is no "circle nothing"
- *  mark on the master, so an unknown answer must leave both words unmarked. */
-function stampCircle(page: PDFPage, box: FieldBox): void {
-  const pad = CIRCLE_PAD;
-  const cx = box.x + box.width / 2;
-  const cyFromTop = box.y + box.height / 2;
+/** Circle (never fill) whichever word applies, sized from that word's own
+ *  measured ink extents (`ink`, from AGREEMENT_CIRCLE_WORD_INK) rather than
+ *  its field box, padded so the ellipse clears the glyphs rather than
+ *  hugging them. `dividerSide` is which side of THIS word's own ink the "/"
+ *  divider sits on — that side gets CIRCLE_PAD_HORIZONTAL_INNER (held to
+ *  the 1pt clearance floor), the far side gets CIRCLE_PAD_HORIZONTAL_OUTER
+ *  (room to spare, no such neighbour) — an asymmetric ellipse, centred off
+ *  the word's own geometric centre, not just a wider symmetric one. Draws
+ *  nothing for a null/undefined selection — same rule as every other blank;
+ *  there is no "circle nothing" mark on the master, so an unknown answer
+ *  must leave both words unmarked. */
+function stampCircle(
+  page: PDFPage,
+  ink: { minX: number; minY: number; maxX: number; maxY: number },
+  dividerSide: "left" | "right",
+): void {
+  const leftPad = dividerSide === "left" ? CIRCLE_PAD_HORIZONTAL_INNER : CIRCLE_PAD_HORIZONTAL_OUTER;
+  const rightPad = dividerSide === "right" ? CIRCLE_PAD_HORIZONTAL_INNER : CIRCLE_PAD_HORIZONTAL_OUTER;
+  const x0 = ink.minX - leftPad;
+  const x1 = ink.maxX + rightPad;
+  const cx = (x0 + x1) / 2;
+  const cyFromTop = (ink.minY + ink.maxY) / 2;
+  const halfH = (ink.maxY - ink.minY) / 2;
   page.drawEllipse({
     x: cx,
     y: PAGE_SIZE.height - cyFromTop,
-    xScale: box.width / 2 + pad,
-    yScale: box.height / 2 + pad,
+    xScale: (x1 - x0) / 2,
+    yScale: halfH + CIRCLE_PAD_VERTICAL,
     borderColor: INK,
     borderWidth: 1.2,
   });
@@ -440,9 +473,11 @@ export async function renderAgreementPdf(a: AgreementData): Promise<Buffer> {
   stampField(pageOf(AGREEMENT_FIELD_BOXES.spouseCompanyName.page), font, AGREEMENT_FIELD_BOXES.spouseCompanyName, a.spouseCompany, ruleOpts("spouseCompanyName"));
   stampField(pageOf(AGREEMENT_FIELD_BOXES.spouseDesignation.page), font, AGREEMENT_FIELD_BOXES.spouseDesignation, a.spouseDesignation, ruleOpts("spouseDesignation"));
   if (a.spouseConflict === true) {
-    stampCircle(pageOf(AGREEMENT_FIELD_BOXES.spouseWorkingYes.page), AGREEMENT_FIELD_BOXES.spouseWorkingYes);
+    // The "/" divider sits to the RIGHT of "Yes" — that's its divider side.
+    stampCircle(pageOf(AGREEMENT_FIELD_BOXES.spouseWorkingYes.page), AGREEMENT_CIRCLE_WORD_INK.spouseWorkingYes, "right");
   } else if (a.spouseConflict === false) {
-    stampCircle(pageOf(AGREEMENT_FIELD_BOXES.spouseWorkingNo.page), AGREEMENT_FIELD_BOXES.spouseWorkingNo);
+    // The "/" divider sits to the LEFT of "No" — that's its divider side.
+    stampCircle(pageOf(AGREEMENT_FIELD_BOXES.spouseWorkingNo.page), AGREEMENT_CIRCLE_WORD_INK.spouseWorkingNo, "left");
   } // null/undefined: circle neither — same "no data, no mark" rule as everything else.
 
   // ---- Page 7 (c): emergency contact.
