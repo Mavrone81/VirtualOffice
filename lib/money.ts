@@ -51,6 +51,15 @@ export function formatPercent(v: Numeric): string {
   return round2(v).toFixed(2) + "%";
 }
 
+/** Several fields on Product (companyCutPct, smOverridePct, sdOverridePct)
+ *  can each be configured as a % of the sale OR an absolute $ amount — the
+ *  *Type column next to each records which. Render by that type, not by
+ *  assuming %: an Absolute value run through formatPercent would print a
+ *  dollar figure with a "%" sign after it. */
+export function formatByValueType(v: Numeric, valueType: "Percentage" | "Absolute"): string {
+  return valueType === "Absolute" ? formatSGD(v) : formatPercent(v);
+}
+
 // ---------------------------------------------------------------------------
 // Product pricing (2026-09-30) — the one place this arithmetic happens, so
 // the portal/admin UI never computes money itself.
