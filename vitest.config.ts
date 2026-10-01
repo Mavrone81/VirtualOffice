@@ -53,6 +53,19 @@ export default defineConfig({
           name: "integration",
           include: ["server/**/*.integration.test.ts"],
           fileParallelism: false,
+          // No project-level testTimeout existed anywhere in this file, so
+          // every integration test ran on vitest's bare 5000ms default —
+          // fine for a quiet box, not for real DB/PDF work under the load
+          // this repo's integration suite regularly sees (sequential by
+          // design, above). 30s absorbs normal contention-driven slowness
+          // without being so long a genuinely hung test blocks the run for
+          // minutes; the 17 existing per-test overrides (10s-120s) still
+          // win where they're set, unchanged by this. hookTimeout matches:
+          // a beforeAll doing the same DB/fixture work had the identical
+          // 5000ms budget, and a hook timeout reads as a different, more
+          // confusing failure than a test timeout.
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
         },
       },
     ],

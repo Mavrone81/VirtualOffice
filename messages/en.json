@@ -165,7 +165,7 @@
     "statPendingApproval": "Pending approval",
     "statApprovedActive": "Approved & active",
     "statAwaitingReview": "Awaiting review",
-    "statInvoiceBrands": "Invoice brands",
+    "statInvoiceBrands": "Company entities",
     "statInvoiceBrandsSub": "Billing entities",
     "statProducts": "Products",
     "statCommissionStructures": "Commission structures",
@@ -173,8 +173,8 @@
     "myDashboardSubtitle": "All teams — organisation-wide performance",
     "totalTransactionValue": "Total Transaction Value",
     "grossCommissionTransacted": "Total Gross Commission Transacted",
-    "grossCommissionPaid": "Total Gross Commission Paid",
-    "grossCommissionPaidSub": "Paid out to associates",
+    "totalAmountCollected": "Total Amount Collected",
+    "totalAmountCollectedSub": "Collected from customers",
     "allTeams": "Across all teams"
   },
   "associates": {

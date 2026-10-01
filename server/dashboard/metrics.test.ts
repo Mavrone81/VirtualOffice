@@ -49,6 +49,16 @@ const { findMany, ledgerFindMany, transactionFindMany } = vi.hoisted(() => {
     }
     return true;
   }
+  // SalesTransaction fake for totalAmountCollected (B-1) — deliberately a
+  // DIFFERENT total from the Paid-payouts sum above (1500.50), so a test
+  // asserting against this fixture fails on the pre-fix code, which read
+  // monthlyPayout (money paid OUT to associates) instead of amountCollected
+  // (money collected FROM customers — owner's ruling, 02 Oct).
+  const transactionRows = [
+    { saleAmount: "1000.00", amountCollected: "400.25" },
+    { saleAmount: "2000.00", amountCollected: "600.00" },
+    { saleAmount: "500.00", amountCollected: "0" }, // nothing collected yet — counts as 0, not excluded
+  ];
   return {
     findMany: vi.fn(async ({ where }: { where: { payoutStatus: string } }) =>
       rows.filter((r) => r.payoutStatus === where.payoutStatus).map((r) => ({ totalPayable: r.totalPayable })),
@@ -56,31 +66,47 @@ const { findMany, ledgerFindMany, transactionFindMany } = vi.hoisted(() => {
     ledgerFindMany: vi.fn(async ({ where }: { where: LedgerWhere }) =>
       ledgerRows.filter((r) => matches(r, where)).map((r) => ({ amount: r.amount, status: r.status, payout: payouts[r.payoutId] })),
     ),
-    transactionFindMany: vi.fn(async () => []),
+    transactionFindMany: vi.fn<(args?: { where?: unknown }) => Promise<typeof transactionRows>>(async () => transactionRows),
   };
 });
 vi.mock("@/lib/db", () => ({
   prisma: { monthlyPayout: { findMany }, commissionLedger: { findMany: ledgerFindMany }, salesTransaction: { findMany: transactionFindMany } },
 }));
 
-import { totalGrossCommissionPaid, dashboardMetrics, receivedInYear } from "./metrics";
+import { totalAmountCollected, dashboardMetrics, receivedInYear } from "./metrics";
 
-describe("totalGrossCommissionPaid — B-1 admin dashboard tile", () => {
-  it("sums totalPayable across Paid payouts only, org-wide", async () => {
-    const total = await totalGrossCommissionPaid();
-    expect(total.toString()).toBe("1500.5"); // 1200.50 + 300 — the Approved and Pending rows are excluded
+describe("totalAmountCollected — B-1 admin dashboard tile (owner's ruling, 02 Oct: 'Paid' = collected from customers)", () => {
+  it("sums amountCollected across SalesTransaction, org-wide — NOT Paid payouts", async () => {
+    const total = await totalAmountCollected();
+    // 400.25 + 600.00 + 0 = 1000.25. The old code (summed Paid MonthlyPayouts)
+    // would return 1500.50 against this same fixture — a different source
+    // entirely, which is exactly the bug this test exists to catch.
+    expect(total.toString()).toBe("1000.25");
   });
 
-  it("an Approved-but-unpaid payout is not counted", async () => {
-    const total = await totalGrossCommissionPaid();
-    // If Approved leaked in, the total would include 9999.
-    expect(Number(total)).toBeLessThan(9999);
+  it("CONTROL: the query carries no amountCollected filter — the zero row reaches the sum unfiltered, rather than being excluded at the DB layer where this test couldn't see it", async () => {
+    transactionFindMany.mockClear();
+    await totalAmountCollected();
+    const [arg] = transactionFindMany.mock.calls.at(-1)!;
+    expect(arg?.where).toBeUndefined();
+    // Liveness: the exact call still returns all 3 rows including the
+    // 0-amountCollected one — without this, a fixture that silently dropped
+    // it would make the "no where" assertion above pass for the wrong reason.
+    const rows = await transactionFindMany(arg);
+    expect(rows).toHaveLength(3);
   });
 
-  it("no Paid payouts at all → zero", async () => {
-    findMany.mockImplementationOnce(async () => []);
-    const total = await totalGrossCommissionPaid();
+  it("no transactions at all → zero", async () => {
+    transactionFindMany.mockImplementationOnce(async () => []);
+    const total = await totalAmountCollected();
     expect(total.toString()).toBe("0");
+  });
+
+  it("CONTROL: the Paid-payouts total (what the old code read) differs from amountCollected's total — proves the two sources are genuinely different, not coincidentally equal", async () => {
+    const payoutTotal = await findMany({ where: { payoutStatus: "Paid" } });
+    const payoutSum = payoutTotal.reduce((s: number, r: { totalPayable: string }) => s + Number(r.totalPayable), 0);
+    expect(payoutSum).toBe(1500.5);
+    expect((await totalAmountCollected()).toString()).not.toBe(String(payoutSum));
   });
 });
 
