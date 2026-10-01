@@ -371,6 +371,37 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
   const existingAshes = existing.ashesAgreement;
   let ashesRemoved = false, ashesCreated = false;
 
+  // Sale amount lock (PD ruling, settled after three revisions): once the Pet
+  // Ash agreement carries a real signature — status is anything but Draft,
+  // Signed OR Superseded both lock — an amount-changing edit is refused
+  // outright, never silently voided and resigned. Scoped to the amount only:
+  // a non-money term change (plan/deposit/products) still legitimately goes
+  // through the C2 void-and-resign path below.
+  //
+  // Why this check exists independently of the Submitted-only gate above:
+  // editSale already refuses once the submission leaves Submitted (admin
+  // quotation approval for Legacy, verifySale for ClosedDeal) — that's the
+  // primary lock point and this does not widen it. But a ClosedDeal sale's
+  // status stays Submitted all the way through the client's e-signature
+  // (approveQuotation refuses ClosedDeal rows; the only admin step is
+  // verifySale, which happens later) — so without this second, independent
+  // check, the window between "client signed" and "admin verified" lets the
+  // closing associate alone edit the amount and auto-void a REAL signature,
+  // with no admin step at all. Defence in depth: this reads the agreement's
+  // OWN status, never a SubmissionDocument's existence (uploadDocketDocuments
+  // can create one at any point with no real signature and no status gate).
+  if (closedDeal && existingAshes && existingAshes.status !== AshesAgreementStatus.Draft) {
+    const amountChanged = D(existing.saleAmount).toFixed(2) !== D(next.saleAmount).toFixed(2);
+    if (amountChanged) {
+      const refused = await writeAudited(
+        async () => {},
+        () => [{ action: "sale.amount_edit_locked", entityType: "SalesSubmission", entityId: input.id, actorUserId: session.user.id, after: { agreementStatus: existingAshes.status } }],
+      );
+      if (refused === AUDIT_UNAVAILABLE) return { ok: false, error: t("auditUnavailable") };
+      return { ok: false, error: t("amountLocked") };
+    }
+  }
+
   // Architect ✎6: any void/supersede audit carries the PRIOR key/hash/version/
   // terms — it's the only pointer back to the file being superseded, since
   // re-signing overwrites those columns on this 1:1 row. Never the raw NRIC-free
