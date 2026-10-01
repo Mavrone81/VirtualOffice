@@ -1,4 +1,4 @@
-import { envSchema } from "../lib/env-schema";
+import { envSchema } from "../env-schema";
 
 /** Vitest globalSetup: validate the environment ONCE, loudly, before any worker starts.
  *
