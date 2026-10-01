@@ -96,14 +96,21 @@ jobs:
       # nothing, and nobody reads a skip count. So this step installs the dependency
       # and then ASSERTS each binary resolves — an `apt-get` exit 0 is not evidence
       # that the thing you wanted is on PATH.
-      - name: Install poppler-utils (PDF tests shell out to it)
+      # 🔴 Ghostscript is a SEPARATE, required dependency, not a poppler
+      # substitute — poppler is disqualified for the spouse Yes/No circle's
+      # stroke geometry specifically (it previously under-rendered it and
+      # reported a false clean pass at a setting later found visibly
+      # touching; see lib/pdf/agreement.ts's CIRCLE_PAD_HORIZONTAL/VERTICAL
+      # comment). agreement-circle-ink-intersection.test.ts shells out to
+      # `gs`, installed and asserted the same way as poppler-utils above.
+      - name: Install poppler-utils and ghostscript (PDF tests shell out to both)
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends poppler-utils
-          for b in pdfinfo pdftotext pdftoppm; do
+          sudo apt-get install -y --no-install-recommends poppler-utils ghostscript
+          for b in pdfinfo pdftotext pdftoppm gs; do
             if ! command -v "$b" > /dev/null 2>&1; then
-              echo "::error::$b is not on PATH after installing poppler-utils. The PDF tests would fail with ENOENT. Not continuing and pretending the dependency is satisfied."
+              echo "::error::$b is not on PATH after installing poppler-utils/ghostscript. The PDF tests would fail with ENOENT. Not continuing and pretending the dependency is satisfied."
               exit 1
             fi
             echo "$b -> $(command -v "$b")"
