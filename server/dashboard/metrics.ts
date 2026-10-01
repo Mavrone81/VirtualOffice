@@ -49,7 +49,14 @@ export async function dashboardMetrics(scopeIds: string[] | null): Promise<Dashb
   return {
     totalTransactionValue: sum(tx.map((t) => t.saleAmount)),
     grossTransacted: sum(ledger.filter((l) => l.status !== LedgerStatus.Cancelled).map((l) => l.amount)),
-    grossReceived: sum(ledger.filter((l) => l.payout?.payoutStatus === PayoutStatus.Paid).map((l) => l.amount)),
+    // Consistency fix (2026-10-01): match rank.ts/my-commissions.ts/my-share.ts,
+    // which all exclude Cancelled from a "received" figure — this one didn't.
+    // Dormant today (nothing creates a Cancelled ledger row yet), but this is
+    // an associate-visible tile ("Gross Commission Received") one click away
+    // from a correctly-filtered one on the same nav.
+    grossReceived: sum(
+      ledger.filter((l) => l.status !== LedgerStatus.Cancelled && l.payout?.payoutStatus === PayoutStatus.Paid).map((l) => l.amount),
+    ),
   };
 }
 
@@ -80,7 +87,13 @@ export async function totalGrossCommissionPaid(): Promise<ReturnType<typeof sum>
  */
 export async function receivedInYear(associateId: string, year: string) {
   const lines = await prisma.commissionLedger.findMany({
-    where: { associateId, payout: { payoutStatus: PayoutStatus.Paid, payoutMonth: { startsWith: `${year}-` } } },
+    // Consistency fix (2026-10-01): match rank.ts/my-commissions.ts/my-share.ts
+    // — see the comment on dashboardMetrics.grossReceived above.
+    where: {
+      associateId,
+      status: { not: LedgerStatus.Cancelled },
+      payout: { payoutStatus: PayoutStatus.Paid, payoutMonth: { startsWith: `${year}-` } },
+    },
     select: { amount: true, payout: { select: { payoutMonth: true } } },
   });
   return lines.map((l) => ({ amount: l.amount, payoutMonth: l.payout!.payoutMonth }));
