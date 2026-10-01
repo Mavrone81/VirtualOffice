@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { isFullAdmin } from "@/lib/rbac";
+import { formatPercent, formatByValueType } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ export default async function ProductsPage() {
                 <div className="text-right text-[12px]">
                   <div className="text-muted">{t("closing")}</div>
                   <div className="font-display text-[18px] text-ink">
-                    {p.commissionType === CommissionType.Fixed ? `S$${p.closingCommFixed ?? 0}` : `${p.closingCommPct ?? 0}%`}
+                    {p.commissionType === CommissionType.Fixed ? `S$${p.closingCommFixed ?? 0}` : formatPercent(p.closingCommPct ?? 0)}
                   </div>
                 </div>
               </div>
@@ -70,13 +71,13 @@ export default async function ProductsPage() {
 
             {!p.isExternal ? (
               <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-muted">
-                <span>{t("companyCutLabel")} <b className="text-ink">{String(p.companyCutPct)}%</b></span>
-                <span>{t("smLabel")} <b className="text-ink">{String(p.smOverridePct)}%</b></span>
-                <span>{t("sdLabel")} <b className="text-ink">{String(p.sdOverridePct)}%</b></span>
+                <span>{t("companyCutLabel")} <b className="text-ink">{formatByValueType(p.companyCutPct, p.companyCutType)}</b></span>
+                <span>{t("smLabel")} <b className="text-ink">{formatByValueType(p.smOverridePct, p.smOverrideType)}</b></span>
+                <span>{t("sdLabel")} <b className="text-ink">{formatByValueType(p.sdOverridePct, p.sdOverrideType)}</b></span>
               </div>
             ) : (
               <div className="mt-3 text-[12px] text-muted">
-                {t("externalRetains")} <b className="text-ink">{String(p.externalCompanyRetainedPct ?? 0)}%</b>, {t("bulkToProvider")}
+                {t("externalRetains")} <b className="text-ink">{formatPercent(p.externalCompanyRetainedPct ?? 0)}</b>, {t("bulkToProvider")}
               </div>
             )}
 

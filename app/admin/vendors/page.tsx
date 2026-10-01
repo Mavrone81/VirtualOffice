@@ -14,6 +14,7 @@ export const metadata = { title: "Referral partnerships · Enshrine Admin" };
 // submissions first for approval; the full registry below.
 export default async function AdminVendorsPage() {
   const t = await getTranslations("vendors");
+  const tc = await getTranslations("common");
   const vendors = await prisma.vendorReferral.findMany({
     orderBy: [{ approvalStatus: "asc" }, { submittedAt: "desc" }],
     include: { submittedByAssociate: { select: { fullName: true, associateCode: true } } },
@@ -70,7 +71,7 @@ export default async function AdminVendorsPage() {
                       <div className="text-[11px] text-muted-2">{format(v.submittedAt, "dd MMM yyyy")}</div>
                     </td>
                     <td className="px-5 py-3"><StatusPill status={v.approvalStatus} /></td>
-                    <td className="px-5 py-3"><StatusPill status={v.status} /></td>
+                    <td className="px-5 py-3"><StatusPill status={v.status} label={v.status === "Active" ? tc("active") : undefined} /></td>
                     <td className="px-5 py-3 text-right">
                       {v.approvalStatus === ApprovalStatus.Pending ? (
                         <ReferralApprovalActions id={v.id} />
