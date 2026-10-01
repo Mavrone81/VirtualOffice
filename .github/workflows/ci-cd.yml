@@ -262,7 +262,7 @@ jobs:
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
       || github.event_name == 'workflow_dispatch'
-    # SEC-8: bind the prod deploy to the GitHub Environment "production", so the project owner can add
+    # SEC-8: bind the prod deploy to the GitHub Environment "production", so the owner can add
     # required reviewers (a technical gate for his go) and move SSH_* into environment secrets.
     # Until he does, behaviour is unchanged: the environment is auto-created with no rules,
     # and repository secrets still resolve inside the job (environment secrets only override

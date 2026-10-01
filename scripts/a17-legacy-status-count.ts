@@ -1,7 +1,7 @@
 /**
  * A-17 §1c/§9 (S4) — READ-ONLY runbook step. Reports every SalesSubmission
  * by status (and by flow, once that column exists), and lists the ones still
- * open (Submitted / QuotationApproved) — these are the rows Q3 needs the project owner's
+ * open (Submitted / QuotationApproved) — these are the rows Q3 needs the owner's
  * per-row call on: close them under the old flow before deploy, or reject and
  * re-submit under the new flow. Run this twice: once before the phase-1
  * deploy (the migration hasn't added `flow` yet, so that column is reported
@@ -73,7 +73,7 @@ async function main() {
     orderBy: { createdAt: "asc" },
   });
 
-  console.log(`\n[OPEN — Q3: the project owner's per-row call before deploy] ${open.length} row(s):`);
+  console.log(`\n[OPEN — Q3: the owner's per-row call before deploy] ${open.length} row(s):`);
   for (const s of open) {
     console.log(`  ${s.id}  ${s.status.padEnd(18)} sale=${s.salesDate.toISOString().slice(0, 10)} amount=${s.saleAmount.toFixed(2)} created=${s.createdAt.toISOString().slice(0, 10)}`);
   }

@@ -1,7 +1,7 @@
 # VirtualOffice — Phase 1: Production Hardening + Service-Layer Foundation
 
 **Status:** Design approved (2026-07-10), pending spec review → implementation plan
-**Author:** the project owner Fu + Claude
+**Author:** the project owner + Claude
 **Scope owner:** Enshrine VirtualOffice (Associate Management Portal), `<local-path-redacted> HRms/`, `git@github.com:Mavrone81/VirtualOffice.git`
 
 ---

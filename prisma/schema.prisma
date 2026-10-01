@@ -591,7 +591,7 @@ model SalesSubmission {
   // SEC-5: when an edit last changed the commission split terms (and cleared the
   // split approvals). The SD's 3-day auto-approve counts from here, not createdAt.
   splitEditedAt              DateTime?        @map("split_edited_at")
-  // B-S6 (the project owner 2026-09-26: warn, don't block): a split that pushes any commission line
+  // B-S6 (owner ruling 2026-09-26: warn, don't block): a split that pushes any commission line
   // below zero is allowed, but needs a Business Admin "split exception" before it can close.
   // The approval covers the exact negative lines it saw (snapshot) and the split version it
   // was given for; any split edit or a worse recompute at close voids it.

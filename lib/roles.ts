@@ -5,7 +5,7 @@ import type { AppRole } from "@prisma/client";
 // lib/nav.ts) must come from here instead, or the two can silently drift
 // apart (A9 review: nav.ts had its own stale copy of this list).
 
-// Recruitment (invite candidate) is Manager and above (A9, the project owner 2026-09-26 —
+// Recruitment (invite candidate) is Manager and above (A9, owner ruling 2026-09-26 —
 // the PDF wins over the earlier 1 Sep AM+ decision). Sales Assistant Manager
 // can no longer invite; existing candidates a SAM invited earlier are
 // untouched — this only gates NEW invites going forward.
