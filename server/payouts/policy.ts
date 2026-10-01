@@ -21,7 +21,7 @@ const hold: NetNegativePolicy = {
   decide: () => ({ attach: true, note: "non-positive total" }),
 };
 
-/** M5-CF §3, the project owner's policy: never attach a non-positive net; the lines wait for the next run. */
+/** M5-CF §3, the owner's policy: never attach a non-positive net; the lines wait for the next run. */
 const carryForward: NetNegativePolicy = {
   name: "carry_forward",
   decide: () => ({ attach: false }),

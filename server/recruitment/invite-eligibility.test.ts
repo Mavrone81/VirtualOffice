@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// A9 (the project owner, 2026-09-26): recruitment invite is Manager and above — Sales
+// A9 (owner ruling, 2026-09-26): recruitment invite is Manager and above — Sales
 // Assistant Manager (SAM) is no longer eligible (reverses the earlier 1 Sep
 // AM+ decision). This only gates NEW invites: candidates a SAM invited
 // earlier are untouched (no data migration, nothing to assert here — there's

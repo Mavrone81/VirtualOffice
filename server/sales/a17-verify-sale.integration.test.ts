@@ -262,7 +262,7 @@ describe("verifySale — gates refuse on their own", () => {
 
     const { approveSplitException } = await import("./actions");
     who.session = { user: { id: ADMIN_A, associateId: null, role: "Admin" } };
-    const approved = await approveSplitException(subId, "the project owner approved this one-off split", null, violations);
+    const approved = await approveSplitException(subId, "the owner approved this one-off split", null, violations);
     expect(approved.ok).toBe(true);
 
     const blocked = await verifyAsAdmin(subId, 0, ADMIN_A);
@@ -364,7 +364,7 @@ describe("getVerifyChecklist — read-only, same gates as verifySale, never writ
     });
     const { approveSplitException } = await import("./actions");
     who.session = { user: { id: ADMIN_A, associateId: null, role: "Admin" } };
-    await approveSplitException(subId, "the project owner approved this one-off split", null, violations);
+    await approveSplitException(subId, "the owner approved this one-off split", null, violations);
 
     const asApprover = await checklistAsAdmin(subId, undefined, ADMIN_A);
     if (!asApprover.ok) throw new Error("expected ok");

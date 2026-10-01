@@ -106,7 +106,7 @@ describe("closeSale installment schedule — exact reconciliation", () => {
 
   it("a deposit is excluded before dividing the installments, but is its own schedule row (sequence 0)", async () => {
     const rows = await closedInstallmentSale(1000, 250, 4);
-    // Deposit row (the project owner, Q9): sequence 0, separate from the 4 installments.
+    // Deposit row (owner, Q9): sequence 0, separate from the 4 installments.
     const deposit = rows.find((r) => r.sequence === 0)!;
     expect(deposit.dueAmount.toFixed(2)).toBe("250.00");
     const installmentsTotal = rows.filter((r) => r.sequence > 0).reduce((s, r) => s + Number(r.dueAmount), 0);

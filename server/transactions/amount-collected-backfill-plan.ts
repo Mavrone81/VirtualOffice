@@ -10,7 +10,7 @@ import { ZERO, clamp, eq, round2, sum } from "@/lib/money";
  * recomputeAmountCollected) and compares it to the stored value.
  *
  * Classes (naming matches reviews/a0-backfill-runbook.md and
- * migration-designs.md §1 — the project owner reviews the per-month table and every
+ * migration-designs.md §1 — the owner reviews the per-month table and every
  * `manual-*` row before any apply):
  *  - "clean": already correct, nothing to do.
  *  - "to-update": computed differs from stored, 0 ≤ computed ≤ saleAmount —
@@ -19,7 +19,7 @@ import { ZERO, clamp, eq, round2, sum } from "@/lib/money";
  *    (unclamped) sum exceeds saleAmount — a duplicate invoice or a schedule
  *    bug. Never auto-corrected past the clamp; a human decides.
  *  - "manual-deposit-rule-pending": an installment plan with a deposit but NO
- *    sequence-0 schedule row predates the deposit-row change (the project owner, Q9) —
+ *    sequence-0 schedule row predates the deposit-row change (owner, Q9) —
  *    whether that deposit was ever actually collected isn't recorded
  *    anywhere, so it is never assumed either way.
  */

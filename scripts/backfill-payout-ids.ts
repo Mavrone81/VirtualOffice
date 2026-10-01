@@ -5,7 +5,7 @@
  *
  * It CANNOT write: the Prisma client below only lets read operations through (no
  * model writes, no raw SQL), the runbook runs it in a read-only DB session, and there
- * is no apply mode. Linking is a separate, reviewed change that needs the project owner's go
+ * is no apply mode. Linking is a separate, reviewed change that needs the owner's go
  * because it touches production data.
  *
  * Output contains ids and amounts only — no names or other personal data.

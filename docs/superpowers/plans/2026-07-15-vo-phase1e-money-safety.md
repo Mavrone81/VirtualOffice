@@ -23,7 +23,7 @@
   Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01EvKLWJaD5mh77pk9qK4hAf
   ```
-  `git -c user.email="the project owner.fu@rmagroup.com.sg" -c user.name="the project owner Fu"`.
+  `git -c user.email="you@example.com" -c user.name="Your Name"`.
 
 ---
 

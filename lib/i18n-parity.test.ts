@@ -17,14 +17,14 @@ describe("i18n key parity (en vs zh-CN)", () => {
     expect([...zhKeys].filter((k) => !enKeys.has(k))).toEqual([]);
   });
 
-  // A14, revised by the project owner 28 Sep: the name-card field reads "Chinese Name" in
+  // A14, revised by owner ruling 28 Sep: the name-card field reads "Chinese Name" in
   // English and 中文名 in Chinese (its placeholder is 中文名, not a sample name).
   it("nameCard.chineseName reads Chinese Name / 中文名", () => {
     expect(en.nameCard.chineseName).toBe("Chinese Name");
     expect(zhCN.nameCard.chineseName).toBe("中文名");
   });
 
-  // A-15 revised by the project owner 28 Sep: the associate Marketing menu item and its
+  // A-15 revised by owner ruling 28 Sep: the associate Marketing menu item and its
   // page title read "Customisation" (same wording as the admin library), not 中文名.
   it("the associate Customisation menu item and its page title read Customisation", () => {
     expect(en.nav.chineseNameMenu).toBe(en.nav.customisation);

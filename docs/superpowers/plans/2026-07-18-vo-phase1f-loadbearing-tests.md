@@ -17,12 +17,12 @@
 - **Money is `Prisma.Decimal`** (`@db.Decimal(14,2)`); compare with `.toString()` or `Number(x)`, never `===` on Decimal objects.
 - **No pushing, no seeding prod.** These tests only ever touch the dev DB.
 - **TDD**; colocated `*.test.ts`; full suite + `pnpm tsc --noEmit` + `pnpm lint` green before each commit.
-- **Commit trailer (every commit), authored as the project owner Fu:**
+- **Commit trailer (every commit), authored as yourself:**
   ```
   Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01EvKLWJaD5mh77pk9qK4hAf
   ```
-  `git -c user.email="the project owner.fu@rmagroup.com.sg" -c user.name="the project owner Fu"`.
+  `git -c user.email="you@example.com" -c user.name="Your Name"`.
 
 ---
 
@@ -108,7 +108,7 @@ Expected: all green.
 - [ ] **Step 4: Commit**
 
 ```bash
-git -c user.email="the project owner.fu@rmagroup.com.sg" -c user.name="the project owner Fu" \
+git -c user.email="you@example.com" -c user.name="Your Name" \
   commit -m "test(pii): maskNric/maskAccount never leak raw digits"
 ```
 
@@ -228,7 +228,7 @@ Expected: PASS (4 cases). If the enum string casts (`as never`) mismatch the rea
 - [ ] **Step 4: Commit**
 
 ```bash
-git -c user.email="the project owner.fu@rmagroup.com.sg" -c user.name="the project owner Fu" \
+git -c user.email="you@example.com" -c user.name="Your Name" \
   commit -m "test(idor): exercise real downline CTE + scoped query isolation"
 ```
 
@@ -413,7 +413,7 @@ Expected: all green. Then confirm cleanup: `docker exec vo-dev-pg psql -U postgr
 - [ ] **Step 4: Commit**
 
 ```bash
-git -c user.email="the project owner.fu@rmagroup.com.sg" -c user.name="the project owner Fu" \
+git -c user.email="you@example.com" -c user.name="Your Name" \
   commit -m "test(pipeline): submit→verify→payout→bank-file reconciles to 600/80/40/280"
 ```
 
