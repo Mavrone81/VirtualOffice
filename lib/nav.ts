@@ -147,10 +147,20 @@ export const portalNav: NavGroup[] = [
     ],
   },
   {
-    titleKey: "groupFormsSubmission",
+    // C-6 (p.6): "Forms & Submission" renamed to "Submissions" for the
+    // associate portal. Own key (`groupSubmissionsBase`), not a rewrite of
+    // `groupFormsSubmission`, because adminNav's own "Forms & Submission"
+    // group shares that key and is out of scope here.
+    // Referral Partner List moved out to Resources, below Documents (C-6).
+    // NOT done here, deliberately: promoting the quotation-request form
+    // (today embedded in the Doc Template page, itself gated behind
+    // A17_CLOSED_DEAL_FLOW) to its own item, and folding the rest of Doc
+    // Template's content into Documents — both need a decision on whether
+    // the new nav item should carry the same flag gate, not a guess.
+    titleKey: "groupSubmissionsBase",
     items: [
       {
-        labelKey: "groupFormsSubmission", icon: FileSignature,
+        labelKey: "groupSubmissionsBase", icon: FileSignature,
         children: [
           { labelKey: "transactionSubmission", href: "/portal/sales", icon: Receipt },
           // A-17 live-path finding: /portal/quotations (the old 16-Jul
@@ -166,7 +176,6 @@ export const portalNav: NavGroup[] = [
           { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
           // A13: "Agreements" → "Doc Template" (blank templates to download).
           { labelKey: "docTemplate", href: "/portal/agreements", icon: FileSignature },
-          { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
         ],
       },
     ],
@@ -208,6 +217,8 @@ export const portalNav: NavGroup[] = [
         children: [
           { labelKey: "notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
           { labelKey: "documents", href: "/portal/documents", icon: FolderOpen },
+          // C-6 (p.6): moved here from Submissions, directly below Documents.
+          { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
           { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
         ],
       },
