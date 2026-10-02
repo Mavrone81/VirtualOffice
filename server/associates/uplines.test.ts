@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { authMock, prismaMock, downlineMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
-    associate: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
+    associate: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), create: vi.fn() },
   },
   downlineMock: vi.fn(),
 }));
@@ -40,7 +40,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   authMock.mockResolvedValue({ user: { id: "admin1", role: "Admin", associateId: null } });
   prismaMock.associate.findUnique.mockImplementation(routeFindUnique as never);
-  prismaMock.associate.findFirst.mockResolvedValue({ associateCode: "EN0100" }); // → next code EN0101
+  // nextAssociateCode() queries findMany scoped to the "EN" prefix (see actions.ts).
+  prismaMock.associate.findMany.mockResolvedValue([{ associateCode: "EN0100" }]); // next code EN0101
   prismaMock.associate.update.mockResolvedValue({});
   prismaMock.associate.create.mockResolvedValue({});
   downlineMock.mockResolvedValue([]); // no descendants by default
