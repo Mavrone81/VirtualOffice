@@ -109,3 +109,44 @@ describe("inviteCandidate — role gate (A9: Manager and above)", () => {
     expect(prismaMock.candidate.create).toHaveBeenCalledTimes(1);
   });
 });
+
+
+// Added with the mail-parser DoS fix: inviteCandidate is the only writer of
+// Candidate.email, and an unbounded address reaches nodemailer's parser via
+// lib/mail.ts sendMail. These assert the bound rejects a hostile address BEFORE
+// any candidate.create or sendMail. Mutation proof: deleting the validate() call
+// in inviteCandidate makes both rejection cases reach create+sendMail and the
+// two expect(...).not.toHaveBeenCalled() assertions fail.
+describe("inviteCandidate — email bound (mail-parser DoS guard)", () => {
+  beforeEach(() => {
+    authMock.mockResolvedValue({ user: { id: "mgr", role: "SalesManager", associateId: "a9" } });
+  });
+
+  // Control: a legitimate address still reaches create + sendMail. Without it, a
+  // reject-everything guard would satisfy the two rejection cases vacuously.
+  it("accepts a normal address (guard is not reject-all)", async () => {
+    const r = await inviteCandidate({ ...input, email: "valid@example.com" });
+    expect(r.ok).toBe(true);
+    expect(prismaMock.candidate.create).toHaveBeenCalledTimes(1);
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Over-length address — the length bound (.max(254), RFC 5321 maximum).
+  it("rejects an over-length address before create or sendMail", async () => {
+    const hostile = "a".repeat(300) + "@example.com";
+    const r = await inviteCandidate({ ...input, email: hostile });
+    expect(r).toEqual({ ok: false, error: "invalidInput" });
+    expect(prismaMock.candidate.create).not.toHaveBeenCalled();
+    expect(sendMailMock).not.toHaveBeenCalled();
+  });
+
+  // Malformed structure, short enough that only .email() (not .max) catches it:
+  // the group-colon shape measured as super-linear in the address parser.
+  it("rejects a malformed address before create or sendMail", async () => {
+    const hostile = "g" + ":".repeat(40) + "a@b.c";
+    const r = await inviteCandidate({ ...input, email: hostile });
+    expect(r).toEqual({ ok: false, error: "invalidInput" });
+    expect(prismaMock.candidate.create).not.toHaveBeenCalled();
+    expect(sendMailMock).not.toHaveBeenCalled();
+  });
+});

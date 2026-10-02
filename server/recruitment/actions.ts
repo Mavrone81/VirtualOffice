@@ -22,7 +22,7 @@ import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "@/server/associates/payee-audit";
 import { validate } from "@/lib/validate";
-import { onboardingSchema } from "@/lib/schemas";
+import { onboardingSchema, inviteCandidateSchema } from "@/lib/schemas";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 import { fileSignedAgreement } from "@/server/recruitment/file-signed-agreement";
 
@@ -168,6 +168,9 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   if (!session) return { ok: false, error: t("forbidden") };
   if (!input.fullName?.trim()) return { ok: false, error: t("fullNameRequired") };
   if (!input.email?.trim()) return { ok: false, error: t("emailRequired") };
+  // Bound the address before it can reach the mail transport's parser (DoS guard).
+  const emailCheck = validate(inviteCandidateSchema, { email: input.email });
+  if (!emailCheck.ok) return { ok: false, error: t("invalidInput") };
 
   // Consolidated-menu rework (Sep 2026): direct recruits go into the
   // recruiter's OWN team — only a Business Admin can place a candidate into
@@ -189,7 +192,7 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   if (input.intendedDirectUplineCode && !upline) return { ok: false, error: t("uplineCodeNotFound") };
 
   const token = randomBytes(24).toString("base64url");
-  const email = input.email.trim().toLowerCase();
+  const email = emailCheck.data.email.toLowerCase();
   const candidate = await prisma.candidate.create({
     data: {
       fullName: input.fullName.trim(),
