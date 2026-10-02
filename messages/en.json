@@ -1338,7 +1338,8 @@
       "colClient": "Client",
       "colProducts": "Products",
       "colAmount": "Amount",
-      "colPlan": "Plan"
+      "colPlan": "Plan",
+      "colCommission": "Commission"
     },
     "commissions": {
       "pageTitle": "Team commissions",

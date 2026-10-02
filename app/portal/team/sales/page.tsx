@@ -2,8 +2,9 @@ import { format } from "date-fns";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { teamScopeIds } from "@/lib/team";
-import { formatSGD, sum } from "@/lib/money";
+import { formatSGD, sum, ZERO } from "@/lib/money";
 import { humanize } from "@/lib/labels";
+import { fetchTeamSalesCommissionByTransaction, teamSalesCommissionFor } from "@/server/sales/team-commission-column";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
@@ -28,10 +29,22 @@ export default async function TeamSalesPage() {
     ? await prisma.salesSubmission.findMany({
         where: { closingAssociateId: { in: teamIds } },
         orderBy: { createdAt: "desc" },
-        include: { lineItems: { select: { productName: true } }, closingAssociate: { select: { fullName: true, associateCode: true } } },
+        include: {
+          lineItems: { select: { productName: true } },
+          closingAssociate: { select: { fullName: true, associateCode: true } },
+          transaction: { select: { id: true } },
+        },
         take: 200,
       })
     : [];
+
+  // C-9: a submission with no transaction yet (not verified) has no
+  // commission to show at all -- the table renders that as "no commission
+  // yet", not "$0". Looking up must use the ROW'S OWN closing associate
+  // (teamSalesCommissionFor), not the transaction alone -- a split sale can
+  // carry more than one associate's Personal line on the same transaction.
+  const txnIds = submissions.map((s) => s.transaction?.id).filter((id): id is string => !!id);
+  const commissionByTxnAssociate = await fetchTeamSalesCommissionByTransaction(txnIds);
 
   const verified = submissions.filter((s) => s.status === "QuotationApproved");
   const total = sum(submissions.map((s) => s.saleAmount));
@@ -62,6 +75,7 @@ export default async function TeamSalesPage() {
                   <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colAmount")}</th>
                   <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colPlan")}</th>
                   <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{tc("status")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colCommission")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,6 +91,11 @@ export default async function TeamSalesPage() {
                     <td className="px-5 py-3 text-right text-ink">{formatSGD(s.saleAmount)}</td>
                     <td className="px-5 py-3 text-muted">{humanize(s.paymentPlan)}</td>
                     <td className="px-5 py-3"><StatusPill status={s.status} /></td>
+                    <td className="px-5 py-3 text-right text-ink">
+                      {s.transaction
+                        ? formatSGD(teamSalesCommissionFor(commissionByTxnAssociate, s.transaction.id, s.closingAssociateId) ?? ZERO)
+                        : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

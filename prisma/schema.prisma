@@ -180,7 +180,7 @@ enum LedgerLineType {
 // creates Pending/Eligible, and every payout-attachment site requires
 // Eligible — so this is dormant today, not yet exercised by a live figure).
 // The day something DOES cancel a line, an aggregate that forgot this
-// predicate would silently include it. Eight call sites follow this rule —
+// predicate would silently include it. Nine call sites follow this rule —
 // this list IS the fix, so keep it exact, not just "the ones that come to
 // mind" (a basename match is not a path match: lib/recruitment-view.ts and
 // components/recruitment/recruitment-view.tsx are two different files, 4719
@@ -189,7 +189,10 @@ enum LedgerLineType {
 // lib/my-share.ts, lib/recruitment-view.ts,
 // components/recruitment/recruitment-view.tsx, server/dashboard/metrics.ts's
 // grossTransacted (pre-existing) and, added 2026-10-01 as a consistency
-// fix, the same file's grossReceived and receivedInYear.
+// fix, the same file's grossReceived and receivedInYear; and, added 2026-10-02
+// (C-9), server/sales/team-commission-column.ts's
+// fetchTeamSalesCommissionByTransaction (Team Sales' per-row Commission
+// column).
 enum LedgerStatus {
   Pending
   Eligible

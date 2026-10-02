@@ -1338,7 +1338,8 @@
       "colClient": "客户",
       "colProducts": "产品",
       "colAmount": "金额",
-      "colPlan": "付款方式"
+      "colPlan": "付款方式",
+      "colCommission": "佣金"
     },
     "commissions": {
       "pageTitle": "团队佣金",
