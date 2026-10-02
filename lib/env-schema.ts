@@ -21,8 +21,27 @@ export const envSchema = z.object({
   AUTH_SECRET: z.string().min(1),
   AUTH_URL: z.string().optional(),
   // 32-byte key as 64 hex chars for AES-256-GCM PII encryption.
-  PII_ENCRYPTION_KEY: z.string().min(64),
-  PII_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
+  // 🔴 EXACTLY 64 hex chars, and hex-only. lib/crypto.ts does
+  // `Buffer.from(PII_ENCRYPTION_KEY, "hex")` and requires 32 bytes, so:
+  //   - `.min(64)` accepted a 96-char key, which decoded to 48 bytes and threw at
+  //     module import, AFTER this preflight had passed it. A gate that certifies an
+  //     input its consumer rejects turns a clear preflight error into an opaque crash
+  //     that cascades as unrelated collection failures.
+  //   - length alone is not enough either: `Buffer.from` silently truncates invalid
+  //     hex (64 non-hex chars -> 0 bytes, 62 hex + "zz" -> 31 bytes), so a 64-char
+  //     non-hex value passes a length check and produces the same wrong buffer.
+  PII_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, "PII_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)"),
+  // Same constraint when present. It was previously unvalidated anywhere — no length
+  // check in this schema and none in lib/crypto.ts, which checks only the current key.
+  // A malformed previous key therefore failed LATE, at `createDecipheriv` during a PII
+  // decrypt (payout-file generation or the HR screen) and only once key rotation
+  // actually exercised it, rather than at startup.
+  PII_ENCRYPTION_KEY_PREVIOUS: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, "PII_ENCRYPTION_KEY_PREVIOUS must be exactly 64 hex characters (32 bytes)")
+    .optional(),
 
   // Local-filesystem object storage root. In prod this is a mounted Docker
   // volume (/data/uploads); in dev it defaults to a repo-relative folder.
