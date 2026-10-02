@@ -190,9 +190,12 @@ describe("C-4 (DevSecOps/PD review): concurrent offline uploads for the same ass
 
     // Exactly one of the two genuinely concurrent calls wins; the other must
     // be refused by the SAME guard a sequential second call would hit — not
-    // silently also succeed, which is the exact bug class the FOR UPDATE
-    // lock exists to close (the pre-fix TOCTOU: both reads happen before
-    // either write).
+    // silently also succeed, which is the exact bug class the atomic CAS
+    // (updateMany matched on signedAgreementFileKey: null) exists to close
+    // (the pre-fix TOCTOU: both reads happen before either write). No
+    // assertion on object/storage count here, deliberately — the loser's
+    // putObject having already run before its rollback is the ADR-0001/N2-
+    // accepted orphan outcome, not something this test should enshrine.
     const results = [ra, rb];
     const wins = results.filter((r) => r.ok);
     const losses = results.filter((r) => !r.ok);
