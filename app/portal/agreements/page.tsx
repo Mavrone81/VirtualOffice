@@ -2,10 +2,12 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { FileText } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import type { TemplateCategory } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { transactionScopeIds } from "@/lib/transaction-scope";
+import { documentVisibilityWhere } from "@/lib/documents";
 import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -19,6 +21,20 @@ export const metadata = { title: "Doc Template · Enshrine Portal" };
 // category (Pets Afterlife / Human Afterlife) to download. Below them, the
 // signed Storage of Pets Ashes agreements in the viewer's scope stay listed
 // (same visibility ladder as transactions) so nothing already signed is lost.
+//
+// B-5 (Option 1, 2026-10-02): these two built-ins render UNCONDITIONALLY,
+// with the category's current admin-uploaded Document row (if any) appended
+// after them — never a resolution step where one replaces the other in this
+// list. Two independent reasons, not one:
+//  1. The product decision (this was a CHANGES-REQUIRED finding against an
+//     earlier build that hid them on upload — see
+//     reviews/b5-doc-template-architect-review.md D1).
+//  2. These exact files are the sha-pinned e-signing generation masters
+//     (lib/pdf/agreement.ts, lib/pdf/associate-agreement-coordinates.ts) —
+//     "replacing" them is the catastrophic case, so they were never eligible
+//     to be the browsable copy B-5's admin upload replaces. That upload is a
+//     separate Document row in object storage; it only ever adds to this
+//     list, never substitutes into it.
 const TEMPLATES = {
   pets: [
     { key: "tplPetAsh", href: "/templates/storage-of-pets-ashes-agreement.pdf" },
@@ -28,6 +44,7 @@ const TEMPLATES = {
 } as const;
 type TemplateCat = keyof typeof TEMPLATES;
 type Cat = TemplateCat | "quotation";
+const CATEGORY_FOR_CAT: Record<TemplateCat, TemplateCategory> = { pets: "PetsAfterlife", human: "HumanAfterlife" };
 
 export default async function PortalAgreementsPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
   const session = await auth();
@@ -72,7 +89,30 @@ export default async function PortalAgreementsPage({ searchParams }: { searchPar
     }));
   }
 
-  const templates = cat === "quotation" ? [] : TEMPLATES[cat];
+  let uploaded: { id: string; title: string }[] = [];
+  if (cat !== "quotation") {
+    const assoc = session.user.associateId
+      ? await prisma.associate.findUnique({ where: { id: session.user.associateId }, select: { teamName: true } })
+      : null;
+    uploaded = await prisma.document.findMany({
+      where: {
+        AND: [
+          documentVisibilityWhere(session.user.associateId ?? null, assoc?.teamName ?? null),
+          { category: CATEGORY_FOR_CAT[cat], retiredAt: null },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true },
+    });
+  }
+
+  const templates: { href: string; label: string }[] =
+    cat === "quotation"
+      ? []
+      : [
+          ...TEMPLATES[cat].map((tpl) => ({ href: tpl.href, label: t(`docTemplate.${tpl.key}`) })),
+          ...uploaded.map((u) => ({ href: `/documents/${u.id}/download`, label: u.title })),
+        ];
 
   return (
     <>
@@ -106,7 +146,7 @@ export default async function PortalAgreementsPage({ searchParams }: { searchPar
             <a key={tpl.href} href={tpl.href} target="_blank" rel="noopener" className="block">
               <Card className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-paper-100">
                 <FileText className="h-5 w-5 shrink-0 text-action" strokeWidth={1.75} />
-                <span className="font-medium text-ink">{t(`docTemplate.${tpl.key}`)}</span>
+                <span className="font-medium text-ink">{tpl.label}</span>
                 <span className="ml-auto text-[12px] text-action">{t("docTemplate.download")}</span>
               </Card>
             </a>

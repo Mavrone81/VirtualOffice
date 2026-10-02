@@ -73,6 +73,7 @@
     "payouts": "佣金发放",
     "notices": "公告",
     "documents": "文件",
+    "docTemplates": "文件模板",
     "vendors": "供应商",
     "nameCard": "名片",
     "auditLog": "审计日志",
@@ -391,6 +392,30 @@
       "typeVendorMOU": "供应商谅解备忘录",
       "typeSalesAgreement": "销售协议",
       "typeOther": "其他"
+    }
+  },
+  "docTemplateAdmin": {
+    "title": "文件模板",
+    "subtitle": "为员工文件模板页面显示的分类参考模板，管理员上传。",
+    "currentHeading": "每个分类当前的上传",
+    "currentNone": "暂无上传 — 门户页面仍显示内置模板。",
+    "currentUploadedOn": "上传于 {date}",
+    "form": {
+      "heading": "上传模板",
+      "categoryLabel": "分类",
+      "titleLabel": "标题 *",
+      "titlePlaceholder": "例如：更新的说明表",
+      "fileLabel": "文件 *",
+      "fileHint": "PDF、PNG 或 JPEG，最大 15 MB。将替换该分类当前的上传。",
+      "errorNoTitle": "请输入标题。",
+      "errorNoFile": "请选择一个文件。",
+      "errorFileTooLarge": "文件过大（最大 15 MB）。",
+      "errorInvalidFileType": "无法识别的文件类型 — 仅支持 PDF、PNG 或 JPEG。",
+      "errorConflict": "有人刚刚替换了这个文件 — 请刷新后重试。",
+      "errorForbidden": "您没有权限执行此操作。",
+      "errorDefault": "上传失败。",
+      "submit": "上传",
+      "submitting": "上传中…"
     }
   },
   "invoices": {

@@ -73,6 +73,7 @@
     "payouts": "Payouts",
     "notices": "Notices",
     "documents": "Documents",
+    "docTemplates": "Doc Template",
     "vendors": "Vendors",
     "nameCard": "Name Card",
     "auditLog": "Audit Log",
@@ -391,6 +392,30 @@
       "typeVendorMOU": "Vendor MOU",
       "typeSalesAgreement": "Sales Agreement",
       "typeOther": "Other"
+    }
+  },
+  "docTemplateAdmin": {
+    "title": "Doc Template",
+    "subtitle": "Admin upload for the category reference templates shown on the associate Doc Template page.",
+    "currentHeading": "Current upload per category",
+    "currentNone": "No upload yet — the built-in templates still show on the portal page.",
+    "currentUploadedOn": "Uploaded {date}",
+    "form": {
+      "heading": "Upload template",
+      "categoryLabel": "Category",
+      "titleLabel": "Title *",
+      "titlePlaceholder": "e.g. Updated info sheet",
+      "fileLabel": "File *",
+      "fileHint": "PDF, PNG, or JPEG, up to 15 MB. Replaces the current upload for this category.",
+      "errorNoTitle": "Please enter a title.",
+      "errorNoFile": "Please choose a file.",
+      "errorFileTooLarge": "File is too large (max 15 MB).",
+      "errorInvalidFileType": "File type not recognized — PDF, PNG, or JPEG only.",
+      "errorConflict": "Someone just replaced this — refresh and try again.",
+      "errorForbidden": "You don't have permission to do this.",
+      "errorDefault": "Upload failed.",
+      "submit": "Upload",
+      "submitting": "Uploading…"
     }
   },
   "invoices": {
