@@ -20,3 +20,6 @@
 #   git ls-tree -r --format='%(objectname)  %(path)' HEAD -- public/fonts | sort -k2
 8b36aaac645aa1691f0efbf128799d1de86cd943  public/fonts/alex-brush/AlexBrush-Regular.ttf
 b596b96b81a244ded88e131d8d5edc68967b129d  public/fonts/alex-brush/OFL.txt
+f43c6b3549132f646d77bba54184487630f2d6c1  public/fonts/tinos/OFL.txt
+ad66f39e5afe4319fc10f3443c01516305a3db8d  public/fonts/tinos/Tinos-Bold.woff2
+8c3493bcd348c8d4320293f707a2f024de6ec1cb  public/fonts/tinos/Tinos-Italic.woff2

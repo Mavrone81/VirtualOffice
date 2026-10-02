@@ -21,7 +21,20 @@ const FB = "www.facebook.com/enshrinefuneralservices";
 // C-1: Designation/Contact/Email are explicitly Times New Roman per the spec — the
 // parent's Georgia-first stack (line ~142) would otherwise win wherever Georgia is
 // available, which isn't the font the owner's p.1 spec asked for.
-const TIMES_NEW_ROMAN = "'Times New Roman', Georgia, serif";
+//
+// Tinos first, not 'Times New Roman' itself: Android ships neither Times New
+// Roman nor Liberation Serif (its serif is Noto Serif, a different typeface
+// with different metrics), so without a self-hosted face every Android render
+// of this card silently used the wrong font — same latent-fidelity shape as
+// the fonts-matcher fix, just for rendered pixels instead of an HTTP redirect.
+// Tinos is Google's metric-compatible clone of Times New Roman (self-hosted
+// below, SIL Open Font License 1.1 — same license as Liberation Serif itself,
+// not the licensing distinction an earlier note assumed existed between them).
+// Putting it first means every platform rasterizes the same face instead of
+// whatever the device happens to have, trading "sometimes the device's own
+// real Times New Roman" for "always this one" — deliberate, since consistency
+// across platforms is the point.
+const TIMES_NEW_ROMAN = "'Tinos', 'Times New Roman', Georgia, serif";
 // C-1: Trattatello (the owner's original pick) is an Apple system font with no
 // web/server embedding licence (Q4) — approved substitute is Alex Brush, SIL
 // Open Font License 1.1 (self-hosted below, licence bundled alongside the font
@@ -142,6 +155,26 @@ export function NameCardStudio({
           font-family: 'Alex Brush';
           src: url('/fonts/alex-brush/AlexBrush-Regular.ttf') format('truetype');
           font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+      `}</style>
+      {/* Tinos, same self-hosting reason as Alex Brush (SIL OFL licence file
+          bundled alongside — public/fonts/tinos/OFL.txt). Only the two faces
+          actually used below: italic (title, email) and bold (HP) — no plain
+          upright face is ever requested, so none is shipped. */}
+      <style>{`
+        @font-face {
+          font-family: 'Tinos';
+          src: url('/fonts/tinos/Tinos-Italic.woff2') format('woff2');
+          font-weight: 400;
+          font-style: italic;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'Tinos';
+          src: url('/fonts/tinos/Tinos-Bold.woff2') format('woff2');
+          font-weight: 700;
           font-style: normal;
           font-display: swap;
         }
