@@ -14,6 +14,7 @@ export function AppShell({
   badges,
   marketingLibraryEnabled,
   hasInFlightLegacyQuotation,
+  quotationRequestEnabled,
   alerts = [],
   period,
   children,
@@ -23,6 +24,7 @@ export function AppShell({
   badges?: Record<string, number>;
   marketingLibraryEnabled?: boolean;
   hasInFlightLegacyQuotation?: boolean;
+  quotationRequestEnabled?: boolean;
   alerts?: Alert[];
   period?: string;
   children: React.ReactNode;
@@ -36,6 +38,7 @@ export function AppShell({
         badges={badges}
         marketingLibraryEnabled={marketingLibraryEnabled}
         hasInFlightLegacyQuotation={hasInFlightLegacyQuotation}
+        quotationRequestEnabled={quotationRequestEnabled}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />

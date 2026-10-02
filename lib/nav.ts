@@ -152,11 +152,20 @@ export const portalNav: NavGroup[] = [
     // `groupFormsSubmission`, because adminNav's own "Forms & Submission"
     // group shares that key and is out of scope here.
     // Referral Partner List moved out to Resources, below Documents (C-6).
-    // NOT done here, deliberately: promoting the quotation-request form
-    // (today embedded in the Doc Template page, itself gated behind
-    // A17_CLOSED_DEAL_FLOW) to its own item, and folding the rest of Doc
-    // Template's content into Documents — both need a decision on whether
-    // the new nav item should carry the same flag gate, not a guess.
+    // "Quotation Request" below is new: the form already exists, embedded in
+    // the Doc Template page under ?cat=quotation, itself gated behind
+    // A17_CLOSED_DEAL_FLOW — the owner's decision (relayed, not guessed) is
+    // fail-closed: HIDDEN, not merely disabled, until A-17 is live (see
+    // quotationRequestVisible below). Unlike the marketing-library items,
+    // this one is NOT shown as a disabled "coming soon" row when off — a
+    // shown item behind a disabled flow is a visible broken path for a real
+    // associate; a hidden item that could have shown is just a question
+    // asked later. The href is real and static (the page itself already
+    // flag-checks server-side); only the nav entry's VISIBILITY is gated.
+    // NOT done here, deliberately: folding the REST of Doc Template's
+    // content (Pets/Human Afterlife tabs + signed agreements) into
+    // Documents — a real page merge, bigger than a nav change, held
+    // separately.
     titleKey: "groupSubmissionsBase",
     items: [
       {
@@ -174,6 +183,7 @@ export const portalNav: NavGroup[] = [
           // dead" the way a permanently-reachable-but-often-empty page could.
           { labelKey: "myQuotations", href: "/portal/quotations", icon: FileCheck },
           { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
+          { labelKey: "quotationRequest", href: "/portal/agreements?cat=quotation", icon: BadgeCheck },
           // A13: "Agreements" → "Doc Template" (blank templates to download).
           { labelKey: "docTemplate", href: "/portal/agreements", icon: FileSignature },
         ],
@@ -296,4 +306,16 @@ export function withMarketingLibraryHref(item: NavItem, area: ShellArea, marketi
 // — keep this comment in sync if either one changes.
 export function myQuotationsVisible(item: NavItem, hasInFlightLegacyQuotation: boolean): boolean {
   return item.labelKey !== "myQuotations" || hasInFlightLegacyQuotation;
+}
+
+// C-6: "Quotation Request" (portalNav only) has a real, static href — the
+// page it points to already flag-checks A17_CLOSED_DEAL_FLOW server-side —
+// but nav.ts can't read that flag itself (same constraint as the
+// marketing-library items), so VISIBILITY crosses the server/client boundary
+// as this one boolean prop instead. Pure and named distinctly from
+// `visible` (the role check in sidebar.tsx) because this is a flag gate, not
+// a role gate, and only ever touches this one labelKey — everything else is
+// unaffected regardless of the flag's value.
+export function quotationRequestVisible(item: NavItem, quotationRequestEnabled: boolean): boolean {
+  return item.labelKey !== "quotationRequest" || quotationRequestEnabled;
 }

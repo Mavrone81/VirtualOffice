@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LogOut, KeyRound, ChevronDown } from "lucide-react";
 import type { AppRole } from "@prisma/client";
-import { navByArea, withMarketingLibraryHref, myQuotationsVisible, type NavItem, type ShellArea } from "@/lib/nav";
+import { navByArea, withMarketingLibraryHref, myQuotationsVisible, quotationRequestVisible, type NavItem, type ShellArea } from "@/lib/nav";
 import { doSignOut } from "@/lib/auth-actions";
 
 export type ShellUser = { name: string; roleLabel: string; initials: string; subtitle?: string; role?: AppRole };
@@ -35,6 +35,7 @@ export function Sidebar({
   badges = {},
   marketingLibraryEnabled = false,
   hasInFlightLegacyQuotation = false,
+  quotationRequestEnabled = false,
   mobileOpen,
   onClose,
 }: {
@@ -43,6 +44,7 @@ export function Sidebar({
   badges?: Record<string, number>;
   marketingLibraryEnabled?: boolean;
   hasInFlightLegacyQuotation?: boolean;
+  quotationRequestEnabled?: boolean;
   mobileOpen: boolean;
   onClose: () => void;
 }) {
@@ -54,7 +56,9 @@ export function Sidebar({
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const visible = (i: NavItem) =>
-    (!i.roles || (user.role != null && i.roles.includes(user.role))) && myQuotationsVisible(i, hasInFlightLegacyQuotation);
+    (!i.roles || (user.role != null && i.roles.includes(user.role))) &&
+    myQuotationsVisible(i, hasInFlightLegacyQuotation) &&
+    quotationRequestVisible(i, quotationRequestEnabled);
   // Marketing-library items ship with no href (see lib/nav.ts) so the flag
   // can gate them without importing @/lib/env into this client bundle — the
   // flag crosses the server/client boundary as this one boolean prop instead.

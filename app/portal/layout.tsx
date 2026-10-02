@@ -85,6 +85,7 @@ export default async function PortalLayout({ children }: { children: React.React
       badges={{ notices: unreadNotices, splitApprovals }}
       marketingLibraryEnabled={env.MARKETING_LIBRARY_ENABLED}
       hasInFlightLegacyQuotation={hasInFlightLegacyQuotation}
+      quotationRequestEnabled={env.A17_CLOSED_DEAL_FLOW}
       alerts={alerts}
       period={currentPeriod(locale)}
     >
