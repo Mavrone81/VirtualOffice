@@ -20,6 +20,18 @@ const nextConfig: NextConfig = {
     // with headroom for the signature + form fields + multipart overhead.
     serverActions: { bodySizeLimit: "10mb" },
   },
+  // #29: the single-use token lives in this page's own URL (browser history,
+  // any Referer header a subresource or outbound navigation would otherwise
+  // send). no-referrer holds even if a future change on this page DOES emit
+  // a request, rather than relying on there never being one.
+  async headers() {
+    return [{ source: "/reset-password/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
+  },
 };
+
+// Named, not just default-exported: the next-intl plugin wrapper's returned
+// object doesn't expose `headers` the same way (its own concern, not under
+// test here) — a test imports this directly to check what we actually wrote.
+export { nextConfig };
 
 export default withNextIntl(nextConfig);

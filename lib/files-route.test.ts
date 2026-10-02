@@ -9,7 +9,7 @@ const BOB = "1d09f090-109a-4ad2-9d4d-dc048f05cab5";
 const CAND = "71837acb-4d18-4ad3-a96f-f2f96c78dd81";
 const SUB = "3c431f41-ea18-4e95-a12e-dd067470a71e";
 
-const state = { session: null as null | { user: { role: string; associateId: string | null } } };
+const state = { session: null as null | { user: { role: string; associateId: string | null; mustResetPassword?: boolean } } };
 
 vi.mock("@/auth", () => ({ auth: async () => state.session }));
 vi.mock("@/lib/db", () => ({
@@ -66,6 +66,19 @@ describe("/api/files access control", () => {
     expect((await get(`associates/${BOB}/photo.jpg`)).status).toBe(403);
     state.session = null;
     expect((await get(`associates/${ALICE}/photo.jpg`)).status).toBe(401);
+  });
+
+  // #29: middleware.ts excludes /api/* entirely, so the force-reset
+  // page redirect never applies here — this route must check the flag itself.
+  it("refuses a session with mustResetPassword still set, without reading storage", async () => {
+    state.session = { user: { role: "SalesAssociate", associateId: ALICE, mustResetPassword: true } };
+    expect((await get(`associates/${ALICE}/photo.jpg`)).status).toBe(403);
+    expect(getObject).not.toHaveBeenCalled();
+  });
+
+  it("positive control: the same caller is served once mustResetPassword is false", async () => {
+    state.session = { user: { role: "SalesAssociate", associateId: ALICE, mustResetPassword: false } };
+    expect((await get(`associates/${ALICE}/photo.jpg`)).status).toBe(200);
   });
 
   it.each([

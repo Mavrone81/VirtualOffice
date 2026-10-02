@@ -55,6 +55,20 @@ describe("assistant POST Origin check", () => {
   });
 });
 
+describe("assistant POST mustResetPassword check (#29)", () => {
+  // middleware.ts excludes /api/* entirely, so the force-reset page redirect
+  // never applies here — this route must check the flag itself.
+  it("refuses an admin session with mustResetPassword still set, no Anthropic call", async () => {
+    state.session = { user: { role: "Admin", associateId: null, mustResetPassword: true } };
+    expect((await askAssistant(SAME)).status).toBe(403);
+    expect(stream).not.toHaveBeenCalled();
+  });
+  it("positive control: the same caller streams once mustResetPassword is false", async () => {
+    state.session = { user: { role: "Admin", associateId: null, mustResetPassword: false } };
+    expect((await askAssistant(SAME)).status).toBe(200);
+  });
+});
+
 describe("referral preview POST Origin check", () => {
   it("foreign / missing Origin → 403, nothing rendered", async () => {
     expect((await askPreview(FOREIGN)).status).toBe(403);

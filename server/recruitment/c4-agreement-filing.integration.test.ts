@@ -103,13 +103,24 @@ describe("C-4: existing-user candidate approval files the agreement in the P-Fil
     expect((await submitOnboarding(c.onboardingToken, validSubmission)).ok).toBe(true);
 
     who.session = ADMIN;
+    const before = Date.now();
     const approved = await approveCandidate(c.id);
+    const after = Date.now();
     expect(approved.ok).toBe(true);
     const assoc = await prisma.associate.findFirstOrThrow({ where: { associateCode: approved.code! } });
     associateIds.push(assoc.id);
     const newUser = await prisma.user.findUniqueOrThrow({ where: { email } });
     userIds.push(newUser.id);
     expect(newUser.mustResetPassword).toBe(true); // confirms this really was the new-login path, not a coincidental existing user
+
+    // #29: the new login has no known password — entry is by set-password
+    // link only, same single-use hashed-token mechanism as self-service
+    // reset. Asserted against the actual stored row, not inferred from ok:true.
+    expect(newUser.resetTokenHash).toMatch(/^[0-9a-f]{64}$/); // sha256 hex digest
+    const expiresAt = newUser.resetTokenExpiresAt!.getTime();
+    const TWENTY_FOUR_H = 24 * 60 * 60 * 1000;
+    expect(expiresAt).toBeGreaterThanOrEqual(before + TWENTY_FOUR_H);
+    expect(expiresAt).toBeLessThanOrEqual(after + TWENTY_FOUR_H);
 
     const pFile = await prisma.pFile.findUnique({ where: { userId: newUser.id }, include: { documents: true } });
     expect(pFile).not.toBeNull();

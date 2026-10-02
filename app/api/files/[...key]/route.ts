@@ -12,6 +12,10 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, { params }: { params: Promise<{ key: string[] }> }) {
   const session = await auth();
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
+  // #29: middleware.ts excludes /api/* entirely, so the force-reset
+  // gate never runs here — a provisioned-but-not-yet-reset login could call this
+  // API with a still-live session. Checked directly, same property as the page gate.
+  if (session.user.mustResetPassword) return new NextResponse("Forbidden", { status: 403 });
 
   const { key: segments } = await params;
   // Segments arrive already decoded once by Next; validate, never re-decode (SEC-1).

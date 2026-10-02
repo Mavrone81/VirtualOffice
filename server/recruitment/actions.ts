@@ -1,6 +1,6 @@
 "use server";
 
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import {
@@ -21,7 +21,6 @@ import { renderAgreementPdf, formatUplineOrNA, wouldTruncate } from "@/lib/pdf/a
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "@/server/associates/payee-audit";
-import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
 import { onboardingSchema } from "@/lib/schemas";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
@@ -71,6 +70,17 @@ async function baseUrl(): Promise<string> {
   const proto = h.get("x-forwarded-proto") ?? "https";
   return host ? `${proto}://${host}` : "";
 }
+
+function sha256(v: string): string {
+  return createHash("sha256").update(v).digest("hex");
+}
+
+// #29: how long a newly-approved associate's set-password link stays valid.
+// Deliberately separate from server/account/actions.ts's SIGNIN_LINK_TTL_MS
+// (72h) — that one is an admin manually re-issuing a link later, this one is
+// the first link sent at approval time; same reset-token mechanism, shorter
+// window because it's the expected, immediate path rather than a fallback.
+const WELCOME_LINK_TTL_MS = 24 * 60 * 60 * 1000;
 
 // app_role provisioned from org designation (16-Jul: each sales tier has its own role; cf. roleForDesignation in lib/rbac.ts)
 const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
@@ -534,9 +544,11 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     : null;
 
   const code = await nextAssociateCode();
-  // One per-user random temp password: hashed into the login AND emailed to the
-  // associate (same value — never diverge, or they can't log in). Forces reset.
-  const tempPassword = generateTempPassword();
+  // #29: the login gets no password anyone knows — a random value is hashed
+  // in and immediately discarded (see below). Entry is by set-password link
+  // only, same single-use hashed-token mechanism server/account/actions.ts
+  // already uses for self-service reset and admin-issued sign-in links.
+  const welcomeToken = randomBytes(32).toString("base64url");
   const pm = p.paymentMethod === "Bank Transfer" ? PaymentMethod.BankTransfer
     : p.paymentMethod === "PayNow" ? PaymentMethod.PayNow : null;
 
@@ -600,14 +612,19 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     let filedUserId: string;
     if (!existing) {
       provisioned = true;
-      const pwHash = await hash(tempPassword);
+      // Random, hashed, and never bound to a variable the caller could read
+      // back out — this account has no password anyone knows. The welcome
+      // email's link is the only way in, via resetTokenHash below.
+      const unusablePasswordHash = await hash(randomBytes(32).toString("base64url"));
       const user = await tx.user.create({
         data: {
           email: c.email,
-          passwordHash: pwHash,
+          passwordHash: unusablePasswordHash,
           role: ROLE_FOR_DESIGNATION[c.intendedDesignation!],
           associateId: associate.id,
           mustResetPassword: true,
+          resetTokenHash: sha256(welcomeToken),
+          resetTokenExpiresAt: new Date(Date.now() + WELCOME_LINK_TTL_MS),
         },
       });
       filedUserId = user.id;
@@ -644,10 +661,10 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     throw e;
   }
 
-  // Email the new associate their login credentials (best-effort, post-commit).
+  // Email the new associate their set-password link (best-effort, post-commit).
   if (result.provisioned) {
     await sendMail({
-      ...approvalEmail(c.fullName, `${await baseUrl()}/login`, c.email, tempPassword),
+      ...approvalEmail(c.fullName, `${await baseUrl()}/reset-password/${welcomeToken}`, c.email),
       to: c.email,
     });
   }
