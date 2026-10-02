@@ -34,6 +34,13 @@ jobs:
   # ---------------------------------------------------------------------------
   test:
     runs-on: ubuntu-latest
+    # This job apt-installs as root, downloads a browser, and executes
+    # browser code against PR-branch code — the exact shape tools-image's
+    # own comment describes for why IT has no packages:write. Every sibling
+    # job already binds its own permissions; this one didn't, defaulting to
+    # whatever the repo-wide default grants. No write scope is needed here.
+    permissions:
+      contents: read
     # Postgres service for the DB-integration tests (e.g. lib/rate-limit.test.ts
     # exercises the real atomic rate-limit SQL). Pure-unit tests mock @/lib/db
     # and ignore it; integration tests use the migrated schema below.
@@ -64,6 +71,39 @@ jobs:
       # throw "Multiple versions of pnpm specified" — it compares them as strings
       # (`packageManager.replace('pnpm@','') !== version`), so `pnpm@9.15.0` vs
       # `version: 9` is a mismatch, not a match.
+      # Runs immediately after checkout: it needs nothing but a git tree, and a drift
+      # here should fail before the Chromium download and the DB setup, not after them.
+      - name: Assert public/fonts matches its manifest
+        run: |
+          set -u
+          MAN=lib/fonts-manifest.txt
+          if [ ! -f "$MAN" ]; then
+            echo "::error::VOID - $MAN is missing. The /fonts auth-gate exemption is unbounded without it."
+            exit 1
+          fi
+          WANT=$(sed 's/#.*$//' "$MAN" | grep -vE '^[[:space:]]*$' | awk '{print $1"  "$2}' | sort -k2)
+          GOT=$(git ls-tree -r --format='%(objectname)  %(path)' HEAD -- public/fonts | sort -k2)
+          NW=$(printf '%s\n' "$WANT" | grep -c . || true)
+          NG=$(printf '%s\n' "$GOT" | grep -c . || true)
+          echo "fonts-manifest: POPULATION $NW pinned entry/entries vs $NG file(s) under public/fonts/"
+          # An empty manifest makes "every pinned file matches" vacuously true, which
+          # would read identically to a clean check. Refuse rather than pass.
+          if [ "$NW" -eq 0 ]; then
+            echo "::error::VOID - $MAN has 0 pinned entries; this check would pass vacuously."
+            exit 1
+          fi
+          if [ "$WANT" = "$GOT" ]; then
+            echo "fonts-manifest: OK - content matches the pins"
+            exit 0
+          fi
+          echo "::error::public/fonts does not match $MAN ($NW pinned, $NG found)."
+          echo "If a font changed on purpose, update the file and the manifest in the SAME commit:"
+          echo "  git ls-tree -r --format='%(objectname)  %(path)' HEAD -- public/fonts | sort -k2 > $MAN"
+          echo "Paths differing (names only):"
+          printf '%s\n' "$WANT" | awk '{print $2}' > /tmp/fm_want
+          printf '%s\n' "$GOT"  | awk '{print $2}' > /tmp/fm_got
+          diff /tmp/fm_want /tmp/fm_got || true
+          exit 1
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -115,6 +155,28 @@ jobs:
             fi
             echo "$b -> $(command -v "$b")"
           done
+
+      # The document.fonts.check() proof
+      # (lib/middleware-fonts-live.integration.test.ts) needs a REAL browser
+      # font engine -- document.fonts.check() isn't meaningfully implemented
+      # in jsdom/node, which is why this couldn't be a plain vitest unit
+      # test. `playwright install` can exit 0 having silently skipped the
+      # download (e.g. a cache hit that's actually stale) just like any
+      # other installer in this pipeline's history (poppler-utils above,
+      # pnpm's own frozen-lockfile prompt) -- so launch it once and assert
+      # it actually starts, same discipline as the poppler/gs check above.
+      - name: Install Chromium for the font-load regression test (document.fonts.check())
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          node -e '
+            const { chromium } = require("playwright");
+            (async () => {
+              const browser = await chromium.launch({ headless: true });
+              await browser.close();
+              console.log("chromium launches and closes cleanly");
+            })().catch((e) => { console.error("::error::chromium failed to launch after install:", e); process.exit(1); });
+          '
 
       - name: Unit + integration tests
         run: pnpm test

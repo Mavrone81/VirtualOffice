@@ -1,0 +1,22 @@
+# Content pins for every file under public/fonts/.
+#
+# Enforced by the "Assert public/fonts matches its manifest" step in
+# .github/workflows/ci-cd.yml. Format: <git blob oid><2 spaces><path>, sorted by path.
+#
+# Why this file exists: the middleware matcher exempts /fonts/** from the auth
+# gate, so "the exempted prefix contains only font assets" has to be a checked
+# property of the system, not a description of what happened to be in the
+# directory on the day the exemption was added.
+#
+# Why hashes and not a list of names: a SUBSTITUTION -- same path, same file
+# count, different bytes -- is passed by a name check and by a count check both.
+# Only a content hash catches it.
+#
+# OFL.txt is here deliberately. The SIL Open Font License requires the licence
+# text to be distributed with the font. It is not stray junk; do not remove it
+# as part of a cleanup.
+#
+# To change a font, update the file and this manifest in the SAME commit:
+#   git ls-tree -r --format='%(objectname)  %(path)' HEAD -- public/fonts | sort -k2
+8b36aaac645aa1691f0efbf128799d1de86cd943  public/fonts/alex-brush/AlexBrush-Regular.ttf
+b596b96b81a244ded88e131d8d5edc68967b129d  public/fonts/alex-brush/OFL.txt
