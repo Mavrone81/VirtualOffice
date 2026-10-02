@@ -203,9 +203,17 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
             <select
               id="spouseConflict"
               className={selectCls}
-              value={f.spouseConflict ? "yes" : "no"}
-              onChange={(e) => set({ spouseConflict: e.target.value === "yes" })}
+              required
+              // C-2: this is now a required field — the old `? "yes" : "no"`
+              // coercion couldn't represent "not yet answered" at all (it
+              // silently displayed "No" before the applicant had touched it),
+              // which would have let someone submit convinced they'd answered
+              // when the stored value was still undefined. Mirrors the
+              // gender/religion selects' own "" placeholder pattern above.
+              value={f.spouseConflict === undefined ? "" : f.spouseConflict ? "yes" : "no"}
+              onChange={(e) => set({ spouseConflict: e.target.value === "" ? undefined : e.target.value === "yes" })}
             >
+              <option value="">—</option>
               <option value="no">{t("details.conflictNo")}</option>
               <option value="yes">{t("details.conflictYes")}</option>
             </select>

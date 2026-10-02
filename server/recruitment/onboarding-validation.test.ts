@@ -90,7 +90,45 @@ describe("submitOnboarding validation", () => {
       signature: "data:image/png;base64,iVBORw0KGgo=",
       dateOfBirth: "",
       bankAccountNumber: "",
+      spouseConflict: false,
     });
     expect(r).toEqual({ ok: true });
+  });
+
+  // C-2 (owner ruling): spouseConflict is now required at final submit — an
+  // otherwise well-formed submission that omits it must be refused with a
+  // clear message (not just "not ok"), and must never reach the DB or
+  // object storage, same as any other invalid-input refusal.
+  it("refuses an otherwise well-formed submission that omits spouseConflict, with a clear message", async () => {
+    const r = await submitOnboarding("tok123", {
+      nric: "S1234567A",
+      paymentMethod: "PayNow",
+      agreementAccepted: true,
+      nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
+      signature: "data:image/png;base64,iVBORw0KGgo=",
+      // spouseConflict omitted — the thing under test.
+    });
+    expect(r).toEqual({ ok: false, error: "invalidInput" });
+    expect(prismaMock.candidate.update).not.toHaveBeenCalled();
+    expect(putObjectMock).not.toHaveBeenCalled();
+  });
+
+  // C-2: a declared conflict (Yes) must also name the spouse's designation,
+  // not just their name and company — the field this ruling added.
+  it("refuses a declared spouse conflict missing the spouse's designation", async () => {
+    const r = await submitOnboarding("tok123", {
+      nric: "S1234567A",
+      paymentMethod: "PayNow",
+      agreementAccepted: true,
+      nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
+      signature: "data:image/png;base64,iVBORw0KGgo=",
+      spouseConflict: true,
+      spouseName: "Jamie Spouse",
+      spouseCompany: "Spouse Co Pte Ltd",
+      // spouseDesignation omitted — the thing under test.
+    });
+    expect(r).toEqual({ ok: false, error: "invalidInput" });
+    expect(prismaMock.candidate.update).not.toHaveBeenCalled();
+    expect(putObjectMock).not.toHaveBeenCalled();
   });
 });

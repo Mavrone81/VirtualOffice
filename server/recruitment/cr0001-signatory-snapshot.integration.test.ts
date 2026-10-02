@@ -50,6 +50,7 @@ const validSubmission = {
   agreementAccepted: true,
   nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
   signature: FAKE_PNG_DATA_URL,
+  spouseConflict: false,
 };
 
 async function makeCandidate(email: string) {
