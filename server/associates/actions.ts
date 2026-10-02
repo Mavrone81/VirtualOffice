@@ -84,10 +84,62 @@ export type NewAssociateInput = {
   bankAccountNumber?: string;
 };
 
+const SEQ_PREFIX = "EN";
+const SEQ_RE = /^EN\d+$/;
+
+/** Next code in the `EN####` sequence.
+ *
+ *  🔴 `associateCode` is a free-text `@unique` column with NO format constraint, so
+ *  an unscoped `orderBy: { associateCode: "desc" }` returns whatever sorts highest
+ *  LEXICOGRAPHICALLY — any code above "EN…" wins. The previous implementation then
+ *  stripped non-digits from that code with `replace(/\D/g, "")`, so a single row
+ *  like "MYCOM-A1" yielded "1", returned EN0002, and collided with an existing
+ *  associate on the unique index. Observed live: EN0102 was the real high-water
+ *  mark while this returned EN0002, and every approval failed.
+ *
+ *  This is an AVAILABILITY defect, not a test-fixture problem: nothing stops a
+ *  non-"EN" code existing in production — a manual entry, an import, a second
+ *  company prefix — and the first one that sorts above the sequence breaks
+ *  associate creation until a human diagnoses a unique-constraint error pointing
+ *  at the wrong thing.
+ *
+ *  So: scope the query to the sequence's own prefix, and because `startsWith`
+ *  narrows but cannot enforce the SHAPE ("ENX-1" still sorts in), take the highest
+ *  row that matches the sequence exactly. The numeric part is read by `slice` past
+ *  the prefix rather than by stripping non-digits, so a malformed code can never
+ *  contribute digits to the result. */
 async function nextAssociateCode(): Promise<string> {
-  const last = await prisma.associate.findFirst({ orderBy: { associateCode: "desc" }, select: { associateCode: true } });
-  const n = last ? parseInt(last.associateCode.replace(/\D/g, ""), 10) + 1 : 1;
-  return `EN${String(n).padStart(4, "0")}`;
+  // No `orderBy` and no `take`. A FORMAT SCOPE IS NOT AN ORDERING: these are two
+  // separate properties and the sequence needs both.
+  //
+  // 🔴 `orderBy: { associateCode: "desc" }` is TEXT order, so "EN10000" sorts BELOW
+  // "EN9999" ('1' < '9' at the third character). Once EN10000 exists the text
+  // maximum is stuck at EN9999 forever, this proposes EN10000 on every call, and
+  // every associate creation from the 10,000th onward fails on the unique index —
+  // permanently, with no self-correction. Harmless at ten rows, free to prevent
+  // now, and expensive to discover at ten thousand.
+  //
+  // Prisma cannot order by a computed expression, so the numeric maximum is taken
+  // in application code over the sequence's own rows. The payload is one short
+  // column; at any plausible associate count that is negligible, and the real
+  // long-term answer is a dedicated sequence rather than a counter derived from a
+  // display column.
+  const rows = await prisma.associate.findMany({
+    where: { associateCode: { startsWith: SEQ_PREFIX } },
+    select: { associateCode: true },
+  });
+  const numbers = rows
+    .filter((r) => SEQ_RE.test(r.associateCode))
+    .map((r) => parseInt(r.associateCode.slice(SEQ_PREFIX.length), 10));
+  // Rows exist under the prefix but none is a valid sequence code: the sequence
+  // cannot be derived. Fail loudly rather than restart from 1 and collide.
+  if (rows.length > 0 && numbers.length === 0) {
+    throw new Error(
+      `nextAssociateCode: ${rows.length} ${SEQ_PREFIX}-prefixed codes exist but none match ${SEQ_RE}; cannot derive the next code`,
+    );
+  }
+  const n = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  return `${SEQ_PREFIX}${String(n).padStart(4, "0")}`;
 }
 
 // The form renders optional fields as `value={f.x ?? ""}`, so clearing one
