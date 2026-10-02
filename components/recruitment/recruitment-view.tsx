@@ -8,6 +8,7 @@ import { canRecruit, downlineIds } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
 import { formatSGD } from "@/lib/money";
 import { managerOptions, performanceByAssociate, RECRUIT_TABS, selectRecruits, type RecruitTab } from "@/lib/recruitment-view";
+import { fetchTeamDashboardAssociates } from "@/server/recruitment/team-dashboard";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -39,15 +40,9 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
   const eligible = canRecruit(session.user.role);
 
   const treeIds = eligible ? await downlineIds(me) : [me];
-  // Only what the tables show — no contact details or date of birth for uplines.
-  const tree = await prisma.associate.findMany({
-    where: { id: { in: treeIds }, archivedAt: null },
-    orderBy: { associateCode: "asc" },
-    select: {
-      id: true, associateCode: true, fullName: true, designation: true, directUplineId: true, associateStatus: true,
-      directUpline: { select: { associateCode: true } },
-    },
-  });
+  // Contact details and date of birth are selected out at the query level —
+  // see server/recruitment/team-dashboard.ts.
+  const tree = await fetchTeamDashboardAssociates(treeIds);
   const managers = managerOptions(tree, me);
   const mgrValid = mgr && managers.some((m) => m.id === mgr) ? mgr : null;
   const rows = selectRecruits(tree, me, tab, mgrValid);
