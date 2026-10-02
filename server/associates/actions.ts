@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { ApprovalStatus, AssociateStatus, Designation, PaymentMethod, AppRole } from "@prisma/client";
 import { hash } from "@node-rs/argon2";
@@ -14,6 +15,9 @@ import { decryptPiiAudited, PiiAuditUnavailableError, type PiiField } from "@/se
 import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
 import { newAssociateSchema, updateAssociateSchema } from "@/lib/schemas";
+import { putObject } from "@/lib/storage";
+import { assertDocumentUpload } from "@/lib/file-type";
+import { fileSignedAgreement } from "@/server/recruitment/file-signed-agreement";
 
 async function requireAdmin() {
   const session = await auth();
@@ -415,5 +419,76 @@ export async function setAssociateStatus(
     throw e;
   }
   revalidatePath("/admin/associates");
+  return { ok: true };
+}
+
+// Thrown inside the transaction below when the CAS below finds the row no
+// longer matches `signedAgreementFileKey: null` — a concurrent call already
+// filed one first. Distinguishes "lost the race" from an AuditWriteError so
+// each maps to its own message.
+class AlreadyFiled extends Error {}
+
+/**
+ * C-4: admin uploads an Associate Agreement signed OFFLINE (paper, outside the
+ * portal) — for an associate who never e-signed through onboarding. This
+ * NEVER replaces a portal-signed agreement: refused outright when one already
+ * exists (associate.signedAgreementFileKey set), so the portal-signed copy is
+ * never silently overwritten by a later offline upload. Files through the
+ * SAME fileSignedAgreement() helper approveCandidate uses, so "what counts as
+ * filed" can never diverge between the two paths.
+ *
+ * The object write stays OUTSIDE the transaction, deliberately, same as the
+ * signed-agreement PDF write in server/agreements/actions.ts (ADR-0001/N2):
+ * an orphaned object in storage with no row pointing at it is acceptable
+ * (nothing reads storage without a key from the DB first); don't make the
+ * object write transactional.
+ *
+ * The findUnique-then-update shape would be a TOCTOU window — two concurrent
+ * calls could both read signedAgreementFileKey as null before either writes.
+ * Closed with an atomic compare-and-set instead: `updateMany` matched on
+ * `signedAgreementFileKey: null` in its own `where`, so only one of two
+ * concurrent calls can match; the loser's count is 0, not an exception, and
+ * is refused with the same message a sequential second call gets.
+ */
+export async function uploadOfflineSignedAgreement(associateId: string, file: File): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+
+  const a = await prisma.associate.findUnique({ where: { id: associateId }, include: { user: true } });
+  if (!a) return { ok: false, error: t("notFound") };
+  if (a.signedAgreementFileKey) return { ok: false, error: t("agreementAlreadyOnFile") };
+  if (!a.user) return { ok: false, error: t("noLoginProvisioned") };
+
+  if (!file || file.size === 0) return { ok: false, error: t("fileRequired") };
+  const bytes = Buffer.from(await file.arrayBuffer());
+  try {
+    assertDocumentUpload(bytes, file.name);
+  } catch {
+    return { ok: false, error: t("invalidFileType") };
+  }
+
+  const ext = (file.name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]) ?? "pdf";
+  const key = `associates/${associateId}/offline-signed-agreement-${randomUUID()}.${ext}`;
+  await putObject(key, bytes);
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const cas = await tx.associate.updateMany({ where: { id: associateId, signedAgreementFileKey: null }, data: { signedAgreementFileKey: key } });
+      if (cas.count === 0) throw new AlreadyFiled();
+      await fileSignedAgreement(tx, a.user!.id, associateId, key, admin.user.id);
+      await auditTx(tx, {
+        action: "associate.agreement_uploaded_offline", entityType: "Associate", entityId: associateId,
+        actorUserId: admin.user.id, after: { fileKey: key },
+      });
+    });
+  } catch (e) {
+    if (e instanceof AlreadyFiled) return { ok: false, error: t("agreementAlreadyOnFile") };
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
+
+  revalidatePath("/admin/associates");
+  revalidatePath("/portal/pfile");
   return { ok: true };
 }

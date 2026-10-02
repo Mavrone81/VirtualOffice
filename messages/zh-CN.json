@@ -275,7 +275,8 @@
       "secondUpline": "第二上线",
       "uplineEditHint": "佣金 override 按位置分配——直属上线获得第一级 override，第二上线获得第二级。修改仅影响之后的销售。",
       "uplineSection": "上线 / 层级",
-      "edit": "编辑"
+      "edit": "编辑",
+      "offlineAgreementHint": "尚未通过系统签署协议。可改为上传纸质签署的副本 — 此操作不会替换已通过系统签署的协议。"
     },
     "reset": {
       "newPassword": "✓ 新临时密码：",
@@ -283,6 +284,11 @@
       "resetting": "重置中…",
       "button": "重置密码",
       "couldNotReset": "无法重置。"
+    },
+    "offlineAgreement": {
+      "button": "上传已签署协议",
+      "uploading": "上传中…",
+      "failed": "上传失败。"
     },
     "signinLink": {
       "button": "生成登录链接",
@@ -1482,6 +1488,8 @@
     "roleRequiredForRole": "角色通知需要选择角色。",
     "fileRequired": "请选择一个文件。",
     "fileTooLarge": "文件大小不能超过 15 MB。",
+    "agreementAlreadyOnFile": "该伙伴已有通过系统签署的协议存档，无法通过线下上传替换。",
+    "noLoginProvisioned": "该伙伴尚未开通登录账号，无法存档此文件。",
     "associateCodeRequired": "伙伴代码为必填项。",
     "associateCodeNotFound": "伙伴代码未找到。",
     "vendorNameRequired": "供应商名称为必填项。",

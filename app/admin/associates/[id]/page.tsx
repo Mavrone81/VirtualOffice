@@ -18,6 +18,7 @@ import { ResetPasswordButton } from "./reset-password";
 import { SignInLinkButton } from "./signin-link";
 import { RevealPii } from "./reveal-pii";
 import { UplineEditor } from "./upline-editor";
+import { UploadOfflineAgreementButton } from "./upload-offline-agreement";
 
 export const metadata = { title: "Associate · Enshrine Admin" };
 
@@ -252,6 +253,14 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
                     </div>
                   </a>
                 ))}
+              </div>
+            )}
+            {/* C-4: offline (paper-signed) upload — only when there's no
+                portal-signed agreement on file; never a replacement for one. */}
+            {canManage && a.user && !a.signedAgreementFileKey && (
+              <div className="mt-3 border-t border-line pt-3">
+                <p className="mb-2 text-[12px] text-muted">{t("detail.offlineAgreementHint")}</p>
+                <UploadOfflineAgreementButton associateId={a.id} />
               </div>
             )}
           </Card>
