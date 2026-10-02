@@ -15,8 +15,19 @@ const FRONT = "/namecard/card-front-blank.png";
 const BACK = "/namecard/card-back.jpg";
 const LOGO = "/namecard/enshrine-logo.png";
 const ADDRESS = ["74 Lorong 6 Geylang", "Singapore 399226"];
-const WEB = "www.enshrine.sg";
+// C-1 (owner ruling, VO_Website_Changes_-_Additional.pdf p.1): the domain changed to .com.sg.
+const WEB = "www.enshrine.com.sg";
 const FB = "www.facebook.com/enshrinefuneralservices";
+// C-1: Designation/Contact/Email are explicitly Times New Roman per the spec — the
+// parent's Georgia-first stack (line ~142) would otherwise win wherever Georgia is
+// available, which isn't the font the owner's p.1 spec asked for.
+const TIMES_NEW_ROMAN = "'Times New Roman', Georgia, serif";
+// C-1: Trattatello (the owner's original pick) is an Apple system font with no
+// web/server embedding licence (Q4) — approved substitute is Alex Brush, SIL
+// Open Font License 1.1 (self-hosted below, licence bundled alongside the font
+// file at public/fonts/alex-brush/OFL.txt per the licence's own requirement
+// that it travel with the font).
+const ALEX_BRUSH = "'Alex Brush', cursive";
 const W = 661, H = 1075, DISPLAY_SCALE = 0.5;
 
 export type CardData = {
@@ -115,14 +126,26 @@ export function NameCardStudio({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
-      {/* Display fonts loaded via <link> (not next/font) so html-to-image can
-          embed them into the exported PNG/PDF. React hoists these to <head>. */}
+      {/* Display fonts loaded via <link>/<style> (not next/font) so html-to-image
+          can embed them into the exported PNG/PDF. React hoists these to <head>. */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link
-        href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Playfair+Display:ital,wght@1,700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap"
         rel="stylesheet"
       />
+      {/* C-1: Alex Brush is self-hosted (not a Google Fonts <link>) so its SIL
+          OFL licence file can be bundled alongside the font it covers, in the
+          same public/ directory — see public/fonts/alex-brush/OFL.txt. */}
+      <style>{`
+        @font-face {
+          font-family: 'Alex Brush';
+          src: url('/fonts/alex-brush/AlexBrush-Regular.ttf') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+      `}</style>
 
       {/* Card preview */}
       <div>
@@ -144,10 +167,13 @@ export function NameCardStudio({
               {preview.chineseName && (
                 <div style={{ position: "absolute", top: 410, left: 0, right: 0, textAlign: "center", fontFamily: "'Ma Shan Zheng', cursive", fontSize: 38, color: "#1a1f2b" }}>{preview.chineseName}</div>
               )}
-              <div style={{ position: "absolute", top: 460, left: 0, right: 0, textAlign: "center", fontFamily: "'Playfair Display', Georgia, serif", fontStyle: "italic", fontWeight: 700, fontSize: 46, color: "#111" }}>{preview.englishName}</div>
-              <div style={{ position: "absolute", top: 520, left: 0, right: 0, textAlign: "center", fontSize: 29, color: "#33383f" }}>{preview.title}</div>
-              {preview.hp && <div style={{ position: "absolute", top: 560, left: 0, right: 0, textAlign: "center", fontSize: 29, fontWeight: 700, color: "#1a1f2b" }}>HP: {preview.hp}</div>}
-              {preview.email && <div style={{ position: "absolute", top: 602, left: 0, right: 0, textAlign: "center", fontStyle: "italic", fontSize: 26, color: "#222" }}>Email: {preview.email}</div>}
+              {/* C-1: Alex Brush is a script face with its own built-in slant/weight —
+                  no synthetic italic/bold here, which would distort a cursive font's
+                  own letterforms rather than just making it heavier. */}
+              <div style={{ position: "absolute", top: 460, left: 0, right: 0, textAlign: "center", fontFamily: ALEX_BRUSH, fontSize: 52, color: "#111" }}>{preview.englishName}</div>
+              <div style={{ position: "absolute", top: 520, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontStyle: "italic", fontSize: 29, color: "#33383f" }}>{preview.title}</div>
+              {preview.hp && <div style={{ position: "absolute", top: 560, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontSize: 29, fontWeight: 700, color: "#1a1f2b" }}>HP: {preview.hp}</div>}
+              {preview.email && <div style={{ position: "absolute", top: 602, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontStyle: "italic", fontSize: 26, color: "#222" }}>Email: {preview.email}</div>}
               <div style={{ position: "absolute", top: 875, left: 60, fontSize: 32, color: "#1a1f2b", lineHeight: 1.25 }}>{ADDRESS[0]}<br />{ADDRESS[1]}</div>
               <div style={{ position: "absolute", top: 978, left: 60, fontStyle: "italic", fontSize: 20, color: "#1a1f2b" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}><span style={socialCircle}><Globe size={13} color="#fff" /></span> {WEB}</div>
