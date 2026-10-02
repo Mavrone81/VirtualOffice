@@ -31,6 +31,10 @@ export async function POST(req: Request): Promise<Response> {
   if (!session?.user || !isFullAdmin(session.user.role)) {
     return new Response("Forbidden", { status: 403 });
   }
+  // #29: middleware.ts excludes /api/* entirely, so the force-reset
+  // gate never runs here — a provisioned-but-not-yet-reset login could call this
+  // API with a still-live session. Checked directly, same property as the page gate.
+  if (session.user.mustResetPassword) return new Response("Forbidden", { status: 403 });
 
   if (!env.ANTHROPIC_API_KEY) {
     return new Response("The assistant isn't configured yet (missing ANTHROPIC_API_KEY on the server).", {

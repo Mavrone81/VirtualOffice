@@ -42,12 +42,54 @@ describe("changePassword", () => {
 });
 
 describe("resetPassword (token flow)", () => {
-  it("clears mustResetPassword on a valid token reset", async () => {
+  it("clears mustResetPassword AND the token itself on a valid reset — single-use", async () => {
     prismaMock.user.findFirst.mockResolvedValue({ id: "u2", passwordHash: "old" });
 
     await resetPassword("sometoken", "newStrongPw1");
 
     expect(prismaMock.user.update).toHaveBeenCalledTimes(1);
-    expect(prismaMock.user.update.mock.calls[0][0].data.mustResetPassword).toBe(false);
+    const data = prismaMock.user.update.mock.calls[0][0].data;
+    expect(data.mustResetPassword).toBe(false);
+    expect(data.resetTokenHash).toBeNull();
+    expect(data.resetTokenExpiresAt).toBeNull();
+  });
+
+  // #29: the query itself must exclude an expired row, not just happen to
+  // reject it elsewhere — asserts the WHERE clause, not only the outcome.
+  it("queries with an expiry filter, so a hash-matching but expired row is excluded by the query", async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+
+    await resetPassword("sometoken", "newStrongPw1");
+
+    expect(prismaMock.user.findFirst).toHaveBeenCalledWith({
+      where: { resetTokenHash: expect.any(String), resetTokenExpiresAt: { gt: expect.any(Date) } },
+    });
+  });
+
+  // #29: reused refused — the token was cleared by the first call (asserted
+  // above), so the same token presented again can no longer match any row.
+  it("refuses the same token on a second use, once the first use cleared it", async () => {
+    prismaMock.user.findFirst.mockResolvedValueOnce({ id: "u2", passwordHash: "old" });
+    const first = await resetPassword("sometoken", "newStrongPw1");
+    expect(first.ok).toBe(true);
+
+    prismaMock.user.findFirst.mockResolvedValueOnce(null); // the real DB: resetTokenHash is now null
+    const second = await resetPassword("sometoken", "newStrongPw2");
+    expect(second.ok).toBe(false);
+    expect(prismaMock.user.update).toHaveBeenCalledTimes(1); // not called again
+  });
+
+  // #29: a positive assertion, not just "no account enumeration" asserted
+  // in prose. A token whose hash matches no row (the real-unknown case) and
+  // one whose hash matched a row but failed the expiry condition both
+  // resolve the SAME query to null — the action has no way to tell them
+  // apart, and this proves it rather than describing it.
+  it("returns the identical status and error for an unknown token and an expired one", async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null);
+    const unknown = await resetPassword("never-issued-token", "newStrongPw1");
+    const expired = await resetPassword("real-but-expired-token", "newStrongPw1");
+    expect(unknown).toEqual(expired);
+    expect(unknown.ok).toBe(false);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 });
