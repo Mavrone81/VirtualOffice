@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import {
   ApprovalStatus, AssociateStatus, Designation, OnboardingStage,
-  PaymentMethod, AppRole, PFileDocType,
+  PaymentMethod, AppRole,
 } from "@prisma/client";
 import { hash } from "@node-rs/argon2";
 import { getTranslations } from "next-intl/server";
@@ -25,6 +25,7 @@ import { generateTempPassword } from "@/lib/temp-password";
 import { validate } from "@/lib/validate";
 import { onboardingSchema } from "@/lib/schemas";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
+import { fileSignedAgreement } from "@/server/recruitment/file-signed-agreement";
 
 async function requireAdmin() {
   const session = await auth();
@@ -544,6 +545,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
 
     // provision a login if the candidate email is not already taken
     const existing = await tx.user.findUnique({ where: { email: c.email } });
+    let filedUserId: string;
     if (!existing) {
       provisioned = true;
       const pwHash = await hash(tempPassword);
@@ -556,19 +558,18 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
           mustResetPassword: true,
         },
       });
-      const pFile = await tx.pFile.create({ data: { userId: user.id, associateId: associate.id } });
-      if (associateAgreementKey) {
-        await tx.pFileDocument.create({
-          data: {
-            pFileId: pFile.id,
-            docType: PFileDocType.SignedAssociateAgreement,
-            title: "Signed Associate Agreement",
-            fileKey: associateAgreementKey,
-            filedById: session.user.id,
-            filedAt: new Date(),
-          },
-        });
-      }
+      filedUserId = user.id;
+    } else {
+      filedUserId = existing.id;
+    }
+    // C-4: file the signed agreement regardless of which branch above ran —
+    // previously this only happened for a NEW login (inside the `if
+    // (!existing)` block), so an existing-email candidate got
+    // signedAgreementFileKey set on the Associate but no P-File document at
+    // all. Same helper the offline-upload admin action uses, so "filed"
+    // means the same thing on both paths.
+    if (associateAgreementKey) {
+      await fileSignedAgreement(tx, filedUserId, associate.id, associateAgreementKey, session.user.id);
     }
 
     await tx.candidate.update({

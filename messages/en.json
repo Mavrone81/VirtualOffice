@@ -274,7 +274,8 @@
       "secondUpline": "Second upline",
       "uplineEditHint": "Overrides are positional — the direct upline earns the Tier-1 override, the second upline the Tier-2. Changing these affects future sales only.",
       "uplineSection": "Upline / hierarchy",
-      "edit": "Edit"
+      "edit": "Edit",
+      "offlineAgreementHint": "No agreement signed through the portal yet. Upload a paper-signed copy instead — this never replaces a portal-signed one."
     },
     "reset": {
       "newPassword": "✓ New temporary password:",
@@ -282,6 +283,11 @@
       "resetting": "Resetting…",
       "button": "Reset password",
       "couldNotReset": "Could not reset."
+    },
+    "offlineAgreement": {
+      "button": "Upload signed agreement",
+      "uploading": "Uploading…",
+      "failed": "Could not upload."
     },
     "signinLink": {
       "button": "Create sign-in link",
@@ -1456,6 +1462,8 @@
     "roleRequiredForRole": "Role is required for a role notice.",
     "fileRequired": "Please choose a file.",
     "fileTooLarge": "File must be under 15 MB.",
+    "agreementAlreadyOnFile": "A signed agreement is already on file for this associate — it was signed through the portal and can't be replaced by an offline upload.",
+    "noLoginProvisioned": "This associate has no login provisioned, so there's nowhere to file the document.",
     "associateCodeRequired": "Associate code is required.",
     "associateCodeNotFound": "Associate code not found.",
     "vendorNameRequired": "Vendor name is required.",
