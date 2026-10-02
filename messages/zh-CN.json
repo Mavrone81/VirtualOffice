@@ -1809,8 +1809,8 @@
       "viewPdf": "查看已签署协议（PDF）"
     },
     "docTemplate": {
-      "title": "文件模板",
-      "subtitle": "按类别下载空白模板",
+      "title": "报价申请",
+      "subtitle": "在提交销售之前，为客户生成报价单。",
       "cat": {
         "pets": "宠物身后事",
         "human": "人类身后事",

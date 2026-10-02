@@ -80,7 +80,7 @@ describe("portalNav quotationRequest — fail-closed on A17_CLOSED_DEAL_FLOW (C-
   const quotationRequest = findByLabel("quotationRequest");
 
   it("has a real, static href regardless of the flag — only VISIBILITY is gated, not the link itself", () => {
-    expect(quotationRequest.href).toBe("/portal/agreements?cat=quotation");
+    expect(quotationRequest.href).toBe("/portal/agreements");
   });
 
   it("is hidden — not merely disabled — when the flag is off", () => {

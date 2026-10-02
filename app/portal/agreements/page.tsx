@@ -1,72 +1,38 @@
-import Link from "next/link";
 import { format } from "date-fns";
-import { FileText } from "lucide-react";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import type { TemplateCategory } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
-import { transactionScopeIds } from "@/lib/transaction-scope";
-import { documentVisibilityWhere } from "@/lib/documents";
-import { formatSGD } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
-import { StatusPill } from "@/components/ui/status-pill";
 import { QuotationForm, type QuotationFormProduct, type QuotationRow } from "./quotation-form";
-import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Doc Template · Enshrine Portal" };
+export const metadata = { title: "Quotation Request · Enshrine Portal" };
 
-// Doc Template (associate-portal changes, Sep 2026 — A13): blank templates by
-// category (Pets Afterlife / Human Afterlife) to download. Below them, the
-// signed Storage of Pets Ashes agreements in the viewer's scope stay listed
-// (same visibility ladder as transactions) so nothing already signed is lost.
+// C-6 (2026-10-02): this page used to be "Doc Template" — blank Pets/Human
+// Afterlife templates plus the signed-agreements list. Both folded into
+// /portal/documents (one documents home instead of two), leaving only the
+// A-17 quotation-request form here.
 //
-// B-5 (Option 1, 2026-10-02): these two built-ins render UNCONDITIONALLY,
-// with the category's current admin-uploaded Document row (if any) appended
-// after them — never a resolution step where one replaces the other in this
-// list. Two independent reasons, not one:
-//  1. The product decision (this was a CHANGES-REQUIRED finding against an
-//     earlier build that hid them on upload — see
-//     reviews/b5-doc-template-architect-review.md D1).
-//  2. These exact files are the sha-pinned e-signing generation masters
-//     (lib/pdf/agreement.ts, lib/pdf/associate-agreement-coordinates.ts) —
-//     "replacing" them is the catastrophic case, so they were never eligible
-//     to be the browsable copy B-5's admin upload replaces. That upload is a
-//     separate Document row in object storage; it only ever adds to this
-//     list, never substitutes into it.
-const TEMPLATES = {
-  pets: [
-    { key: "tplPetAsh", href: "/templates/storage-of-pets-ashes-agreement.pdf" },
-    { key: "tplReferral", href: "/templates/referral-partnership-agreement.pdf" },
-  ],
-  human: [] as { key: string; href: string }[],
-} as const;
-type TemplateCat = keyof typeof TEMPLATES;
-type Cat = TemplateCat | "quotation";
-const CATEGORY_FOR_CAT: Record<TemplateCat, TemplateCategory> = { pets: "PetsAfterlife", human: "HumanAfterlife" };
-
-export default async function PortalAgreementsPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
+// ⚠ Known, named follow-up (NOT guessed at, NOT built here — scope was
+// explicitly held back pending a product decision, settled as "(c): its own
+// route"): this page's URL and the "agreements" code around it still carry
+// the old identity. The route hasn't moved yet because nobody has built its
+// new home — this is temporary, not a design choice, and should not be
+// "simplified" back into a multi-tab page if revisited before the move.
+export default async function PortalAgreementsPage() {
   const session = await auth();
   const t = await getTranslations("agreements");
   if (!session?.user) return null;
-  const { cat: rawCat } = await searchParams;
-  // A-17 (flag OFF): the Quotation tab doesn't exist yet, so a stray
-  // ?cat=quotation falls back to today's behaviour instead of rendering it.
   const a17On = env.A17_CLOSED_DEAL_FLOW;
-  const cat: Cat = a17On && rawCat === "quotation" ? "quotation" : rawCat === "human" ? "human" : "pets";
-
-  const ids = await transactionScopeIds(session.user.role, session.user.associateId ?? null);
-  const agreements = await prisma.petsAshesAgreement.findMany({
-    where: ids === null ? {} : { submission: { closingAssociateId: { in: ids } } },
-    orderBy: { updatedAt: "desc" },
-    include: { submission: { include: { closingAssociate: { select: { fullName: true } } } } },
-  });
+  // Nothing left on this page once the flag is off — the quotation form is
+  // itself flag-gated, and Pets/Human content now lives at /portal/documents.
+  if (!a17On) redirect("/portal/documents");
 
   let quotationProducts: QuotationFormProduct[] = [];
   let quotationRows: QuotationRow[] = [];
-  if (a17On && cat === "quotation" && session.user.associateId) {
+  if (session.user.associateId) {
     const [products, quotations] = await Promise.all([
       prisma.product.findMany({
         where: { activeStatus: "Active", archivedAt: null },
@@ -90,127 +56,10 @@ export default async function PortalAgreementsPage({ searchParams }: { searchPar
     }));
   }
 
-  let uploaded: { id: string; title: string }[] = [];
-  if (cat !== "quotation") {
-    const assoc = session.user.associateId
-      ? await prisma.associate.findUnique({ where: { id: session.user.associateId }, select: { teamName: true } })
-      : null;
-    uploaded = await prisma.document.findMany({
-      where: {
-        AND: [
-          documentVisibilityWhere(session.user.associateId ?? null, assoc?.teamName ?? null),
-          { category: CATEGORY_FOR_CAT[cat], retiredAt: null },
-        ],
-      },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, title: true },
-    });
-  }
-
-  const templates: { href: string; label: string }[] =
-    cat === "quotation"
-      ? []
-      : [
-          ...TEMPLATES[cat].map((tpl) => ({ href: tpl.href, label: t(`docTemplate.${tpl.key}`) })),
-          ...uploaded.map((u) => ({ href: `/documents/${u.id}/download`, label: u.title })),
-        ];
-
   return (
     <>
       <PageHeader title={t("docTemplate.title")} subtitle={t("docTemplate.subtitle")} />
-
-      <nav className="mb-4 flex flex-wrap gap-2" aria-label={t("docTemplate.title")}>
-        {(a17On ? (["pets", "human", "quotation"] as const) : (["pets", "human"] as const)).map((c) => (
-          <Link
-            key={c}
-            href={c === "pets" ? "/portal/agreements" : `/portal/agreements?cat=${c}`}
-            aria-current={c === cat ? "page" : undefined}
-            className={
-              "rounded-xl border-2 border-ink px-6 py-2.5 text-[14px] font-semibold transition-colors " +
-              (c === cat ? "bg-ink text-white" : "bg-white text-ink hover:bg-paper-100")
-            }
-          >
-            {t(`docTemplate.cat.${c}`)}
-          </Link>
-        ))}
-      </nav>
-
-      {cat === "quotation" ? (
-        <QuotationForm products={quotationProducts} today={format(new Date(), "yyyy-MM-dd")} quotations={quotationRows} />
-      ) : (
-        <>
-      <div className="mb-8 flex flex-col gap-2">
-        {templates.length === 0 ? (
-          <Card className="px-5 py-10 text-center text-[13px] text-muted">{t("docTemplate.none")}</Card>
-        ) : (
-          templates.map((tpl) => (
-            <a key={tpl.href} href={tpl.href} target="_blank" rel="noopener" className="block">
-              <Card className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-paper-100">
-                <FileText className="h-5 w-5 shrink-0 text-action" strokeWidth={1.75} />
-                <span className="font-medium text-ink">{tpl.label}</span>
-                <span className="ml-auto text-[12px] text-action">{t("docTemplate.download")}</span>
-              </Card>
-            </a>
-          ))
-        )}
-      </div>
-
-      {cat === "pets" && (
-        <>
-      <h2 className="mb-1 font-display text-[16px] text-ink">{t("docTemplate.signedHeading")}</h2>
-      <p className="mb-3 text-[12.5px] text-muted">{t("list.subtitle")}</p>
-      <Card className="overflow-hidden">
-        {agreements.length === 0 ? (
-          <div className="px-5 py-12 text-center text-[13px] text-muted">{t("list.empty")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px]">
-              <thead>
-                <tr className={TABLE_HEAD_ROW_CLS}>
-                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colClient")}</th>
-                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colNiche")}</th>
-                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colAmount")}</th>
-                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colAssociate")}</th>
-                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colUpdated")}</th>
-                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colStatus")}</th>
-                  <th className={`px-5 py-3 ${TABLE_HEAD_CELL_CLS}`}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {agreements.map((a) => (
-                  <tr key={a.id} className="border-b border-line-200 last:border-0 hover:bg-paper-100">
-                    <td className="px-5 py-3 text-ink">{a.applicant1Name}</td>
-                    <td className="px-5 py-3 text-muted">{a.nicheUnit ?? "—"}</td>
-                    <td className="px-5 py-3 text-ink">{formatSGD(a.amountNumeric)}</td>
-                    <td className="px-5 py-3 text-muted">{a.submission.closingAssociate.fullName}</td>
-                    <td className="px-5 py-3 text-muted">{format(a.updatedAt, "dd MMM yyyy")}</td>
-                    <td className="px-5 py-3"><StatusPill status={a.status} /></td>
-                    <td className="px-5 py-3 text-right">
-                      {a.agreementPdfKey ? (
-                        <a href={`/api/files/${a.agreementPdfKey}`} target="_blank" rel="noopener" className="text-[12px] text-action hover:underline">
-                          {t("list.viewPdf")}
-                        </a>
-                      ) : (
-                        <Link href={`/portal/sales/${a.submissionId}/agreement`} className="text-[12px] text-action hover:underline">
-                          {t("list.continue")}
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-      <p className="mt-4 text-[12.5px] text-muted-2">
-        {t("list.legacyNote")}{" "}
-        <Link href="/portal/sales-agreements" className="text-action hover:underline">{t("list.legacyLink")}</Link>
-      </p>
-        </>
-      )}
-        </>
-      )}
+      <QuotationForm products={quotationProducts} today={format(new Date(), "yyyy-MM-dd")} quotations={quotationRows} />
     </>
   );
 }

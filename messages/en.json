@@ -1809,8 +1809,8 @@
       "viewPdf": "View signed agreement (PDF)"
     },
     "docTemplate": {
-      "title": "Doc Template",
-      "subtitle": "Blank templates to download, by category",
+      "title": "Quotation Request",
+      "subtitle": "Generate a quotation for a client before the sale is submitted.",
       "cat": {
         "pets": "Pets Afterlife",
         "human": "Human Afterlife",

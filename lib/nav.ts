@@ -152,20 +152,24 @@ export const portalNav: NavGroup[] = [
     // `groupFormsSubmission`, because adminNav's own "Forms & Submission"
     // group shares that key and is out of scope here.
     // Referral Partner List moved out to Resources, below Documents (C-6).
-    // "Quotation Request" below is new: the form already exists, embedded in
-    // the Doc Template page under ?cat=quotation, itself gated behind
-    // A17_CLOSED_DEAL_FLOW — the owner's decision (relayed, not guessed) is
-    // fail-closed: HIDDEN, not merely disabled, until A-17 is live (see
-    // quotationRequestVisible below). Unlike the marketing-library items,
-    // this one is NOT shown as a disabled "coming soon" row when off — a
-    // shown item behind a disabled flow is a visible broken path for a real
-    // associate; a hidden item that could have shown is just a question
-    // asked later. The href is real and static (the page itself already
-    // flag-checks server-side); only the nav entry's VISIBILITY is gated.
-    // NOT done here, deliberately: folding the REST of Doc Template's
-    // content (Pets/Human Afterlife tabs + signed agreements) into
-    // Documents — a real page merge, bigger than a nav change, held
-    // separately.
+    // "Quotation Request" below: the form already exists at /portal/agreements,
+    // itself gated behind A17_CLOSED_DEAL_FLOW — the owner's decision (relayed,
+    // not guessed) is fail-closed: HIDDEN, not merely disabled, until A-17 is
+    // live (see quotationRequestVisible below). Unlike the marketing-library
+    // items, this one is NOT shown as a disabled "coming soon" row when off —
+    // a shown item behind a disabled flow is a visible broken path for a real
+    // associate; a hidden item that could have shown is just a question asked
+    // later. The href is real and static (the page itself already flag-checks
+    // server-side, redirecting to Documents when off); only the nav entry's
+    // VISIBILITY is gated.
+    //
+    // C-6 (2026-10-02): the old "Doc Template" item is REMOVED, not renamed —
+    // its Pets/Human Afterlife templates and signed-agreements list folded
+    // into Documents below, so there's no separate destination left for it to
+    // point to. The page that used to serve it (app/portal/agreements/page.tsx)
+    // now serves only the quotation form; its URL/identity still carrying the
+    // old name is a known, named follow-up (moving it to its own route), not
+    // built here — see the comment at the top of that file.
     titleKey: "groupSubmissionsBase",
     items: [
       {
@@ -183,9 +187,7 @@ export const portalNav: NavGroup[] = [
           // dead" the way a permanently-reachable-but-often-empty page could.
           { labelKey: "myQuotations", href: "/portal/quotations", icon: FileCheck },
           { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
-          { labelKey: "quotationRequest", href: "/portal/agreements?cat=quotation", icon: BadgeCheck },
-          // A13: "Agreements" → "Doc Template" (blank templates to download).
-          { labelKey: "docTemplate", href: "/portal/agreements", icon: FileSignature },
+          { labelKey: "quotationRequest", href: "/portal/agreements", icon: BadgeCheck },
         ],
       },
     ],
