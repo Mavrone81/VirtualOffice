@@ -13,6 +13,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { InviteForm } from "@/app/admin/recruitment/new/invite-form";
 import { myRecruiterTeams } from "@/server/recruitment/actions";
 import { CancelInviteButton } from "./cancel-invite-button";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Invite Candidate · Enshrine Portal" };
@@ -68,12 +69,12 @@ export default async function PortalInvitePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("invites.colName")}</th>
-                  <th className="px-5 py-3 font-medium">{t("invites.colEmail")}</th>
-                  <th className="px-5 py-3 font-medium">{t("invites.colStage")}</th>
-                  <th className="px-5 py-3 font-medium">{t("invites.colInvited")}</th>
-                  <th className="px-5 py-3"></th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("invites.colName")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("invites.colEmail")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("invites.colStage")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("invites.colInvited")}</th>
+                  <th className={`px-5 py-3 ${TABLE_HEAD_CELL_CLS}`}></th>
                 </tr>
               </thead>
               <tbody>

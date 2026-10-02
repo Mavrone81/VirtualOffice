@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { formatSGD } from "@/lib/money";
 import { createQuotation, voidQuotation } from "@/server/quotations/actions";
 import type { QuotationLineSnapshot } from "@/server/quotations/actions";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export type QuotationFormProduct = { id: string; productCode: string; productName: string };
 
@@ -181,14 +182,14 @@ export function QuotationForm({ products, today, quotations }: { products: Quota
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                    <th className="px-5 py-3 font-medium">{t("list.colCode")}</th>
-                    <th className="px-5 py-3 font-medium">{t("list.colDate")}</th>
-                    <th className="px-5 py-3 font-medium">{t("list.colClient")}</th>
-                    <th className="px-5 py-3 font-medium">{t("list.colProducts")}</th>
-                    <th className="px-5 py-3 font-medium text-right">{t("list.colTotal")}</th>
-                    <th className="px-5 py-3 font-medium">{t("list.colStatus")}</th>
-                    <th className="px-5 py-3"></th>
+                  <tr className={TABLE_HEAD_ROW_CLS}>
+                    <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colCode")}</th>
+                    <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colDate")}</th>
+                    <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colClient")}</th>
+                    <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colProducts")}</th>
+                    <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colTotal")}</th>
+                    <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colStatus")}</th>
+                    <th className={`px-5 py-3 ${TABLE_HEAD_CELL_CLS}`}></th>
                   </tr>
                 </thead>
                 <tbody>

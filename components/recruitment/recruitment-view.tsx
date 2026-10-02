@@ -11,6 +11,7 @@ import { managerOptions, performanceByAssociate, RECRUIT_TABS, selectRecruits, t
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 /**
  * Recruitment Dashboard ("people") and Downline Performance ("performance") —
@@ -79,7 +80,7 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
   };
   const tabLabel = (k: RecruitTab) => (mode === "people" ? t(`tab.${k}`) : t(`perfTab.${k}`));
   const showUpline = tab !== "direct";
-  const th = "px-4 py-3 font-medium";
+  const th = `px-4 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`;
 
   return (
     <>
@@ -119,7 +120,7 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px]">
             <thead>
-              <tr className="bg-ink text-[11px] uppercase tracking-wide text-white/85">
+              <tr className={TABLE_HEAD_ROW_CLS}>
                 <th className={th}>{t("col.id")}</th>
                 <th className={th}>{t("col.associate")}</th>
                 <th className={th}>{t("col.designation")}</th>
@@ -129,10 +130,10 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
                   <th className={th}>{tc("status")}</th>
                 ) : (
                   <>
-                    <th className={`${th} text-right`}>{t("col.transacted")}</th>
-                    <th className={`${th} text-right`}>{t("col.commission")}</th>
-                    <th className={`${th} text-right`}>{t("col.myDirect")}</th>
-                    <th className={`${th} text-right`}>{t("col.mySecond")}</th>
+                    <th className={th}>{t("col.transacted")}</th>
+                    <th className={th}>{t("col.commission")}</th>
+                    <th className={th}>{t("col.myDirect")}</th>
+                    <th className={th}>{t("col.mySecond")}</th>
                   </>
                 )}
               </tr>

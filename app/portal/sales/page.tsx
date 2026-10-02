@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { humanize } from "@/lib/labels";
 import { getTranslations } from "next-intl/server";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "My sales · Enshrine Portal" };
 
@@ -44,15 +45,15 @@ export default async function MySalesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("sales.colTxnId")}</th>
-                  <th className="px-5 py-3 font-medium">{t("sales.colDate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("sales.colClient")}</th>
-                  <th className="px-5 py-3 font-medium">{t("sales.colProducts")}</th>
-                  <th className="px-5 py-3 font-medium">{t("sales.colAmount")}</th>
-                  <th className="px-5 py-3 font-medium">{t("sales.colPlan")}</th>
-                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
-                  <th className="px-5 py-3"></th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colTxnId")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colDate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colClient")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colProducts")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colAmount")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("sales.colPlan")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{tc("status")}</th>
+                  <th className={`px-5 py-3 ${TABLE_HEAD_CELL_CLS}`}></th>
                 </tr>
               </thead>
               <tbody>

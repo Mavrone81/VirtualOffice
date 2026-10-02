@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "Referral partner list · Enshrine Portal" };
 
@@ -36,12 +37,12 @@ export default async function ReferralPartnerListPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("list.colVendor")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colType")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colReferredBy")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colDate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colStatus")}</th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colVendor")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colType")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colReferredBy")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colDate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colStatus")}</th>
                 </tr>
               </thead>
               <tbody>

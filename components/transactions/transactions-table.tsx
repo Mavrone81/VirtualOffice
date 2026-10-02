@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { formatSGD } from "@/lib/money";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export type TransactionRow = Prisma.SalesTransactionGetPayload<{
   include: { closingAssociate: true; lineItems: true };
@@ -35,21 +36,21 @@ export async function TransactionsTable({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">{t("transactions.col.txnId")}</th>
-                <th className="px-5 py-3 font-medium">{t("transactions.col.date")}</th>
-                <th className="px-5 py-3 font-medium">{t("transactions.col.client")}</th>
-                <th className="px-5 py-3 font-medium">{t("transactions.col.products")}</th>
-                <th className="px-5 py-3 font-medium">{t("transactions.col.amount")}</th>
+              <tr className={TABLE_HEAD_ROW_CLS}>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.txnId")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.date")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.client")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.products")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.amount")}</th>
                 {variant === "received" && (
-                  <th className="px-5 py-3 font-medium">{t("transactions.col.collected")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.collected")}</th>
                 )}
                 {variant === "receivable" && (
-                  <th className="px-5 py-3 font-medium">{t("transactions.col.outstanding")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.outstanding")}</th>
                 )}
-                <th className="px-5 py-3 font-medium">{t("transactions.col.closer")}</th>
-                <th className="px-5 py-3 font-medium">{t("transactions.col.eligibility")}</th>
-                {showAgreementLink && <th className="px-5 py-3 font-medium"></th>}
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.closer")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("transactions.col.eligibility")}</th>
+                {showAgreementLink && <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}></th>}
               </tr>
             </thead>
             <tbody>

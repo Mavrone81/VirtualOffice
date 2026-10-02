@@ -7,6 +7,7 @@ import type { MyTransactionRow, TransactionVariant } from "@/server/transactions
 import type { VoucherListEntry } from "@/server/vouchers/get-or-create";
 import { Card } from "@/components/ui/card";
 import { VoucherDownloadButton } from "./voucher-download-button";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 /**
  * Associate-portal "My Transactions" table (Sep 2026 — A5; A-6 build-plan
@@ -29,7 +30,7 @@ export async function MyTransactionsTable({
 }) {
   const t = await getTranslations("sales.myTxn");
 
-  const th = "px-3 py-3 font-medium";
+  const th = `px-3 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`;
   const num = "px-3 py-3 text-right tabular-nums";
   const showLastCol = variant !== "receivable";
 
@@ -41,18 +42,18 @@ export async function MyTransactionsTable({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line bg-ink text-[11px] uppercase tracking-wide text-white/85">
+              <tr className={TABLE_HEAD_ROW_CLS}>
                 <th className={th}>{t("col.sno")}</th>
                 <th className={th}>{t("col.txnId")}</th>
                 <th className={th}>{t("col.type")}</th>
                 <th className={th}>{t("col.description")}</th>
                 <th className={th}>{t("col.submitted")}</th>
-                <th className={`${th} text-right`}>{t("col.price")}</th>
-                <th className={`${th} text-right`}>{t("col.invoiceAmount")}</th>
+                <th className={th}>{t("col.price")}</th>
+                <th className={th}>{t("col.invoiceAmount")}</th>
                 <th className={th}>{t("col.scheme")}</th>
-                <th className={`${th} text-right`}>{t("col.share")}</th>
-                <th className={`${th} text-right`}>{t("col.received")}</th>
-                <th className={`${th} text-right`}>{t("col.balance")}</th>
+                <th className={th}>{t("col.share")}</th>
+                <th className={th}>{t("col.received")}</th>
+                <th className={th}>{t("col.balance")}</th>
                 {showLastCol && <th className={th}>{variant === "received" ? t("col.voucher") : t("col.invoice")}</th>}
               </tr>
             </thead>

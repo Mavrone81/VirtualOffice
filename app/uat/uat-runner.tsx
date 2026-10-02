@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import type { UatSection } from "@/lib/uat-cases";
 import { UAT_TOTAL, UAT_ACCOUNTS } from "@/lib/uat-cases";
 import { setUatResult, getUatResults, getUatTesters } from "@/server/uat/actions";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 type Res = { status: string; notes: string | null };
 const STATUS_KEYS = ["Pass", "Fail", "Blocked"] as const;
@@ -136,10 +137,10 @@ export function UatRunner({ sections, defaultTester }: { sections: UatSection[];
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="py-2 pr-4 font-medium">Role</th>
-                  <th className="py-2 pr-4 font-medium">Login (email)</th>
-                  <th className="py-2 font-medium">Who</th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`py-2 pr-4 font-medium ${TABLE_HEAD_CELL_CLS}`}>Role</th>
+                  <th className={`py-2 pr-4 font-medium ${TABLE_HEAD_CELL_CLS}`}>Login (email)</th>
+                  <th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>Who</th>
                 </tr>
               </thead>
               <tbody>

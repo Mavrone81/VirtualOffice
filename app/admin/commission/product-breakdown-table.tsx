@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ProductBreakdownRow } from "@/server/commission/product-breakdown";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export function ProductBreakdownTable({ rows }: { rows: ProductBreakdownRow[] }) {
   const t = useTranslations("commission");
@@ -37,12 +38,12 @@ export function ProductBreakdownTable({ rows }: { rows: ProductBreakdownRow[] })
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">{t("colProduct")}</th>
-                <th className="px-5 py-3 font-medium">{t("colNetToCloser")}</th>
-                <th className="px-5 py-3 font-medium">{t("colDirectOverride")}</th>
-                <th className="px-5 py-3 font-medium">{t("colSecondOverride")}</th>
-                <th className="px-5 py-3 font-medium">{t("colCompanyRetained")}</th>
+              <tr className={TABLE_HEAD_ROW_CLS}>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colProduct")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colNetToCloser")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colDirectOverride")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colSecondOverride")}</th>
+                <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colCompanyRetained")}</th>
               </tr>
             </thead>
             <tbody>

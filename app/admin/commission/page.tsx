@@ -14,6 +14,7 @@ import { ledgerWhere, parseLedgerSearch, type LedgerSearch } from "@/server/comm
 import { resolvePeriod, PERIODS, type Period } from "@/lib/period";
 import { ProductBreakdownTable } from "./product-breakdown-table";
 import { SalesChart } from "./sales-chart";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "Commission Dashboard · Enshrine Admin" };
 
@@ -90,13 +91,13 @@ export default async function CommissionPage({ searchParams }: { searchParams: P
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("colTxn")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colAssociate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colLineType")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colGross")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colNett")}</th>
-                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colTxn")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colAssociate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colLineType")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colGross")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colNett")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>

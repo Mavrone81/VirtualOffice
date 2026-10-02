@@ -15,6 +15,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { PayoutRowActions, BankFileButton } from "./payout-actions";
 import { RunPayoutsBar } from "./run-payouts-bar";
 import { PreviewPanel } from "./preview-panel";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "Payouts · Enshrine Admin" };
 
@@ -100,16 +101,16 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Prom
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("colAssociate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colRank")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colPersonal")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colOverride")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colAddon")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colTotal")}</th>
-                  <th className="px-5 py-3 font-medium">{t("colMethod")}</th>
-                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
-                  <th className="px-5 py-3 font-medium"></th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colAssociate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colRank")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colPersonal")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colOverride")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colAddon")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colTotal")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("colMethod")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{tc("status")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}></th>
                 </tr>
               </thead>
               <tbody>

@@ -7,6 +7,7 @@ import { summarizeUat, type UatRow } from "@/lib/uat-summary";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatTile } from "@/components/ui/stat-tile";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "UAT results · Enshrine Admin" };
@@ -42,13 +43,13 @@ export default async function AdminUatPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Tester</th>
-                  <th className="px-5 py-3 font-medium text-right">Pass</th>
-                  <th className="px-5 py-3 font-medium text-right">Fail</th>
-                  <th className="px-5 py-3 font-medium text-right">Blocked</th>
-                  <th className="px-5 py-3 font-medium text-right">Left</th>
-                  <th className="px-5 py-3 font-medium">Progress</th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>Tester</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>Pass</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>Fail</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>Blocked</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>Left</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>Progress</th>
                 </tr>
               </thead>
               <tbody>
