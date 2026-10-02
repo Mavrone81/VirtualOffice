@@ -87,5 +87,11 @@ export async function resolveTeamSearchScope(
     where: { id: input.value, active: true, OR: [{ directorId: associateId }, { members: { some: { associateId } } }] },
     select: { members: { select: { associateId: true } } },
   });
-  return team ? team.members.map((m) => m.associateId) : null;
+  if (!team) return null;
+  // Parity with the default (unfiltered) view, which excludes self via
+  // `teamScopeIds(...).filter(id => id !== associateId)` on both pages — a
+  // team-search result must exclude the caller too, or "Team Commission"/
+  // "Team Pending Commission" would silently include the caller's own
+  // figures only when searched by team, never by default (DevLead review).
+  return team.members.map((m) => m.associateId).filter((id) => id !== associateId);
 }

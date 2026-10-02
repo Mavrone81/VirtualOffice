@@ -31,8 +31,13 @@ beforeAll(async () => {
     select: { id: true },
   })).id;
 
+  // The director is ALSO listed as a member of their own team (a real,
+  // supported shape in this data model) — the parity case DevLead's review
+  // caught: the default view excludes self, so a team-search result must
+  // too, or "Team Commission" would silently include the caller's own
+  // figures only when searched by team.
   ownTeamId = (await prisma.team.create({
-    data: { name: TAG + "OwnTeam", directorId, active: true, members: { create: [{ associateId: memberId }] } },
+    data: { name: TAG + "OwnTeam", directorId, active: true, members: { create: [{ associateId: memberId }, { associateId: directorId }] } },
     select: { id: true },
   })).id;
   // A team that exists, is active, but belongs to a DIFFERENT director — the
@@ -78,9 +83,9 @@ describe("resolveTeamSearchScope — the candidate is checked against the server
     expect(scope).toBeNull();
   });
 
-  it("a team candidate the director owns resolves to that team's member ids", async () => {
+  it("a team candidate the director owns resolves to that team's OTHER member ids, excluding the director's own (parity with the default, self-excluded view)", async () => {
     const scope = await resolveTeamSearchScope(directorId, { type: "team", value: ownTeamId });
-    expect(scope).toEqual([memberId]);
+    expect(scope).toEqual([memberId]); // NOT [memberId, directorId] — the fixture's team has both as members
   });
 
   // The DevSecOps-required boundary, team side: a real, active team id
