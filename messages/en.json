@@ -1353,6 +1353,11 @@
       "save": "Save",
       "colYearTarget": "Target (this year)"
     },
+    "search": {
+      "all": "All",
+      "individuals": "Individuals",
+      "teams": "Teams"
+    },
     "sales": {
       "pageTitle": "Team sales",
       "noProfile": "No associate profile is linked to this account.",
@@ -1380,8 +1385,12 @@
       "earnedByDownline": "Earned by your downline",
       "teamEligible": "Team Pending Commission",
       "readyForPayout": "Ready for payout",
-      "myOverrides": "My Overrides (Total Earned)",
+      "myOverrides": "My Overrides",
       "yourEarningsFromTeam": "All override earnings, paid and unpaid",
+      "overridesOverall": "Overall",
+      "overridesReceived": "Received",
+      "overridesMonth": "Month",
+      "overridesYear": "Year",
       "noCommission": "No team commission yet — it appears once your downline's sales are verified.",
       "colAssociate": "Associate",
       "colTxn": "Txn",

@@ -1353,6 +1353,11 @@
       "save": "保存",
       "colYearTarget": "目标（本年）"
     },
+    "search": {
+      "all": "全部",
+      "individuals": "个人",
+      "teams": "团队"
+    },
     "sales": {
       "pageTitle": "团队销售",
       "noProfile": "此账户未关联员工档案。",
@@ -1380,8 +1385,12 @@
       "earnedByDownline": "下线所得佣金",
       "teamEligible": "团队待发放佣金",
       "readyForPayout": "可发放",
-      "myOverrides": "我的越级佣金（总收益）",
+      "myOverrides": "我的越级佣金",
       "yourEarningsFromTeam": "所有越级佣金收益，含已发放及未发放",
+      "overridesOverall": "总计",
+      "overridesReceived": "已收款",
+      "overridesMonth": "月份",
+      "overridesYear": "年份",
       "noCommission": "暂无团队佣金——下线销售经核实后将显示于此。",
       "colAssociate": "员工",
       "colTxn": "交易",
