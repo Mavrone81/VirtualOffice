@@ -39,6 +39,7 @@ const validSubmission = {
   agreementAccepted: true,
   nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
   signature: `data:image/png;base64,${TINY_PNG.toString("base64")}`,
+  spouseConflict: false,
 };
 
 // Local pdftotext helpers — tracked + cleaned up in a finally, per tonight's

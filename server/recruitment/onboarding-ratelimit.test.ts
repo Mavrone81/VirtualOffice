@@ -46,6 +46,7 @@ const validSubmission = {
   agreementAccepted: true,
   nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
   signature: "data:image/png;base64,iVBORw0KGgo=",
+  spouseConflict: false,
 };
 
 beforeEach(() => {

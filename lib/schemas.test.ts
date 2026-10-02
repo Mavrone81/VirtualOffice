@@ -323,13 +323,27 @@ describe("onboardingSchema", () => {
         nationality: "Singaporean",
         gender: "Male",
         religion: "Buddhism",
+        spouseConflict: false,
       }).success,
     ).toBe(true);
+  });
+
+  // C-2 (owner ruling): spouseConflict is required at final submit — see
+  // lib/schemas.ts's own comment on the field for why that's safe (no
+  // draft-save path exists for this form to lock anyone out of).
+  it("rejects a submission that omits spouseConflict entirely", () => {
+    expect(
+      onboardingSchema.safeParse({
+        nric: "S1234567A", paymentMethod: "PayNow", agreementAccepted: true,
+        nationality: "Singaporean", gender: "Male", religion: "Buddhism",
+      }).success,
+    ).toBe(false);
   });
 
   const base = {
     nric: "S1234567A", paymentMethod: "PayNow" as const, agreementAccepted: true,
     nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
+    spouseConflict: false as const,
   };
 
   // Printed on the Associate Agreement's particulars table (28 Sep) — each is
@@ -355,10 +369,16 @@ describe("onboardingSchema", () => {
     expect(onboardingSchema.safeParse({ ...base, spouseConflict: false }).success).toBe(true);
   });
 
-  it("requires spouse name + company when the conflict is declared Yes", () => {
+  it("requires spouse name + company + designation when the conflict is declared Yes", () => {
     expect(onboardingSchema.safeParse({ ...base, spouseConflict: true }).success).toBe(false);
+    // C-2: name + company alone is no longer enough — designation joined them.
     expect(
       onboardingSchema.safeParse({ ...base, spouseConflict: true, spouseName: "Jane Tan", spouseCompany: "Rival Funeral Pte Ltd" }).success,
+    ).toBe(false);
+    expect(
+      onboardingSchema.safeParse({
+        ...base, spouseConflict: true, spouseName: "Jane Tan", spouseCompany: "Rival Funeral Pte Ltd", spouseDesignation: "Director",
+      }).success,
     ).toBe(true);
   });
 });

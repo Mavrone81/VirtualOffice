@@ -371,7 +371,12 @@ export const onboardingSchema = z.object({
   religion: z.string().trim().min(1).max(100),
   // Spouse / Conflict of Interest Declaration (V-2026-07): is the spouse working
   // for or supplying a funeral / afterlife company? If declared Yes, capture who.
-  spouseConflict: z.boolean().optional(),
+  // C-2 (owner ruling): required at final submit — there is no draft-save path in
+  // this flow (one schema call site, submitOnboarding; the form starts blank on
+  // every load and nothing persists before a valid submit), so "required" here
+  // can't retroactively lock anyone out of a stored draft. Don't add
+  // draft-exemption logic for a draft path that doesn't exist.
+  spouseConflict: z.boolean(),
   spouseName: z.string().trim().max(200).optional(),
   spouseCompany: z.string().trim().max(200).optional(),
   spouseDesignation: z.string().trim().max(200).optional(),
@@ -381,10 +386,12 @@ export const onboardingSchema = z.object({
   // size; magic bytes verified downstream (Task 7), not here.
   signature: z.string().max(8_000_000).optional(),
 }).superRefine((v, ctx) => {
-  // A declared conflict must name the spouse + their company.
+  // C-2 (owner ruling): a declared conflict must name the spouse, their company,
+  // AND their designation — all three, not just the first two.
   if (v.spouseConflict === true) {
     if (!v.spouseName?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spouseName"], message: "required" });
     if (!v.spouseCompany?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spouseCompany"], message: "required" });
+    if (!v.spouseDesignation?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spouseDesignation"], message: "required" });
   }
 });
 export type OnboardingSchemaInput = z.infer<typeof onboardingSchema>;
