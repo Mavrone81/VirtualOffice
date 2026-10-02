@@ -165,3 +165,43 @@ describe("C-4: offline (paper-signed) agreement upload", () => {
     expect(after.signedAgreementFileKey).toBe(existingKey); // unchanged — the portal-signed copy survives
   });
 });
+
+describe("C-4 (DevSecOps/PD review): concurrent offline uploads for the same associate are serialised", () => {
+  it("a race between two concurrent uploads produces exactly one filed document, never two", async () => {
+    const email = `${TAG}race-${randomUUID()}@example.com`;
+    const user = await prisma.user.create({ data: { email, passwordHash: "x", role: "SalesAssociate" as never } });
+    userIds.push(user.id);
+    const assoc = await prisma.associate.create({
+      data: {
+        associateCode: TAG + randomUUID().slice(0, 8), fullName: TAG + "Race", mobileNumber: "91234567", email,
+        designation: "SalesAssociate" as never, approvalStatus: "Approved" as never, associateStatus: "Active" as never,
+      },
+    });
+    associateIds.push(assoc.id);
+    await prisma.user.update({ where: { id: user.id }, data: { associateId: assoc.id } });
+
+    who.session = ADMIN;
+    const fileA = new File([Buffer.from("%PDF-1.4\nrace-a\n")], "a.pdf", { type: "application/pdf" });
+    const fileB = new File([Buffer.from("%PDF-1.4\nrace-b\n")], "b.pdf", { type: "application/pdf" });
+    const [ra, rb] = await Promise.all([
+      uploadOfflineSignedAgreement(assoc.id, fileA),
+      uploadOfflineSignedAgreement(assoc.id, fileB),
+    ]);
+
+    // Exactly one of the two genuinely concurrent calls wins; the other must
+    // be refused by the SAME guard a sequential second call would hit — not
+    // silently also succeed, which is the exact bug class the FOR UPDATE
+    // lock exists to close (the pre-fix TOCTOU: both reads happen before
+    // either write).
+    const results = [ra, rb];
+    const wins = results.filter((r) => r.ok);
+    const losses = results.filter((r) => !r.ok);
+    expect(wins).toHaveLength(1);
+    expect(losses).toHaveLength(1);
+    expect(losses[0]).toEqual({ ok: false, error: "agreementAlreadyOnFile" });
+
+    const pFile = await prisma.pFile.findUniqueOrThrow({ where: { userId: user.id }, include: { documents: true } });
+    const signedDocs = pFile.documents.filter((d) => d.docType === "SignedAssociateAgreement");
+    expect(signedDocs).toHaveLength(1); // never two, regardless of which call won
+  });
+});
