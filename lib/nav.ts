@@ -132,12 +132,23 @@ export const portalNav: NavGroup[] = [
     ],
   },
   {
-    titleKey: "groupRecruitment",
+    // C-7 (p.8): "Recruitment" renamed to "My Team" for the associate portal.
+    // A SEPARATE, pre-existing "My Team" group below (`groupMyTeam`) already
+    // carries that exact title for DIRECTOR_ROLES only (Team Overview/Sales/
+    // Commissions/Split Approvals) — merging the two is a still-open question
+    // with the owner. Until it's answered, this group gets its OWN key
+    // (`groupMyTeamBase`, not `groupMyTeam`) so the two stay independently
+    // renderable rather than accidentally coupled by sharing a translation
+    // key. A Sales Associate/Assistant Manager never sees `groupMyTeam` at
+    // all (role-gated out), so for them this is simply "My Team" with no
+    // collision; a Director/Admin still sees two sections today (this one
+    // plus the pre-existing one) until Q3 resolves the merge.
+    titleKey: "groupMyTeamBase",
     items: [
       {
-        labelKey: "groupRecruitment", icon: Users,
-        // A8: Recruitment Dashboard (All / Direct / Downline associates) and
-        // Downline Performance; the invite page stays for recruiters.
+        labelKey: "groupMyTeamBase", icon: Users,
+        // A8: Team Dashboard (All / Direct / Downline associates) and
+        // Team Performance; the invite page stays for recruiters.
         children: [
           { labelKey: "recruitmentDashboard", href: "/portal/recruitment/associates", icon: Users },
           { labelKey: "downlinePerformance", href: "/portal/recruitment/downline", icon: TrendingUp },
