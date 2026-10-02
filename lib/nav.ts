@@ -111,6 +111,7 @@ export const adminNav: NavGroup[] = [
         children: [
           { labelKey: "notices", href: "/admin/notices", icon: Megaphone },
           { labelKey: "documents", href: "/admin/documents", icon: FolderOpen },
+          { labelKey: "docTemplates", href: "/admin/doc-templates", icon: FileText },
           { labelKey: "auditLog", href: "/admin/audit", icon: ScrollText, roles: ["Admin"] },
           { labelKey: "uat", href: "/admin/uat", icon: ClipboardCheck, roles: ["Admin"] },
           { labelKey: "companyData", href: "/admin/company", icon: Building2, roles: ["Admin"] },

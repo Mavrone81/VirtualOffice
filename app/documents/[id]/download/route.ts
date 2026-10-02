@@ -16,6 +16,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!doc) return new NextResponse("Not found", { status: 404 });
 
   if (!isAdminRole(session.user.role)) {
+    // B-5: a retired template upload (superseded by a replace) is 404 to
+    // everyone but admins — a live download URL keeps distributing a
+    // superseded copy of an agreement template even after it's no longer
+    // listed anywhere (PD's ruling, under the owner's "replace" wording).
+    // Admins can still fetch it by id for audit/recovery.
+    if (doc.retiredAt) return new NextResponse("Not found", { status: 404 });
     if (doc.visibility === "Admin") return new NextResponse("Forbidden", { status: 403 });
     const assocId = session.user.associateId;
     const assoc = assocId ? await prisma.associate.findUnique({ where: { id: assocId }, select: { teamName: true } }) : null;

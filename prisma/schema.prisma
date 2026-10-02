@@ -231,6 +231,13 @@ enum DocumentVisibility {
   Admin
 }
 
+// B-5 Doc Template (Option 1): categories for admin-uploaded reference
+// templates on the portal Doc Template page (ADR-0002 decision 1).
+enum TemplateCategory {
+  PetsAfterlife
+  HumanAfterlife
+}
+
 enum InstallmentPlanStatus {
   Active
   Completed
@@ -1031,6 +1038,24 @@ model Document {
   assignedAssociate   Associate?         @relation("DocAssignedAssociate", fields: [assignedAssociateId], references: [id])
   visibility          DocumentVisibility @default(All)
   uploadedById        String?            @map("uploaded_by") @db.Uuid
+
+  // B-5 Doc Template (Option 1): `category` set means this row is an admin-
+  // uploaded reference template, shown on the portal page alongside the
+  // (unrelated, sha-pinned) built-in templates. On a new upload for the same
+  // category, the previous one is retired (`retiredAt` set) and
+  // `supersededById` points at the new row, in the same transaction as the
+  // insert. "Exactly one non-retired row per category" is enforced ONLY by a
+  // partial unique index in migration.sql (20261002090000_b5_doc_template_category)
+  // — Prisma's schema DSL has no partial-index support, so it can't be
+  // expressed here. No admin history UI, no un-retire. Reachability: a
+  // retired row is 404 to everyone but admins at the download route
+  // (app/documents/[id]/download) — a live URL must not keep distributing
+  // a superseded template copy, even once it's gone from every listing.
+  category       TemplateCategory? @map("category")
+  retiredAt      DateTime?         @map("retired_at")
+  supersededById String?           @map("superseded_by") @db.Uuid
+  supersededBy   Document?         @relation("DocSupersession", fields: [supersededById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  supersedes     Document[]        @relation("DocSupersession")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
