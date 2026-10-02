@@ -9,6 +9,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { getTranslations } from "next-intl/server";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "Team commissions · Enshrine Portal" };
 
@@ -56,13 +57,13 @@ export default async function TeamCommissionsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("commissions.colAssociate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("commissions.colTxn")}</th>
-                  <th className="px-5 py-3 font-medium">{t("commissions.colType")}</th>
-                  <th className="px-5 py-3 font-medium">{t("commissions.colMonth")}</th>
-                  <th className="px-5 py-3 font-medium text-right">{t("commissions.colAmount")}</th>
-                  <th className="px-5 py-3 font-medium">{tc("status")}</th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("commissions.colAssociate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("commissions.colTxn")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("commissions.colType")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("commissions.colMonth")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("commissions.colAmount")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>

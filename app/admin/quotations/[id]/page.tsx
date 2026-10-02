@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ApproveRejectButtons } from "../approve-reject-buttons";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Quotation review · Enshrine Admin" };
@@ -64,9 +65,9 @@ export default async function AdminQuotationDetailPage({ params }: { params: Pro
             <div className="mt-5 overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                    <th className="py-2 font-medium">{t("detail.product")}</th>
-                    <th className="py-2 text-right font-medium">{t("detail.amount")}</th>
+                  <tr className={TABLE_HEAD_ROW_CLS}>
+                    <th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("detail.product")}</th>
+                    <th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("detail.amount")}</th>
                   </tr>
                 </thead>
                 <tbody>

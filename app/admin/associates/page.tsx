@@ -13,6 +13,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { FilterBar, type FilterField } from "@/components/ui/filter-bar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssociateRowActions } from "./row-actions";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "Associate Master · Enshrine Admin" };
 
@@ -78,16 +79,16 @@ export default async function AssociatesPage({ searchParams }: { searchParams: P
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("col.id")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.associate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.division")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.designation")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.upline")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.login")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.approval")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.status")}</th>
-                  <th className="px-5 py-3 font-medium"></th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.id")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.associate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.division")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.designation")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.upline")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.login")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.approval")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.status")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}></th>
                 </tr>
               </thead>
               <tbody>

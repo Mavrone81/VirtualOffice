@@ -6,6 +6,7 @@ import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "Sales agreements · Enshrine Portal" };
 
@@ -36,14 +37,14 @@ export default async function SalesAgreementsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("salesAgreements.colTxn")}</th>
-                  <th className="px-5 py-3 font-medium">{t("salesAgreements.colDate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("salesAgreements.colClient")}</th>
-                  <th className="px-5 py-3 font-medium">{t("salesAgreements.colProducts")}</th>
-                  <th className="px-5 py-3 font-medium text-right">{t("salesAgreements.colAmount")}</th>
-                  <th className="px-5 py-3 font-medium">{t("salesAgreements.colPlan")}</th>
-                  <th className="px-5 py-3 font-medium"></th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("salesAgreements.colTxn")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("salesAgreements.colDate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("salesAgreements.colClient")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("salesAgreements.colProducts")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("salesAgreements.colAmount")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("salesAgreements.colPlan")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}></th>
                 </tr>
               </thead>
               <tbody>

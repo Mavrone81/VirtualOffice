@@ -6,6 +6,7 @@ import { isFullAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "Audit log · Enshrine Admin" };
 
@@ -34,12 +35,12 @@ export default async function AuditLogPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("col.when")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.actor")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.action")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.entity")}</th>
-                  <th className="px-5 py-3 font-medium">{t("col.detail")}</th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.when")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.actor")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.action")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.entity")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("col.detail")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { LegacyBanner } from "@/components/ui/legacy-banner";
 import { RequiredDocsSection } from "./required-docs-section";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Sale · Enshrine Portal" };
@@ -90,7 +91,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             </div>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-[13px]">
-                <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted"><th className="py-2 font-medium">{t("saleDetail.product")}</th><th className="py-2 text-right font-medium">{t("saleDetail.amount")}</th></tr></thead>
+                <thead><tr className={TABLE_HEAD_ROW_CLS}><th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("saleDetail.product")}</th><th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("saleDetail.amount")}</th></tr></thead>
                 <tbody>
                   {s.lineItems.map((li) => (
                     <tr key={li.id} className="border-b border-line-200 last:border-0"><td className="py-2 text-ink">{li.productName}</td><td className="py-2 text-right text-ink">{formatSGD(li.lineSaleAmount)}</td></tr>
@@ -112,7 +113,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
               <p className="text-[13px] text-muted">{t("saleDetail.noCommissions")}</p>
             ) : (
               <table className="w-full text-left text-[13px]">
-                <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted"><th className="py-2 font-medium">{t("saleDetail.colType")}</th><th className="py-2 font-medium">{t("saleDetail.colMonth")}</th><th className="py-2 text-right font-medium">{t("saleDetail.colAmount")}</th><th className="py-2 text-right font-medium">{t("saleDetail.colStatus")}</th></tr></thead>
+                <thead><tr className={TABLE_HEAD_ROW_CLS}><th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("saleDetail.colType")}</th><th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("saleDetail.colMonth")}</th><th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("saleDetail.colAmount")}</th><th className={`py-2 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("saleDetail.colStatus")}</th></tr></thead>
                 <tbody>
                   {ledger.map((l) => (
                     <tr key={l.id} className="border-b border-line-200 last:border-0"><td className="py-2 text-ink">{humanize(l.lineType)}{l.comCode ? ` · ${l.comCode}` : ""}</td><td className="py-2 text-muted">{l.payoutMonth}</td><td className="py-2 text-right text-ink">{formatSGD(l.amount)}</td><td className="py-2 text-right"><StatusPill status={l.status} /></td></tr>

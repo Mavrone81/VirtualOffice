@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { QuotationForm, type QuotationFormProduct, type QuotationRow } from "./quotation-form";
+import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Doc Template · Enshrine Portal" };
@@ -125,14 +126,14 @@ export default async function PortalAgreementsPage({ searchParams }: { searchPar
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="border-b border-line text-[11px] uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("list.colClient")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colNiche")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colAmount")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colAssociate")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colUpdated")}</th>
-                  <th className="px-5 py-3 font-medium">{t("list.colStatus")}</th>
-                  <th className="px-5 py-3"></th>
+                <tr className={TABLE_HEAD_ROW_CLS}>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colClient")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colNiche")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colAmount")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colAssociate")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colUpdated")}</th>
+                  <th className={`px-5 py-3 font-medium ${TABLE_HEAD_CELL_CLS}`}>{t("list.colStatus")}</th>
+                  <th className={`px-5 py-3 ${TABLE_HEAD_CELL_CLS}`}></th>
                 </tr>
               </thead>
               <tbody>
