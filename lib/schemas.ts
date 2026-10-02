@@ -313,6 +313,18 @@ export const newAssociateSchema = z.object({
 });
 export type NewAssociateSchemaInput = z.infer<typeof newAssociateSchema>;
 
+// Recruit-invite email bound. inviteCandidate (server/recruitment/actions.ts) is
+// the ONLY writer of Candidate.email, which propagates to Associate.email and
+// User.email at onboarding approval and is emailed via lib/mail.ts sendMail ->
+// nodemailer's address parser (super-linear on some shapes at length). Bounding
+// it here is what keeps a hostile or over-long address off that parser. 254 is
+// the RFC 5321 maximum (newAssociateSchema.email above uses a tighter house
+// bound of 200; both are safe — this path takes the RFC max deliberately).
+export const inviteCandidateSchema = z.object({
+  email: z.string().trim().email().max(254),
+});
+export type InviteCandidateSchemaInput = z.infer<typeof inviteCandidateSchema>;
+
 // Editing an existing associate (admin). Same core fields as creation minus the
 // uplines (managed by the dedicated UplineEditor with cycle guards), plus an
 // editable joinDate. nric / bankAccountNumber are keep-if-blank on edit — the
