@@ -153,6 +153,16 @@ export const portalNav: NavGroup[] = [
         labelKey: "groupFormsSubmission", icon: FileSignature,
         children: [
           { labelKey: "transactionSubmission", href: "/portal/sales", icon: Receipt },
+          // A-17 live-path finding: /portal/quotations (the old 16-Jul
+          // quotation-to-close workflow — upload/sign the quotation, then
+          // close the sale) carries real, live close-out actions for any
+          // Legacy-flow sale still in flight, but had NO nav entry anywhere —
+          // reachable only by typing the URL. Shown only to an associate who
+          // actually has one (fail-closed, same pattern as C-6's
+          // quotationRequestVisible): an entry that only exists with
+          // something behind it can't be confused with "this workflow is
+          // dead" the way a permanently-reachable-but-often-empty page could.
+          { labelKey: "myQuotations", href: "/portal/quotations", icon: FileCheck },
           { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
           // A13: "Agreements" → "Doc Template" (blank templates to download).
           { labelKey: "docTemplate", href: "/portal/agreements", icon: FileSignature },
@@ -255,4 +265,24 @@ export const MARKETING_LIBRARY_NAV_SLUG: Record<string, string> = {
 export function withMarketingLibraryHref(item: NavItem, area: ShellArea, marketingLibraryEnabled: boolean): NavItem {
   const slug = MARKETING_LIBRARY_NAV_SLUG[item.labelKey];
   return slug && marketingLibraryEnabled && !item.href ? { ...item, href: `/${area}/marketing/${slug}` } : item;
+}
+
+// "My Quotations" has a real, static href regardless — this gates VISIBILITY
+// (per-associate, computed server-side from a live DB count, never cached —
+// see app/portal/layout.tsx), not the href itself, same shape as C-6's
+// quotationRequestVisible but driven by data instead of a flag.
+//
+// INVARIANT this relies on: the count behind this predicate must stay a
+// SUBSET of what app/portal/quotations/page.tsx itself queries (both key off
+// closingAssociateId + status: QuotationApproved today; this predicate adds
+// `flow: Legacy, transaction: null` on top). That containment is what makes
+// "nav shows, page is empty" impossible by construction rather than by
+// coincidence — the whole reason this item exists. Narrowing the PAGE's query
+// later on some other axis (e.g. by submitting associate instead of closing
+// associate) without narrowing this one the same way would break that and
+// silently reintroduce the ambiguity this was built to remove. The two
+// queries live in separate files and nothing enforces agreement between them
+// — keep this comment in sync if either one changes.
+export function myQuotationsVisible(item: NavItem, hasInFlightLegacyQuotation: boolean): boolean {
+  return item.labelKey !== "myQuotations" || hasInFlightLegacyQuotation;
 }

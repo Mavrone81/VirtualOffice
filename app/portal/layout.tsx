@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { SubmissionStatus } from "@prisma/client";
+import { SubmissionStatus, SubmissionFlow } from "@prisma/client";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -43,6 +43,30 @@ export default async function PortalLayout({ children }: { children: React.React
     });
   }
 
+  // A-17 live-path finding: an associate's Legacy sale can sit at
+  // QuotationApproved indefinitely — Legacy rows never reach a later status
+  // on close-out (no Verified step for this flow), so status alone can't
+  // tell "still needs closing" from "closed months ago". The only
+  // authoritative test is whether a SalesTransaction exists yet (closeSale
+  // mints one); `closedAt` does NOT carry this meaning in production despite
+  // an earlier schema comment claiming it does — a production read-only
+  // check found closedAt NULL on every Legacy/QuotationApproved row, booked
+  // or not. Computed live, per render, never cached: a stale "none pending"
+  // during someone's mid-close-out would be worse than the cost of one extra
+  // COUNT per portal page load for an associate with none.
+  let hasInFlightLegacyQuotation = false;
+  if (session.user.associateId) {
+    const inFlight = await prisma.salesSubmission.count({
+      where: {
+        closingAssociateId: session.user.associateId,
+        flow: SubmissionFlow.Legacy,
+        status: SubmissionStatus.QuotationApproved,
+        transaction: null,
+      },
+    });
+    hasInFlightLegacyQuotation = inFlight > 0;
+  }
+
   const user = {
     name,
     roleLabel: tRoles(session.user.role),
@@ -60,6 +84,7 @@ export default async function PortalLayout({ children }: { children: React.React
       user={user}
       badges={{ notices: unreadNotices, splitApprovals }}
       marketingLibraryEnabled={env.MARKETING_LIBRARY_ENABLED}
+      hasInFlightLegacyQuotation={hasInFlightLegacyQuotation}
       alerts={alerts}
       period={currentPeriod(locale)}
     >

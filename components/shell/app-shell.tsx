@@ -13,6 +13,7 @@ export function AppShell({
   user,
   badges,
   marketingLibraryEnabled,
+  hasInFlightLegacyQuotation,
   alerts = [],
   period,
   children,
@@ -21,6 +22,7 @@ export function AppShell({
   user: ShellUser;
   badges?: Record<string, number>;
   marketingLibraryEnabled?: boolean;
+  hasInFlightLegacyQuotation?: boolean;
   alerts?: Alert[];
   period?: string;
   children: React.ReactNode;
@@ -33,6 +35,7 @@ export function AppShell({
         user={user}
         badges={badges}
         marketingLibraryEnabled={marketingLibraryEnabled}
+        hasInFlightLegacyQuotation={hasInFlightLegacyQuotation}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />

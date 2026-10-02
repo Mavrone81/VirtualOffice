@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AppRole } from "@prisma/client";
 import { Image } from "lucide-react";
-import { adminNav, portalNav, MARKETING_LIBRARY_NAV_SLUG, withMarketingLibraryHref, type NavItem } from "./nav";
+import { adminNav, portalNav, MARKETING_LIBRARY_NAV_SLUG, withMarketingLibraryHref, myQuotationsVisible, type NavItem } from "./nav";
 import { MARKETING_SLUGS } from "./marketing-categories";
 
 // A9 DevLead review: nav.ts used to keep its own stale copy of RECRUITER_ROLES,
@@ -25,6 +25,33 @@ function findByLabel(labelKey: string) {
   }
   throw new Error(`nav item not found: ${labelKey}`);
 }
+
+// A-17 live-path finding: /portal/quotations carries real close-out actions
+// for an in-flight Legacy sale but had no nav entry at all. Fail-closed,
+// per-associate, same firing-control shape as C-6's quotationRequest pair —
+// the ON case must assert PRESENCE on the identical selector the OFF case
+// asserts ABSENT, not two absence checks that happen to look like a pair.
+describe("portalNav myQuotations — fail-closed on hasInFlightLegacyQuotation (A-17 live-path fix)", () => {
+  const myQuotations = findByLabel("myQuotations");
+
+  it("has a real, static href regardless — only VISIBILITY is gated, not the link itself", () => {
+    expect(myQuotations.href).toBe("/portal/quotations");
+  });
+
+  it("is hidden — not merely empty — when the associate has no in-flight Legacy quotation", () => {
+    expect(myQuotationsVisible(myQuotations, false)).toBe(false);
+  });
+
+  it("is visible when the associate has one", () => {
+    expect(myQuotationsVisible(myQuotations, true)).toBe(true);
+  });
+
+  it("never affects an unrelated item, in either state", () => {
+    const other = findByLabel("transactionSubmission");
+    expect(myQuotationsVisible(other, false)).toBe(true);
+    expect(myQuotationsVisible(other, true)).toBe(true);
+  });
+});
 
 describe("portalNav directRecruits — follows canRecruit (A9: Manager and above)", () => {
   const directRecruits = findByLabel("directRecruits");
