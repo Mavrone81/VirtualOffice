@@ -68,6 +68,7 @@ export const UAT_SECTIONS: UatSection[] = [
   },
   {
     idx: "06", title: "Invoices & payments", tag: "signed invoice",
+    note: "Cases 6.2–6.4 describe the pre-16-Jul-2026 \"My Invoices\" screen, retired on 2026-07-22 and replaced by My Quotations (/portal/quotations) — a different list format (docket upload / sign-on-system / close sale, not an invoice table with a signed column). /portal/invoices itself is now just a redirect to that page. Left as-is rather than rewritten: flagging as deliberately stale documentation of a retired screen, not a regression, so a tester hitting a mismatch here doesn't mistake it for a new defect.",
     cases: [
       { id: "6.1", who: "BA", action: "Invoices → open a verified sale's invoice PDF.", expect: "The branded ENSHRINE invoice renders (UEN, Bill-To, Sales-Associate, line items, payment plan).", go: "/admin/invoices" },
       { id: "6.2", who: "SA", action: "My Invoices (/portal/invoices).", expect: "Your invoices listed; 'Invoice ↗' opens the PDF; signed column shows Not signed.", go: "/portal/invoices" },

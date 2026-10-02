@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LogOut, KeyRound, ChevronDown } from "lucide-react";
 import type { AppRole } from "@prisma/client";
-import { navByArea, withMarketingLibraryHref, type NavItem, type ShellArea } from "@/lib/nav";
+import { navByArea, withMarketingLibraryHref, myQuotationsVisible, type NavItem, type ShellArea } from "@/lib/nav";
 import { doSignOut } from "@/lib/auth-actions";
 
 export type ShellUser = { name: string; roleLabel: string; initials: string; subtitle?: string; role?: AppRole };
@@ -34,6 +34,7 @@ export function Sidebar({
   user,
   badges = {},
   marketingLibraryEnabled = false,
+  hasInFlightLegacyQuotation = false,
   mobileOpen,
   onClose,
 }: {
@@ -41,6 +42,7 @@ export function Sidebar({
   user: ShellUser;
   badges?: Record<string, number>;
   marketingLibraryEnabled?: boolean;
+  hasInFlightLegacyQuotation?: boolean;
   mobileOpen: boolean;
   onClose: () => void;
 }) {
@@ -51,7 +53,8 @@ export function Sidebar({
   // are always open.
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const visible = (i: NavItem) => !i.roles || (user.role != null && i.roles.includes(user.role));
+  const visible = (i: NavItem) =>
+    (!i.roles || (user.role != null && i.roles.includes(user.role))) && myQuotationsVisible(i, hasInFlightLegacyQuotation);
   // Marketing-library items ship with no href (see lib/nav.ts) so the flag
   // can gate them without importing @/lib/env into this client bundle — the
   // flag crosses the server/client boundary as this one boolean prop instead.
