@@ -3,6 +3,16 @@ import { downlineIds } from "./rbac";
 
 export type TeamSearchInput = { type: "individual" | "team"; value: string };
 
+// Matches the existing idiom (server/sales/transaction-filters.ts) — both
+// `Associate.id` and `Team.id` are @db.Uuid, and a malformed value handed
+// straight to a Prisma `where: { id }` throws (PrismaClientKnownRequestError)
+// rather than returning no match. A thrown error is a visibly DIFFERENT
+// outcome from a valid-but-out-of-scope candidate's silent null (DevSecOps
+// finding), which breaks resolveTeamSearchScope's own
+// no-distinguishable-forbidden-state contract — so shape is validated
+// BEFORE any query, not left to the database to reject.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Resolve the set of associate ids a manager's team views + quota authority
  * cover (16-Jul #7). Pure so it can be tested without a DB:
@@ -76,9 +86,15 @@ export async function resolveTeamSearchScope(
   associateId: string,
   input: TeamSearchInput | null,
 ): Promise<string[] | null> {
-  if (!input?.value) return null;
+  if (!input?.value || !UUID_RE.test(input.value)) return null;
 
   if (input.type === "individual") {
+    // teamScopeIds always includes self; excluded here for consistency with
+    // the team branch's own self-exclusion (DevSecOps note) — not a leak
+    // either way (it would only ever surface the caller's own data), but a
+    // hand-edited `?teamSearch=ind:<own-id>` otherwise passed the scope
+    // check and the UI dropdown never offers self as an option anyway.
+    if (input.value === associateId) return null;
     const scope = await teamScopeIds(associateId);
     return scope.includes(input.value) ? [input.value] : null;
   }

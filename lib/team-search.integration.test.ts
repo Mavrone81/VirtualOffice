@@ -99,4 +99,32 @@ describe("resolveTeamSearchScope — the candidate is checked against the server
     expect(await resolveTeamSearchScope(directorId, { type: "individual", value: "00000000-0000-0000-0000-000000000000" })).toBeNull();
     expect(await resolveTeamSearchScope(directorId, { type: "team", value: "00000000-0000-0000-0000-000000000000" })).toBeNull();
   });
+
+  // DevSecOps finding: Team.id is @db.Uuid, so a malformed value reaching
+  // `prisma.team.findFirst({ where: { id: ... } })` previously THREW
+  // (PrismaClientKnownRequestError), producing a visibly different outcome
+  // (an error page) than a valid-but-out-of-scope id (silent null, normal
+  // page) — breaking this function's own no-distinguishable-forbidden-state
+  // contract. A hand-edited URL, not reachable through the rendered
+  // dropdown, but the function must not throw on it either way.
+  it("a malformed (non-UUID) team value is refused the same way, never throws", async () => {
+    await expect(resolveTeamSearchScope(directorId, { type: "team", value: "not-a-uuid-at-all" })).resolves.toBeNull();
+  });
+
+  // The individual branch does a plain array-membership check against
+  // teamScopeIds, not a DB query keyed by the value — confirming it was
+  // already safe against a malformed string, not just assumed so.
+  it("a malformed (non-UUID) individual value is also safely refused (no DB cast on this branch)", async () => {
+    await expect(resolveTeamSearchScope(directorId, { type: "individual", value: "not-a-uuid-at-all" })).resolves.toBeNull();
+  });
+
+  // DevSecOps non-blocking note, resolved for consistency with the team
+  // branch's explicit self-exclusion: teamScopeIds always includes self, so
+  // without this, a hand-edited `?teamSearch=ind:<own-id>` would pass the
+  // scope check and surface the caller's own data under a "Team" tile. Not
+  // a leak (own data) and the dropdown never offers self, but inconsistent
+  // with the team branch's policy otherwise.
+  it("searching for yourself as an 'individual' is refused, matching the team branch's self-exclusion policy", async () => {
+    await expect(resolveTeamSearchScope(directorId, { type: "individual", value: directorId })).resolves.toBeNull();
+  });
 });
