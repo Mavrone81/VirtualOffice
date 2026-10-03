@@ -32,7 +32,7 @@ export function InviteForm({
   const [emailed, setEmailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [f, setF] = useState<InviteInput>({
-    fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate",
+    fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate", commencementDate: "",
     intendedTeam: teamOptions?.length === 1 ? teamOptions[0] : undefined,
   });
   const set = (patch: Partial<InviteInput>) => setF((p) => ({ ...p, ...patch }));
@@ -74,7 +74,7 @@ export function InviteForm({
         </Card>
         <div className="flex gap-2">
           <Button asChild><Link href="/admin/recruitment">{t("form.backToPipeline")}</Link></Button>
-          <Button variant="secondary" onClick={() => { setLink(undefined); setF({ fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate" }); }}>
+          <Button variant="secondary" onClick={() => { setLink(undefined); setF({ fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate", commencementDate: "" }); }}>
             {t("form.inviteAnother")}
           </Button>
         </div>
@@ -123,8 +123,7 @@ export function InviteForm({
           </div>
           <div>
             <Label htmlFor="commence">{t("form.commencementDate")}</Label>
-            <Input id="commence" type="date" value={f.commencementDate ?? ""} onChange={(e) => set({ commencementDate: e.target.value })} />
-            <p className="mt-1 text-[11px] text-muted-2">{t("form.commencementHint")}</p>
+            <Input id="commence" type="date" required value={f.commencementDate} onChange={(e) => set({ commencementDate: e.target.value })} />
           </div>
           <div>
             <Label htmlFor="up">{t("form.directUpline")}</Label>
@@ -137,7 +136,7 @@ export function InviteForm({
       </Card>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
-      <Button onClick={submit} disabled={pending || !f.fullName || !f.email || !f.mobileNumber}>
+      <Button onClick={submit} disabled={pending || !f.fullName || !f.email || !f.mobileNumber || !f.commencementDate}>
         {pending ? tc("creating") : t("form.createInviteLink")}
       </Button>
     </div>

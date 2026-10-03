@@ -159,8 +159,11 @@ export type InviteInput = {
   intendedDesignation: Designation;
   intendedDirectUplineCode?: string;
   intendedTeam?: string;
-  commencementDate?: string;
+  commencementDate: string;
 };
+
+// Error keys inviteCandidateSchema may surface to the invite form.
+const INVITE_ERROR_CODES = new Set(["commencementDateRequired", "commencementDateInvalid"]);
 
 export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean; error?: string; token?: string; emailed?: boolean }> {
   const t = await getTranslations("errors");
@@ -168,9 +171,10 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   if (!session) return { ok: false, error: t("forbidden") };
   if (!input.fullName?.trim()) return { ok: false, error: t("fullNameRequired") };
   if (!input.email?.trim()) return { ok: false, error: t("emailRequired") };
-  // Bound the address before it can reach the mail transport's parser (DoS guard).
-  const emailCheck = validate(inviteCandidateSchema, { email: input.email });
-  if (!emailCheck.ok) return { ok: false, error: t("invalidInput") };
+  // Bound the address before it can reach the mail transport's parser (DoS guard);
+  // the same schema requires a real Commencement Date.
+  const emailCheck = validate(inviteCandidateSchema, { email: input.email, commencementDate: input.commencementDate });
+  if (!emailCheck.ok) return { ok: false, error: t(emailCheck.code && INVITE_ERROR_CODES.has(emailCheck.code) ? emailCheck.code : "invalidInput") };
 
   // Consolidated-menu rework (Sep 2026): direct recruits go into the
   // recruiter's OWN team — only a Business Admin can place a candidate into
@@ -201,7 +205,7 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
       intendedDesignation: input.intendedDesignation,
       intendedDirectUplineId: upline?.id ?? null,
       intendedTeam,
-      commencementDate: input.commencementDate ? new Date(input.commencementDate) : null,
+      commencementDate: new Date(emailCheck.data.commencementDate),
       onboardingToken: token,
       onboardingStage: OnboardingStage.Invited,
       invitedById: session.user.id,

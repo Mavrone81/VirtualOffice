@@ -320,8 +320,23 @@ export type NewAssociateSchemaInput = z.infer<typeof newAssociateSchema>;
 // it here is what keeps a hostile or over-long address off that parser. 254 is
 // the RFC 5321 maximum (newAssociateSchema.email above uses a tighter house
 // bound of 200; both are safe — this path takes the RFC max deliberately).
+//
+// The same schema makes Commencement Date REQUIRED on the invite (the Associate
+// Agreement's "All these information are required"). Enforced here, server-side,
+// not only by the form: a blank, missing or non-calendar value is rejected. The
+// messages are i18n error keys, surfaced via validate()'s `code`.
+const commencementDate = z.string({ error: "commencementDateRequired" }).trim()
+  .min(1, "commencementDateRequired")
+  .refine((v) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    if (!m) return false;
+    const d = new Date(`${v}T00:00:00.000Z`);
+    // Round-trip rejects impossible dates (2026-02-31) that Date would roll over.
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }, "commencementDateInvalid");
 export const inviteCandidateSchema = z.object({
   email: z.string().trim().email().max(254),
+  commencementDate,
 });
 export type InviteCandidateSchemaInput = z.infer<typeof inviteCandidateSchema>;
 
