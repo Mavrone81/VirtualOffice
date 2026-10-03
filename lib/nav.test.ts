@@ -3,6 +3,8 @@ import { AppRole } from "@prisma/client";
 import { Image } from "lucide-react";
 import { adminNav, portalNav, MARKETING_LIBRARY_NAV_SLUG, withMarketingLibraryHref, myQuotationsVisible, quotationRequestVisible, type NavItem } from "./nav";
 import { MARKETING_SLUGS } from "./marketing-categories";
+import { canRecruit, isManagerRole } from "./roles";
+import { canSetQuota } from "./quota";
 
 // A9 DevLead review: nav.ts used to keep its own stale copy of RECRUITER_ROLES,
 // so a Sales Assistant Manager still saw "Direct recruits" after the rule
@@ -181,5 +183,109 @@ describe("withMarketingLibraryHref", () => {
   it("leaves an unrelated item untouched", () => {
     const dashboard: NavItem = { labelKey: "myDashboard", href: "/portal/dashboard", icon: flyers.icon };
     expect(withMarketingLibraryHref(dashboard, "portal", true)).toEqual(dashboard);
+  });
+});
+
+// C-8 (owner ruling, 2026-10-03): the two formerly-separate "My Team"
+// sections (the open-to-all `groupMyTeamBase` and the DIRECTOR_ROLES-only
+// `groupMyTeam`) are now one group. This proves each item's gate against the
+// actual predicate, not by re-reading the config and asserting it reads back
+// correctly.
+//
+// Team Dashboard (recruitmentDashboard) stays fully OPEN — an earlier pass
+// of this change gated it to MANAGER_ROLES, which was wrong and got caught:
+// that would have silently erased A8, a delivered client row (the "not
+// eligible for recruitment yet" state the page shows a non-recruiter
+// instead of the roster). Team Sales / Team Commissions DO move from the
+// old nav's DIRECTOR_ROLES to MANAGER_ROLES, matching each page's own
+// explicit isManagerRole check (moved there from the shared layout, so
+// relaxing the dashboard's gate can't relax theirs). Split Approvals and
+// Invite Candidate are unaffected — their nav gate already matched their
+// route. See the block comment in lib/nav.ts for the full reasoning.
+describe("portalNav My Team unification (C-8) — one group, order locked, per-item gating unchanged", () => {
+  it("groupMyTeam no longer exists as its own section — there is exactly one My Team group", () => {
+    const myTeamGroups = portalNav.filter((g) => g.titleKey === "groupMyTeam" || g.titleKey === "groupMyTeamBase");
+    expect(myTeamGroups).toHaveLength(1);
+    expect(myTeamGroups[0].titleKey).toBe("groupMyTeamBase");
+  });
+
+  it("teamOverview is gone — folded into the Team Dashboard item, not carried over as its own entry", () => {
+    expect(() => findByLabel("teamOverview")).toThrow();
+  });
+
+  it("locked order (owner-confirmed): Team Dashboard, Team Performance, Split Approvals, Invite Candidate, Team Sales, Team Commissions", () => {
+    const group = portalNav.find((g) => g.titleKey === "groupMyTeamBase")!;
+    const children = group.items[0].children!;
+    expect(children.map((c) => c.labelKey)).toEqual([
+      "recruitmentDashboard",
+      "downlinePerformance",
+      "splitApprovals",
+      "directRecruits",
+      "teamSales",
+      "teamCommissions",
+    ]);
+  });
+
+  it("Team Dashboard now points at the merged page, /portal/team (not the retired /portal/recruitment/associates)", () => {
+    expect(findByLabel("recruitmentDashboard").href).toBe("/portal/team");
+  });
+
+  // Final gate, per item. Every role below is checked against every item, so
+  // a widened OR narrowed gate on any single item fails here, not just the
+  // ones that moved.
+  const ALL_ROLES: AppRole[] = ["SalesAssociate", "SalesAssistantManager", "SalesManager", "SalesDirector", "Admin"];
+  const expectedVisible: Record<string, AppRole[]> = {
+    recruitmentDashboard: ALL_ROLES,
+    downlinePerformance: ALL_ROLES,
+    directRecruits: ["SalesManager", "SalesDirector", "Admin"],
+    splitApprovals: ["SalesDirector", "Admin"],
+    teamSales: ["SalesAssistantManager", "SalesManager", "SalesDirector"],
+    teamCommissions: ["SalesAssistantManager", "SalesManager", "SalesDirector"],
+  };
+
+  for (const [labelKey, visibleTo] of Object.entries(expectedVisible)) {
+    describe(labelKey, () => {
+      for (const role of ALL_ROLES) {
+        const shouldSee = visibleTo.includes(role);
+        it(`is ${shouldSee ? "visible" : "hidden"} for ${role} — unchanged from before the merge`, () => {
+          expect(isVisible(findByLabel(labelKey), role)).toBe(shouldSee);
+        });
+      }
+    });
+  }
+
+  // PD (2026-10-03): a proof that only checks a Director and a plain
+  // Associate passes even if the merge breaks a Sales Assistant Manager
+  // either way, because SAM is the one role where the three authorities
+  // genuinely disagree — the nav-level test above can't see this, since
+  // none of these three functions are about nav visibility. Checked
+  // directly, against each function, not inferred from the nav config.
+  describe("SalesAssistantManager — the one role where recruitment, route, and quota authority genuinely disagree", () => {
+    it("is NOT a recruiter — gets the \"not eligible\" card, no downline roster (RECRUITER_ROLES excludes SAM)", () => {
+      expect(canRecruit("SalesAssistantManager")).toBe(false);
+    });
+
+    it("CAN reach the Team Dashboard / Team Sales / Team Commissions route gate (MANAGER_ROLES includes SAM)", () => {
+      expect(isManagerRole("SalesAssistantManager")).toBe(true);
+    });
+
+    it("CAN set a team member's quota (canSetQuota authority starts at SAM)", () => {
+      expect(canSetQuota("SalesAssistantManager")).toBe(true);
+    });
+
+    // Contrast: a Sales Manager passes all three (no disagreement to miss),
+    // and a plain Associate fails all three (no disagreement either) — SAM
+    // is specifically the role that exercises the split.
+    it("contrast — SalesManager passes all three authorities", () => {
+      expect(canRecruit("SalesManager")).toBe(true);
+      expect(isManagerRole("SalesManager")).toBe(true);
+      expect(canSetQuota("SalesManager")).toBe(true);
+    });
+
+    it("contrast — SalesAssociate fails all three authorities", () => {
+      expect(canRecruit("SalesAssociate")).toBe(false);
+      expect(isManagerRole("SalesAssociate")).toBe(false);
+      expect(canSetQuota("SalesAssociate")).toBe(false);
+    });
   });
 });

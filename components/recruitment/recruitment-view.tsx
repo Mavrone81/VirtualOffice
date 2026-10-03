@@ -24,11 +24,14 @@ import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
  * above — A9, owner ruling 2026-09-26: the PDF wins over the earlier 1 Sep AM+
  * decision; Sales Assistant Manager is no longer eligible).
  */
-export async function RecruitmentView({ mode, basePath, tab, mgr }: {
+export async function RecruitmentView({ mode, basePath, tab, mgr, embedded = false }: {
   mode: "people" | "performance";
   basePath: string;
   tab: RecruitTab;
   mgr: string | null;
+  // C-8 (2026-10-03): true when composed inside another page (Team Dashboard)
+  // that already renders its own PageHeader — skips this component's own.
+  embedded?: boolean;
 }) {
   const t = await getTranslations("recruitment.board");
   const tc = await getTranslations("common");
@@ -36,7 +39,7 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
   const me = session?.user.associateId ?? null;
   const title = mode === "people" ? t("peopleTitle") : t("performanceTitle");
 
-  if (!session || !me) return <PageHeader title={title} subtitle={t("noProfile")} />;
+  if (!session || !me) return embedded ? null : <PageHeader title={title} subtitle={t("noProfile")} />;
   const eligible = canRecruit(session.user.role);
 
   const treeIds = eligible ? await downlineIds(me) : [me];
@@ -79,7 +82,7 @@ export async function RecruitmentView({ mode, basePath, tab, mgr }: {
 
   return (
     <>
-      <PageHeader title={title} subtitle={mode === "people" ? t("peopleSubtitle") : t("performanceSubtitle")} />
+      {!embedded && <PageHeader title={title} subtitle={mode === "people" ? t("peopleSubtitle") : t("performanceSubtitle")} />}
 
       <nav className="mb-4 flex flex-wrap gap-2" aria-label={title}>
         {RECRUIT_TABS.map((k) => (

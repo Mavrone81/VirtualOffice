@@ -84,7 +84,6 @@
     "myCommissions": "My Commissions",
     "myPayouts": "My Payouts",
     "splitApprovals": "Split Approvals",
-    "teamOverview": "Team Overview",
     "teamSales": "Team Sales",
     "teamCommissions": "Team Commissions",
     "vendorRegistry": "Vendor Registry",
@@ -95,6 +94,7 @@
     "myQuotations": "My Quotations",
     "groupPerformance": "Personal Performance",
     "groupRecruitment": "Recruitment",
+    "groupMyTeamBase": "My Team",
     "groupFormsSubmission": "Forms & Submission",
     "groupSubmissionsBase": "Submissions",
     "groupMarketing": "Marketing",
@@ -122,8 +122,8 @@
     "chineseNameMenu": "Customisation",
     "greetings": "Greetings",
     "productsCatalogue": "Products",
-    "recruitmentDashboard": "Recruitment Dashboard",
-    "downlinePerformance": "Downline Performance",
+    "recruitmentDashboard": "Team Dashboard",
+    "downlinePerformance": "Team Performance",
     "docTemplate": "Doc Template"
   },
   "auth": {
@@ -1332,10 +1332,11 @@
   },
   "team": {
     "overview": {
-      "pageTitle": "Team overview",
+      "pageTitle": "Team Dashboard",
       "noProfileTitle": "Team",
       "noProfile": "No associate profile is linked to this account.",
       "yourDownline": "Your downline",
+      "rosterHeading": "Team Roster",
       "teamSize": "Team size",
       "associatesInDownline": "Associates in your downline",
       "teamSales": "Team sales",

@@ -3,7 +3,7 @@ import { prisma } from "./db";
 
 // Prisma-free (nav.ts imports this without pulling Prisma into the client
 // bundle) — see lib/roles.ts.
-export { RECRUITER_ROLES, canRecruit } from "./roles";
+export { RECRUITER_ROLES, canRecruit, MANAGER_ROLES, isManagerRole } from "./roles";
 
 // Where each role lands after login.
 export const ROLE_HOME: Record<AppRole, string> = {
@@ -66,11 +66,6 @@ export function can(role: AppRole, capability: Capability): boolean {
   if (role === "Accounts") return !ADMIN_ONLY_CAPABILITIES.has(capability);
   return false;
 }
-
-// Roles with a downline they manage (team individual breakdown — RBAC matrix §D:
-// SAM / SM / SD).
-export const MANAGER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector"];
-export const isManagerRole = (r: AppRole): boolean => MANAGER_ROLES.includes(r);
 
 export const roleLabel: Record<AppRole, string> = {
   Admin: "Business Admin",
