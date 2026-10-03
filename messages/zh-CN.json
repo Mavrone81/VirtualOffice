@@ -1565,6 +1565,7 @@
     "splitFiguresChanged": "打开页面后数额已变动（例如费率已更新）。请重新查看各项后再批准。",
     "companyDetailsUenInvalid": "UEN 为 9 或 10 位字母及数字。",
     "companyDetailsPaynowUenInvalid": "PayNow UEN 为 9 或 10 位字母及数字。",
+    "companyDetailsGstRegNoInvalid": "消费税（GST）注册号为 8 至 15 位字母、数字或连字符。",
     "companyDetailsEmailInvalid": "请输入有效的邮箱地址。",
     "companyDetailsTooLong": "其中一项内容过长。"
   },
@@ -1974,6 +1975,8 @@
     "addressLabel": "地址",
     "uenLabel": "UEN（公司）",
     "paynowUenLabel": "PayNow UEN（公司）",
+    "gstRegNoLabel": "消费税（GST）注册号",
+    "gstRegNoMissingWarning": "该公司已登记消费税，但尚未填写消费税注册号。在此填写之前，其税务发票将不显示注册号。",
     "contactEmailLabel": "联系邮箱",
     "phoneLabel": "电话",
     "websiteLabel": "网站",

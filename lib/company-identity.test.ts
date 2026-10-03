@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  resolveInvoiceUen, contactLine, commonValue, sharedIdentity, cleanCompanyDetails, notSet, LEGACY_DOCUMENT_DEFAULTS,
+  resolveInvoiceUen, resolveGstRegNo, gstNumberMissing, agreementContactLine, contactLine, commonValue, sharedIdentity, cleanCompanyDetails, notSet, LEGACY_DOCUMENT_DEFAULTS,
   type CompanyIdentityRow,
 } from "./company-identity";
 
@@ -115,5 +115,41 @@ describe("cleanCompanyDetails (admin form validation)", () => {
     ];
     expect(bad).toHaveLength(4);
     expect(bad.map((b) => (b.ok ? "ok" : b.error))).toEqual(["uenInvalid", "paynowUenInvalid", "emailInvalid", "tooLong"]);
+  });
+});
+
+describe("GST registration number", () => {
+  const FAKE_GST = "M2-0000000-0";
+  it("prints only on a tax invoice and only when set (4 cases examined)", () => {
+    const cases: [string, string | null, boolean, string | null][] = [
+      ["tax invoice, set", FAKE_GST, true, FAKE_GST],
+      ["tax invoice, set with padding", `  ${FAKE_GST} `, true, FAKE_GST],
+      ["tax invoice, not set -> nothing (no marker)", null, true, null],
+      ["not a tax invoice, set -> nothing", FAKE_GST, false, null],
+    ];
+    expect(cases).toHaveLength(4);
+    for (const [label, v, tax, want] of cases) expect(resolveGstRegNo({ gstRegNo: v }, tax), label).toBe(want);
+  });
+  it("never yields a marker or blank string (3 unset shapes examined)", () => {
+    for (const v of [null, undefined, "   "]) expect(resolveGstRegNo({ gstRegNo: v }, true)).toBeNull();
+  });
+  it("gstNumberMissing: true only for registered-without-number (4 combinations examined)", () => {
+    expect(gstNumberMissing({ gstRegistered: true, gstRegNo: null })).toBe(true);
+    expect(gstNumberMissing({ gstRegistered: true, gstRegNo: " " })).toBe(true);
+    expect(gstNumberMissing({ gstRegistered: true, gstRegNo: FAKE_GST })).toBe(false);
+    expect(gstNumberMissing({ gstRegistered: false, gstRegNo: null })).toBe(false);
+  });
+  it("validation: accepts a hyphenated number (upper-cased), rejects bad characters and length (3 inputs examined)", () => {
+    const ok = cleanCompanyDetails({ gstRegNo: "m2-0000000-0" });
+    expect(ok.ok && ok.data.gstRegNo).toBe("M2-0000000-0");
+    expect(cleanCompanyDetails({ gstRegNo: "bad number!" })).toEqual({ ok: false, error: "gstRegNoInvalid" });
+    expect(cleanCompanyDetails({ gstRegNo: "A1" })).toEqual({ ok: false, error: "gstRegNoInvalid" });
+  });
+  it("agreementContactLine is the invoice constants, no comma in the address (1 line examined)", () => {
+    const l = agreementContactLine();
+    expect(l).toContain(LEGACY_DOCUMENT_DEFAULTS.email);
+    expect(l).toContain(LEGACY_DOCUMENT_DEFAULTS.website);
+    expect(l).toContain(LEGACY_DOCUMENT_DEFAULTS.phone);
+    expect(l).not.toContain(",");
   });
 });

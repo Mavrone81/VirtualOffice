@@ -137,7 +137,7 @@ export async function updateCompanySignatory(input: {
 // documents. Same gate as the signatory above: Admin only.
 // ---------------------------------------------------------------------------
 
-const DETAIL_FIELDS = ["legalName", "address", "uen", "paynowUen", "contactEmail", "phone", "website"] as const;
+const DETAIL_FIELDS = ["legalName", "address", "uen", "paynowUen", "gstRegNo", "contactEmail", "phone", "website"] as const;
 
 export async function listCompanyDetails() {
   const t = await getTranslations("errors");
@@ -145,7 +145,7 @@ export async function listCompanyDetails() {
   if (!session) return { ok: false as const, error: t("forbidden") };
   const rows = await prisma.company.findMany({
     orderBy: { name: "asc" },
-    select: { id: true, name: true, active: true, legalName: true, address: true, uen: true, paynowUen: true, contactEmail: true, phone: true, website: true },
+    select: { id: true, name: true, active: true, legalName: true, address: true, gstRegistered: true, uen: true, paynowUen: true, gstRegNo: true, contactEmail: true, phone: true, website: true },
   });
   return { ok: true as const, data: rows };
 }
