@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AppRole } from "@prisma/client";
 import { Image } from "lucide-react";
-import { adminNav, portalNav, MARKETING_LIBRARY_NAV_SLUG, withMarketingLibraryHref, myQuotationsVisible, type NavItem } from "./nav";
+import { adminNav, portalNav, MARKETING_LIBRARY_NAV_SLUG, withMarketingLibraryHref, myQuotationsVisible, quotationRequestVisible, type NavItem } from "./nav";
 import { MARKETING_SLUGS } from "./marketing-categories";
 
 // A9 DevLead review: nav.ts used to keep its own stale copy of RECRUITER_ROLES,
@@ -76,6 +76,28 @@ describe("portalNav directRecruits — follows canRecruit (A9: Manager and above
 // configuration (flag off) must keep that link working exactly as before.
 // So unlike flyers/edm/greetings, this item carries its real, permanent
 // href directly in the static data — no sidebar fill-in, no flag involved.
+describe("portalNav quotationRequest — fail-closed on A17_CLOSED_DEAL_FLOW (C-6)", () => {
+  const quotationRequest = findByLabel("quotationRequest");
+
+  it("has a real, static href regardless of the flag — only VISIBILITY is gated, not the link itself", () => {
+    expect(quotationRequest.href).toBe("/portal/agreements");
+  });
+
+  it("is hidden — not merely disabled — when the flag is off", () => {
+    expect(quotationRequestVisible(quotationRequest, false)).toBe(false);
+  });
+
+  it("is visible when the flag is on", () => {
+    expect(quotationRequestVisible(quotationRequest, true)).toBe(true);
+  });
+
+  it("never affects an unrelated item, in either flag state — the predicate only ever matches this one labelKey", () => {
+    const other = findByLabel("transactionSubmission");
+    expect(quotationRequestVisible(other, false)).toBe(true);
+    expect(quotationRequestVisible(other, true)).toBe(true);
+  });
+});
+
 describe("portalNav chineseNameMenu — wired unconditionally, unlike its flyers/edm/greetings siblings", () => {
   const chineseNameMenu = findByLabel("chineseNameMenu");
 

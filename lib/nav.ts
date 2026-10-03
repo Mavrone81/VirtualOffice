@@ -147,10 +147,33 @@ export const portalNav: NavGroup[] = [
     ],
   },
   {
-    titleKey: "groupFormsSubmission",
+    // C-6 (p.6): "Forms & Submission" renamed to "Submissions" for the
+    // associate portal. Own key (`groupSubmissionsBase`), not a rewrite of
+    // `groupFormsSubmission`, because adminNav's own "Forms & Submission"
+    // group shares that key and is out of scope here.
+    // Referral Partner List moved out to Resources, below Documents (C-6).
+    // "Quotation Request" below: the form already exists at /portal/agreements,
+    // itself gated behind A17_CLOSED_DEAL_FLOW — the owner's decision (relayed,
+    // not guessed) is fail-closed: HIDDEN, not merely disabled, until A-17 is
+    // live (see quotationRequestVisible below). Unlike the marketing-library
+    // items, this one is NOT shown as a disabled "coming soon" row when off —
+    // a shown item behind a disabled flow is a visible broken path for a real
+    // associate; a hidden item that could have shown is just a question asked
+    // later. The href is real and static (the page itself already flag-checks
+    // server-side, redirecting to Documents when off); only the nav entry's
+    // VISIBILITY is gated.
+    //
+    // C-6 (2026-10-02): the old "Doc Template" item is REMOVED, not renamed —
+    // its Pets/Human Afterlife templates and signed-agreements list folded
+    // into Documents below, so there's no separate destination left for it to
+    // point to. The page that used to serve it (app/portal/agreements/page.tsx)
+    // now serves only the quotation form; its URL/identity still carrying the
+    // old name is a known, named follow-up (moving it to its own route), not
+    // built here — see the comment at the top of that file.
+    titleKey: "groupSubmissionsBase",
     items: [
       {
-        labelKey: "groupFormsSubmission", icon: FileSignature,
+        labelKey: "groupSubmissionsBase", icon: FileSignature,
         children: [
           { labelKey: "transactionSubmission", href: "/portal/sales", icon: Receipt },
           // A-17 live-path finding: /portal/quotations (the old 16-Jul
@@ -164,9 +187,7 @@ export const portalNav: NavGroup[] = [
           // dead" the way a permanently-reachable-but-often-empty page could.
           { labelKey: "myQuotations", href: "/portal/quotations", icon: FileCheck },
           { labelKey: "referralSubmission", href: "/portal/referrals/new", icon: Handshake },
-          // A13: "Agreements" → "Doc Template" (blank templates to download).
-          { labelKey: "docTemplate", href: "/portal/agreements", icon: FileSignature },
-          { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
+          { labelKey: "quotationRequest", href: "/portal/agreements", icon: BadgeCheck },
         ],
       },
     ],
@@ -208,6 +229,8 @@ export const portalNav: NavGroup[] = [
         children: [
           { labelKey: "notices", href: "/portal/notices", icon: Megaphone, badgeKey: "notices" },
           { labelKey: "documents", href: "/portal/documents", icon: FolderOpen },
+          // C-6 (p.6): moved here from Submissions, directly below Documents.
+          { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
           { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
         ],
       },
@@ -285,4 +308,16 @@ export function withMarketingLibraryHref(item: NavItem, area: ShellArea, marketi
 // — keep this comment in sync if either one changes.
 export function myQuotationsVisible(item: NavItem, hasInFlightLegacyQuotation: boolean): boolean {
   return item.labelKey !== "myQuotations" || hasInFlightLegacyQuotation;
+}
+
+// C-6: "Quotation Request" (portalNav only) has a real, static href — the
+// page it points to already flag-checks A17_CLOSED_DEAL_FLOW server-side —
+// but nav.ts can't read that flag itself (same constraint as the
+// marketing-library items), so VISIBILITY crosses the server/client boundary
+// as this one boolean prop instead. Pure and named distinctly from
+// `visible` (the role check in sidebar.tsx) because this is a flag gate, not
+// a role gate, and only ever touches this one labelKey — everything else is
+// unaffected regardless of the flag's value.
+export function quotationRequestVisible(item: NavItem, quotationRequestEnabled: boolean): boolean {
+  return item.labelKey !== "quotationRequest" || quotationRequestEnabled;
 }

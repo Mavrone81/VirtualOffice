@@ -96,6 +96,7 @@
     "groupPerformance": "Personal Performance",
     "groupRecruitment": "Recruitment",
     "groupFormsSubmission": "Forms & Submission",
+    "groupSubmissionsBase": "Submissions",
     "groupMarketing": "Marketing",
     "groupProducts": "Products & Services",
     "myDashboard": "My Dashboard",
@@ -111,6 +112,7 @@
     "downlineRecruits": "Downline Recruits",
     "transactionSubmission": "Transaction Submission",
     "referralSubmission": "Referral Partnership Submission",
+    "quotationRequest": "Quotation Request",
     "referralPartnerList": "Referral Partner List",
     "referralPartnerships": "Referral Partnerships",
     "agreements": "Agreements",
@@ -1816,8 +1818,8 @@
       "viewPdf": "View signed agreement (PDF)"
     },
     "docTemplate": {
-      "title": "Doc Template",
-      "subtitle": "Blank templates to download, by category",
+      "title": "Quotation Request",
+      "subtitle": "Generate a quotation for a client before the sale is submitted.",
       "cat": {
         "pets": "Pets Afterlife",
         "human": "Human Afterlife",
