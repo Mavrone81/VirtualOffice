@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PNG } from "pngjs";
 import {
   MASTER_TEMPLATE_PATH,
   PAGE_SIZE,
@@ -416,15 +417,61 @@ function stampCircle(
   });
 }
 
-async function stampSignatureImage(pdfDoc: PDFDocument, page: PDFPage, box: FieldBox, dataUrl: string): Promise<void> {
+// Crop a PNG to the bounding box of its visible ink (non-transparent, non-near-white
+// pixels), so a signature drawn anywhere in the pad canvas is reduced to just the
+// strokes. Returns the ORIGINAL bytes unchanged if the image has no ink (fully
+// transparent/blank) or is already tight — never throws, never returns an empty image.
+function trimPngToInk(bytes: Buffer): Buffer {
+  let png: PNG;
+  try {
+    png = PNG.sync.read(bytes);
+  } catch {
+    return bytes; // undecodable here → let embedPng handle the original
+  }
+  const { width, height, data } = png;
+  let minX = width, minY = height, maxX = -1, maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      if (data[i + 3] <= 16) continue; // transparent
+      if (data[i] + data[i + 1] + data[i + 2] >= 735) continue; // near-white (3×245)
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < minX || maxY < minY) return bytes; // no ink at all → untrimmed fallback
+  const cw = maxX - minX + 1, ch = maxY - minY + 1;
+  if (cw === width && ch === height) return bytes; // already tight
+  const out = new PNG({ width: cw, height: ch });
+  for (let y = 0; y < ch; y++) {
+    for (let x = 0; x < cw; x++) {
+      const si = ((minY + y) * width + (minX + x)) * 4;
+      const di = (y * cw + x) * 4;
+      out.data[di] = data[si];
+      out.data[di + 1] = data[si + 1];
+      out.data[di + 2] = data[si + 2];
+      out.data[di + 3] = data[si + 3];
+    }
+  }
+  return PNG.sync.write(out);
+}
+
+async function stampSignatureImage(pdfDoc: PDFDocument, page: PDFPage, box: FieldBox, dataUrl: string, align: "center" | "left" = "center"): Promise<void> {
   const m = /^data:image\/png;base64,(.+)$/.exec(dataUrl);
   if (!m) return; // caller already validates this is a PNG data URL before render; a mismatch here just leaves the line blank
-  const bytes = Buffer.from(m[1], "base64");
+  // align="left": trim the signature's whitespace first so the INK (not the padded
+  // canvas) shares the printed name's left margin at box.x, for any aspect ratio.
+  // Trim-then-fit also normalises size — a small/cornered signature scales up to the
+  // box. Default "center" skips the trim and keeps the associate block byte-identical.
+  let bytes: Buffer = Buffer.from(m[1], "base64");
+  if (align === "left") bytes = trimPngToInk(bytes);
   const img = await pdfDoc.embedPng(bytes);
   const scale = Math.min(box.width / img.width, box.height / img.height, 1);
   const w = img.width * scale;
   const h = img.height * scale;
-  const x = box.x + (box.width - w) / 2;
+  const x = align === "left" ? box.x : box.x + (box.width - w) / 2;
   const yFromTop = box.y + (box.height - h) / 2;
   page.drawImage(img, { x, y: PAGE_SIZE.height - yFromTop - h, width: w, height: h });
 }
@@ -530,7 +577,7 @@ export async function renderAgreementPdf(a: AgreementData): Promise<Buffer> {
   // candidate who hasn't been given a signature image yet, or a signatory
   // with no stored name, still gets whichever half is present).
   if (a.companySignatureDataUrl) {
-    await stampSignatureImage(pdfDoc, pageOf(AGREEMENT_FIELD_BOXES.companySignatureImage.page), AGREEMENT_FIELD_BOXES.companySignatureImage, a.companySignatureDataUrl);
+    await stampSignatureImage(pdfDoc, pageOf(AGREEMENT_FIELD_BOXES.companySignatureImage.page), AGREEMENT_FIELD_BOXES.companySignatureImage, a.companySignatureDataUrl, "left");
   }
   stampField(
     pageOf(AGREEMENT_FIELD_BOXES.companySignatoryName.page), font, AGREEMENT_FIELD_BOXES.companySignatoryName, a.companySignatoryName,
