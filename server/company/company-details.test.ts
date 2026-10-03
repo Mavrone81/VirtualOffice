@@ -17,7 +17,7 @@ vi.mock("@/lib/storage", () => ({ putObject: vi.fn(), deleteObject: vi.fn() }));
 import { updateCompanyDetails } from "@/server/company/actions";
 
 const existing = {
-  id: "c1", legalName: "Example Co Pte Ltd", address: null, uen: null, paynowUen: null, contactEmail: null, phone: null, website: null,
+  id: "c1", legalName: "Example Co Pte Ltd", address: null, uen: null, paynowUen: null, gstRegNo: null, contactEmail: null, phone: null, website: null,
 };
 
 beforeEach(() => {
@@ -43,6 +43,30 @@ describe("updateCompanyDetails", () => {
     expect(prismaMock.company.update).not.toHaveBeenCalled();
   });
 
+  it("a malformed GST registration number is rejected before any write (1 call examined)", async () => {
+    const r = await updateCompanyDetails("c1", { gstRegNo: "bad!" });
+    expect(r.error).toBe("companyDetailsGstRegNoInvalid");
+    expect(prismaMock.company.update).not.toHaveBeenCalled();
+  });
+
+  it("GST registration number: Admin saves it with a before/after audit of that field (1 update, 1 audit examined)", async () => {
+    const r = await updateCompanyDetails("c1", { gstRegNo: "m2-0000000-0" });
+    expect(r.ok).toBe(true);
+    expect(prismaMock.company.update).toHaveBeenCalledTimes(1);
+    expect(prismaMock.company.update.mock.calls[0][0].data.gstRegNo).toBe("M2-0000000-0");
+    expect(auditTxMock).toHaveBeenCalledTimes(1);
+    const audit = auditTxMock.mock.calls[0][1];
+    expect(audit.before.gstRegNo).toBeNull();
+    expect(audit.after.gstRegNo).toBe("M2-0000000-0");
+  });
+
+  it("Accounts is refused for the GST registration number too, nothing written (1 call examined)", async () => {
+    authMock.mockResolvedValue({ user: { id: "u2", role: "Accounts" } });
+    const r = await updateCompanyDetails("c1", { gstRegNo: "M2-0000000-0" });
+    expect(r).toEqual({ ok: false, error: "forbidden" });
+    expect(prismaMock.company.update).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["both set, different", { uen: "000000000A", paynowUen: "111111111B" }],
     ["only PayNow set", { paynowUen: "111111111B" }],
@@ -55,7 +79,7 @@ describe("updateCompanyDetails", () => {
     const arg = prismaMock.company.update.mock.calls[0][0];
     expect(arg.where).toEqual({ id: "c1" });
     expect(Object.keys(arg.data).sort()).toEqual(
-      ["address", "contactEmail", "legalName", "paynowUen", "phone", "uen", "website"],
+      ["address", "contactEmail", "gstRegNo", "legalName", "paynowUen", "phone", "uen", "website"],
     );
     expect(auditTxMock).toHaveBeenCalledTimes(1);
     const audit = auditTxMock.mock.calls[0][1];

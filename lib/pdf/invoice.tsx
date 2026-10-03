@@ -3,7 +3,7 @@ import { Document, Page, View, Text, StyleSheet, renderToBuffer } from "@react-p
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { formatSGD, D, round2 } from "@/lib/money";
-import { resolveInvoiceUen, contactLine, orMarker, LEGACY_DOCUMENT_DEFAULTS } from "@/lib/company-identity";
+import { resolveInvoiceUen, resolveGstRegNo, contactLine, orMarker, LEGACY_DOCUMENT_DEFAULTS } from "@/lib/company-identity";
 
 const INK = "#1a1f2b";
 const MUTED = "#6b675e";
@@ -47,7 +47,7 @@ const s = StyleSheet.create({
 });
 
 type Line = { description: string; sub?: string; qty: number; unitPrice: number; amount: number };
-type Letterhead = { entities: string; address: string; contact: string; uen: string; uenHolder: string; paynowUen: string };
+type Letterhead = { entities: string; address: string; contact: string; uen: string; uenHolder: string; paynowUen: string; gstRegNo: string | null };
 type InvoiceData = {
   letter: Letterhead;
   companyName: string;
@@ -73,6 +73,7 @@ type InvoiceData = {
 function InvoiceDoc({ d }: { d: InvoiceData }) {
   const gstAmount = d.gstRate > 0 ? d.total - d.total / (1 + d.gstRate / 100) : 0;
   const subtotal = d.total - gstAmount;
+  const isTaxInvoice = d.gstRate > 0;
   return (
     <Document title={d.invoiceNumber} author="Enshrine">
       <Page size="A4" style={s.page}>
@@ -85,11 +86,12 @@ function InvoiceDoc({ d }: { d: InvoiceData }) {
             <Text style={s.coMeta}>{d.letter.contact}</Text>
           </View>
           <View>
-            <Text style={s.docTitle}>{d.gstRate > 0 ? "TAX INVOICE" : "INVOICE"}</Text>
+            <Text style={s.docTitle}>{isTaxInvoice ? "TAX INVOICE" : "INVOICE"}</Text>
             <View style={s.metaRow}><Text style={s.metaLabel}>Invoice No.</Text><Text style={s.metaVal}>{d.invoiceNumber}</Text></View>
             <View style={s.metaRow}><Text style={s.metaLabel}>Issue Date</Text><Text style={s.metaVal}>{format(d.issueDate, "dd MMM yyyy")}</Text></View>
             <View style={s.metaRow}><Text style={s.metaLabel}>Due Date</Text><Text style={s.metaVal}>{format(d.dueDate, "dd MMM yyyy")}</Text></View>
             <View style={s.metaRow}><Text style={s.metaLabel}>UEN</Text><Text style={s.metaVal}>{d.letter.uen}</Text></View>
+            {d.letter.gstRegNo ? <View style={s.metaRow}><Text style={s.metaLabel}>GST Reg. No.</Text><Text style={s.metaVal}>{d.letter.gstRegNo}</Text></View> : null}
           </View>
         </View>
         <View style={s.rule} />
@@ -228,6 +230,8 @@ export async function renderInvoicePdf(invoiceId: string): Promise<{ buffer: Buf
     uen: resolved.uen,
     uenHolder: resolved.holder,
     paynowUen: resolved.paynowUen,
+    // Same condition that switches the title to TAX INVOICE (see gstRate above).
+    gstRegNo: resolveGstRegNo(inv.company, gstRate > 0),
   };
 
   const d: InvoiceData = {

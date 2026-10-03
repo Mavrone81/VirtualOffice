@@ -198,3 +198,46 @@ describe("invoice PDF with company details filled (4 rendered documents examined
     for (const u of [FAKE_UEN, "222222222C", "333333333D"]) expect(t).not.toContain(u);
   });
 });
+
+describe("GST registration number on invoices (6 rendered invoices examined)", () => {
+  const FAKE_GST = "M2-0000000-0";
+  const tax = { gstRegistered: true, gstRate: 9 };
+
+  it("tax invoice with a number: title is TAX INVOICE and the number prints once", async () => {
+    const t = await invoiceText(company({ ...tax, gstRegNo: FAKE_GST }));
+    expect(t).toContain("TAX INVOICE");
+    expect(t).toContain("GST Reg. No. " + FAKE_GST);
+    expect(t.split(FAKE_GST)).toHaveLength(2);
+  });
+  it("tax invoice, number NOT set: identical text to a tax invoice with the column absent, no marker, no label", async () => {
+    const withNull = await invoiceText(company({ ...tax, gstRegNo: null }));
+    const { gstRegNo: _omit, ...legacyShape } = company(tax) as Record<string, unknown>;
+    void _omit;
+    const absent = await invoiceText(legacyShape);
+    expect(withNull).toBe(absent);
+    expect(withNull).toContain("TAX INVOICE");
+    expect(withNull).not.toContain("GST Reg");
+    expect(withNull).not.toContain("[");
+  });
+  it("plain invoice (not GST-registered) never prints the number even when one is stored", async () => {
+    const t = await invoiceText(company({ gstRegistered: false, gstRate: 0, gstRegNo: FAKE_GST }));
+    expect(t).not.toContain("TAX INVOICE");
+    expect(t).not.toContain(FAKE_GST);
+    expect(t).not.toContain("GST Reg");
+  });
+  it("registered but rate 0 is not a tax invoice, so no number (the same condition as the title)", async () => {
+    const t = await invoiceText(company({ gstRegistered: true, gstRate: 0, gstRegNo: FAKE_GST }));
+    expect(t).not.toContain("TAX INVOICE");
+    expect(t).not.toContain(FAKE_GST);
+  });
+  it("quotation never prints the number (1 quotation, GST-registered company with a number)", async () => {
+    const t = await quotationText([company({ ...tax, gstRegNo: FAKE_GST })]);
+    expect(t).not.toContain(FAKE_GST);
+    expect(t).not.toContain("GST Reg");
+  });
+  it("a number-bearing invoice differs from the null one only by the added label and value", async () => {
+    const a = await invoiceText(company({ ...tax, gstRegNo: null }));
+    const b = await invoiceText(company({ ...tax, gstRegNo: FAKE_GST }));
+    expect(b.replace(" GST Reg. No. " + FAKE_GST, "").replace(FAKE_GST, "")).toBe(a.replace(" GST Reg. No.", ""));
+  });
+});

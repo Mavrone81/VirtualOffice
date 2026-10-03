@@ -15,6 +15,8 @@ export type CompanyIdentityRow = {
   address: string | null;
   uen: string | null;
   paynowUen: string | null;
+  /** Optional: rows built before this field existed (tests, quotations) omit it. */
+  gstRegNo?: string | null;
   contactEmail: string | null;
   phone: string | null;
   website: string | null;
@@ -91,6 +93,41 @@ export function resolveInvoiceUen(c: CompanyIdentityRow): InvoiceUen {
   return { uen: LEGACY_DOCUMENT_DEFAULTS.uen, holder: LEGACY_DOCUMENT_DEFAULTS.uenHolder, paynowUen, legacy: true };
 }
 
+/**
+ * The GST registration number to print on a document, or null for "print
+ * nothing". It prints ONLY when the document is a tax invoice (the caller's
+ * own TAX INVOICE condition, passed in so there is a single source of truth
+ * for it) and the company has one set.
+ *
+ * Deliberately NO marker when a tax invoice has no number: unlike the other
+ * fields, this one has no legacy default, and every invoice printed before this
+ * field existed carried no number. A "[GST registration number not set]"
+ * marker would newly alter every GST-registered company's invoice on deploy,
+ * which the deploy-safety rule forbids. The gap is surfaced to the Admin on
+ * /admin/company instead (see gstNumberMissing).
+ */
+export function resolveGstRegNo(c: Pick<CompanyIdentityRow, "gstRegNo">, isTaxInvoice: boolean): string | null {
+  return isTaxInvoice ? clean(c.gstRegNo) : null;
+}
+
+/** True when the company is GST-registered but has no GST registration number on file. */
+export function gstNumberMissing(c: { gstRegistered: boolean; gstRegNo?: string | null }): boolean {
+  return c.gstRegistered && clean(c.gstRegNo) === null;
+}
+
+/**
+ * The contact block in the header of the ashes and referral agreements. It is
+ * built ONLY from LEGACY_DOCUMENT_DEFAULTS (constants), never from the
+ * database: these are contract documents, and a later edit on /admin/company
+ * must not change the text of an agreement. Sharing the constants keeps them
+ * from drifting from the invoice again. The address has always been printed
+ * on agreements without the comma the invoice uses; that is preserved.
+ */
+export function agreementContactLine(): string {
+  const L = LEGACY_DOCUMENT_DEFAULTS;
+  return `Address: ${L.address.replace(",", "")}   Contact: ${L.phone}   Email: ${L.email}   Website: ${L.website}`;
+}
+
 /** "Tel: ... · Email · Website" - each part: field, else legacy default, else marker. */
 export function contactLine(c: Pick<CompanyIdentityRow, "phone" | "contactEmail" | "website">): string {
   const L = LEGACY_DOCUMENT_DEFAULTS;
@@ -136,20 +173,25 @@ export type CompanyDetailsInput = {
   address?: string | null;
   uen?: string | null;
   paynowUen?: string | null;
+  gstRegNo?: string | null;
   contactEmail?: string | null;
   phone?: string | null;
   website?: string | null;
 };
 
 export type CompanyDetailsError =
-  | "uenInvalid" | "paynowUenInvalid" | "emailInvalid" | "tooLong";
+  | "uenInvalid" | "paynowUenInvalid" | "gstRegNoInvalid" | "emailInvalid" | "tooLong";
 
 export type CompanyDetailsClean = Required<CompanyDetailsInput>;
 
 const UEN_RE = /^[0-9A-Z]{9,10}$/;
+// GST registration numbers come in more than one shape (a UEN-style number, or
+// the older letter-digit-hyphen form), so this only checks the character set
+// and length; it does not try to validate the format.
+const GST_RE = /^[0-9A-Z-]{8,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Trims, empties to null and upper-cases both UENs. */
+/** Trims, empties to null and upper-cases the UENs and the GST registration number. */
 export function cleanCompanyDetails(i: CompanyDetailsInput): { ok: true; data: CompanyDetailsClean } | { ok: false; error: CompanyDetailsError } {
   const t = (v: string | null | undefined) => clean(v);
   const data: CompanyDetailsClean = {
@@ -157,6 +199,7 @@ export function cleanCompanyDetails(i: CompanyDetailsInput): { ok: true; data: C
     address: t(i.address),
     uen: t(i.uen)?.toUpperCase() ?? null,
     paynowUen: t(i.paynowUen)?.toUpperCase() ?? null,
+    gstRegNo: t(i.gstRegNo)?.toUpperCase() ?? null,
     contactEmail: t(i.contactEmail),
     phone: t(i.phone),
     website: t(i.website),
@@ -166,6 +209,7 @@ export function cleanCompanyDetails(i: CompanyDetailsInput): { ok: true; data: C
   }
   if (data.uen && !UEN_RE.test(data.uen)) return { ok: false, error: "uenInvalid" };
   if (data.paynowUen && !UEN_RE.test(data.paynowUen)) return { ok: false, error: "paynowUenInvalid" };
+  if (data.gstRegNo && !GST_RE.test(data.gstRegNo)) return { ok: false, error: "gstRegNoInvalid" };
   if (data.contactEmail && !EMAIL_RE.test(data.contactEmail)) return { ok: false, error: "emailInvalid" };
   return { ok: true, data };
 }

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { getObject } from "@/lib/storage";
 import { readNric } from "@/server/pii";
+import { agreementContactLine } from "@/lib/company-identity";
 
 // ---------------------------------------------------------------------------
 // Storage of Pets Ashes Agreement (consolidated menu, Sep 2026). Faithful
@@ -86,7 +87,7 @@ function Head() {
         </View>
       </View>
       <Text style={s.coMeta}>
-        Address: 74 Lorong 6 Geylang Singapore 399226   Contact: 9009 9234   Email: contacts@enshrine.sg   Website: www.enshrine.sg
+        {agreementContactLine()}
       </Text>
     </View>
   );

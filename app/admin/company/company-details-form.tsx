@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { gstNumberMissing } from "@/lib/company-identity";
 import { updateCompanyDetails } from "@/server/company/actions";
 
 export type CompanyDetailsRow = {
@@ -17,6 +18,8 @@ export type CompanyDetailsRow = {
   address: string | null;
   uen: string | null;
   paynowUen: string | null;
+  gstRegNo: string | null;
+  gstRegistered: boolean;
   contactEmail: string | null;
   phone: string | null;
   website: string | null;
@@ -34,6 +37,7 @@ function CompanyCard({ row }: { row: CompanyDetailsRow }) {
     address: row.address ?? "",
     uen: row.uen ?? "",
     paynowUen: row.paynowUen ?? "",
+    gstRegNo: row.gstRegNo ?? "",
     contactEmail: row.contactEmail ?? "",
     phone: row.phone ?? "",
     website: row.website ?? "",
@@ -72,6 +76,10 @@ function CompanyCard({ row }: { row: CompanyDetailsRow }) {
         {text("address", "address", t("addressLabel"))}
         {text("uen", "uen", t("uenLabel"))}
         {text("paynowUen", "paynowUen", t("paynowUenLabel"))}
+        {text("gstRegNo", "gstRegNo", t("gstRegNoLabel"))}
+        {gstNumberMissing({ gstRegistered: row.gstRegistered, gstRegNo: row.gstRegNo }) && (
+          <p className="rounded-lg bg-gold/10 px-3 py-2 text-[13px] text-ink">{t("gstRegNoMissingWarning")}</p>
+        )}
         {text("contactEmail", "contactEmail", t("contactEmailLabel"), "email")}
         {text("phone", "phone", t("phoneLabel"))}
         {text("website", "website", t("websiteLabel"))}

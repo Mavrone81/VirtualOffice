@@ -470,6 +470,10 @@ model Company {
   /// The company's PayNow UEN: the invoice's PayNow payment line. May differ
   /// from `uen`.
   paynowUen    String? @map("paynow_uen")
+  /// GST registration number: printed on TAX invoices only (never on a plain
+  /// invoice or a quotation). Independent of `gstRegistered`/`gstRate`, which
+  /// still decide whether a document is a tax invoice.
+  gstRegNo     String? @map("gst_reg_no")
   contactEmail String? @map("contact_email")
   phone        String?
   website      String?
