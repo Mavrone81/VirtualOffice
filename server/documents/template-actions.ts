@@ -128,7 +128,7 @@ export async function uploadDocTemplate(input: DocTemplateUpload): Promise<DocTe
     throw e;
   }
 
-  revalidatePath("/admin/doc-templates");
+  revalidatePath("/admin/documents");
   revalidatePath("/portal/agreements");
   return { ok: true, id: createdId };
 }
