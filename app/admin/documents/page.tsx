@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { DocumentAssignment } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { listAdminDocuments } from "@/lib/admin-documents";
 import { humanize } from "@/lib/labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -12,17 +12,20 @@ export const metadata = { title: "Documents · Enshrine Admin" };
 
 export default async function AdminDocumentsPage() {
   const t = await getTranslations("documents");
-  const docs = await prisma.document.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { assignedAssociate: { select: { associateCode: true } } },
-  });
+  const tc = await getTranslations("agreements");
+  const docs = await listAdminDocuments();
+
+  const CATEGORY_LABEL = { PetsAfterlife: tc("docTemplate.cat.pets"), HumanAfterlife: tc("docTemplate.cat.human") };
+  // The list is non-retired only, so a category row here IS the current template.
+  const currentTemplates: Record<string, string> = {};
+  for (const d of docs) if (d.category) currentTemplates[d.category] = d.title;
 
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
-        <DocumentForm />
+        <DocumentForm currentTemplates={currentTemplates} />
 
         <Card className="overflow-hidden">
           <div className="border-b border-line px-5 py-4">
@@ -39,7 +42,7 @@ export default async function AdminDocumentsPage() {
                       {d.title} ↗
                     </a>
                     <div className="mt-1 flex flex-wrap gap-x-4 text-[11px] text-muted-2">
-                      <span>{humanize(d.type)}</span>
+                      <span>{d.category ? t("templateTag", { category: CATEGORY_LABEL[d.category] }) : humanize(d.type)}</span>
                       <span>
                         {d.assignment === DocumentAssignment.Team
                           ? t("sharedTeam", { team: d.assignedTeam ?? "—" })
@@ -50,7 +53,8 @@ export default async function AdminDocumentsPage() {
                       <span>{format(d.createdAt, "dd MMM yyyy")}</span>
                     </div>
                   </div>
-                  <DeleteDocumentButton id={d.id} />
+                  {/* Templates are replaced by uploading, never deleted: the retired row's supersededBy FK would refuse it. */}
+                  {!d.category && <DeleteDocumentButton id={d.id} />}
                 </div>
               ))}
             </div>

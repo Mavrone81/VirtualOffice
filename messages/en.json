@@ -73,7 +73,6 @@
     "payouts": "Payouts",
     "notices": "Notices",
     "documents": "Documents",
-    "docTemplates": "Doc Template",
     "vendors": "Vendors",
     "nameCard": "Name Card",
     "auditLog": "Audit Log",
@@ -398,31 +397,27 @@
       "typeVendorAgreement": "Vendor Agreement",
       "typeVendorMOU": "Vendor MOU",
       "typeSalesAgreement": "Sales Agreement",
-      "typeOther": "Other"
-    }
+      "typeOther": "Other",
+      "categoryLabel": "Template category",
+      "categoryNone": "None — ordinary document",
+      "categoryHint": "A category makes this the current template on the associate Documents page. It is always shared with everyone.",
+      "fileHintCategory": "PDF, PNG, or JPEG, up to 15 MB.",
+      "confirmReplace": "This replaces the current {category} template, “{title}”. The old version is retired and associates will see the new one instead.",
+      "confirmYes": "Replace template",
+      "confirmCancel": "Cancel",
+      "errorNeedsConfirm": "This would replace the current template — please confirm the replacement first.",
+      "errorForbidden": "You don't have permission to do this."
+    },
+    "templateTag": "Template · {category}"
   },
   "docTemplateAdmin": {
-    "title": "Doc Template",
-    "subtitle": "Admin upload for the category reference templates shown on the associate Doc Template page.",
-    "currentHeading": "Current upload per category",
-    "currentNone": "No upload yet — the built-in templates still show on the portal page.",
-    "currentUploadedOn": "Uploaded {date}",
     "form": {
-      "heading": "Upload template",
-      "categoryLabel": "Category",
-      "titleLabel": "Title *",
-      "titlePlaceholder": "e.g. Updated info sheet",
-      "fileLabel": "File *",
-      "fileHint": "PDF, PNG, or JPEG, up to 15 MB. Replaces the current upload for this category.",
       "errorNoTitle": "Please enter a title.",
       "errorNoFile": "Please choose a file.",
       "errorFileTooLarge": "File is too large (max 15 MB).",
       "errorInvalidFileType": "File type not recognized — PDF, PNG, or JPEG only.",
       "errorConflict": "Someone just replaced this — refresh and try again.",
-      "errorForbidden": "You don't have permission to do this.",
-      "errorDefault": "Upload failed.",
-      "submit": "Upload",
-      "submitting": "Uploading…"
+      "errorForbidden": "You don't have permission to do this."
     }
   },
   "invoices": {
