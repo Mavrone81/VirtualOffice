@@ -5,9 +5,11 @@ import { formatSGD } from "@/lib/money";
 import { dashboardScopeIds, dashboardMetrics } from "@/server/dashboard/metrics";
 import { myTransactionRows, type TransactionVariant } from "@/server/transactions/queries";
 import { listVouchersForTransactions, type VoucherListEntry } from "@/server/vouchers/get-or-create";
+import { myPayoutsForAssociate } from "@/server/payouts/my-payouts";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { MyTransactionsTable } from "./my-transactions-table";
+import { MyPayoutsPanel } from "./my-payouts-panel";
 
 const TABS: { variant: TransactionVariant; href: string; key: "list" | "received" | "receivable" }[] = [
   { variant: "list", href: "/portal/transactions", key: "list" },
@@ -40,6 +42,13 @@ export async function MyTransactionsView({ variant }: { variant: TransactionVari
     vouchers = await listVouchersForTransactions(rows.map((r) => r.id), me, { associateId: me, role: session.user.role });
   }
 
+  // A15 follow-up: the Finance menu is gone, so "My Payouts" (per-month
+  // breakdown + statement download) surfaces here instead — money actually
+  // received is what this tab is for. Always queried for `me` (the
+  // signed-in associate's own id, never anything from a URL param), never
+  // for any other role's scope — see myPayoutsForAssociate's own doc.
+  const payouts = variant === "received" && me ? await myPayoutsForAssociate(me) : null;
+
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
@@ -70,7 +79,10 @@ export async function MyTransactionsView({ variant }: { variant: TransactionVari
       </div>
 
       {me ? (
-        <MyTransactionsTable rows={rows ?? []} me={me} variant={variant} vouchers={vouchers} />
+        <>
+          <MyTransactionsTable rows={rows ?? []} me={me} variant={variant} vouchers={vouchers} />
+          {payouts !== null && <MyPayoutsPanel rows={payouts} />}
+        </>
       ) : (
         <p className="text-[13px] text-muted">{tp("dashboard.noProfile")}</p>
       )}
