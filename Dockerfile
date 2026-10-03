@@ -50,6 +50,16 @@ COPY package.json pnpm-lock.yaml ./
 ENV COREPACK_HOME=/opt/corepack
 RUN corepack install && chmod -R a+rX /opt/corepack
 COPY prisma ./prisma
+# prisma/seed.ts imports from lib/ (crypto, seed-guard), so WITHOUT this the seed
+# cannot run in this image — and `prisma migrate reset` drops the database, re-runs
+# the migrations, then FAILS at the seed step, leaving an empty database with no
+# accounts. Discovered 3 Oct 2026: `migrate reset` had never been usable in
+# production for exactly this reason, and nothing surfaced it because `migrate
+# deploy` (the only command this stage ran) needs no application code.
+# Asserted by lib/dockerfile-migrator-seed.test.ts, which derives the required
+# directories from prisma/seed.ts's own imports rather than hardcoding them.
+COPY lib ./lib
+COPY tsconfig.json ./
 CMD ["pnpm", "prisma", "migrate", "deploy"]
 
 # --- tools (one-off admin scripts: backfill dry runs / applies) ---
