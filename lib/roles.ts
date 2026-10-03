@@ -11,3 +11,10 @@ import type { AppRole } from "@prisma/client";
 // untouched — this only gates NEW invites going forward.
 export const RECRUITER_ROLES: AppRole[] = ["SalesManager", "SalesDirector", "Admin"];
 export const canRecruit = (r: AppRole): boolean => RECRUITER_ROLES.includes(r);
+
+// Roles with a downline they manage (team individual breakdown — RBAC matrix §D:
+// SAM / SM / SD). Moved here from lib/rbac.ts (C-8, 2026-10-03) for the same
+// reason RECRUITER_ROLES lives here: nav.ts needs it and cannot import rbac.ts
+// without pulling Prisma into the client bundle.
+export const MANAGER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector"];
+export const isManagerRole = (r: AppRole): boolean => MANAGER_ROLES.includes(r);

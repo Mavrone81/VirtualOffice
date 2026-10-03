@@ -84,7 +84,6 @@
     "myCommissions": "我的佣金",
     "myPayouts": "我的发放",
     "splitApprovals": "分成审批",
-    "teamOverview": "团队概览",
     "teamSales": "团队销售",
     "teamCommissions": "团队佣金",
     "vendorRegistry": "供应商名录",
@@ -1333,10 +1332,11 @@
   },
   "team": {
     "overview": {
-      "pageTitle": "团队概览",
+      "pageTitle": "团队仪表板",
       "noProfileTitle": "我的团队",
       "noProfile": "此账户未关联员工档案。",
       "yourDownline": "您的下线",
+      "rosterHeading": "团队名单",
       "teamSize": "团队人数",
       "associatesInDownline": "您下线中的员工",
       "teamSales": "团队销售",

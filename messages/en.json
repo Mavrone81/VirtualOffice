@@ -84,7 +84,6 @@
     "myCommissions": "My Commissions",
     "myPayouts": "My Payouts",
     "splitApprovals": "Split Approvals",
-    "teamOverview": "Team Overview",
     "teamSales": "Team Sales",
     "teamCommissions": "Team Commissions",
     "vendorRegistry": "Vendor Registry",
@@ -1333,10 +1332,11 @@
   },
   "team": {
     "overview": {
-      "pageTitle": "Team overview",
+      "pageTitle": "Team Dashboard",
       "noProfileTitle": "Team",
       "noProfile": "No associate profile is linked to this account.",
       "yourDownline": "Your downline",
+      "rosterHeading": "Team Roster",
       "teamSize": "Team size",
       "associatesInDownline": "Associates in your downline",
       "teamSales": "Team sales",

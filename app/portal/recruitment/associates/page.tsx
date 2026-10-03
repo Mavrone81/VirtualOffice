@@ -1,10 +1,15 @@
-import { parseTab } from "@/lib/recruitment-view";
-import { RecruitmentView } from "@/components/recruitment/recruitment-view";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Recruitment dashboard · Enshrine Portal" };
-
-// Recruitment Dashboard (Sep 2026 — A8): All / Direct / Downline associates.
-export default async function RecruitmentDashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string; mgr?: string }> }) {
+// C-8 (owner ruling, 2026-10-03): this page is retired — "Recruitment
+// Dashboard" and "Team Overview" are now one canonical page at /portal/team.
+// A redirect (not a deleted route) so an old bookmark or external link still
+// lands somewhere real; tab/mgr query params carry over unchanged since
+// /portal/team reads the same two params for the same embedded view.
+export default async function RecruitmentDashboardRedirect({ searchParams }: { searchParams: Promise<{ tab?: string; mgr?: string }> }) {
   const sp = await searchParams;
-  return <RecruitmentView mode="people" basePath="/portal/recruitment/associates" tab={parseTab(sp.tab)} mgr={sp.mgr ?? null} />;
+  const q = new URLSearchParams();
+  if (sp.tab) q.set("tab", sp.tab);
+  if (sp.mgr) q.set("mgr", sp.mgr);
+  const qs = q.toString();
+  redirect(qs ? `/portal/team?${qs}` : "/portal/team");
 }

@@ -6,7 +6,7 @@ import {
   PartyPopper, Store, Sparkles, Landmark, Archive, Building2, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
-import { RECRUITER_ROLES } from "@/lib/roles";
+import { RECRUITER_ROLES, MANAGER_ROLES } from "@/lib/roles";
 
 export type NavItem = {
   labelKey: string; // key into the `nav` message namespace
@@ -18,7 +18,6 @@ export type NavItem = {
 };
 export type NavGroup = { titleKey: string; items: NavItem[] };
 
-const MANAGER_ROLES: AppRole[] = ["SalesAssistantManager", "SalesManager", "SalesDirector"];
 const DIRECTOR_ROLES: AppRole[] = ["SalesDirector", "Admin"];
 
 // ---------------------------------------------------------------------------
@@ -132,27 +131,75 @@ export const portalNav: NavGroup[] = [
     ],
   },
   {
-    // C-7 (p.8): "Recruitment" renamed to "My Team" for the associate portal.
-    // A SEPARATE, pre-existing "My Team" group below (`groupMyTeam`) already
-    // carries that exact title for DIRECTOR_ROLES only (Team Overview/Sales/
-    // Commissions/Split Approvals) — merging the two is a still-open question
-    // with the owner. Until it's answered, this group gets its OWN key
-    // (`groupMyTeamBase`, not `groupMyTeam`) so the two stay independently
-    // renderable rather than accidentally coupled by sharing a translation
-    // key. A Sales Associate/Assistant Manager never sees `groupMyTeam` at
-    // all (role-gated out), so for them this is simply "My Team" with no
-    // collision; a Director/Admin still sees two sections today (this one
-    // plus the pre-existing one) until Q3 resolves the merge.
+    // C-7 (p.8) + C-8 (owner ruling, 2026-10-03): "Recruitment" renamed to
+    // "My Team" for the associate portal, and the two formerly-separate "My
+    // Team" sections are now ONE group under this single key
+    // (`groupMyTeamBase`) — the pre-existing DIRECTOR_ROLES-only group
+    // (`groupMyTeam`: Team Overview/Sales/Commissions/Split Approvals) is
+    // retired as a separate group; its items (minus Team Overview, see
+    // below) are folded in here.
+    //
+    // "Team Overview" is REMOVED, not merged in as its own item: the owner
+    // ruled its page and "Recruitment Dashboard" are the same underlying
+    // page, kept as one canonical page at /portal/team (the former Team
+    // Overview route — its 4 stat tiles stay, the All/Direct/Downline tabs
+    // this item used to point to are added to it). This item's href moves
+    // to /portal/team; the labelKey stays `recruitmentDashboard` (its
+    // existing translation already reads "Team Dashboard") to avoid an
+    // unforced key rename — only the destination page changed.
+    //
+    // Locked order (owner-confirmed, 2026-10-03): Team Dashboard, Team
+    // Performance, Split Approvals, Invite Candidate, Team Sales, Team
+    // Commissions. An earlier "Associate List" item was a relay error, not a
+    // real client ask — Additional p9's associate list is the content of
+    // Team Dashboard's own tabs, not a separate menu entry.
+    //
+    // Gating is NOT "copy each item's old nav gate forward," and an
+    // earlier pass of this comment got it wrong in the other direction —
+    // worth leaving the correction in place. FOUR items here each answer to
+    // their OWN real authority; a nav/route mismatch only tells you one
+    // side is stale, never which, so each was resolved by reading that
+    // item's actual action/route-level check, not by picking a role set
+    // that looked plausible:
+    //   - Team Dashboard (recruitmentDashboard, /portal/team): OPEN to
+    //     every associate, same as always — this is A8 (Additional p8/p9/
+    //     p10), a DELIVERED client row. The page differentiates by CONTENT,
+    //     not nav visibility: RecruitmentView's own `eligible =
+    //     canRecruit(role)` branch (RECRUITER_ROLES = SalesManager/
+    //     SalesDirector/Admin, NOT SalesAssistantManager) renders the
+    //     tiles+roster for a recruiter and the "not eligible yet" card
+    //     otherwise — unchanged by this merge. app/portal/team/layout.tsx
+    //     no longer gates this subtree by role (it did briefly, during
+    //     this same change — that was wrong, see its own comment); it only
+    //     requires login now, so nav and route agree for every role here.
+    //   - Team Sales / Team Commissions (/portal/team/sales,
+    //     /portal/team/commissions): MANAGER_ROLES (SalesAssistantManager/
+    //     SalesManager/SalesDirector — no Admin), matching each page's OWN
+    //     now-explicit isManagerRole check (moved there from the shared
+    //     layout specifically so relaxing the dashboard's gate couldn't
+    //     silently relax theirs too).
+    //   - Split Approvals (/portal/approvals): DIRECTOR_ROLES, matching
+    //     that page's own Director/Admin check — unaffected by this merge.
+    //   - Invite Candidate (/portal/recruitment/new): RECRUITER_ROLES,
+    //     unaffected — unrelated route.
+    // Quota-editing on the Team Dashboard's roster table is a FOURTH,
+    // separate authority again (canSetQuota, SAM and above, cell-level in
+    // server/quota/actions.ts) — untouched by any of this, and not the same
+    // role set as either canRecruit or the route gate. A Sales Assistant
+    // Manager is the one role where all three disagree: not a recruiter
+    // (gets the "not eligible" card, no roster), but can reach the route
+    // and can set quota — each on its own check, never collapsed into one.
     titleKey: "groupMyTeamBase",
     items: [
       {
         labelKey: "groupMyTeamBase", icon: Users,
-        // A8: Team Dashboard (All / Direct / Downline associates) and
-        // Team Performance; the invite page stays for recruiters.
         children: [
-          { labelKey: "recruitmentDashboard", href: "/portal/recruitment/associates", icon: Users },
+          { labelKey: "recruitmentDashboard", href: "/portal/team", icon: Users },
           { labelKey: "downlinePerformance", href: "/portal/recruitment/downline", icon: TrendingUp },
+          { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
           { labelKey: "directRecruits", href: "/portal/recruitment/new", icon: UserPlus, roles: RECRUITER_ROLES },
+          { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
+          { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
         ],
       },
     ],
@@ -243,22 +290,6 @@ export const portalNav: NavGroup[] = [
           // C-6 (p.6): moved here from Submissions, directly below Documents.
           { labelKey: "referralPartnerList", href: "/portal/referrals", icon: ListChecks },
           { labelKey: "myPFile", href: "/portal/pfile", icon: FolderLock },
-        ],
-      },
-    ],
-  },
-  // Directors + admin only — every child is role-gated, so the whole section is
-  // hidden from a plain associate (whose view then matches the sketch exactly).
-  {
-    titleKey: "groupMyTeam",
-    items: [
-      {
-        labelKey: "groupMyTeam", icon: Network,
-        children: [
-          { labelKey: "teamOverview", href: "/portal/team", icon: Network, roles: DIRECTOR_ROLES },
-          { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: DIRECTOR_ROLES },
-          { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: DIRECTOR_ROLES },
-          { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
         ],
       },
     ],

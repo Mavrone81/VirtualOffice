@@ -7,6 +7,8 @@ import { canSetQuota } from "@/lib/quota";
 import { QuotaCell } from "./quota-cell";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
+import { parseTab } from "@/lib/recruitment-view";
+import { RecruitmentView } from "@/components/recruitment/recruitment-view";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card } from "@/components/ui/card";
@@ -14,12 +16,19 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { getTranslations } from "next-intl/server";
 import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
-export const metadata = { title: "Team overview · Enshrine Portal" };
+export const metadata = { title: "Team Dashboard · Enshrine Portal" };
 
-export default async function TeamOverviewPage() {
+// C-8 (owner ruling, 2026-10-03): this page and the former "Recruitment
+// Dashboard" (app/portal/recruitment/associates) are now ONE canonical page.
+// This page's 4 stat tiles + downline/quota table are unchanged; the
+// All/Direct/Downline associate tabs below the tiles are the other page's
+// RecruitmentView, embedded. /portal/recruitment/associates itself now
+// redirects here — see that file.
+export default async function TeamDashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string; mgr?: string }> }) {
   const session = await auth();
   const t = await getTranslations("team");
   const tc = await getTranslations("common");
+  const sp = await searchParams;
 
   const associateId = session?.user.associateId ?? null;
   if (!associateId) return <PageHeader title={t("overview.noProfileTitle")} subtitle={t("overview.noProfile")} />;
@@ -64,6 +73,11 @@ export default async function TeamOverviewPage() {
         <StatTile label={t("overview.teamSales")} value={formatSGD(teamSales)} sub={t("overview.allSubmittedDownline")} />
         <StatTile label={t("overview.teamCommission")} value={formatSGD(teamCommission)} sub={t("overview.earnedByYourTeam")} />
         <StatTile label={t("overview.myOverrides")} value={formatSGD(myOverride)} sub={t("overview.yourOverrideEarnings")} />
+      </div>
+
+      <div className="mt-6">
+        <h2 className="mb-3 font-display text-[18px] text-ink">{t("overview.rosterHeading")}</h2>
+        <RecruitmentView mode="people" basePath="/portal/team" tab={parseTab(sp.tab)} mgr={sp.mgr ?? null} embedded />
       </div>
 
       <Card className="mt-6 overflow-hidden">

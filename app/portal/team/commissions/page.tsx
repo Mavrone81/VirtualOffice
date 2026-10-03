@@ -1,5 +1,7 @@
 import { LedgerStatus } from "@prisma/client";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { isManagerRole } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { teamScopeIds, parseTeamSearchParam, resolveTeamSearchScope } from "@/lib/team";
 import { formatSGD, sum } from "@/lib/money";
@@ -23,6 +25,11 @@ export default async function TeamCommissionsPage({
   searchParams: Promise<{ moView?: string; moMonth?: string; moYear?: string; teamSearch?: string }>;
 }) {
   const session = await auth();
+  // C-8 (2026-10-03): own check, not inherited from the layout any more —
+  // the layout now only requires login (it also covers the Team Dashboard,
+  // which must stay open to every associate). Same MANAGER_ROLES authority
+  // as before, just moved so it applies to this page specifically.
+  if (!session?.user || !isManagerRole(session.user.role)) redirect("/portal/dashboard");
   const t = await getTranslations("team");
   const tc = await getTranslations("common");
 
