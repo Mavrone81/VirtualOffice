@@ -68,7 +68,7 @@ function Head() {
 function Footer() {
   return (
     <View style={s.footer} fixed>
-      <Text style={s.footerText}>Enshrine Holdings Ptd Ltd</Text>
+      <Text style={s.footerText}>Enshrine Holdings Pte Ltd</Text>
       <Text style={s.footerText}>Enshrine Services Pte Ltd</Text>
       <Text style={s.footerText}>Enshrine Pets Paradise Pte Ltd</Text>
       <Text style={s.footerText}>Enshrine Afterlife Planner Pte Ltd</Text>
