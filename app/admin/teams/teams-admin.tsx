@@ -31,7 +31,7 @@ export function TeamsAdmin({ teams, associates }: { teams: Team[]; associates: A
         <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <div>
             <Label htmlFor="tn">{t("nameLabel")}</Label>
-            <Input id="tn" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Daniel Tan Division" />
+            <Input id="tn" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} />
           </div>
           <div>
             <Label htmlFor="td">{t("directorLabel")}</Label>

@@ -1,15 +1,18 @@
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
 import { env } from "@/lib/env";
 import { PageHeader } from "@/components/ui/page-header";
+import { PendingInvites } from "@/components/recruitment/pending-invites";
 import { InviteForm } from "./invite-form";
 
 export const metadata = { title: "Invite Candidate · Enshrine Admin" };
 
 export default async function InviteCandidatePage() {
   const t = await getTranslations("recruitment");
+  const session = await auth();
 
   // A Business Admin can place a candidate into any team, so the choice is
   // every active team already created (Admin → Teams) — a dropdown, not
@@ -30,10 +33,13 @@ export default async function InviteCandidatePage() {
     <>
       <PageHeader title={t("new.title")} subtitle={t("new.subtitle")} />
       <InviteForm
+        isAdmin
+        backHref="/admin/recruitment"
         baseUrl={baseUrl}
         teamOptions={teams.map((x) => x.name)}
         uplines={uplines.map((u) => ({ code: u.associateCode, label: `${u.associateCode} · ${u.fullName} (${humanize(u.designation)})` }))}
       />
+      {session?.user && <PendingInvites userId={session.user.id} />}
     </>
   );
 }

@@ -137,7 +137,7 @@ export function SaleForm({ products, associates, today, initial, submissionId, f
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="cn">{t("saleForm.clientName")}</Label>
-            <Input id="cn" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Jane Tan" />
+            <Input id="cn" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder={t("clientNamePlaceholder")} />
           </div>
           <div>
             <Label htmlFor="cc">{t("saleForm.clientContact")}</Label>

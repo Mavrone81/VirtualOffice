@@ -334,7 +334,8 @@
     "noMembers": "No members yet.",
     "addMember": "+ Add member…",
     "add": "Add",
-    "remove": "Remove"
+    "remove": "Remove",
+    "namePlaceholder": "e.g. the division or team name"
   },
   "commission": {
     "title": "Commission Dashboard",
@@ -654,6 +655,7 @@
     }
   },
   "portal": {
+    "clientNamePlaceholder": "e.g. the client's full name",
     "dashboard": {
       "title": "Dashboard",
       "noProfile": "No associate profile is linked to this account.",
@@ -1074,7 +1076,10 @@
       "noneOption": "— None —",
       "createInviteLink": "Create invite link",
       "couldNotInvite": "Could not create invite.",
-      "pickTeam": "Select team…"
+      "pickTeam": "Select team…",
+      "impliedTeam": "This candidate joins your team: {team}",
+      "pickOwnTeam": "Which of your teams does the candidate join? *",
+      "teamPlaceholder": "e.g. the team name"
     },
     "detail": {
       "headerSubtitle": "{designation} · invited {date}",
