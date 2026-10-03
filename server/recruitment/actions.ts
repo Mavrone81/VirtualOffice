@@ -18,6 +18,7 @@ import { putObject, getObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { humanize } from "@/lib/labels";
 import { renderAgreementPdf, formatUplineOrNA, wouldTruncate } from "@/lib/pdf/agreement";
+import { MASTER_TEMPLATE_VERSION, MASTER_TEMPLATE_SHA256 } from "@/lib/pdf/associate-agreement-coordinates";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "@/server/associates/payee-audit";
@@ -401,6 +402,10 @@ export async function submitOnboarding(
     spouseCompany: s.spouseConflict ? s.spouseCompany?.trim() || null : null,
     spouseDesignation: s.spouseConflict ? s.spouseDesignation?.trim() || null : null,
     agreementAcceptedAt: new Date().toISOString(),
+    // Which master the signed PDF was stamped onto. Pre-existing rows have
+    // neither key (they were signed against the previous master).
+    agreementTemplateVersion: MASTER_TEMPLATE_VERSION,
+    agreementTemplateSha256: MASTER_TEMPLATE_SHA256,
   };
 
   // E-signature → store the raw signature image, then render and store a signed
@@ -492,7 +497,7 @@ export async function submitOnboarding(
   await prisma.candidate.update({
     where: { id: c.id },
     data: {
-      submittedPayload: payload,
+      submittedPayload: { ...payload, signedPdfSha256: createHash("sha256").update(agreementPdf).digest("hex") },
       photoFileKey,
       signedAgreementFileKey,
       companySignatoryNameAtSigning: companySignatory?.signatoryName ?? null,
