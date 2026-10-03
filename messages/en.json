@@ -335,7 +335,13 @@
     "addMember": "+ Add member…",
     "add": "Add",
     "remove": "Remove",
-    "namePlaceholder": "e.g. the division or team name"
+    "namePlaceholder": "e.g. the division or team name",
+    "monthlyTarget": "Monthly target ({period})",
+    "yearlyTarget": "Yearly target ({period})",
+    "targetNotSet": "Not set",
+    "saveTarget": "Save",
+    "clearTarget": "Clear",
+    "targetNote": "Default for every member of this team. A member's own target, set on the Team Dashboard, overrides it."
   },
   "commission": {
     "title": "Commission Dashboard",
@@ -1366,7 +1372,8 @@
       "colQuota": "Target (this month)",
       "setQuota": "Set",
       "save": "Save",
-      "colYearTarget": "Target (this year)"
+      "colYearTarget": "Target (this year)",
+      "teamTargetTag": "team"
     },
     "search": {
       "all": "All",

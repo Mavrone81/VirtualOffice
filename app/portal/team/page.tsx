@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { teamScopeIds } from "@/lib/team";
 import { canSetQuota } from "@/lib/quota";
+import { resolveTargetsFor } from "@/server/quota/resolve";
 import { QuotaCell } from "./quota-cell";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
@@ -53,13 +54,8 @@ export default async function TeamDashboardPage({ searchParams }: { searchParams
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const canEditQuota = session ? canSetQuota(session.user.role) : false;
   const thisYear = String(now.getFullYear());
-  // Monthly ("YYYY-MM") and yearly ("YYYY") targets share the table (A4).
-  const quotas = await prisma.salesQuota.findMany({
-    where: { associateId: { in: teamIds }, month: { in: [thisMonth, thisYear] } },
-    select: { associateId: true, month: true, amount: true },
-  });
-  const quotaByAssoc = new Map(quotas.filter((q) => q.month === thisMonth).map((q) => [q.associateId, q.amount.toString()]));
-  const yearTargetByAssoc = new Map(quotas.filter((q) => q.month === thisYear).map((q) => [q.associateId, q.amount.toString()]));
+  // Individual override, else team target, else none (server/quota/resolve.ts).
+  const targets = await resolveTargetsFor(teamIds, now);
 
   return (
     <>
@@ -116,10 +112,10 @@ export default async function TeamDashboardPage({ searchParams }: { searchParams
                       <td className="px-5 py-3 text-right text-ink">{formatSGD(memberSales)}</td>
                       <td className="px-5 py-3 text-right text-ink">{formatSGD(memberComm)}</td>
                       <td className="px-5 py-3">
-                        <QuotaCell associateId={a.id} month={thisMonth} current={quotaByAssoc.get(a.id) ?? null} canEdit={canEditQuota} />
+                        <QuotaCell associateId={a.id} month={thisMonth} current={targets.get(a.id)?.month?.amount ?? null} inherited={targets.get(a.id)?.month?.source === "team"} canEdit={canEditQuota} />
                       </td>
                       <td className="px-5 py-3">
-                        <QuotaCell associateId={a.id} month={thisYear} current={yearTargetByAssoc.get(a.id) ?? null} canEdit={canEditQuota} />
+                        <QuotaCell associateId={a.id} month={thisYear} current={targets.get(a.id)?.year?.amount ?? null} inherited={targets.get(a.id)?.year?.source === "team"} canEdit={canEditQuota} />
                       </td>
                       <td className="px-5 py-3"><StatusPill status={a.associateStatus} /></td>
                     </tr>

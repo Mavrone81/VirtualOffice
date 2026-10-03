@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { inPeriod, periodKeys, remainingToTarget } from "@/lib/quota";
+import { resolveTargetsFor } from "@/server/quota/resolve";
 import { dashboardScopeIds, dashboardMetrics, receivedInYear } from "@/server/dashboard/metrics";
 import { humanize } from "@/lib/labels";
 import { formatSGD, sum } from "@/lib/money";
@@ -33,18 +34,16 @@ export default async function PortalDashboard() {
   const [me, metrics, targets, myPaid] = await Promise.all([
     prisma.associate.findUnique({ where: { id: associateId } }),
     dashboardMetrics(scopeIds),
-    prisma.salesQuota.findMany({
-      where: { associateId, month: { in: [thisMonth, thisYear] } },
-      select: { month: true, amount: true },
-    }),
+    resolveTargetsFor([associateId]),
     receivedInYear(associateId, thisYear),
   ]);
   const { totalTransactionValue, grossTransacted, grossReceived } = metrics;
-  const monthTarget = targets.find((q) => q.month === thisMonth)?.amount ?? null;
-  const yearTarget = targets.find((q) => q.month === thisYear)?.amount ?? null;
+  // Individual override, else team target, else null (server/quota/resolve.ts).
+  const monthTarget = targets.get(associateId)?.month?.amount ?? null;
+  const yearTarget = targets.get(associateId)?.year?.amount ?? null;
   const receivedIn = (period: string) =>
     Number(sum(myPaid.filter((l) => inPeriod(l.payoutMonth, period)).map((l) => l.amount)));
-  const remaining = (target: typeof monthTarget, period: string) =>
+  const remaining = (target: string | null, period: string) =>
     target === null ? null : remainingToTarget(Number(target), receivedIn(period));
   const monthRemaining = remaining(monthTarget, thisMonth);
   const yearRemaining = remaining(yearTarget, thisYear);
