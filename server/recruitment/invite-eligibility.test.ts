@@ -37,6 +37,7 @@ const input = {
   mobileNumber: "91234567",
   email: "jane@example.com",
   intendedDesignation: "SalesAssociate" as const,
+  commencementDate: "2026-10-15",
 };
 
 beforeEach(() => {
