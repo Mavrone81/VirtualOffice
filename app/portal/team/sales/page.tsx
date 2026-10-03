@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { teamScopeIds } from "@/lib/team";
+import { teamScopeIds, parseTeamSearchParam, resolveTeamSearchScope } from "@/lib/team";
 import { formatSGD, sum, ZERO } from "@/lib/money";
 import { humanize } from "@/lib/labels";
 import { fetchTeamSalesCommissionByTransaction, teamSalesCommissionFor } from "@/server/sales/team-commission-column";
@@ -11,10 +11,15 @@ import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { getTranslations } from "next-intl/server";
 import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
+import { TeamSearchFilter } from "@/components/team/team-search-filter";
 
 export const metadata = { title: "Team sales · Enshrine Portal" };
 
-export default async function TeamSalesPage() {
+export default async function TeamSalesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ teamSearch?: string }>;
+}) {
   const session = await auth();
   const t = await getTranslations("team");
   const tc = await getTranslations("common");
@@ -25,9 +30,30 @@ export default async function TeamSalesPage() {
   const dlIds = await teamScopeIds(associateId);
   const teamIds = dlIds.filter((id) => id !== associateId);
 
-  const submissions = teamIds.length
+  const sp = await searchParams;
+  // The search param is a CANDIDATE, revalidated against this associate's own
+  // scope server-side — never trusted just because the dropdown only ever
+  // renders ids already in that scope (a URL can be edited by hand). An
+  // out-of-scope or malformed candidate falls back to the full team scope,
+  // identically to no search at all (lib/team.ts's resolveTeamSearchScope).
+  const searchInput = parseTeamSearchParam(sp.teamSearch);
+  const searchScope = await resolveTeamSearchScope(associateId, searchInput);
+  const effectiveIds = searchScope ?? teamIds;
+
+  const [members, teams] = await Promise.all([
+    teamIds.length
+      ? prisma.associate.findMany({ where: { id: { in: teamIds } }, select: { id: true, fullName: true, associateCode: true }, orderBy: { fullName: "asc" } })
+      : Promise.resolve([]),
+    prisma.team.findMany({
+      where: { active: true, OR: [{ directorId: associateId }, { members: { some: { associateId } } }] },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const submissions = effectiveIds.length
     ? await prisma.salesSubmission.findMany({
-        where: { closingAssociateId: { in: teamIds } },
+        where: { closingAssociateId: { in: effectiveIds } },
         orderBy: { createdAt: "desc" },
         include: {
           lineItems: { select: { productName: true } },
@@ -53,6 +79,16 @@ export default async function TeamSalesPage() {
   return (
     <>
       <PageHeader title={t("sales.pageTitle")} subtitle={t("sales.pageSubtitle")} />
+
+      <div className="mb-4">
+        <TeamSearchFilter
+          individuals={members.map((m) => ({ id: m.id, label: `${m.fullName} · ${m.associateCode}` }))}
+          teams={teams.map((tm) => ({ id: tm.id, label: tm.name }))}
+          allLabel={t("search.all")}
+          individualGroupLabel={t("search.individuals")}
+          teamGroupLabel={t("search.teams")}
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatTile label={t("sales.submissions")} value={submissions.length} sub={t("sales.fromDownline")} />
