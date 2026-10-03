@@ -1,6 +1,6 @@
 // Deliberately NOT a "use client" module. This constant is imported by
-// Server Components (app/portal/team/sales/page.tsx,
-// app/portal/team/commissions/page.tsx) and used to read a URL search
+// Server Components (app/portal/team/performance/page.tsx via
+// server/team/performance.ts) and used to read a URL search
 // param server-side. A "use client" module's exports are replaced with
 // opaque client-reference objects when imported from server code (the RSC
 // module-splitting boundary) -- a plain string constant crossing that

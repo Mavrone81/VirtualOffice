@@ -84,8 +84,6 @@
     "myCommissions": "我的佣金",
     "myPayouts": "我的发放",
     "splitApprovals": "分成审批",
-    "teamSales": "团队销售",
-    "teamCommissions": "团队佣金",
     "vendorRegistry": "供应商名录",
     "salesAgreements": "销售协议",
     "myPFile": "我的人事档案",
@@ -1345,7 +1343,7 @@
       "myOverrides": "我的越级佣金",
       "yourOverrideEarnings": "您从团队获得的越级佣金",
       "downlineHeading": "下线",
-      "teamSalesLink": "团队销售 →",
+      "teamPerformanceLink": "团队业绩 →",
       "noDownline": "您暂无下线员工。",
       "colId": "编号",
       "colAssociate": "员工",
@@ -1401,7 +1399,15 @@
       "colTxn": "交易",
       "colType": "类型",
       "colMonth": "月份",
-      "colAmount": "金额"
+      "colCommission": "佣金"
+    },
+    "performance": {
+      "pageTitle": "团队业绩",
+      "noProfile": "此账户未关联员工档案。",
+      "pageSubtitle": "团队的销售与佣金，以及您从中获得的越级佣金。",
+      "salesHeading": "团队销售",
+      "commissionHeading": "团队佣金",
+      "downlineHeading": "下线业绩"
     }
   },
   "vendors": {
