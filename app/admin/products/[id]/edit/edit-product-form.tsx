@@ -1,0 +1,108 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { updateProduct } from "@/server/products/actions";
+import { PricingCard, type PricingValue } from "../../pricing-card";
+
+const selectCls =
+  "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
+
+export type EditProductInitial = {
+  productName: string;
+  productCategory: string;
+  defaultCompanyId: string;
+  pricing: PricingValue;
+};
+
+// Fields mirror productDetailsSchema, NOT the create form: no product code
+// (read-only), no commission / effective date / external flag (changeRates).
+export function EditProductForm({
+  productId,
+  companies,
+  initial,
+}: {
+  productId: string;
+  companies: { id: string; name: string }[];
+  initial: EditProductInitial;
+}) {
+  const t = useTranslations("products");
+  const tc = useTranslations("common");
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string>();
+  const [productName, setProductName] = useState(initial.productName);
+  const [productCategory, setProductCategory] = useState(initial.productCategory);
+  const [defaultCompanyId, setDefaultCompanyId] = useState(initial.defaultCompanyId);
+  const [pricing, setPricing] = useState<PricingValue>(initial.pricing);
+  const setPricingPatch = (patch: Partial<PricingValue>) => setPricing((p) => ({ ...p, ...patch }));
+
+  const orUndef = (s: string) => (s.trim() === "" ? undefined : s);
+
+  const incomplete =
+    !productName.trim() ||
+    !pricing.listedPrice ||
+    (pricing.instalmentOption !== "None" && (!pricing.bookingFee || !pricing.monthlyInstalment12)) ||
+    (pricing.instalmentOption === "Months12or24" && !pricing.monthlyInstalment24);
+
+  function submit() {
+    setError(undefined);
+    start(async () => {
+      const r = await updateProduct(productId, {
+        productName,
+        productCategory: orUndef(productCategory),
+        defaultCompanyId: orUndef(defaultCompanyId),
+        listedPrice: pricing.listedPrice,
+        discountedPrice: orUndef(pricing.discountedPrice),
+        closingBasis: pricing.closingBasis,
+        instalmentOption: pricing.instalmentOption,
+        bookingFee: orUndef(pricing.bookingFee),
+        monthlyInstalment12: orUndef(pricing.monthlyInstalment12),
+        monthlyInstalment24: orUndef(pricing.monthlyInstalment24),
+      });
+      if (r.ok) router.push("/admin/products");
+      else setError(r.error ?? t("couldNotSaveProduct"));
+    });
+  }
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      <Card className="p-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="name">{t("productNameLabel")}</Label>
+            <Input id="name" value={productName} onChange={(e) => setProductName(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="cat">{t("categoryLabel")}</Label>
+            <Input id="cat" value={productCategory} onChange={(e) => setProductCategory(e.target.value)} placeholder="Funeral" />
+          </div>
+          <div>
+            <Label htmlFor="co">{t("defaultBillingEntityLabel")}</Label>
+            <select id="co" className={selectCls} value={defaultCompanyId} onChange={(e) => setDefaultCompanyId(e.target.value)}>
+              <option value="">{t("noDefaultEntity")}</option>
+              {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
+      </Card>
+
+      <PricingCard value={pricing} onChange={setPricingPatch} />
+
+      {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
+      <div className="flex gap-3">
+        <Button onClick={submit} disabled={pending || incomplete}>
+          {pending ? tc("saving") : t("saveProductBtn")}
+        </Button>
+        <Button variant="ghost" onClick={() => router.push("/admin/products")} disabled={pending}>
+          {tc("cancel")}
+        </Button>
+      </div>
+    </div>
+  );
+}

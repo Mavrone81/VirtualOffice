@@ -6,18 +6,22 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
-import { isFullAdmin } from "@/lib/rbac";
+import { can, isFullAdmin } from "@/lib/rbac";
 import { formatSGD, formatPercent, formatByValueType } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ActiveToggle, ComCodeManager, RequiredDocumentsManager, AshesAgreementToggle } from "./product-controls";
+import { ActiveToggle, EditProductLink, ComCodeManager, RequiredDocumentsManager, AshesAgreementToggle } from "./product-controls";
 
 export const metadata = { title: "Products & commission · Enshrine Admin" };
 
 export default async function ProductsPage() {
   const session = await auth();
   if (!session?.user || !isFullAdmin(session.user.role)) redirect("/admin/dashboard");
+  // Same capability the create/edit actions enforce. The page gate above is
+  // stricter today, so this is belt-and-braces if that gate is ever widened to
+  // isAdminRole (which includes Accounts).
+  const canManage = can(session.user.role, "manage_products");
   const t = await getTranslations("products");
   const a17On = env.A17_CLOSED_DEAL_FLOW;
   const products = await prisma.product.findMany({
@@ -31,9 +35,11 @@ export default async function ProductsPage() {
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")}>
-        <Button asChild>
-          <Link href="/admin/products/new">{t("newProduct")}</Link>
-        </Button>
+        {canManage && (
+          <Button asChild>
+            <Link href="/admin/products/new">{t("newProduct")}</Link>
+          </Button>
+        )}
       </PageHeader>
 
       <div className="space-y-4">
@@ -56,9 +62,14 @@ export default async function ProductsPage() {
                 <div className="text-right text-[12px]">
                   <div className="text-muted">{t("listedPriceLabel")}</div>
                   <div className={`font-display text-[18px] ${p.listedPrice == null ? "text-muted-2" : "text-ink"}`}>{priceOf(p)}</div>
-                  <Link href={`/admin/products/${p.id}/edit-pricing`} className="text-[12px] text-action hover:underline">
-                    {t("editPricing")}
-                  </Link>
+                  {canManage && (
+                    <div className="flex justify-end gap-3">
+                      <EditProductLink productId={p.id} canManage={canManage} />
+                      <Link href={`/admin/products/${p.id}/edit-pricing`} className="text-[12px] text-action hover:underline">
+                        {t("editPricing")}
+                      </Link>
+                    </div>
+                  )}
                 </div>
                 <div className="text-right text-[12px]">
                   <div className="text-muted">{t("closing")}</div>
