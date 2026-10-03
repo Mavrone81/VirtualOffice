@@ -16,12 +16,14 @@ import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 export const metadata = { title: "Documents · Enshrine Portal" };
 
 // Doc Template's Pets/Human Afterlife tabs and the signed-agreements list were
-// folded in here (C-6, 2026-10-02) — one documents home instead of two. The
-// built-in templates below are the SAME sha-pinned e-signing generation
-// masters Doc Template served (lib/pdf/agreement.ts,
-// lib/pdf/associate-agreement-coordinates.ts); "replacing" them is the
-// catastrophic case, so an admin upload for a category only ever adds a row
-// alongside them (B-5 Option 1), never substitutes into this list.
+// folded in here (C-6, 2026-10-02) — one documents home instead of two. Both
+// category tabs render even when one is empty (PD ruling, 2026-10-03 — the
+// client's own slide shows both as a visible pair). The built-in templates
+// below are the SAME sha-pinned e-signing generation masters Doc Template
+// served (lib/pdf/agreement.ts, lib/pdf/associate-agreement-coordinates.ts);
+// "replacing" them is the catastrophic case, so an admin upload for a
+// category only ever adds a row alongside them (B-5 Option 1), never
+// substitutes into this list.
 const CATEGORY_TEMPLATES = {
   PetsAfterlife: [
     { key: "tplAshes", href: "/templates/storage-of-pets-ashes-agreement.pdf" },
@@ -30,10 +32,16 @@ const CATEGORY_TEMPLATES = {
   HumanAfterlife: [] as { key: string; href: string }[],
 };
 
-export default async function PortalDocumentsPage() {
+const CATEGORY_KEYS = Object.keys(CATEGORY_TEMPLATES) as (keyof typeof CATEGORY_TEMPLATES)[];
+
+export default async function PortalDocumentsPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
   const session = await auth();
   const t = await getTranslations("portal");
   const ta = await getTranslations("agreements");
+  const sp = await searchParams;
+  const activeCat = CATEGORY_KEYS.includes(sp.cat as keyof typeof CATEGORY_TEMPLATES)
+    ? (sp.cat as keyof typeof CATEGORY_TEMPLATES)
+    : CATEGORY_KEYS[0];
 
   if (!session?.user) return <PageHeader title={t("documents.pageTitle")} />;
 
@@ -99,18 +107,39 @@ export default async function PortalDocumentsPage() {
         {generalTemplates.map((tpl) => templateCard(tpl.href, tpl.title))}
       </div>
 
-      {categorySections
-        // Human Afterlife has no built-ins yet — skip the heading entirely
-        // rather than show a permanently empty section.
-        .filter((s) => s.items.length > 0)
-        .map((s) => (
-          <div key={s.cat} className="mb-8">
-            <h3 className="mb-3 font-display text-[15px] text-ink">{ta(`docTemplate.cat.${s.cat === "PetsAfterlife" ? "pets" : "human"}`)}</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {s.items.map((tpl) => templateCard(tpl.href, tpl.label))}
-            </div>
-          </div>
+      {/* Both category tabs always render, even one with nothing behind it
+          yet — PD ruling (2026-10-03): the client's own slide (Associate p15
+          / Admin p8) shows Pets Afterlife | Human Afterlife as a visible tab
+          pair, and hiding an empty tab would lose that affordance that a
+          second category exists. URL-param-driven, same pattern as
+          components/recruitment/recruitment-view.tsx's tabs — no client JS. */}
+      <nav className="mb-4 flex flex-wrap gap-2" aria-label={ta("docTemplate.title")}>
+        {CATEGORY_KEYS.map((cat) => (
+          <Link
+            key={cat}
+            href={`/portal/documents?cat=${cat}`}
+            aria-current={cat === activeCat ? "page" : undefined}
+            className={
+              "rounded-xl border-2 border-ink px-5 py-2.5 text-[14px] font-semibold transition-colors " +
+              (cat === activeCat ? "bg-ink text-white" : "bg-white text-ink hover:bg-paper-100")
+            }
+          >
+            {ta(`docTemplate.cat.${cat === "PetsAfterlife" ? "pets" : "human"}`)}
+          </Link>
         ))}
+      </nav>
+      <div className="mb-8">
+        {(() => {
+          const active = categorySections.find((s) => s.cat === activeCat)!;
+          return active.items.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {active.items.map((tpl) => templateCard(tpl.href, tpl.label))}
+            </div>
+          ) : (
+            <Card className="px-5 py-12 text-center text-[13px] text-muted">{ta("docTemplate.none")}</Card>
+          );
+        })()}
+      </div>
 
       <h2 className="mb-1 font-display text-[16px] text-ink">{ta("docTemplate.signedHeading")}</h2>
       <p className="mb-3 text-[12.5px] text-muted">{ta("list.subtitle")}</p>
