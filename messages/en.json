@@ -166,8 +166,6 @@
     "statPendingApproval": "Pending approval",
     "statApprovedActive": "Approved & active",
     "statAwaitingReview": "Awaiting review",
-    "statInvoiceBrands": "Company entities",
-    "statInvoiceBrandsSub": "Billing entities",
     "statProducts": "Products",
     "statCommissionStructures": "Commission structures",
     "myDashboardTitle": "Dashboard",

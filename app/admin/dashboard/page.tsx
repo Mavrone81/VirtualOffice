@@ -11,10 +11,9 @@ export const metadata = { title: "Dashboard · Enshrine Admin" };
 export default async function AdminDashboard() {
   const t = await getTranslations("adminDashboard");
 
-  const [activeCount, pendingCount, companies, products, metrics, amountCollected] = await Promise.all([
+  const [activeCount, pendingCount, products, metrics, amountCollected] = await Promise.all([
     prisma.associate.count({ where: { associateStatus: AssociateStatus.Active } }),
     prisma.associate.count({ where: { approvalStatus: ApprovalStatus.Pending } }),
-    prisma.company.count(),
     prisma.product.count(),
     dashboardMetrics(null), // Admin: all teams, org-wide
     totalAmountCollected(), // B-1: sum of SalesTransaction.amountCollected, org-wide
@@ -30,10 +29,9 @@ export default async function AdminDashboard() {
         <StatTile label={t("totalAmountCollected")} value={formatSGD(amountCollected)} sub={t("totalAmountCollectedSub")} />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatTile label={t("statActiveAssociates")} value={activeCount} sub={t("statApprovedActive")} />
         <StatTile label={t("statPendingApproval")} value={pendingCount} sub={t("statAwaitingReview")} />
-        <StatTile label={t("statInvoiceBrands")} value={companies} sub={t("statInvoiceBrandsSub")} />
         <StatTile label={t("statProducts")} value={products} sub={t("statCommissionStructures")} />
       </div>
     </>

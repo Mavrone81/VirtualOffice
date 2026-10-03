@@ -166,8 +166,6 @@
     "statPendingApproval": "待批准",
     "statApprovedActive": "已批准且在职",
     "statAwaitingReview": "待审核",
-    "statInvoiceBrands": "公司主体",
-    "statInvoiceBrandsSub": "账单实体",
     "statProducts": "产品",
     "statCommissionStructures": "佣金结构",
     "myDashboardTitle": "仪表板",
