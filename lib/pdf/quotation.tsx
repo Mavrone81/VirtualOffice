@@ -3,6 +3,7 @@ import { Document, Page, View, Text, Image, StyleSheet, renderToBuffer } from "@
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { formatSGD } from "@/lib/money";
+import { sharedIdentity, orMarker, contactLine, LEGACY_DOCUMENT_DEFAULTS } from "@/lib/company-identity";
 
 const INK = "#1a1f2b";
 const MUTED = "#6b675e";
@@ -10,10 +11,13 @@ const LINE = "#e6e2d9";
 const GOLD = "#b8893d";
 const NAVY = "#1f4e79";
 
-const UEN = "202328861K";
-const ENTITIES = "Enshrine Services Pte Ltd · Enshrine Pets Paradise Pte Ltd · Enshrine Afterlife Planner Pte Ltd";
-const ADDRESS = "74 Lorong 6 Geylang, Singapore 399226";
-const CONTACT = "Tel: 9009 9234 · contacts@enshrine.sg · www.enshrine.sg";
+// A quotation is not tied to one Company, so its letterhead comes from the
+// active companies (lib/company-identity.ts sharedIdentity): a value prints
+// only when they agree on it. Chain: agreed field -> LEGACY_DOCUMENT_DEFAULTS
+// (what this printed before) -> marker. Companies that DISAGREE on the UEN
+// (e.g. one per subsidiary) print the legacy constant: a customer-facing
+// document never prints a marker for a value that has a legacy default.
+type Letterhead = { entities: string; address: string; contact: string; uen: string; uenHolder: string };
 
 const s = StyleSheet.create({
   page: { padding: 40, fontSize: 9.5, color: INK, fontFamily: "Helvetica", lineHeight: 1.5 },
@@ -47,6 +51,7 @@ const s = StyleSheet.create({
 
 type Line = { description: string; amount: number };
 type QuotationData = {
+  letter: Letterhead;
   ref: string;
   issueDate: Date;
   validUntil: Date;
@@ -71,16 +76,16 @@ function QuotationDoc({ d }: { d: QuotationData }) {
         <View style={s.row}>
           <View style={{ maxWidth: 320 }}>
             <Text style={s.wordmark}>ENSHRINE</Text>
-            <Text style={s.coMeta}>{ENTITIES}</Text>
-            <Text style={s.coMeta}>{ADDRESS}</Text>
-            <Text style={s.coMeta}>{CONTACT}</Text>
+            <Text style={s.coMeta}>{d.letter.entities}</Text>
+            <Text style={s.coMeta}>{d.letter.address}</Text>
+            <Text style={s.coMeta}>{d.letter.contact}</Text>
           </View>
           <View>
             <Text style={s.docTitle}>QUOTATION</Text>
             <View style={s.metaRow}><Text style={s.metaLabel}>Quotation No.</Text><Text style={s.metaVal}>{d.ref}</Text></View>
             <View style={s.metaRow}><Text style={s.metaLabel}>Date</Text><Text style={s.metaVal}>{format(d.issueDate, "dd MMM yyyy")}</Text></View>
             <View style={s.metaRow}><Text style={s.metaLabel}>Valid Until</Text><Text style={s.metaVal}>{format(d.validUntil, "dd MMM yyyy")}</Text></View>
-            <View style={s.metaRow}><Text style={s.metaLabel}>UEN</Text><Text style={s.metaVal}>{UEN}</Text></View>
+            <View style={s.metaRow}><Text style={s.metaLabel}>UEN</Text><Text style={s.metaVal}>{d.letter.uen}</Text></View>
           </View>
         </View>
         <View style={s.rule} />
@@ -139,7 +144,7 @@ function QuotationDoc({ d }: { d: QuotationData }) {
         </View>
 
         <Text style={s.footer} fixed>
-          System-generated quotation from the Virtual Office platform. Enshrine · UEN {UEN} · Valid until {format(d.validUntil, "dd MMM yyyy")}
+          {`System-generated quotation from the Virtual Office platform. ${d.letter.uenHolder} · UEN `}{d.letter.uen} · Valid until {format(d.validUntil, "dd MMM yyyy")}
         </Text>
       </Page>
     </Document>
@@ -169,7 +174,20 @@ export async function renderQuotationPdf(
       ? `Installment plan${sub.installmentCount ? `: ${sub.installmentCount} months` : ""}${sub.deposit ? ` · deposit ${formatSGD(sub.deposit)}` : ""}.`
       : "One-time full payment.";
 
+  const shared = sharedIdentity(await prisma.company.findMany({ where: { active: true }, orderBy: { name: "asc" } }));
+  const L = LEGACY_DOCUMENT_DEFAULTS;
+  const letter: Letterhead = {
+    entities: L.entities,
+    address: orMarker(shared.address, "address", L.address),
+    contact: contactLine(shared),
+    // Number and name are used together or not at all: when the companies
+    // disagree (or have no UEN) the legacy pair prints, never a marker.
+    uen: shared.uen && shared.holder ? shared.uen : L.uen,
+    uenHolder: shared.uen && shared.holder ? shared.holder : L.quotationFooterName,
+  };
+
   const d: QuotationData = {
+    letter,
     ref,
     issueDate,
     validUntil,

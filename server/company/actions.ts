@@ -9,6 +9,7 @@ import { isFullAdmin } from "@/lib/rbac";
 import { auditTx, AuditWriteError } from "@/lib/audit";
 import { putObject, deleteObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
+import { cleanCompanyDetails, type CompanyDetailsInput } from "@/lib/company-identity";
 
 const MAX_SIGNATURE_BYTES = 5_000_000;
 
@@ -127,6 +128,59 @@ export async function updateCompanySignatory(input: {
   }
   if (oldKeyToDelete) await deleteObject(oldKeyToDelete).catch(() => {});
 
+  revalidatePath("/admin/company");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Company details (registration numbers, contact details) printed on generated
+// documents. Same gate as the signatory above: Admin only.
+// ---------------------------------------------------------------------------
+
+const DETAIL_FIELDS = ["legalName", "address", "uen", "paynowUen", "contactEmail", "phone", "website"] as const;
+
+export async function listCompanyDetails() {
+  const t = await getTranslations("errors");
+  const session = await requireFullAdmin();
+  if (!session) return { ok: false as const, error: t("forbidden") };
+  const rows = await prisma.company.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, active: true, legalName: true, address: true, uen: true, paynowUen: true, contactEmail: true, phone: true, website: true },
+  });
+  return { ok: true as const, data: rows };
+}
+
+/** Replace one company's details (every field in the form is submitted; empty
+ *  clears it). Touches only that company row, only these columns. */
+export async function updateCompanyDetails(companyId: string, input: CompanyDetailsInput): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const session = await requireFullAdmin();
+  if (!session) return { ok: false, error: t("forbidden") };
+
+  const cleaned = cleanCompanyDetails(input);
+  if (!cleaned.ok) return { ok: false, error: t(`companyDetails${cleaned.error[0].toUpperCase()}${cleaned.error.slice(1)}` as "companyDetailsUenInvalid") };
+  const after = cleaned.data;
+
+  const existing = await prisma.company.findUnique({ where: { id: companyId } });
+  if (!existing) return { ok: false, error: t("notFound") };
+  const before = Object.fromEntries(DETAIL_FIELDS.map((k) => [k, existing[k]]));
+
+  try {
+    await prisma.$transaction(async (db) => {
+      await db.company.update({ where: { id: companyId }, data: after });
+      await auditTx(db, {
+        action: "company_details.updated",
+        entityType: "Company",
+        entityId: companyId,
+        before,
+        after,
+        actorUserId: session.user.id,
+      });
+    });
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
   revalidatePath("/admin/company");
   return { ok: true };
 }

@@ -3,6 +3,7 @@ import { Document, Page, View, Text, StyleSheet, renderToBuffer } from "@react-p
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { formatSGD, D, round2 } from "@/lib/money";
+import { resolveInvoiceUen, contactLine, orMarker, LEGACY_DOCUMENT_DEFAULTS } from "@/lib/company-identity";
 
 const INK = "#1a1f2b";
 const MUTED = "#6b675e";
@@ -10,11 +11,10 @@ const LINE = "#e6e2d9";
 const GOLD = "#b8893d";
 const NAVY = "#1f4e79";
 
-// Enshrine group identity (per VO_Invoice_Design.pdf / the associate application).
-const UEN = "202328861K";
-const ENTITIES = "Enshrine Services Pte Ltd · Enshrine Pets Paradise Pte Ltd · Enshrine Afterlife Planner Pte Ltd";
-const ADDRESS = "74 Lorong 6 Geylang, Singapore 399226";
-const CONTACT = "Tel: 9009 9234 · contacts@enshrine.sg · www.enshrine.sg";
+// Company identity (registration number, address, contact details) is read
+// from the Company row, filled in at /admin/company - see lib/company-identity.ts.
+// Chain: field -> LEGACY_DOCUMENT_DEFAULTS (what this printed before) -> marker,
+// so an unfilled company still prints exactly what it always did.
 
 const s = StyleSheet.create({
   page: { padding: 40, fontSize: 9.5, color: INK, fontFamily: "Helvetica", lineHeight: 1.5 },
@@ -47,7 +47,9 @@ const s = StyleSheet.create({
 });
 
 type Line = { description: string; sub?: string; qty: number; unitPrice: number; amount: number };
+type Letterhead = { entities: string; address: string; contact: string; uen: string; uenHolder: string; paynowUen: string };
 type InvoiceData = {
+  letter: Letterhead;
   companyName: string;
   invoiceNumber: string;
   issueDate: Date;
@@ -78,16 +80,16 @@ function InvoiceDoc({ d }: { d: InvoiceData }) {
         <View style={s.row}>
           <View style={{ maxWidth: 320 }}>
             <Text style={s.wordmark}>ENSHRINE</Text>
-            <Text style={s.coMeta}>{ENTITIES}</Text>
-            <Text style={s.coMeta}>{ADDRESS}</Text>
-            <Text style={s.coMeta}>{CONTACT}</Text>
+            <Text style={s.coMeta}>{d.letter.entities}</Text>
+            <Text style={s.coMeta}>{d.letter.address}</Text>
+            <Text style={s.coMeta}>{d.letter.contact}</Text>
           </View>
           <View>
             <Text style={s.docTitle}>{d.gstRate > 0 ? "TAX INVOICE" : "INVOICE"}</Text>
             <View style={s.metaRow}><Text style={s.metaLabel}>Invoice No.</Text><Text style={s.metaVal}>{d.invoiceNumber}</Text></View>
             <View style={s.metaRow}><Text style={s.metaLabel}>Issue Date</Text><Text style={s.metaVal}>{format(d.issueDate, "dd MMM yyyy")}</Text></View>
             <View style={s.metaRow}><Text style={s.metaLabel}>Due Date</Text><Text style={s.metaVal}>{format(d.dueDate, "dd MMM yyyy")}</Text></View>
-            <View style={s.metaRow}><Text style={s.metaLabel}>UEN</Text><Text style={s.metaVal}>{UEN}</Text></View>
+            <View style={s.metaRow}><Text style={s.metaLabel}>UEN</Text><Text style={s.metaVal}>{d.letter.uen}</Text></View>
           </View>
         </View>
         <View style={s.rule} />
@@ -151,7 +153,7 @@ function InvoiceDoc({ d }: { d: InvoiceData }) {
         <View style={[s.row, { marginTop: 12 }]}>
           <View style={{ maxWidth: 250 }}>
             <Text style={s.label}>Payment Methods</Text>
-            <Text style={s.coMeta}>• PayNow (Company UEN): {UEN}</Text>
+            <Text style={s.coMeta}>• PayNow (Company UEN): {d.letter.paynowUen}</Text>
             <Text style={s.coMeta}>• Bank Transfer: Bank / Account No.</Text>
             <Text style={s.coMeta}>• Cheque payable to: {d.companyName}</Text>
           </View>
@@ -171,7 +173,7 @@ function InvoiceDoc({ d }: { d: InvoiceData }) {
 
         <Text style={s.footer} fixed>
           Authorised Signature (Company)          Customer Acknowledgement{"\n"}
-          This is a system-generated invoice from the Virtual Office platform. Enshrine Holdings Pte Ltd · UEN {UEN}
+          {`This is a system-generated invoice from the Virtual Office platform. ${d.letter.uenHolder} · UEN `}{d.letter.uen}
         </Text>
       </Page>
     </Document>
@@ -217,7 +219,19 @@ export async function renderInvoicePdf(invoiceId: string): Promise<{ buffer: Buf
         }
       : { kind: "OneTime" };
 
+  const resolved = resolveInvoiceUen(inv.company);
+  const letter: Letterhead = {
+    // No field for the entities line; the legacy line keeps today's names and order.
+    entities: LEGACY_DOCUMENT_DEFAULTS.entities,
+    address: orMarker(inv.company.address, "address", LEGACY_DOCUMENT_DEFAULTS.address),
+    contact: contactLine(inv.company),
+    uen: resolved.uen,
+    uenHolder: resolved.holder,
+    paynowUen: resolved.paynowUen,
+  };
+
   const d: InvoiceData = {
+    letter,
     companyName: inv.company.name,
     invoiceNumber: inv.invoiceNumber,
     issueDate: inv.createdAt,

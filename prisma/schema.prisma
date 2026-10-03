@@ -462,6 +462,18 @@ model Company {
   gstRate        Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
   active         Boolean @default(true)
 
+  // Company details printed on generated documents. All nullable; an Admin
+  // fills them in on /admin/company. An unset value falls back to what the
+  // documents printed before these were fillable (see lib/company-identity.ts).
+  /// This company's own registration number (UEN): header and footer.
+  uen          String? @map("uen")
+  /// The company's PayNow UEN: the invoice's PayNow payment line. May differ
+  /// from `uen`.
+  paynowUen    String? @map("paynow_uen")
+  contactEmail String? @map("contact_email")
+  phone        String?
+  website      String?
+
   products  Product[]
   lineItems SaleLineItem[]
   invoices  Invoice[]
