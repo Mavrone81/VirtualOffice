@@ -1026,6 +1026,9 @@
     "editPricing": "编辑价格",
     "savePricingBtn": "保存价格",
     "couldNotSavePricing": "保存价格失败。",
+    "editProduct": "编辑产品",
+    "saveProductBtn": "保存产品",
+    "couldNotSaveProduct": "保存产品失败。",
     "priceNotSet": "尚未设置价格",
     "catalogue": {
       "title": "产品与服务",

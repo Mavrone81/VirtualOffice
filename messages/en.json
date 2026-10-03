@@ -1026,6 +1026,9 @@
     "editPricing": "Edit pricing",
     "savePricingBtn": "Save pricing",
     "couldNotSavePricing": "Could not save pricing.",
+    "editProduct": "Edit product",
+    "saveProductBtn": "Save product",
+    "couldNotSaveProduct": "Could not save product.",
     "priceNotSet": "Price not set",
     "catalogue": {
       "title": "Products & Services",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { setProductActive, addComCode, toggleComCode, addProductRequiredDocument, removeProductRequiredDocument, setProductAshesAgreementFlag } from "@/server/products/actions";
@@ -20,6 +21,19 @@ export function ActiveToggle({ id, active }: { id: string; active: boolean }) {
     >
       {pending ? "…" : active ? tc("active") : tc("inactive")}
     </button>
+  );
+}
+
+// Entry point to the details edit screen (updateProduct). `canManage` is the
+// caller's `can(role, "manage_products")` — a courtesy so a user the action
+// would reject never sees the link; the server gate is what enforces it.
+export function EditProductLink({ productId, canManage }: { productId: string; canManage: boolean }) {
+  const t = useTranslations("products");
+  if (!canManage) return null;
+  return (
+    <Link href={`/admin/products/${productId}/edit`} className="text-[12px] text-action hover:underline">
+      {t("editProduct")}
+    </Link>
   );
 }
 
