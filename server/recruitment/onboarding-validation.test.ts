@@ -70,6 +70,9 @@ describe("submitOnboarding validation", () => {
       paymentMethod: "Crypto",
       agreementAccepted: true,
       nationality: "Singaporean", gender: "Male", religion: "Buddhism",
+      // Every required field present, so paymentMethod is the ONLY defect (otherwise the
+      // missing spouseConflict would be what fails, and this would pass for the wrong reason).
+      spouseConflict: false,
       signature: "data:image/png;base64,iVBORw0KGgo=",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately malformed input, per Task 3 brief Step 1
     } as any;
@@ -108,7 +111,7 @@ describe("submitOnboarding validation", () => {
       signature: "data:image/png;base64,iVBORw0KGgo=",
       // spouseConflict omitted — the thing under test.
     });
-    expect(r).toEqual({ ok: false, error: "invalidInput" });
+    expect(r).toEqual({ ok: false, error: "spouseConflictRequired" });
     expect(prismaMock.candidate.update).not.toHaveBeenCalled();
     expect(putObjectMock).not.toHaveBeenCalled();
   });
@@ -127,8 +130,45 @@ describe("submitOnboarding validation", () => {
       spouseCompany: "Spouse Co Pte Ltd",
       // spouseDesignation omitted — the thing under test.
     });
-    expect(r).toEqual({ ok: false, error: "invalidInput" });
+    expect(r).toEqual({ ok: false, error: "spouseDesignationRequired" });
     expect(prismaMock.candidate.update).not.toHaveBeenCalled();
     expect(putObjectMock).not.toHaveBeenCalled();
+  });
+
+  // Each missing required field gets ITS OWN code — never the bare "invalidInput"
+  // that left a new associate with no way to tell what was wrong.
+  const complete = {
+    nric: "S1234567A", paymentMethod: "PayNow" as const, agreementAccepted: true,
+    nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
+    spouseConflict: false, signature: "data:image/png;base64,iVBORw0KGgo=",
+  };
+  const cases: [string, Record<string, unknown>, string][] = [
+    ["nric", { nric: "" }, "nricRequired"],
+    ["nationality", { nationality: "  " }, "nationalityRequired"],
+    ["gender", { gender: undefined }, "genderRequired"],
+    ["religion", { religion: "" }, "religionRequired"],
+    ["spouseConflict", { spouseConflict: undefined }, "spouseConflictRequired"],
+    ["spouseName", { spouseConflict: true, spouseCompany: "B", spouseDesignation: "C" }, "spouseNameRequired"],
+    ["spouseCompany", { spouseConflict: true, spouseName: "A", spouseDesignation: "C" }, "spouseCompanyRequired"],
+    ["paymentMethod", { paymentMethod: undefined }, "paymentMethodRequired"],
+  ];
+  for (const [field, patch, code] of cases) {
+    it(`names ${field} as the problem (${code})`, async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately incomplete input
+      const r = await submitOnboarding("tok123", { ...complete, ...patch } as any);
+      expect(r).toEqual({ ok: false, error: code });
+      expect(prismaMock.candidate.update).not.toHaveBeenCalled();
+    });
+  }
+
+  it("reports the FIRST missing field in document order when several are missing", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately incomplete input
+    const r = await submitOnboarding("tok123", { nric: "", paymentMethod: "PayNow", agreementAccepted: false } as any);
+    expect(r).toEqual({ ok: false, error: "nricRequired" });
+  });
+
+  it("stays generic when every required field is present but the value is otherwise invalid", async () => {
+    const r = await submitOnboarding("tok123", { ...complete, nric: "S".repeat(41) });
+    expect(r).toEqual({ ok: false, error: "invalidInput" });
   });
 });

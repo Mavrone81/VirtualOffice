@@ -513,10 +513,8 @@
     },
     "resubmitBanner": "You've already submitted this form. Submitting again will update your details.",
     "errors": {
-      "noAgreement": "Please accept the Associate Agreement to continue.",
-      "noSignature": "Please sign in the box to complete your agreement.",
       "submitFailed": "Could not submit. Please try again.",
-      "particularsRequired": "Please fill in your nationality, gender and religion — they are printed on your Associate Agreement."
+      "fixHighlighted": "Please complete the highlighted fields."
     },
     "details": {
       "title": "Your details",
@@ -550,7 +548,7 @@
       "ecNumber": "Emergency contact number",
       "ecRelationship": "Emergency contact relationship",
       "ecAddress": "Emergency contact address",
-      "spouseConflict": "Is your spouse working for or supplying a funeral / afterlife company?",
+      "spouseConflict": "Is your spouse working for or supplying a funeral / afterlife company? *",
       "spouseConflictHint": "Conflict-of-interest declaration. If yes, please name the spouse and their company below.",
       "conflictNo": "No",
       "conflictYes": "Yes",
@@ -1450,6 +1448,14 @@
     "applicationAlreadyApproved": "Your application is already approved.",
     "applicationClosed": "This application is closed.",
     "nricRequired": "NRIC/FIN is required.",
+    "nationalityRequired": "Nationality is required.",
+    "genderRequired": "Gender is required.",
+    "religionRequired": "Religion is required.",
+    "spouseConflictRequired": "Please answer the spouse conflict-of-interest question.",
+    "spouseNameRequired": "Spouse's name is required.",
+    "spouseCompanyRequired": "Spouse's company name is required.",
+    "spouseDesignationRequired": "Spouse's designation is required.",
+    "paymentMethodRequired": "Please choose a payout method.",
     "agreementRequired": "You must accept the Associate Agreement to continue.",
     "signatureRequired": "A signature is required to complete your agreement.",
     "photoInvalidFormat": "Photo must be a JPG, PNG, or WebP image.",

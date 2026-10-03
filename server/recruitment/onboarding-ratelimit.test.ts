@@ -101,6 +101,9 @@ describe("submitOnboarding rate limiting", () => {
       paymentMethod: "Crypto",
       agreementAccepted: true,
       nationality: "Singaporean", gender: "Male", religion: "Buddhism",
+      // Every required field present, so paymentMethod is the ONLY defect (otherwise the
+      // missing spouseConflict would be what fails, and this would pass for the wrong reason).
+      spouseConflict: false,
       signature: "data:image/png;base64,iVBORw0KGgo=",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately malformed input
     } as any;

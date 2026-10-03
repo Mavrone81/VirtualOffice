@@ -23,6 +23,7 @@ import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "@/server/associates/payee-audit";
 import { validate } from "@/lib/validate";
 import { onboardingSchema, inviteCandidateSchema } from "@/lib/schemas";
+import { findInvalidOnboardingFields, ONBOARDING_REQUIRED_ERROR_CODE } from "@/lib/onboarding-fields";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 import { fileSignedAgreement } from "@/server/recruitment/file-signed-agreement";
 
@@ -291,6 +292,9 @@ function blankToUndefined(input: OnboardingSubmission): OnboardingSubmission {
   return out;
 }
 
+// Error keys submitOnboarding may surface for a missing required field.
+const ONBOARDING_ERROR_CODES = new Set(Object.values(ONBOARDING_REQUIRED_ERROR_CODE));
+
 export async function submitOnboarding(
   token: string,
   submission: OnboardingSubmission,
@@ -318,10 +322,16 @@ export async function submitOnboarding(
     return { ok: false, error: t("applicationClosed") };
   }
 
-  const v = validate(onboardingSchema, blankToUndefined(submission));
+  const normalised = blankToUndefined(submission);
+  const v = validate(onboardingSchema, normalised);
   if (!v.ok) {
     await recordFailure(token, "onboard_submit");
-    return { ok: false, error: t("invalidInput") };
+    // Name the first missing required field (document order) instead of a bare
+    // "Invalid input." — the form shows it at the field. Anything the presence
+    // check does not explain (over-long, out-of-enum, tampered) stays generic.
+    const firstMissing = findInvalidOnboardingFields(normalised).first;
+    const code = firstMissing ? ONBOARDING_REQUIRED_ERROR_CODE[firstMissing] : undefined;
+    return { ok: false, error: t(code && ONBOARDING_ERROR_CODES.has(code) ? code : "invalidInput") };
   }
   const s = v.data;
 
