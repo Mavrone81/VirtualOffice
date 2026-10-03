@@ -335,7 +335,13 @@
     "addMember": "+ 添加成员…",
     "add": "添加",
     "remove": "移除",
-    "namePlaceholder": "例如：事业部或团队名称"
+    "namePlaceholder": "例如：事业部或团队名称",
+    "monthlyTarget": "月度目标（{period}）",
+    "yearlyTarget": "年度目标（{period}）",
+    "targetNotSet": "未设定",
+    "saveTarget": "保存",
+    "clearTarget": "清除",
+    "targetNote": "此为本团队每位成员的默认目标。成员在团队仪表板上设定的个人目标将覆盖它。"
   },
   "commission": {
     "title": "商佣仪表板",
@@ -1366,7 +1372,8 @@
       "colQuota": "目标（本月）",
       "setQuota": "设定",
       "save": "保存",
-      "colYearTarget": "目标（本年）"
+      "colYearTarget": "目标（本年）",
+      "teamTargetTag": "团队"
     },
     "search": {
       "all": "全部",

@@ -7,14 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { setTeamQuota, clearTeamQuota } from "@/server/quota/team-actions";
+import { sanitizeAmountInput } from "@/lib/numeric";
 import { createTeam, addTeamMember, removeTeamMember, setTeamDirector } from "@/server/teams/actions";
 
 type Assoc = { id: string; name: string; designation: string };
-type Team = { id: string; name: string; directorId: string | null; memberIds: string[] };
+type Team = { id: string; name: string; directorId: string | null; memberIds: string[]; monthlyTarget: string | null; yearlyTarget: string | null };
 
 const selectCls = "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
 
-export function TeamsAdmin({ teams, associates }: { teams: Team[]; associates: Assoc[] }) {
+export function TeamsAdmin({ teams, associates, month, year }: { teams: Team[]; associates: Assoc[]; month: string; year: string }) {
   const t = useTranslations("teams");
   const router = useRouter();
   const nameById = new Map(associates.map((a) => [a.id, a.name]));
@@ -57,13 +59,13 @@ export function TeamsAdmin({ teams, associates }: { teams: Team[]; associates: A
       {teams.length === 0 ? (
         <p className="text-[13px] text-muted">{t("empty")}</p>
       ) : (
-        teams.map((team) => <TeamCard key={team.id} team={team} associates={associates} nameById={nameById} />)
+        teams.map((team) => <TeamCard key={team.id} team={team} associates={associates} nameById={nameById} month={month} year={year} />)
       )}
     </div>
   );
 }
 
-function TeamCard({ team, associates, nameById }: { team: Team; associates: Assoc[]; nameById: Map<string, string> }) {
+function TeamCard({ team, associates, nameById, month, year }: { team: Team; associates: Assoc[]; nameById: Map<string, string>; month: string; year: string }) {
   const t = useTranslations("teams");
   const router = useRouter();
   const [addId, setAddId] = useState("");
@@ -122,6 +124,65 @@ function TeamCard({ team, associates, nameById }: { team: Team; associates: Asso
           {t("add")}
         </Button>
       </div>
+      <div className="mt-4 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
+        <TargetEditor teamId={team.id} periodType="Monthly" period={month} label={t("monthlyTarget", { period: month })} current={team.monthlyTarget} />
+        <TargetEditor teamId={team.id} periodType="Yearly" period={year} label={t("yearlyTarget", { period: year })} current={team.yearlyTarget} />
+      </div>
+      <p className="mt-2 text-[11px] text-muted">{t("targetNote")}</p>
     </Card>
+  );
+}
+
+function TargetEditor({ teamId, periodType, period, label, current }: {
+  teamId: string; periodType: "Monthly" | "Yearly"; period: string; label: string; current: string | null;
+}) {
+  const t = useTranslations("teams");
+  const router = useRouter();
+  const [value, setValue] = useState(current ?? "");
+  const [err, setErr] = useState<string>();
+  const [pending, start] = useTransition();
+  const dirty = value !== (current ?? "");
+
+  return (
+    <div>
+      <Label htmlFor={`tq-${teamId}-${periodType}`}>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          id={`tq-${teamId}-${periodType}`}
+          value={value}
+          onChange={(e) => setValue(sanitizeAmountInput(e.target.value))}
+          inputMode="decimal"
+          placeholder={t("targetNotSet")}
+          className="h-9 w-36"
+        />
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={pending || !dirty || !(parseFloat(value) > 0)}
+          onClick={() => start(async () => {
+            setErr(undefined);
+            const r = await setTeamQuota({ teamId, periodType, period, amount: parseFloat(value) });
+            if (r.ok) router.refresh(); else setErr(r.error);
+          })}
+        >
+          {t("saveTarget")}
+        </Button>
+        {current !== null && (
+          <button
+            type="button"
+            disabled={pending}
+            className="text-[12px] text-muted hover:text-danger"
+            onClick={() => start(async () => {
+              setErr(undefined);
+              const r = await clearTeamQuota({ teamId, periodType, period });
+              if (r.ok) { setValue(""); router.refresh(); } else setErr(r.error);
+            })}
+          >
+            {t("clearTarget")}
+          </button>
+        )}
+      </div>
+      {err && <p className="mt-1 text-[11px] text-danger">{err}</p>}
+    </div>
   );
 }

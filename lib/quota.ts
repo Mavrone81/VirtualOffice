@@ -57,3 +57,35 @@ export function remainingToTarget(target: number, received: number): number {
   const r = Math.max(0, received);
   return Math.max(0, Math.round((target - r) * 100) / 100);
 }
+
+/**
+ * Team-level targets. TeamQuota stores its granularity explicitly
+ * (`periodType`); this checks a period key has the shape its type requires.
+ */
+export type TargetPeriodKind = "Monthly" | "Yearly";
+export const isPeriodFor = (type: TargetPeriodKind, period: string): boolean =>
+  type === "Monthly"
+    ? /^\d{4}-(0[1-9]|1[0-2])$/.test(period)
+    : type === "Yearly" && YEAR_KEY.test(period);
+
+type AmountLike = string | number | { toString(): string };
+export type TargetSource = "individual" | "team";
+export type ResolvedTarget = { amount: string; source: TargetSource };
+
+/**
+ * THE single place a target is resolved: an individual override (SalesQuota
+ * row) if present, else the team target, else null. Null means "no target" —
+ * callers must render it as not set, never as 0. `null`/`undefined` mean
+ * "no row"; an explicit 0 individual row is still a row and still wins.
+ * `teamAmounts` holds the target of every team the associate belongs to for the
+ * period; with several, the highest applies (deterministic, pending a ruling).
+ */
+export function resolveTarget(
+  individual: AmountLike | null | undefined,
+  teamAmounts: readonly AmountLike[],
+): ResolvedTarget | null {
+  if (individual !== null && individual !== undefined) return { amount: individual.toString(), source: "individual" };
+  let best: AmountLike | null = null;
+  for (const a of teamAmounts) if (best === null || Number(a) > Number(best)) best = a;
+  return best === null ? null : { amount: best.toString(), source: "team" };
+}

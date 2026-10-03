@@ -15,11 +15,14 @@ export function QuotaCell({
   month,
   current,
   canEdit,
+  inherited = false,
 }: {
   associateId: string;
   month: string;
   current: string | null;
   canEdit: boolean;
+  /** The shown figure is the team target; saving here creates an individual override. */
+  inherited?: boolean;
 }) {
   const t = useTranslations("team");
   const router = useRouter();
@@ -28,13 +31,18 @@ export function QuotaCell({
   const [err, setErr] = useState<string>();
   const [pending, start] = useTransition();
 
-  if (!canEdit) return <span className="text-ink">{current ? fmt(current) : "—"}</span>;
+  const tag = inherited && current ? <span className="ml-1.5 text-[11px] text-muted">{t("overview.teamTargetTag")}</span> : null;
+
+  if (!canEdit) return <span className="text-ink">{current ? fmt(current) : "—"}{tag}</span>;
 
   if (!editing) {
     return (
-      <button type="button" onClick={() => setEditing(true)} className="text-action hover:underline">
-        {current ? fmt(current) : t("overview.setQuota")}
-      </button>
+      <span>
+        <button type="button" onClick={() => setEditing(true)} className="text-action hover:underline">
+          {current ? fmt(current) : t("overview.setQuota")}
+        </button>
+        {tag}
+      </span>
     );
   }
 

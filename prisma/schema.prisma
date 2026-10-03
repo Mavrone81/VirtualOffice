@@ -729,11 +729,42 @@ model Team {
   directorId String?      @map("director_id") @db.Uuid
   active     Boolean      @default(true)
   members    TeamMember[]
+  quotas     TeamQuota[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("teams")
+}
+
+// Granularity of a target, stored explicitly. SalesQuota encodes it in the
+// length of its `month` string ("YYYY-MM" vs "YYYY"); TeamQuota does not.
+enum TargetPeriodType {
+  Monthly
+  Yearly
+}
+
+// Team-level sales target, set by the Business Admin. It is the DEFAULT target
+// for a team's members; a per-associate SalesQuota row, when present, overrides
+// it (lib/quota.ts resolveTarget). `period` is "YYYY-MM" when periodType is
+// Monthly and "YYYY" when Yearly — the migration's CHECK constraint enforces
+// that pairing, so the two can never disagree. setByRole/setById mirror
+// SalesQuota's audit columns.
+model TeamQuota {
+  id         String           @id @default(uuid()) @db.Uuid
+  teamId     String           @map("team_id") @db.Uuid
+  team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  periodType TargetPeriodType @map("period_type")
+  period     String
+  amount     Decimal          @db.Decimal(14, 2)
+  setByRole  AppRole          @map("set_by_role")
+  setById    String?          @map("set_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([teamId, periodType, period])
+  @@map("team_quotas")
 }
 
 model TeamMember {
