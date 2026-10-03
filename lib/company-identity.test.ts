@@ -1,0 +1,119 @@
+import { describe, it, expect } from "vitest";
+import {
+  resolveInvoiceUen, contactLine, commonValue, sharedIdentity, cleanCompanyDetails, notSet, LEGACY_DOCUMENT_DEFAULTS,
+  type CompanyIdentityRow,
+} from "./company-identity";
+
+// Obviously-fake placeholders only. Nothing here is a real registration
+// number, address, phone number or email.
+const FAKE_UEN = "000000000A";
+const FAKE_PAYNOW = "111111111B";
+
+const row = (o: Partial<CompanyIdentityRow> = {}): CompanyIdentityRow => ({
+  name: "Example Co", legalName: "Example Co Pte Ltd", address: null, uen: null, paynowUen: null,
+  contactEmail: null, phone: null, website: null, ...o,
+});
+
+describe("resolveInvoiceUen - company UEN and PayNow UEN are independent", () => {
+  // Each case is one company row; the table is asserted non-empty first so an
+  // empty fixture cannot manufacture a green.
+  const cases: { label: string; row: CompanyIdentityRow; uen: string; paynow: string; holder: string }[] = [
+    { label: "both set and different", row: row({ uen: FAKE_UEN, paynowUen: FAKE_PAYNOW }), uen: FAKE_UEN, paynow: FAKE_PAYNOW, holder: "Example Co Pte Ltd" },
+    { label: "only company UEN set -> PayNow falls back to the legacy number, NOT to the company UEN", row: row({ uen: FAKE_UEN }), uen: FAKE_UEN, paynow: LEGACY_DOCUMENT_DEFAULTS.uen, holder: "Example Co Pte Ltd" },
+    { label: "only PayNow UEN set -> company UEN falls back to legacy with its legacy footer name", row: row({ paynowUen: FAKE_PAYNOW }), uen: LEGACY_DOCUMENT_DEFAULTS.uen, paynow: FAKE_PAYNOW, holder: LEGACY_DOCUMENT_DEFAULTS.uenHolder },
+    { label: "neither set -> both legacy (deploy safety)", row: row(), uen: LEGACY_DOCUMENT_DEFAULTS.uen, paynow: LEGACY_DOCUMENT_DEFAULTS.uen, holder: LEGACY_DOCUMENT_DEFAULTS.uenHolder },
+    { label: "whitespace-only counts as unset", row: row({ uen: "   ", paynowUen: " " }), uen: LEGACY_DOCUMENT_DEFAULTS.uen, paynow: LEGACY_DOCUMENT_DEFAULTS.uen, holder: LEGACY_DOCUMENT_DEFAULTS.uenHolder },
+    { label: "company UEN set, no legal name -> footer name is the company name", row: row({ uen: FAKE_UEN, legalName: null }), uen: FAKE_UEN, paynow: LEGACY_DOCUMENT_DEFAULTS.uen, holder: "Example Co" },
+  ];
+
+  it("examines 6 rows (fixture is not empty)", () => {
+    expect(cases).toHaveLength(6);
+  });
+
+  for (const c of cases) {
+    it(c.label, () => {
+      const r = resolveInvoiceUen(c.row);
+      expect(r.uen).toBe(c.uen);
+      expect(r.paynowUen).toBe(c.paynow);
+      expect(r.holder).toBe(c.holder);
+    });
+  }
+
+  it("no marker on any of the 6 rows: every printed number is non-empty", () => {
+    const rs = cases.map((c) => resolveInvoiceUen(c.row));
+    expect(rs).toHaveLength(6);
+    for (const r of rs) for (const v of [r.uen, r.paynowUen, r.holder]) {
+      expect(v.trim().length).toBeGreaterThan(0);
+      expect(v.startsWith("[")).toBe(false);
+    }
+  });
+});
+
+describe("letterhead helpers", () => {
+  it("contactLine: field, else legacy default, never a marker (3 fields x 3 states)", () => {
+    const L = LEGACY_DOCUMENT_DEFAULTS;
+    expect(contactLine({ phone: null, contactEmail: null, website: null })).toBe(`Tel: ${L.phone} · ${L.email} · ${L.website}`);
+    expect(contactLine({ phone: "000", contactEmail: null, website: null })).toBe(`Tel: 000 · ${L.email} · ${L.website}`);
+    expect(contactLine({ phone: "000", contactEmail: "a@example.invalid", website: "example.invalid" })).toBe("Tel: 000 · a@example.invalid · example.invalid");
+  });
+
+  it("commonValue: one agreed value only; none / disagreement -> null", () => {
+    expect(commonValue(["x", " x ", null])).toBe("x");
+    expect(commonValue(["x", "y"])).toBeNull();
+    expect(commonValue([null, ""])).toBeNull();
+    expect(commonValue([])).toBeNull();
+  });
+
+  it("sharedIdentity (quotation letterhead) over 3 companies", () => {
+    const rows = [
+      row({ name: "A", legalName: null }),
+      row({ name: "B", uen: FAKE_UEN, address: "1 Example Road" }),
+      row({ name: "C", uen: FAKE_UEN, paynowUen: FAKE_PAYNOW, address: "1 Example Road" }),
+    ];
+    // A has none set (legacy, ignored); B and C share the same company UEN. PayNow is irrelevant to it.
+    const s = sharedIdentity(rows);
+    expect(rows).toHaveLength(3);
+    expect(s.uen).toBe(FAKE_UEN);
+    expect(s.address).toBe("1 Example Road");
+    // Real data that disagrees -> not guessed (caller prints a marker).
+    const dis = sharedIdentity([row({ uen: FAKE_UEN }), row({ uen: "222222222C" })]);
+    expect(dis.uen).toBeNull();
+    expect(dis.uenAnyData).toBe(true);
+    // A PayNow UEN alone is not company-UEN data.
+    const pn = sharedIdentity([row({ paynowUen: FAKE_PAYNOW }), row()]);
+    expect(pn.uen).toBeNull();
+    expect(pn.uenAnyData).toBe(false);
+    // Nothing set anywhere -> null with no data (caller uses the legacy default, not a marker).
+    const none = sharedIdentity([row(), row()]);
+    expect(none.uen).toBeNull();
+    expect(none.uenAnyData).toBe(false);
+    expect(notSet("UEN")).toBe("[UEN not set]");
+  });
+});
+
+describe("cleanCompanyDetails (admin form validation)", () => {
+  it("accepts two different UENs, normalising case and blanks", () => {
+    const r = cleanCompanyDetails({ uen: " 00000000a ", paynowUen: FAKE_PAYNOW.toLowerCase(), phone: "  ", contactEmail: "a@example.invalid" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.uen).toBe("00000000A");
+      expect(r.data.paynowUen).toBe(FAKE_PAYNOW);
+      expect(r.data.phone).toBeNull();
+    }
+  });
+  it("accepts one UEN, the other one, and neither", () => {
+    expect(cleanCompanyDetails({ uen: FAKE_UEN }).ok).toBe(true);
+    expect(cleanCompanyDetails({ paynowUen: FAKE_PAYNOW }).ok).toBe(true);
+    expect(cleanCompanyDetails({}).ok).toBe(true);
+  });
+  it("rejects a bad company UEN, a bad PayNow UEN, bad email, over-long text", () => {
+    const bad = [
+      cleanCompanyDetails({ uen: "not a uen!" }),
+      cleanCompanyDetails({ paynowUen: "not a uen!" }),
+      cleanCompanyDetails({ contactEmail: "nope" }),
+      cleanCompanyDetails({ phone: "9".repeat(41) }),
+    ];
+    expect(bad).toHaveLength(4);
+    expect(bad.map((b) => (b.ok ? "ok" : b.error))).toEqual(["uenInvalid", "paynowUenInvalid", "emailInvalid", "tooLong"]);
+  });
+});

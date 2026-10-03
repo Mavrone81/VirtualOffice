@@ -31,7 +31,9 @@ async function main() {
   for (const c of companyDefs) {
     const row = await prisma.company.upsert({
       where: { invoicePrefix: c.invoicePrefix },
-      update: { name: c.name, legalName: c.legalName, address: ADDRESS },
+      // address is create-only: an Admin may edit it on /admin/company, and a
+      // re-seed must not reset it.
+      update: { name: c.name, legalName: c.legalName },
       create: { ...c, address: ADDRESS },
     });
     companies[c.invoicePrefix] = row.id;

@@ -1555,7 +1555,11 @@
     "payoutPolicyNotImplemented": "This payout policy isn't available yet. Please contact an administrator.",
     "legacyDifferenceRequired": "A re-typed difference is required and must match the actual gap between the linked lines and the payout total.",
     "legacyDifferenceMismatch": "The re-typed difference doesn't match the gap between the linked lines and the payout total.",
-    "splitFiguresChanged": "The figures changed since you opened this page (e.g. rates were updated). Please review the lines again before approving."
+    "splitFiguresChanged": "The figures changed since you opened this page (e.g. rates were updated). Please review the lines again before approving.",
+    "companyDetailsUenInvalid": "A UEN is 9 or 10 letters and digits.",
+    "companyDetailsPaynowUenInvalid": "A PayNow UEN is 9 or 10 letters and digits.",
+    "companyDetailsEmailInvalid": "Enter a valid email address.",
+    "companyDetailsTooLong": "One of the values is too long."
   },
   "nameCard": {
     "front": "Front",
@@ -1943,7 +1947,7 @@
   },
   "company": {
     "pageTitle": "Company Data",
-    "pageSubtitle": "The signatory name and signature stamped on new associate agreements.",
+    "pageSubtitle": "The company details printed on generated documents, and the signatory name and signature stamped on new associate agreements.",
     "signatoryNameLabel": "Signatory name",
     "signatureLabel": "Signature",
     "noSignature": "No signature uploaded",
@@ -1954,6 +1958,19 @@
     "pngOnlyHint": "PNG only, up to 5MB.",
     "saveBtn": "Save",
     "savedAt": "Last updated {date}",
-    "couldNotSave": "Could not save."
+    "couldNotSave": "Could not save.",
+    "detailsHeading": "Company details",
+    "detailsHint": "Printed on invoices and quotations. The company UEN prints in the header and footer; the PayNow UEN prints on the invoice's PayNow payment line and may be a different number. Anything left blank prints what the documents printed before this was fillable.",
+    "activeTag": "Active",
+    "inactiveTag": "Inactive",
+    "legalNameLabel": "Registered name",
+    "addressLabel": "Address",
+    "uenLabel": "UEN (company)",
+    "paynowUenLabel": "PayNow UEN (company)",
+    "contactEmailLabel": "Contact email",
+    "phoneLabel": "Phone",
+    "websiteLabel": "Website",
+    "saveDetailsBtn": "Save company details",
+    "detailsSaved": "Company details saved."
   }
 }

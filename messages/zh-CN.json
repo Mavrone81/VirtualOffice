@@ -1555,7 +1555,11 @@
     "payoutPolicyNotImplemented": "该薪酬政策尚未实现，请联系管理员。",
     "legacyDifferenceRequired": "需要重新输入差额，且必须与已关联行项目和薪酬总额之间的实际差额一致。",
     "legacyDifferenceMismatch": "重新输入的差额与已关联行项目和薪酬总额之间的差额不一致。",
-    "splitFiguresChanged": "打开页面后数额已变动（例如费率已更新）。请重新查看各项后再批准。"
+    "splitFiguresChanged": "打开页面后数额已变动（例如费率已更新）。请重新查看各项后再批准。",
+    "companyDetailsUenInvalid": "UEN 为 9 或 10 位字母及数字。",
+    "companyDetailsPaynowUenInvalid": "PayNow UEN 为 9 或 10 位字母及数字。",
+    "companyDetailsEmailInvalid": "请输入有效的邮箱地址。",
+    "companyDetailsTooLong": "其中一项内容过长。"
   },
   "nameCard": {
     "front": "正面",
@@ -1943,7 +1947,7 @@
   },
   "company": {
     "pageTitle": "公司资料",
-    "pageSubtitle": "盖印在新伙伴协议上的签署人姓名及签名。",
+    "pageSubtitle": "印在系统生成文件上的公司资料，以及盖印在新伙伴协议上的签署人姓名及签名。",
     "signatoryNameLabel": "签署人姓名",
     "signatureLabel": "签名",
     "noSignature": "尚未上传签名",
@@ -1954,6 +1958,19 @@
     "pngOnlyHint": "仅限 PNG 格式，最大 5MB。",
     "saveBtn": "保存",
     "savedAt": "最后更新于 {date}",
-    "couldNotSave": "保存失败。"
+    "couldNotSave": "保存失败。",
+    "detailsHeading": "公司资料",
+    "detailsHint": "将印在发票和报价单上。公司 UEN 印在页眉和页脚；PayNow UEN 印在发票的 PayNow 付款一行，可与公司 UEN 不同。留空的项目将印出此功能上线前文件上原有的内容。",
+    "activeTag": "启用",
+    "inactiveTag": "停用",
+    "legalNameLabel": "注册名称",
+    "addressLabel": "地址",
+    "uenLabel": "UEN（公司）",
+    "paynowUenLabel": "PayNow UEN（公司）",
+    "contactEmailLabel": "联系邮箱",
+    "phoneLabel": "电话",
+    "websiteLabel": "网站",
+    "saveDetailsBtn": "保存公司资料",
+    "detailsSaved": "公司资料已保存。"
   }
 }
