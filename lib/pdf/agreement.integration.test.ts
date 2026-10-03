@@ -2,10 +2,11 @@ import { describe, test, expect, beforeAll } from "vitest";
 import { execFileSync } from "child_process";
 import { writeFileSync, mkdtempSync, readFileSync, rmSync, existsSync } from "fs";
 import { tmpdir } from "os";
+import { createHash } from "crypto";
 import { join, dirname } from "path";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { renderAgreementPdf, formatUplineOrNA, fitText, ruleOpts, wouldTruncate, type AgreementData } from "@/lib/pdf/agreement";
-import { assertMasterTemplateSha256, MASTER_TEMPLATE_PATH, AGREEMENT_FIELD_BOXES, AGREEMENT_FIELD_RULE_Y, type FieldBox } from "@/lib/pdf/associate-agreement-coordinates";
+import { assertMasterTemplateSha256, MASTER_TEMPLATE_PATH, MASTER_TEMPLATE_SHA256, MASTER_TEMPLATE_VERSION, AGREEMENT_FIELD_BOXES, AGREEMENT_FIELD_RULE_Y, type FieldBox } from "@/lib/pdf/associate-agreement-coordinates";
 
 // Tmpfs hotfix (2026-10-01): every mkdtempSync below goes through this one
 // wrapper so (a) the directory is ALWAYS the live `tmpdir()` — never a
@@ -260,6 +261,18 @@ describe("renderAgreementPdf — structure", () => {
     const tampered = Buffer.from(masterBytes);
     tampered[100] = tampered[100] ^ 0xff;
     expect(() => assertMasterTemplateSha256(tampered)).toThrow(/has changed/);
+  });
+
+  test("the docs copy of the template is byte-identical to the pinned master (no stale copy to drift)", () => {
+    const pinned = MASTER_TEMPLATE_SHA256;
+    const docsCopy = readFileSync(join(process.cwd(), "docs/agreement-templates/associate-agreement-v2610.pdf"));
+    expect(createHash("sha256").update(docsCopy).digest("hex")).toBe(pinned);
+    expect(() => assertMasterTemplateSha256(docsCopy)).not.toThrow();
+  });
+
+  test("the pinned template's footer carries the version marker the app records per signature", async () => {
+    const masterBytes = readFileSync(join(process.cwd(), MASTER_TEMPLATE_PATH));
+    for (let p = 1; p <= 7; p++) expect(pdfText(masterBytes, p)).toContain(MASTER_TEMPLATE_VERSION);
   });
 });
 

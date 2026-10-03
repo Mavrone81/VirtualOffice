@@ -29,13 +29,22 @@ import { createHash } from "crypto";
 
 export const MASTER_TEMPLATE_PATH = "public/templates/associate-agreement.pdf";
 
-/** Measured 2026-09-28 against the file at MASTER_TEMPLATE_PATH. Every box
+/** Measured 2026-09-28; re-verified Oct 2026 for the template swap (pages 1 and
+ *  7 — the only stamped pages — are word- and pixel-identical to the previous
+ *  master, so no box moved). Pinned to the file at MASTER_TEMPLATE_PATH. Every box
  *  below is only valid for a template with this exact byte content — a
  *  different template means different label positions, so this is asserted
  *  at load time (assertMasterTemplateSha256 in agreement.ts) rather than
  *  trusted. If the template is legitimately replaced, this hash — and every
  *  box in this file — must be re-measured, not just updated blindly. */
-export const MASTER_TEMPLATE_SHA256 = "1008cd7b1e0ac68e417fa613259290d7183475c2be1db09f989102a4dd7489b5";
+export const MASTER_TEMPLATE_SHA256 = "a379f3398c384dcb89ef1f2d15312c599f7912d66c2e14fc9a059b7eb3a97166";
+
+/** The version marker printed in every page footer of the master. Recorded on
+ *  each signed agreement (Candidate.submittedPayload.agreementTemplateVersion)
+ *  together with MASTER_TEMPLATE_SHA256. The marker alone does NOT identify the
+ *  template — the Oct 2026 swap kept the same footer text — so the sha256 is
+ *  the discriminator between old and new signatures. */
+export const MASTER_TEMPLATE_VERSION = "V.2026-04";
 
 export const PAGE_SIZE = { width: 595.28, height: 841.89 } as const; // A4, points
 
