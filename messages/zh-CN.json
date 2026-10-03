@@ -513,10 +513,8 @@
     },
     "resubmitBanner": "您已提交过此表格。再次提交将更新您的资料。",
     "errors": {
-      "noAgreement": "请接受伙伴协议以继续。",
-      "noSignature": "请在方框内签名以完成协议。",
       "submitFailed": "提交失败，请重试。",
-      "particularsRequired": "请填写您的国籍、性别及宗教——这些资料将载入您的伙伴协议。"
+      "fixHighlighted": "请完成已标出的必填项。"
     },
     "details": {
       "title": "您的个人资料",
@@ -550,7 +548,7 @@
       "ecNumber": "紧急联系人电话",
       "ecRelationship": "紧急联系人关系",
       "ecAddress": "紧急联系人地址",
-      "spouseConflict": "您的配偶是否在殡葬／后事相关公司工作或为其供应商？",
+      "spouseConflict": "您的配偶是否在殡葬／后事相关公司工作或为其供应商？ *",
       "spouseConflictHint": "利益冲突声明。如是，请在下方填写配偶姓名及其公司。",
       "conflictNo": "否",
       "conflictYes": "是",
@@ -1450,6 +1448,14 @@
     "applicationAlreadyApproved": "您的申请已审批通过。",
     "applicationClosed": "此申请已关闭。",
     "nricRequired": "身份证/FIN 为必填项。",
+    "nationalityRequired": "国籍为必填项。",
+    "genderRequired": "性别为必填项。",
+    "religionRequired": "宗教为必填项。",
+    "spouseConflictRequired": "请回答配偶利益冲突问题。",
+    "spouseNameRequired": "配偶姓名为必填项。",
+    "spouseCompanyRequired": "配偶公司名称为必填项。",
+    "spouseDesignationRequired": "配偶职位为必填项。",
+    "paymentMethodRequired": "请选择付款方式。",
     "agreementRequired": "您必须接受伙伴协议才能继续。",
     "signatureRequired": "完成协议需要提供签名。",
     "photoInvalidFormat": "照片必须为 JPG、PNG 或 WebP 格式。",
