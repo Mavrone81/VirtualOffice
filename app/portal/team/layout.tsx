@@ -10,10 +10,10 @@ import { auth } from "@/auth";
 // Route-gating this whole subtree to managers would have silently erased
 // that row for every associate below Manager.
 //
-// Team Sales and Team Commissions (siblings under this same layout) still
-// need their own real access check — each now carries it itself
-// (isManagerRole, same authority as before), not inherited from here, so
-// relaxing THIS gate for the dashboard can't accidentally relax theirs too.
+// Team Performance (sibling under this same layout, C11) is open to every
+// associate too and splits by role INSIDE the page: its team-wide data
+// fetch carries its own isManagerRole guard (server/team/performance.ts),
+// not inherited from here, so this layout stays login-only.
 export default async function TeamLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");

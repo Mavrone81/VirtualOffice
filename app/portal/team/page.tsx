@@ -83,7 +83,7 @@ export default async function TeamDashboardPage({ searchParams }: { searchParams
       <Card className="mt-6 overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="font-display text-[18px] text-ink">{t("overview.downlineHeading")}</h2>
-          <Link href="/portal/team/sales" className="text-[12px] text-action hover:underline">{t("overview.teamSalesLink")}</Link>
+          <Link href="/portal/team/performance" className="text-[12px] text-action hover:underline">{t("overview.teamPerformanceLink")}</Link>
         </div>
         {members.length === 0 ? (
           <p className="px-5 py-12 text-center text-[13px] text-muted">{t("overview.noDownline")}</p>

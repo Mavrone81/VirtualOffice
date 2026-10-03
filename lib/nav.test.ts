@@ -196,12 +196,12 @@ describe("withMarketingLibraryHref", () => {
 // of this change gated it to MANAGER_ROLES, which was wrong and got caught:
 // that would have silently erased A8, a delivered client row (the "not
 // eligible for recruitment yet" state the page shows a non-recruiter
-// instead of the roster). Team Sales / Team Commissions DO move from the
-// old nav's DIRECTOR_ROLES to MANAGER_ROLES, matching each page's own
-// explicit isManagerRole check (moved there from the shared layout, so
-// relaxing the dashboard's gate can't relax theirs). Split Approvals and
-// Invite Candidate are unaffected — their nav gate already matched their
-// route. See the block comment in lib/nav.ts for the full reasoning.
+// instead of the roster). Team Performance is open for the same reason (C11
+// folded Team Sales / Team Commissions into it): the page splits by role
+// in its CONTENT and its data fetch, never by nav visibility. Split
+// Approvals and Invite Candidate are unaffected — their nav gate already
+// matched their route. See the block comment in lib/nav.ts for the full
+// reasoning.
 describe("portalNav My Team unification (C-8) — one group, order locked, per-item gating unchanged", () => {
   it("groupMyTeam no longer exists as its own section — there is exactly one My Team group", () => {
     const myTeamGroups = portalNav.filter((g) => g.titleKey === "groupMyTeam" || g.titleKey === "groupMyTeamBase");
@@ -213,7 +213,7 @@ describe("portalNav My Team unification (C-8) — one group, order locked, per-i
     expect(() => findByLabel("teamOverview")).toThrow();
   });
 
-  it("locked order (owner-confirmed): Team Dashboard, Team Performance, Split Approvals, Invite Candidate, Team Sales, Team Commissions", () => {
+  it("locked order (owner-confirmed, C11): Team Dashboard, Team Performance, Split Approvals, Invite Candidate — Team Sales / Team Commissions are gone", () => {
     const group = portalNav.find((g) => g.titleKey === "groupMyTeamBase")!;
     const children = group.items[0].children!;
     expect(children.map((c) => c.labelKey)).toEqual([
@@ -221,9 +221,15 @@ describe("portalNav My Team unification (C-8) — one group, order locked, per-i
       "downlinePerformance",
       "splitApprovals",
       "directRecruits",
-      "teamSales",
-      "teamCommissions",
     ]);
+    expect(() => findByLabel("teamSales")).toThrow();
+    expect(() => findByLabel("teamCommissions")).toThrow();
+  });
+
+  it("Team Performance points at the combined page and carries NO roles prop (open to every associate)", () => {
+    const item = findByLabel("downlinePerformance");
+    expect(item.href).toBe("/portal/team/performance");
+    expect(item.roles).toBeUndefined();
   });
 
   it("Team Dashboard now points at the merged page, /portal/team (not the retired /portal/recruitment/associates)", () => {
@@ -239,8 +245,6 @@ describe("portalNav My Team unification (C-8) — one group, order locked, per-i
     downlinePerformance: ALL_ROLES,
     directRecruits: ["SalesManager", "SalesDirector", "Admin"],
     splitApprovals: ["SalesDirector", "Admin"],
-    teamSales: ["SalesAssistantManager", "SalesManager", "SalesDirector"],
-    teamCommissions: ["SalesAssistantManager", "SalesManager", "SalesDirector"],
   };
 
   for (const [labelKey, visibleTo] of Object.entries(expectedVisible)) {
@@ -265,7 +269,7 @@ describe("portalNav My Team unification (C-8) — one group, order locked, per-i
       expect(canRecruit("SalesAssistantManager")).toBe(false);
     });
 
-    it("CAN reach the Team Dashboard / Team Sales / Team Commissions route gate (MANAGER_ROLES includes SAM)", () => {
+    it("CAN take the Team Performance manager branch (MANAGER_ROLES includes SAM)", () => {
       expect(isManagerRole("SalesAssistantManager")).toBe(true);
     });
 

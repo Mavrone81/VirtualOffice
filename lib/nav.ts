@@ -6,7 +6,7 @@ import {
   PartyPopper, Store, Sparkles, Landmark, Archive, Building2, type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@prisma/client";
-import { RECRUITER_ROLES, MANAGER_ROLES } from "@/lib/roles";
+import { RECRUITER_ROLES } from "@/lib/roles";
 
 export type NavItem = {
   labelKey: string; // key into the `nav` message namespace
@@ -148,9 +148,10 @@ export const portalNav: NavGroup[] = [
     // existing translation already reads "Team Dashboard") to avoid an
     // unforced key rename — only the destination page changed.
     //
-    // Locked order (owner-confirmed, 2026-10-03): Team Dashboard, Team
-    // Performance, Split Approvals, Invite Candidate, Team Sales, Team
-    // Commissions. An earlier "Associate List" item was a relay error, not a
+    // Locked order (owner-confirmed, 2026-10-03; C11 trimmed it to four):
+    // Team Dashboard, Team Performance, Split Approvals, Invite Candidate.
+    // Team Sales and Team Commissions were folded into Team Performance
+    // (C11) and their routes redirect there. An earlier "Associate List" item was a relay error, not a
     // real client ask — Additional p9's associate list is the content of
     // Team Dashboard's own tabs, not a separate menu entry.
     //
@@ -172,12 +173,13 @@ export const portalNav: NavGroup[] = [
     //     no longer gates this subtree by role (it did briefly, during
     //     this same change — that was wrong, see its own comment); it only
     //     requires login now, so nav and route agree for every role here.
-    //   - Team Sales / Team Commissions (/portal/team/sales,
-    //     /portal/team/commissions): MANAGER_ROLES (SalesAssistantManager/
-    //     SalesManager/SalesDirector — no Admin), matching each page's OWN
-    //     now-explicit isManagerRole check (moved there from the shared
-    //     layout specifically so relaxing the dashboard's gate couldn't
-    //     silently relax theirs too).
+    //   - Team Performance (downlinePerformance, /portal/team/performance):
+    //     OPEN to every associate, no `roles` — like Team Dashboard, it
+    //     differentiates by CONTENT. isManagerRole (SAM/SM/SD, no Admin)
+    //     gets the team sales + commission view; everyone else gets the
+    //     RecruitmentView downline branch (or its "not eligible" card). The
+    //     team-wide queries are guarded by role inside
+    //     server/team/performance.ts, not just hidden in the page.
     //   - Split Approvals (/portal/approvals): DIRECTOR_ROLES, matching
     //     that page's own Director/Admin check — unaffected by this merge.
     //   - Invite Candidate (/portal/recruitment/new): RECRUITER_ROLES,
@@ -195,11 +197,9 @@ export const portalNav: NavGroup[] = [
         labelKey: "groupMyTeamBase", icon: Users,
         children: [
           { labelKey: "recruitmentDashboard", href: "/portal/team", icon: Users },
-          { labelKey: "downlinePerformance", href: "/portal/recruitment/downline", icon: TrendingUp },
+          { labelKey: "downlinePerformance", href: "/portal/team/performance", icon: TrendingUp },
           { labelKey: "splitApprovals", href: "/portal/approvals", icon: BadgeCheck, roles: DIRECTOR_ROLES, badgeKey: "splitApprovals" },
           { labelKey: "directRecruits", href: "/portal/recruitment/new", icon: UserPlus, roles: RECRUITER_ROLES },
-          { labelKey: "teamSales", href: "/portal/team/sales", icon: Receipt, roles: MANAGER_ROLES },
-          { labelKey: "teamCommissions", href: "/portal/team/commissions", icon: Calculator, roles: MANAGER_ROLES },
         ],
       },
     ],

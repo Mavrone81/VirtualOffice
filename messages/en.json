@@ -84,8 +84,6 @@
     "myCommissions": "My Commissions",
     "myPayouts": "My Payouts",
     "splitApprovals": "Split Approvals",
-    "teamSales": "Team Sales",
-    "teamCommissions": "Team Commissions",
     "vendorRegistry": "Vendor Registry",
     "salesAgreements": "Sales Agreements",
     "myPFile": "My P-File",
@@ -1346,7 +1344,7 @@
       "myOverrides": "My overrides",
       "yourOverrideEarnings": "Your override earnings",
       "downlineHeading": "Downline",
-      "teamSalesLink": "Team sales →",
+      "teamPerformanceLink": "Team performance →",
       "noDownline": "You have no downline associates yet.",
       "colId": "ID",
       "colAssociate": "Associate",
@@ -1402,7 +1400,15 @@
       "colTxn": "Txn",
       "colType": "Type",
       "colMonth": "Month",
-      "colAmount": "Amount"
+      "colCommission": "Commission"
+    },
+    "performance": {
+      "pageTitle": "Team Performance",
+      "noProfile": "No associate profile is linked to this account.",
+      "pageSubtitle": "Sales and commission across your team, plus your override earnings from them.",
+      "salesHeading": "Team sales",
+      "commissionHeading": "Team commission",
+      "downlineHeading": "Downline performance"
     }
   },
   "vendors": {
