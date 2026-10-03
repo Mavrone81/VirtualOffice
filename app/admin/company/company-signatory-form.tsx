@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { updateCompanySignatory } from "@/server/company/actions";
+import { SignaturePad } from "@/app/onboard/[token]/signature-pad";
+import { signatureDataUrlToFile } from "@/lib/signature-file";
 
 type SignatoryData = { signatoryName: string | null; signatureFileKey: string | null; updatedAt: Date | null };
 
@@ -30,6 +32,18 @@ export function CompanySignatoryForm({ initial }: { initial: SignatoryData }) {
   // round-trip — cleared once the save completes (the real preview then
   // comes from the saved signatureFileKey, through the gated route).
   const [localPreview, setLocalPreview] = useState<string>();
+  // A drawn signature is converted to a PNG File and saved through the same
+  // updateCompanySignatory upload path as a picked file — one storage route,
+  // one set of size/type checks. Drawn and picked are mutually exclusive.
+  const [drawing, setDrawing] = useState(false);
+  const [drawnFile, setDrawnFile] = useState<File | null>(null);
+
+  function setPreview(next?: string) {
+    setLocalPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return next;
+    });
+  }
 
   function pickFile() {
     inputRef.current?.click();
@@ -38,10 +52,28 @@ export function CompanySignatoryForm({ initial }: { initial: SignatoryData }) {
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setLocalPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
-    });
+    setDrawing(false);
+    setDrawnFile(null);
+    setPreview(URL.createObjectURL(file));
+  }
+
+  function startDrawing() {
+    setError(undefined);
+    if (inputRef.current) inputRef.current.value = "";
+    setPreview(undefined);
+    setDrawing(true);
+  }
+
+  function cancelDrawing() {
+    setDrawing(false);
+    setDrawnFile(null);
+    setPreview(undefined);
+  }
+
+  function onDrawn(dataUrl: string | null) {
+    const file = dataUrl ? signatureDataUrlToFile(dataUrl) : null;
+    setDrawnFile(file);
+    setPreview(file && dataUrl ? dataUrl : undefined);
   }
 
   function removeSignature() {
@@ -50,7 +82,9 @@ export function CompanySignatoryForm({ initial }: { initial: SignatoryData }) {
       const r = await updateCompanySignatory({ signatureFile: null });
       if (r.ok) {
         setSignatureFileKey(null);
-        setLocalPreview(undefined);
+        setPreview(undefined);
+        setDrawing(false);
+        setDrawnFile(null);
         if (inputRef.current) inputRef.current.value = "";
         router.refresh();
       } else {
@@ -62,7 +96,7 @@ export function CompanySignatoryForm({ initial }: { initial: SignatoryData }) {
   function save() {
     setError(undefined);
     start(async () => {
-      const file = inputRef.current?.files?.[0];
+      const file = drawnFile ?? inputRef.current?.files?.[0];
       const r = await updateCompanySignatory({
         signatoryName: name.trim(),
         signatureFile: file,
@@ -70,6 +104,8 @@ export function CompanySignatoryForm({ initial }: { initial: SignatoryData }) {
       if (r.ok) {
         setUpdatedAt(new Date());
         if (file) {
+          setDrawing(false);
+          setDrawnFile(null);
           // The real key isn't returned by the action (it's audited, not
           // echoed) — a router refresh re-fetches it server-side; keep the
           // local object-URL preview showing until that round-trip lands.
@@ -105,6 +141,11 @@ export function CompanySignatoryForm({ initial }: { initial: SignatoryData }) {
               <Button type="button" size="sm" variant="secondary" onClick={pickFile} disabled={pending}>
                 {signatureFileKey ? t("replaceSignature") : t("uploadSignature")}
               </Button>
+              {!drawing && (
+                <Button type="button" size="sm" variant="secondary" onClick={startDrawing} disabled={pending}>
+                  {t("drawSignature")}
+                </Button>
+              )}
               {signatureFileKey && (
                 <Button type="button" size="sm" variant="ghost" onClick={removeSignature} disabled={pending}>
                   {t("removeSignature")}
@@ -112,6 +153,14 @@ export function CompanySignatoryForm({ initial }: { initial: SignatoryData }) {
               )}
             </div>
           </div>
+          {drawing && (
+            <div className="mt-3 max-w-sm">
+              <SignaturePad onChange={onDrawn} />
+              <Button type="button" size="sm" variant="ghost" onClick={cancelDrawing} disabled={pending}>
+                {tc("cancel")}
+              </Button>
+            </div>
+          )}
           <p className="mt-1 text-[12px] text-muted-2">{t("pngOnlyHint")}</p>
         </div>
 

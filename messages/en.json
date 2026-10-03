@@ -1927,6 +1927,7 @@
     "noSignature": "No signature uploaded",
     "uploadSignature": "Upload signature",
     "replaceSignature": "Replace signature",
+    "drawSignature": "Draw signature",
     "removeSignature": "Remove signature",
     "pngOnlyHint": "PNG only, up to 5MB.",
     "saveBtn": "Save",
