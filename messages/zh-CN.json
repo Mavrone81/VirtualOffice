@@ -1927,6 +1927,7 @@
     "noSignature": "尚未上传签名",
     "uploadSignature": "上传签名",
     "replaceSignature": "更换签名",
+    "drawSignature": "手写签名",
     "removeSignature": "移除签名",
     "pngOnlyHint": "仅限 PNG 格式，最大 5MB。",
     "saveBtn": "保存",
