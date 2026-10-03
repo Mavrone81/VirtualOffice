@@ -37,6 +37,15 @@ const pct = (v: Numeric) => `${Number(v)}%`;
 // would truncate a 10.1234% rate to 10.12%. Using 10,000 instead and dividing
 // the result back down by 100 keeps all 4dp (Architect review, 2026-09-26).
 const RATE_BASE = "10000";
+
+/**
+ * B6c (Admin deck p6): the detail panel shows ONE illustrative sale amount
+ * for every percentage product, so comparisons stay like-for-like — this IS
+ * that figure, reusing the rounding-safe base above rather than inventing a
+ * second number. No product stores a real sale amount; the UI must label
+ * this as an example, not a stored value.
+ */
+export const ILLUSTRATIVE_SALE_AMOUNT = formatSGD(RATE_BASE);
 const ratePct = (v: string) => `${D(v).div(100).toString()}%`;
 
 /**

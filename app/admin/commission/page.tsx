@@ -12,7 +12,7 @@ import { computeProductBreakdown } from "@/server/commission/product-breakdown";
 import { productSalesByPeriod } from "@/server/commission/product-sales";
 import { ledgerWhere, parseLedgerSearch, type LedgerSearch } from "@/server/commission/ledger-filters";
 import { resolvePeriod, PERIODS, type Period } from "@/lib/period";
-import { ProductBreakdownTable } from "./product-breakdown-table";
+import { ProductDetailPanel } from "./product-detail-panel";
 import { SalesChart } from "./sales-chart";
 import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
@@ -63,9 +63,14 @@ export default async function CommissionPage({ searchParams }: { searchParams: P
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-      <ProductBreakdownTable rows={breakdownRows} />
-
-      <div className="mt-6">
+      {/* B6c (Admin deck p6): the slide circled the 5 breakdown rows as "keep
+          this information" and asked to drop the SECOND hardcoded example
+          product, collapsing two side-by-side examples into one
+          product-detail panel (picked via B6b's existing all-products
+          search) with a sales-comparison chart on the right — not a column
+          trim. */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ProductDetailPanel rows={breakdownRows} />
         <SalesChart rows={salesRows} period={period} />
       </div>
 
