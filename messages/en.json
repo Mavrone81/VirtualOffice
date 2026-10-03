@@ -1230,6 +1230,13 @@
       "receivableSubtitle": "Transactions with an outstanding balance still to collect"
     },
     "myTxn": {
+      "downline": {
+        "label": "Downline search",
+        "all": "All transactions in my view",
+        "direct": "Me and my direct recruits",
+        "self": "My own sales only",
+        "recruitGroup": "Direct recruit"
+      },
       "title": "My Transactions",
       "subtitle": "Closed transactions in your view — your own share on each",
       "empty": "No transactions in this view yet.",

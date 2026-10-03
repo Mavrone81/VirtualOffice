@@ -2,14 +2,17 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { formatSGD } from "@/lib/money";
-import { dashboardScopeIds, dashboardMetrics } from "@/server/dashboard/metrics";
-import { myTransactionRows, type TransactionVariant } from "@/server/transactions/queries";
+import { dashboardMetrics } from "@/server/dashboard/metrics";
+import { myTransactionRows, tileScopeIds, type TransactionVariant } from "@/server/transactions/queries";
 import { listVouchersForTransactions, type VoucherListEntry } from "@/server/vouchers/get-or-create";
 import { myPayoutsForAssociate } from "@/server/payouts/my-payouts";
+import { directRecruits } from "@/lib/rbac";
+import { DOWNLINE_FILTER_KEY, parseDownlineParam } from "@/lib/downline-search-params";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { MyTransactionsTable } from "./my-transactions-table";
 import { MyPayoutsPanel } from "./my-payouts-panel";
+import { DownlineFilter } from "./downline-filter";
 
 const TABS: { variant: TransactionVariant; href: string; key: "list" | "received" | "receivable" }[] = [
   { variant: "list", href: "/portal/transactions", key: "list" },
@@ -22,14 +25,17 @@ const TABS: { variant: TransactionVariant; href: string; key: "list" | "received
  * (each tab is its own URL so it can be linked and bookmarked), the same three
  * headline figures as the dashboard, then the per-transaction table.
  */
-export async function MyTransactionsView({ variant }: { variant: TransactionVariant }) {
+export async function MyTransactionsView({ variant, downline }: { variant: TransactionVariant; downline?: string | string[] }) {
   const t = await getTranslations("sales.myTxn");
   const tp = await getTranslations("portal");
   const session = await auth();
   const me = session?.user.associateId ?? null;
 
-  const scopeIds = session && me ? await dashboardScopeIds(session.user.role, me) : me ? [me] : [];
-  const [metrics, rows] = await Promise.all([dashboardMetrics(scopeIds), myTransactionRows(variant)]);
+  const scopeIds = await tileScopeIds(session?.user.role ?? null, me, downline);
+  const [metrics, rows] = await Promise.all([dashboardMetrics(scopeIds), myTransactionRows(variant, downline)]);
+  const recruits = me ? await directRecruits(me) : [];
+  // Carry a well-formed filter across the tabs; a malformed value is dropped.
+  const carried = parseDownlineParam(downline) ? `?${DOWNLINE_FILTER_KEY}=${encodeURIComponent(String(downline))}` : "";
 
   // A-6: the Received tab's last column is the Payment Voucher (A-7) — read
   // from what the signed-in associate can actually access, never a link
@@ -59,7 +65,7 @@ export async function MyTransactionsView({ variant }: { variant: TransactionVari
           return (
             <Link
               key={tab.key}
-              href={tab.href}
+              href={tab.href + carried}
               aria-current={on ? "page" : undefined}
               className={
                 "rounded-xl border-2 border-ink px-5 py-2.5 text-[14px] font-semibold transition-colors " +
@@ -71,6 +77,20 @@ export async function MyTransactionsView({ variant }: { variant: TransactionVari
           );
         })}
       </nav>
+
+      {me && recruits.length > 0 && (
+        <div className="mb-5">
+          <DownlineFilter
+            me={me}
+            recruits={recruits.map((r) => ({ id: r.id, label: `${r.fullName} (${r.associateCode})` }))}
+            label={t("downline.label")}
+            allLabel={t("downline.all")}
+            directLabel={t("downline.direct")}
+            selfLabel={t("downline.self")}
+            recruitGroupLabel={t("downline.recruitGroup")}
+          />
+        </div>
+      )}
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <StatTile label={tp("dashboard.totalTransactionValue")} value={formatSGD(metrics.totalTransactionValue)} sub={tp("dashboard.totalTransactionValueSub")} />
