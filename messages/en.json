@@ -1273,7 +1273,9 @@
         "notIssued": "Download ↓",
         "pending": "…",
         "failed": "Couldn't download — try again."
-      }
+      },
+      "payoutsHeading": "My Payouts",
+      "payoutsSubtitle": "Your monthly commission payouts and statements."
     }
   },
   "status": {

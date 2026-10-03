@@ -1273,7 +1273,9 @@
         "notIssued": "下载 ↓",
         "pending": "…",
         "failed": "下载失败，请重试。"
-      }
+      },
+      "payoutsHeading": "我的发放",
+      "payoutsSubtitle": "您的每月佣金发放记录和结算单。"
     }
   },
   "status": {
