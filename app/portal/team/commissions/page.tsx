@@ -13,14 +13,14 @@ import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 import { myOverridesSummary } from "@/server/dashboard/my-overrides";
 import { MyOverridesControls } from "@/components/team/my-overrides-controls";
 import { resolveMyOverridesPeriod } from "@/lib/my-overrides-period";
-import { TeamSearchFilter, TEAM_SEARCH_KEY } from "@/components/team/team-search-filter";
+import { TeamSearchFilter } from "@/components/team/team-search-filter";
 
 export const metadata = { title: "Team commissions · Enshrine Portal" };
 
 export default async function TeamCommissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ moView?: string; moMonth?: string; moYear?: string; [TEAM_SEARCH_KEY]?: string }>;
+  searchParams: Promise<{ moView?: string; moMonth?: string; moYear?: string; teamSearch?: string }>;
 }) {
   const session = await auth();
   const t = await getTranslations("team");
@@ -40,7 +40,7 @@ export default async function TeamCommissionsPage({
   const teamIds = dlIds.filter((id) => id !== associateId);
 
   // Same candidate-against-scope validation as team/sales — see lib/team.ts.
-  const searchInput = parseTeamSearchParam(sp[TEAM_SEARCH_KEY]);
+  const searchInput = parseTeamSearchParam(sp.teamSearch);
   const searchScope = await resolveTeamSearchScope(associateId, searchInput);
   const effectiveIds = searchScope ?? teamIds;
 

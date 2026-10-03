@@ -1,8 +1,11 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-
-export const TEAM_SEARCH_KEY = "teamSearch";
+// TEAM_SEARCH_KEY lives in lib/team-search-params.ts, a plain (non-"use
+// client") module, and is NOT re-exported from here -- a Server Component
+// page must import it from there directly, never through this file, or the
+// RSC client-boundary hazard this file's own history documents reappears.
+import { TEAM_SEARCH_KEY } from "@/lib/team-search-params";
 
 const selectCls =
   "h-9 rounded-lg border border-line bg-white px-2 text-[13px] text-ink focus:border-action focus:outline-none";

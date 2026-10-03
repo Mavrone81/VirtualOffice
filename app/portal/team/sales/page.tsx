@@ -11,14 +11,14 @@ import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { getTranslations } from "next-intl/server";
 import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
-import { TeamSearchFilter, TEAM_SEARCH_KEY } from "@/components/team/team-search-filter";
+import { TeamSearchFilter } from "@/components/team/team-search-filter";
 
 export const metadata = { title: "Team sales · Enshrine Portal" };
 
 export default async function TeamSalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [TEAM_SEARCH_KEY]?: string }>;
+  searchParams: Promise<{ teamSearch?: string }>;
 }) {
   const session = await auth();
   const t = await getTranslations("team");
@@ -36,7 +36,7 @@ export default async function TeamSalesPage({
   // renders ids already in that scope (a URL can be edited by hand). An
   // out-of-scope or malformed candidate falls back to the full team scope,
   // identically to no search at all (lib/team.ts's resolveTeamSearchScope).
-  const searchInput = parseTeamSearchParam(sp[TEAM_SEARCH_KEY]);
+  const searchInput = parseTeamSearchParam(sp.teamSearch);
   const searchScope = await resolveTeamSearchScope(associateId, searchInput);
   const effectiveIds = searchScope ?? teamIds;
 
