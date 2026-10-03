@@ -151,7 +151,7 @@ async function nextAssociateCode(): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Invite (admin) — creates a candidate + unique onboarding link
+// Invite (admin AND manager/director — one action) — creates a candidate + unique onboarding link
 // ---------------------------------------------------------------------------
 export type InviteInput = {
   fullName: string;
@@ -177,18 +177,22 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   const emailCheck = validate(inviteCandidateSchema, { email: input.email, commencementDate: input.commencementDate });
   if (!emailCheck.ok) return { ok: false, error: t(emailCheck.code && INVITE_ERROR_CODES.has(emailCheck.code) ? emailCheck.code : "invalidInput") };
 
-  // Consolidated-menu rework (Sep 2026): direct recruits go into the
-  // recruiter's OWN team — only a Business Admin can place a candidate into
-  // any team. A recruiter with team memberships must pick one of them; with
-  // none, their associate profile's team name (if any) is used.
+  // Team rule (owner, Oct 2026): the team dropdown is for Business Admin only,
+  // who can place a candidate into ANY team. A Manager / Director invites into
+  // their OWN team, which is implied, not chosen:
+  //   - one team            -> that team, filled in here (the client sends nothing);
+  //   - several teams       -> the caller must name one of them (never silently
+  //                            defaulted into the wrong one: teamRequired);
+  //   - no team at all      -> no team; anything the client sends is refused, so a
+  //                            non-admin can never tag a candidate into a team that
+  //                            is not theirs (teamNotYours).
+  // `ownTeams` falls back to the associate profile's team name (recruiterTeamNames).
   let intendedTeam = input.intendedTeam?.trim() || null;
   if (!isAdminRole(session.user.role)) {
     const ownTeams = await recruiterTeamNames(session.user.associateId ?? null);
-    if (ownTeams.length > 0) {
-      if (intendedTeam && !ownTeams.includes(intendedTeam)) return { ok: false, error: t("teamNotYours") };
-      if (!intendedTeam) intendedTeam = ownTeams.length === 1 ? ownTeams[0] : null;
-      if (!intendedTeam) return { ok: false, error: t("teamRequired") };
-    }
+    if (intendedTeam && !ownTeams.includes(intendedTeam)) return { ok: false, error: t("teamNotYours") };
+    if (!intendedTeam && ownTeams.length === 1) intendedTeam = ownTeams[0];
+    if (!intendedTeam && ownTeams.length > 1) return { ok: false, error: t("teamRequired") };
   }
 
   const upline = input.intendedDirectUplineCode
@@ -218,6 +222,9 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   const { sent } = await sendMail({ ...onboardingInviteEmail(candidate.fullName, link), to: email });
 
   revalidatePath("/admin/recruitment");
+  // Both invite pages list the caller's pending invites — refresh the other surface too.
+  revalidatePath("/admin/recruitment/new");
+  revalidatePath("/portal/recruitment/new");
   return { ok: true, token, emailed: sent };
 }
 
@@ -244,6 +251,7 @@ export async function cancelInvite(candidateId: string): Promise<{ ok: boolean; 
   await prisma.candidate.delete({ where: { id: candidateId } });
   await logAudit({ action: "candidate.invite_cancelled", entityType: "Candidate", entityId: candidateId, actorUserId: session.user.id });
   revalidatePath("/portal/recruitment/new");
+  revalidatePath("/admin/recruitment/new");
   revalidatePath("/admin/recruitment");
   return { ok: true };
 }

@@ -334,7 +334,8 @@
     "noMembers": "暂无成员。",
     "addMember": "+ 添加成员…",
     "add": "添加",
-    "remove": "移除"
+    "remove": "移除",
+    "namePlaceholder": "例如：事业部或团队名称"
   },
   "commission": {
     "title": "商佣仪表板",
@@ -654,6 +655,7 @@
     }
   },
   "portal": {
+    "clientNamePlaceholder": "例如：客户全名",
     "dashboard": {
       "title": "仪表板",
       "noProfile": "此账户未关联员工档案。",
@@ -1074,7 +1076,10 @@
       "noneOption": "— 无 —",
       "createInviteLink": "创建邀请链接",
       "couldNotInvite": "无法创建邀请。",
-      "pickTeam": "选择团队…"
+      "pickTeam": "选择团队…",
+      "impliedTeam": "该候选人将加入您的团队：{team}",
+      "pickOwnTeam": "候选人加入您的哪个团队？ *",
+      "teamPlaceholder": "例如：团队名称"
     },
     "detail": {
       "headerSubtitle": "{designation} · 邀请于 {date}",

@@ -16,13 +16,22 @@ export function InviteForm({
   uplines,
   baseUrl,
   teamOptions,
+  isAdmin,
+  backHref,
 }: {
   uplines: { code: string; label: string }[];
   baseUrl: string;
-  /** The teams this recruiter may place a candidate into: their own teams for a
-   *  non-admin (Sep 2026), every active team for a Business Admin. Empty or absent
-   *  falls back to free text (e.g. before any team has been created). */
+  /** Business Admin: every active team (empty falls back to free text, e.g. before
+   *  any team exists). Manager / Director: their OWN team(s) — never a free choice. */
   teamOptions?: string[];
+  /** The team control is Business Admin only (owner ruling, Oct 2026: admin
+   *  uploads/invites apply to all teams, a director's to their own team). A
+   *  non-admin invites into their own team, which is implied; with exactly one
+   *  it is shown read-only, with several they must name which, with none there
+   *  is no team. The server enforces the same rule — this is presentation. */
+  isAdmin: boolean;
+  /** Where "Back to pipeline" goes; omitted when the page itself is the pipeline view. */
+  backHref?: string;
 }) {
   const t = useTranslations("recruitment");
   const tc = useTranslations("common");
@@ -31,11 +40,16 @@ export function InviteForm({
   const [link, setLink] = useState<string>();
   const [emailed, setEmailed] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [f, setF] = useState<InviteInput>({
+  const ownTeams = !isAdmin ? (teamOptions ?? []) : [];
+  const blank = (): InviteInput => ({
     fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate", commencementDate: "",
-    intendedTeam: teamOptions?.length === 1 ? teamOptions[0] : undefined,
   });
+  const [f, setF] = useState<InviteInput>(blank);
   const set = (patch: Partial<InviteInput>) => setF((p) => ({ ...p, ...patch }));
+
+  // Non-admin: the team is implied (never sent for 0 or 1 teams); with several
+  // the caller must name one. Admin: whatever the dropdown says.
+  const needsTeamPick = !isAdmin && ownTeams.length > 1 && !f.intendedTeam;
 
   function submit() {
     setError(undefined);
@@ -73,8 +87,8 @@ export function InviteForm({
           </div>
         </Card>
         <div className="flex gap-2">
-          <Button asChild><Link href="/admin/recruitment">{t("form.backToPipeline")}</Link></Button>
-          <Button variant="secondary" onClick={() => { setLink(undefined); setF({ fullName: "", mobileNumber: "", email: "", intendedDesignation: "SalesAssociate", commencementDate: "" }); }}>
+          {backHref && <Button asChild><Link href={backHref}>{t("form.backToPipeline")}</Link></Button>}
+          <Button variant="secondary" onClick={() => { setLink(undefined); setF(blank()); }}>
             {t("form.inviteAnother")}
           </Button>
         </div>
@@ -99,19 +113,36 @@ export function InviteForm({
             <Label htmlFor="mob">{t("form.mobile")}</Label>
             <Input id="mob" value={f.mobileNumber} onChange={(e) => set({ mobileNumber: e.target.value })} />
           </div>
-          <div>
-            <Label htmlFor="team">{t("form.intendedTeam")}</Label>
-            {teamOptions && teamOptions.length > 0 ? (
-              <select id="team" className={selectCls} value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value })}>
-                {teamOptions.length > 1 && <option value="">{t("form.pickTeam")}</option>}
-                {teamOptions.map((name) => (
+          {isAdmin ? (
+            <div>
+              <Label htmlFor="team">{t("form.intendedTeam")}</Label>
+              {teamOptions && teamOptions.length > 0 ? (
+                <select id="team" className={selectCls} value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value })}>
+                  <option value="">{t("form.pickTeam")}</option>
+                  {teamOptions.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input id="team" value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value })} placeholder={t("form.teamPlaceholder")} />
+              )}
+            </div>
+          ) : ownTeams.length === 1 ? (
+            <div>
+              <Label>{t("form.intendedTeam")}</Label>
+              <p className="flex h-11 items-center text-sm text-body">{t("form.impliedTeam", { team: ownTeams[0] })}</p>
+            </div>
+          ) : ownTeams.length > 1 ? (
+            <div>
+              <Label htmlFor="team">{t("form.pickOwnTeam")}</Label>
+              <select id="team" className={selectCls} value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value || undefined })}>
+                <option value="">{t("form.pickTeam")}</option>
+                {ownTeams.map((name) => (
                   <option key={name} value={name}>{name}</option>
                 ))}
               </select>
-            ) : (
-              <Input id="team" value={f.intendedTeam ?? ""} onChange={(e) => set({ intendedTeam: e.target.value })} placeholder="e.g. Team Grace" />
-            )}
-          </div>
+            </div>
+          ) : null}
           <div>
             <Label htmlFor="des">{t("form.intendedDesignation")}</Label>
             <select id="des" className={selectCls} value={f.intendedDesignation} onChange={(e) => set({ intendedDesignation: e.target.value as InviteInput["intendedDesignation"] })}>
@@ -136,7 +167,7 @@ export function InviteForm({
       </Card>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
-      <Button onClick={submit} disabled={pending || !f.fullName || !f.email || !f.mobileNumber || !f.commencementDate}>
+      <Button onClick={submit} disabled={pending || needsTeamPick || !f.fullName || !f.email || !f.mobileNumber || !f.commencementDate}>
         {pending ? tc("creating") : t("form.createInviteLink")}
       </Button>
     </div>
