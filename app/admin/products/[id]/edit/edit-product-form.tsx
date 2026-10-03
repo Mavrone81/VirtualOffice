@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { updateProduct } from "@/server/products/actions";
 import { PricingCard, type PricingValue } from "../../pricing-card";
+import { CommissionCard, type CommissionValue } from "../../commission-card";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -18,18 +19,23 @@ export type EditProductInitial = {
   productCategory: string;
   defaultCompanyId: string;
   pricing: PricingValue;
+  commission: CommissionValue;
 };
 
-// Fields mirror productDetailsSchema, NOT the create form: no product code
-// (read-only), no commission / effective date / external flag (changeRates).
+// Fields mirror productDetailsSchema: everything the create form has except
+// the product code, which is immutable (it links historical sales and rate
+// history to the product) and so is shown in the page header, not as an input.
 export function EditProductForm({
   productId,
   companies,
   initial,
+  earliestEffectiveDate,
 }: {
   productId: string;
   companies: { id: string; name: string }[];
   initial: EditProductInitial;
+  /** yyyy-mm-dd: a rate change may not take effect before this (see RATE_CHANGE_FLOOR_DAYS_AHEAD). */
+  earliestEffectiveDate: string;
 }) {
   const t = useTranslations("products");
   const tc = useTranslations("common");
@@ -41,6 +47,13 @@ export function EditProductForm({
   const [defaultCompanyId, setDefaultCompanyId] = useState(initial.defaultCompanyId);
   const [pricing, setPricing] = useState<PricingValue>(initial.pricing);
   const setPricingPatch = (patch: Partial<PricingValue>) => setPricing((p) => ({ ...p, ...patch }));
+  const [commission, setCommission] = useState<CommissionValue>(initial.commission);
+  const setCommissionPatch = (patch: Partial<CommissionValue>) => setCommission((c) => ({ ...c, ...patch }));
+  // Saving a changed commission structure starts a NEW rate version on the
+  // effective date (sales already verified keep the rates they were closed
+  // under) — say so, and flag a past date, which the server refuses.
+  const commissionChanged = JSON.stringify(commission) !== JSON.stringify(initial.commission);
+  const dateInPast = commissionChanged && commission.effectiveDate < earliestEffectiveDate;
 
   const orUndef = (s: string) => (s.trim() === "" ? undefined : s);
 
@@ -57,6 +70,7 @@ export function EditProductForm({
         productName,
         productCategory: orUndef(productCategory),
         defaultCompanyId: orUndef(defaultCompanyId),
+        ...commission,
         listedPrice: pricing.listedPrice,
         discountedPrice: orUndef(pricing.discountedPrice),
         closingBasis: pricing.closingBasis,
@@ -93,6 +107,15 @@ export function EditProductForm({
       </Card>
 
       <PricingCard value={pricing} onChange={setPricingPatch} />
+
+      <CommissionCard value={commission} onChange={setCommissionPatch} pricing={pricing}>
+        {commissionChanged && (
+          <p className="mb-4 rounded-lg bg-paper-50 px-3 py-2 text-[12px] text-body">
+            {t("rateChangeNote")}
+            {dateInPast && <b className="mt-1 block text-danger">{t("rateChangeDateInPast")}</b>}
+          </p>
+        )}
+      </CommissionCard>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
       <div className="flex gap-3">

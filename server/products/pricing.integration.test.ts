@@ -1,9 +1,8 @@
 // Product pricing (2026-09-30): real Postgres, real auditTx. Product is ONE
 // ROW PER productCode in practice (createProduct refuses an existing code;
-// changeRates updates that same row in place, measured 2026-09-30) —
+// updateProduct updates that same row in place) —
 // so there is no version-selection concern here: updateProductPricing
-// edits the row by id, and the two write paths (changeRates for commission,
-// updateProductPricing for pricing) must never clobber each other's columns.
+// edits the row by id and must never clobber the commission columns.
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 
 const who: { session: unknown } = { session: null };
@@ -13,7 +12,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { prisma } from "@/lib/db";
 import { installAuditFault, failAuditsFor, clearAuditFaults, removeAuditFault } from "@/lib/test-audit-fault";
-import { createProduct, changeRates, updateProductPricing, type ProductInput } from "./actions";
+import { createProduct, updateProductPricing, type ProductInput } from "./actions";
 import type { ProductPricingInput } from "@/lib/schemas";
 
 const TAG = "PRICING-";
@@ -58,7 +57,7 @@ async function freshProduct(code: string, pricing: Partial<ProductInput> = {}) {
 
 /** Seeds a product row via a RAW prisma.product.create — deliberately NOT
  *  via createProduct/pricingData() — so a test proving one write path
- *  (changeRates or updateProductPricing) doesn't clobber the OTHER path's
+ *  (updateProductPricing) doesn't clobber the OTHER columns'
  *  columns isn't itself relying on the shared pricingData() helper to have
  *  set the baseline correctly. A bug in pricingData() would otherwise
  *  contaminate both the fixture and the code under test identically,
@@ -151,26 +150,7 @@ describe("updateProductPricing — audit atomicity", () => {
   });
 });
 
-describe("changeRates and updateProductPricing write the SAME row without clobbering each other's columns", () => {
-  it("changeRates (commission path) leaves the price columns untouched", async () => {
-    const seeded = await seedProductRaw(TAG + "NOCLOBBER1");
-    // changeRates validates against the same productSchema as createProduct
-    // (one shared shape), so its caller must still supply a syntactically
-    // valid pricing payload even though changeRates never writes it — these
-    // values are deliberately NOT what's asserted below; the seeded row's
-    // OWN pricing (999.99 / 888.88) is what must survive untouched.
-    const r = await changeRates(seeded.id, {
-      productCode: TAG + "NOCLOBBER1", ...BASE_COMMISSION, closingCommPct: "25", effectiveDate: "2099-06-01",
-      listedPrice: "1.00", discountedPrice: undefined, instalmentOption: "None",
-    } as ProductInput);
-    expect(r).toEqual({ ok: true });
-    const row = await prisma.product.findUniqueOrThrow({ where: { id: seeded.id } });
-    expect(row.closingCommPct?.toFixed(4)).toBe("25.0000"); // proves changeRates DID run
-    expect(row.listedPrice?.toFixed(2)).toBe("999.99"); // unchanged from the raw seed
-    expect(row.discountedPrice?.toFixed(2)).toBe("888.88");
-    expect(row.closingBasis).toBe("DiscountedPrice"); // unchanged from the raw seed, not reset to the default
-  });
-
+describe("updateProductPricing does not clobber the commission columns", () => {
   it("updateProductPricing leaves the commission and effectiveDate columns untouched", async () => {
     const seeded = await seedProductRaw(TAG + "NOCLOBBER2");
     const r = await updateProductPricing(seeded.id, { listedPrice: "42.00", instalmentOption: "None" });

@@ -42,7 +42,7 @@ export async function createQuotation(input: {
   if (!v.ok) return { ok: false, error: t("invalidInput") };
   const validInput = v.data;
 
-  const { lineData, saleAmount } = await resolveSaleLines(validInput.lines);
+  const { lineData, saleAmount } = await resolveSaleLines(validInput.lines, validInput.quoteDate);
   const lines: QuotationLineSnapshot[] = lineData.map((l) => ({
     productCode: l.productCode,
     productName: l.productName,

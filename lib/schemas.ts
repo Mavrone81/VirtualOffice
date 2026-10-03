@@ -216,31 +216,52 @@ export type ProductPricingInput = z.infer<typeof productPricingSchema>;
 export type ProductPricingRawInput = z.input<typeof productPricingSchema>;
 
 // ---------------------------------------------------------------------------
-// Product details edit (2026-10-01) — the combined "edit product" screen:
-// name/category/default company + pricing, in ONE action/transaction
-// (server/products/actions.ts's updateProduct), replacing the pricing-only
-// edit screen. Deliberately excludes:
-//   - productCode: structurally READ-ONLY. SaleLineItem carries no
-//     productId at all, only a copied productCode — the one link from a
-//     historical sale line back to a product (Architect,
-//     reviews/product-field-live-vs-snapshot-map-2026-10-01.md). `.strict()`
-//     fences it off the same way this schema already fences off commission
-//     fields, rather than relying on the form not to send it.
-//   - commissionType/closingCommPct/closingCommFixed/companyCutPct+Type/
-//     smOverridePct+Type/sdOverridePct+Type/isExternal/
-//     externalCompanyRetainedPct: already versioned via
-//     CommissionStructureVersion and resolved by salesDate at close —
-//     changeRates is their own write path; duplicating them here would give
-//     two actions write access to the same columns.
-//   - requiredDocuments/requiresAshesAgreement: LIVE by design (resolved
-//     fresh against the current product at every gate check, never
-//     snapshotted) — their own add/remove/toggle actions, not part of an
-//     edit-and-replace screen.
+// Product commission structure — the 12 fields that decide what people are
+// paid (+ when it takes effect). ONE shape, spread into BOTH `productSchema`
+// (create) and `productDetailsShape` (edit) below, so create and edit can't
+// drift apart; the cross-field rules stay in `pricingRefine` + the action's
+// own `validate()`, which both paths run.
+// ---------------------------------------------------------------------------
+const comValueTypeEnum = z.enum(["Percentage", "Absolute"]);
+const productCommissionShape = {
+  commissionType: z.enum(["Percentage", "Fixed"]),
+  closingCommPct: rate.optional(),
+  closingCommFixed: money.optional(),
+  companyCutPct: rate,
+  companyCutType: comValueTypeEnum.optional(),
+  smOverridePct: rate,
+  smOverrideType: comValueTypeEnum.optional(),
+  sdOverridePct: rate,
+  sdOverrideType: comValueTypeEnum.optional(),
+  isExternal: z.boolean(),
+  externalCompanyRetainedPct: rate.optional(),
+  effectiveDate: dateStr,
+};
+
+// ---------------------------------------------------------------------------
+// Product details edit — the combined "edit product" screen: name/category/
+// default company + commission structure + pricing, in ONE action/transaction
+// (server/products/actions.ts's updateProduct). Everything `createProduct`
+// accepts EXCEPT productCode. `.strict()` fences productCode off:
+//   - productCode is IMMUTABLE. SaleLineItem carries no productId at all,
+//     only a copied productCode, and CommissionStructureVersion resolves by
+//     productCode — they are the links from historical sales and rate
+//     history back to a product, so renaming it would orphan them. A caller
+//     that sends it fails validation rather than it being silently applied
+//     or silently dropped.
+// Commission fields are NOT updated in place: changing any of them writes a
+// new effective-dated CommissionStructureVersion (see updateProduct), because
+// the commission engine reads rates from the version a sale line was
+// resolved to, never from the product row.
+//   - requiredDocuments/requiresAshesAgreement stay out: LIVE by design
+//     (resolved fresh against the current product at every gate check, never
+//     snapshotted) — their own add/remove/toggle actions.
 // ---------------------------------------------------------------------------
 export const productDetailsShape = {
   productName: name,
   productCategory: z.string().trim().max(100).optional(),
   defaultCompanyId: id.optional(),
+  ...productCommissionShape,
   ...productPricingShape,
 };
 export const productDetailsSchema = z.object(productDetailsShape).strict().superRefine(pricingRefine);
@@ -259,19 +280,8 @@ export const productSchema = z.object({
   productCode: z.string().trim().min(1).max(40),
   productName: name,
   productCategory: z.string().trim().max(100).optional(),
-  commissionType: z.enum(["Percentage", "Fixed"]),
-  closingCommPct: rate.optional(),
-  closingCommFixed: money.optional(),
-  companyCutPct: rate,
-  companyCutType: z.enum(["Percentage", "Absolute"]).optional(),
-  smOverridePct: rate,
-  smOverrideType: z.enum(["Percentage", "Absolute"]).optional(),
-  sdOverridePct: rate,
-  sdOverrideType: z.enum(["Percentage", "Absolute"]).optional(),
-  isExternal: z.boolean(),
-  externalCompanyRetainedPct: rate.optional(),
   defaultCompanyId: id.optional(),
-  effectiveDate: dateStr,
+  ...productCommissionShape,
   ...productPricingShape,
 }).superRefine(pricingRefine);
 export type ProductSchemaInput = z.infer<typeof productSchema>;

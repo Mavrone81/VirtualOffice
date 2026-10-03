@@ -24,6 +24,7 @@ import { saleSchema } from "@/lib/schemas";
 import { addSubmissionDocuments, storeSubmissionUploadBytes, MAX_DOC_BYTES } from "@/server/documents/submission-docs";
 import { createAshesDraftTx } from "@/server/agreements/ashes-draft";
 import { resolveSaleLines } from "@/server/sales/resolve-sale-lines";
+import { VERSION_RESOLUTION_ORDER } from "@/server/commission/version-order";
 
 
 /**
@@ -154,7 +155,7 @@ export async function submitSale(input: SubmitSaleInput): Promise<{ ok: boolean;
   ]);
   const splitDirectorId = pickSplitDirectorId(teams) ?? (closer ? sdApproverId(closer) : null);
 
-  const { lineData, saleAmount, needsAshesAgreement } = await resolveSaleLines(validInput.lines);
+  const { lineData, saleAmount, needsAshesAgreement } = await resolveSaleLines(validInput.lines, validInput.salesDate);
 
   // B-S6 (owner ruling: warn, don't block): a split that would book any commission line below
   // zero is ALLOWED, but flagged — it needs a Business Admin split exception before closing.
@@ -318,7 +319,7 @@ export async function editSale(input: SubmitSaleInput & { id: string }): Promise
   const partyError = await splitPartiesError(existing.closingAssociateId, validInput.associate2, validInput.associate3);
   if (partyError) return { ok: false, error: t(partyError) };
 
-  const { lineData, saleAmount, needsAshesAgreement: needsAshesAgreementAfter } = await resolveSaleLines(validInput.lines);
+  const { lineData, saleAmount, needsAshesAgreement: needsAshesAgreementAfter } = await resolveSaleLines(validInput.lines, validInput.salesDate);
   const next = {
     salesDate: new Date(validInput.salesDate),
     quoteDate: validInput.quoteDate ? new Date(validInput.quoteDate) : null,
@@ -1043,7 +1044,7 @@ export async function closeSale(submissionId: string): Promise<{ ok: boolean; er
     for (const li of sub.lineItems) {
       const version = await db.commissionStructureVersion.findFirst({
         where: { productCode: li.productCode, effectiveDate: { lte: sub.salesDate } },
-        orderBy: { effectiveDate: "desc" },
+        orderBy: [...VERSION_RESOLUTION_ORDER],
       });
       await db.saleLineItem.update({
         where: { id: li.id },
@@ -1482,7 +1483,7 @@ export async function verifySale(submissionId: string, seenContentVersion: numbe
       for (const li of sub.lineItems) {
         const version = await db.commissionStructureVersion.findFirst({
           where: { productCode: li.productCode, effectiveDate: { lte: sub.salesDate } },
-          orderBy: { effectiveDate: "desc" },
+          orderBy: [...VERSION_RESOLUTION_ORDER],
         });
         await db.saleLineItem.update({ where: { id: li.id }, data: { transactionId: transaction.id, structureVersionId: version?.id ?? null } });
         byCompany.set(li.companyId, (byCompany.get(li.companyId) ?? D(0)).add(D(li.lineSaleAmount)));

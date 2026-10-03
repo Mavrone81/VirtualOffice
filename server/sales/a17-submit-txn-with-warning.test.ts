@@ -11,6 +11,7 @@ const { authMock, prismaMock } = vi.hoisted(() => ({
     team: { findMany: vi.fn(async () => []) },
     associate: { findUnique: vi.fn(async () => null), count: vi.fn(async () => 1) },
     product: { findMany: vi.fn() },
+    commissionStructureVersion: { findMany: vi.fn(async () => []) },
     salesSubmission: { create: vi.fn() },
     auditLog: { create: vi.fn(async () => ({})) },
     $transaction: vi.fn(),

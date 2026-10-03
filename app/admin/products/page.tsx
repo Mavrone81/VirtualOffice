@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
+import { withCurrentRates, loadPendingRateChanges } from "@/server/products/current-rates";
 import { can, isFullAdmin } from "@/lib/rbac";
 import { formatSGD, formatPercent, formatByValueType } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
@@ -24,11 +25,16 @@ export default async function ProductsPage() {
   const canManage = can(session.user.role, "manage_products");
   const t = await getTranslations("products");
   const a17On = env.A17_CLOSED_DEAL_FLOW;
-  const products = await prisma.product.findMany({
-    where: { archivedAt: null },
-    include: { comCodes: true, defaultCompany: true },
-    orderBy: { productCode: "asc" },
-  });
+  // Rates shown are the version IN FORCE today; the row's own columns mirror the
+  // latest version, which may not have taken effect yet.
+  const products = await withCurrentRates(
+    await prisma.product.findMany({
+      where: { archivedAt: null },
+      include: { comCodes: true, defaultCompany: true },
+      orderBy: { productCode: "asc" },
+    }),
+  );
+  const pending = await loadPendingRateChanges(products.map((p) => p.productCode));
   const priceOf = (p: (typeof products)[number]) =>
     p.listedPrice == null ? t("priceNotSet") : `S$${p.listedPrice.toFixed(2)}`;
 
@@ -51,6 +57,11 @@ export default async function ProductsPage() {
                   <span className="font-medium text-ink">{p.productCode}</span>
                   <span className="text-ink">· {p.productName}</span>
                   <ActiveToggle id={p.id} active={p.activeStatus === "Active"} />
+                  {pending.has(p.productCode) && (
+                    <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] text-gold">
+                      {t("rateChangeScheduled", { date: format(pending.get(p.productCode)!, "dd MMM yyyy") })}
+                    </span>
+                  )}
                   {p.isExternal && <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] text-gold">{t("external")}</span>}
                   {a17On && <AshesAgreementToggle productId={p.id} requiresAshesAgreement={p.requiresAshesAgreement} />}
                 </div>
@@ -65,9 +76,6 @@ export default async function ProductsPage() {
                   {canManage && (
                     <div className="flex justify-end gap-3">
                       <EditProductLink productId={p.id} canManage={canManage} />
-                      <Link href={`/admin/products/${p.id}/edit-pricing`} className="text-[12px] text-action hover:underline">
-                        {t("editPricing")}
-                      </Link>
                     </div>
                   )}
                 </div>

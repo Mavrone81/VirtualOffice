@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { FilterBar, type FilterField } from "@/components/ui/filter-bar";
 import { EmptyState } from "@/components/ui/empty-state";
+import { withCurrentRates } from "@/server/products/current-rates";
 import { computeProductBreakdown } from "@/server/commission/product-breakdown";
 import { productSalesByPeriod } from "@/server/commission/product-sales";
 import { ledgerWhere, parseLedgerSearch, type LedgerSearch } from "@/server/commission/ledger-filters";
@@ -32,7 +33,7 @@ export default async function CommissionPage({ searchParams }: { searchParams: P
   const { from: chartFrom, to: chartTo } = resolvePeriod(period, new Date(), { from: rawSp.chartFrom, to: rawSp.chartTo });
 
   const [products, ledger, associates, salesRows] = await Promise.all([
-    prisma.product.findMany({ where: { archivedAt: null }, orderBy: { productCode: "asc" } }),
+    prisma.product.findMany({ where: { archivedAt: null }, orderBy: { productCode: "asc" } }).then((rows) => withCurrentRates(rows)),
     prisma.commissionLedger.findMany({
       where: ledgerWhere(ledgerSp),
       orderBy: { createdAt: "desc" },
