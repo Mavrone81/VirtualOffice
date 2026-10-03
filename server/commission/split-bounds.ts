@@ -2,6 +2,7 @@ import { CommissionType, ComValueType, Prisma } from "@prisma/client";
 import type { prisma as prismaClient } from "@/lib/db";
 import { computeLineCommission, type LineResult } from "./engine";
 import { toLineInput, toSplit, toUpline } from "./inputs";
+import { VERSION_RESOLUTION_ORDER } from "@/server/commission/version-order";
 
 type Db = Prisma.TransactionClient | typeof prismaClient;
 
@@ -57,7 +58,7 @@ export async function splitBoundViolations(db: Db, sale: SaleForBounds): Promise
   for (const [i, li] of sale.lines.entries()) {
     const version = await db.commissionStructureVersion.findFirst({
       where: { productCode: li.productCode, effectiveDate: { lte: sale.salesDate } },
-      orderBy: { effectiveDate: "desc" },
+      orderBy: [...VERSION_RESOLUTION_ORDER],
       select: { rateSnapshot: true },
     });
     const input = toLineInput({ ...li, id: `line-${i}` }, version?.rateSnapshot, ctx);

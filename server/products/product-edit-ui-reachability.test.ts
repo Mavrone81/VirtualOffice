@@ -12,7 +12,8 @@ import { createElement as h, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Prisma } from "@prisma/client";
 
-const { who, pushed, clicks, pendingSaves, writes, fakeProduct } = vi.hoisted(() => ({
+const { who, pushed, clicks, pendingSaves, writes, fakeProduct, versionFind } = vi.hoisted(() => ({
+  versionFind: vi.fn(),
   who: { session: null as unknown },
   pushed: [] as string[],
   clicks: [] as { children: unknown; onClick?: () => void; disabled?: boolean }[],
@@ -69,6 +70,10 @@ Object.assign(fakeProduct, {
 vi.mock("@/lib/db", () => {
   const prisma = {
     product: fakeProduct,
+    // updateProduct locks the row and, on a rate change, reads/writes rate versions;
+    // this fixture changes no rate, so the version table is only ever read.
+    $queryRaw: async () => [{ id: PRODUCT_ID }],
+    commissionStructureVersion: { findFirst: vi.fn(async () => null), findMany: (a: unknown) => versionFind(a), create: vi.fn() },
     company: { findMany: vi.fn(async () => []) },
     $transaction: async (fn: (db: unknown) => unknown) => fn(prisma),
   };
@@ -83,7 +88,7 @@ const session = (role: string) => ({ user: { id: "22222222-2222-2222-2222-222222
 const ADMIN = session("Admin");
 const ACCOUNTS = session("Accounts");
 
-beforeEach(() => { vi.clearAllMocks(); who.session = null; pushed.length = 0; clicks.length = 0; pendingSaves.length = 0; writes.length = 0; });
+beforeEach(() => { vi.clearAllMocks(); fakeProduct.findUnique.mockImplementation(async () => ({ ...row })); versionFind.mockImplementation(async () => []); who.session = null; pushed.length = 0; clicks.length = 0; pendingSaves.length = 0; writes.length = 0; });
 
 /** Opens the edit page as the current session and returns its rendered HTML. */
 async function openEditPage(): Promise<string> {
@@ -98,6 +103,48 @@ async function clickSave() {
   await Promise.all(pendingSaves);
 }
 
+describe("products list — a scheduled rate change is visible", () => {
+  it("marks a product whose latest version is dated in the future, with the date; no marker otherwise", async () => {
+    who.session = ADMIN;
+    expect(renderToStaticMarkup((await ProductsPage()) as ReactElement)).not.toContain("rateChangeScheduled");
+    // the pending query asks for versions dated AFTER today (`gt`); the in-force query for `lte`
+    versionFind.mockImplementation(async (a: { where: { effectiveDate: { gt?: Date } } }) =>
+      a.where.effectiveDate.gt ? [{ productCode: "FUN-BASE", effectiveDate: new Date("2099-06-01") }] : []);
+    expect(renderToStaticMarkup((await ProductsPage()) as ReactElement)).toContain("rateChangeScheduled");
+  });
+});
+
+describe("product edit — stored commission data that would fail validation", () => {
+  // An EXTERNAL product with no closing %: its closing fields are normally hidden.
+  const legacy = () => fakeProduct.findUnique.mockImplementation(async () => ({ ...row, isExternal: true, externalCompanyRetainedPct: dec("5"), closingCommPct: null }));
+
+  it("opening the edit screen SURFACES the offending field (and says why) instead of hiding it", async () => {
+    who.session = ADMIN;
+    legacy();
+    const page = await openEditPage();
+    expect(page).toContain('id="closing"'); // visible although the product is external
+    expect(page).toContain("closingPctRequired"); // the reason, next to it
+    expect(page).toContain("commissionIncompleteNote");
+  });
+
+  it("a healthy external product still hides the closing fields", async () => {
+    who.session = ADMIN;
+    fakeProduct.findUnique.mockImplementation(async () => ({ ...row, isExternal: true, externalCompanyRetainedPct: dec("5") }));
+    expect(await openEditPage()).not.toContain('id="closing"');
+  });
+
+  it("a name-only Save on it succeeds and writes NO commission column", async () => {
+    who.session = ADMIN;
+    legacy();
+    await openEditPage();
+    await clickSave();
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toMatchObject({ productName: "Basic Funeral Pakcage" });
+    for (const k of ["commissionType", "closingCommPct", "companyCutPct", "isExternal", "effectiveDate"]) expect(writes[0]).not.toHaveProperty(k);
+    expect(pushed).toEqual(["/admin/products"]);
+  });
+});
+
 describe("product edit — the UI path reaches updateProduct", () => {
   it("Admin: the list links to the edit page, the page renders the form, Save writes the row", async () => {
     who.session = ADMIN;
@@ -106,12 +153,19 @@ describe("product edit — the UI path reaches updateProduct", () => {
 
     const page = await openEditPage();
     expect(page).toContain("Basic Funeral Pakcage"); // prefilled from the product
+    // The commission structure is on the same screen, prefilled from the row (Decimal 10 -> "10").
+    expect(page).toContain("commissionHeading");
+    expect(page).toContain('value="2099-01-01"');
+    expect(page).toContain('value="10"');
 
     // No DOM to retype a field, so assert the wiring: the form's Save handler sends its
     // values through the real action to the DB write (productCode is never among them).
     await clickSave();
     expect(writes).toHaveLength(1);
     expect(writes[0]).toMatchObject({ productName: "Basic Funeral Pakcage", productCategory: "Funeral", listedPrice: "999.99" });
+    // The form sends the commission block back as stored; unchanged, so it is not rewritten.
+    expect(writes[0]).not.toHaveProperty("closingCommPct");
+    expect(writes[0]).not.toHaveProperty("effectiveDate");
     expect(writes[0]).not.toHaveProperty("productCode");
     expect(pushed).toEqual(["/admin/products"]);
   });

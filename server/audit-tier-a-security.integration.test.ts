@@ -15,7 +15,7 @@ import { encryptPII, decryptPiiRaw } from "@/lib/crypto";
 import { installAuditFault, failAuditsFor, clearAuditFaults, removeAuditFault } from "@/lib/test-audit-fault";
 import { updateAssociate, updateAssociateUplines } from "./associates/actions";
 import { resetAssociatePassword } from "./account/actions";
-import { changeRates } from "./products/actions";
+import { updateProduct } from "./products/actions";
 
 const TAG = "AUDTSEC-";
 const ADMIN_ID = "11111111-1111-1111-1111-111111111111";
@@ -88,11 +88,11 @@ describe("security + commission inputs", () => {
   it("rates change: no new structure version, product rates unchanged", async () => {
     const before = await prisma.commissionStructureVersion.count({ where: { productId } });
     await failAuditsFor(productId);
-    const r = await changeRates(productId, {
-      productCode: TAG + "P1", productName: "Fake product", commissionType: "Percentage", closingCommPct: "25", companyCutPct: "0",
+    const r = await updateProduct(productId, {
+      productName: "Fake product", commissionType: "Percentage", closingCommPct: "25", companyCutPct: "0",
       smOverridePct: "0", sdOverridePct: "0", isExternal: false, effectiveDate: "2196-06-01",
       listedPrice: "1.00", instalmentOption: "None",
-    } as never);
+    });
     expect(r).toEqual({ ok: false, error: "auditUnavailable" });
     expect(await prisma.commissionStructureVersion.count({ where: { productId } })).toBe(before);
     expect((await prisma.product.findUniqueOrThrow({ where: { id: productId } })).closingCommPct?.toString()).toBe("10");

@@ -1,5 +1,6 @@
 import { Prisma, ProductActiveStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { withCurrentRates } from "./current-rates";
 
 // Portal catalogue (2026-10-01): associates see commission only. Company cut
 // AND the external-provider retained percentage are both internal commission
@@ -34,12 +35,16 @@ export type PortalProductRow = Prisma.ProductGetPayload<{ select: typeof PORTAL_
 /** The raw (pre-mapping) rows, using the select above — the boundary the
  *  integration test exercises directly, since the mapped shape below would
  *  never carry an extra key regardless of what the select fetches. */
-export async function fetchPortalProductRows(): Promise<PortalProductRow[]> {
-  return prisma.product.findMany({
+export async function fetchPortalProductRows(now: Date = new Date()): Promise<PortalProductRow[]> {
+  const rows = await prisma.product.findMany({
     where: { activeStatus: ProductActiveStatus.Active, archivedAt: null },
     orderBy: [{ productCategory: "asc" }, { productCode: "asc" }],
     select: PORTAL_PRODUCT_SELECT,
   });
+  // Commission shown to associates is the rate IN FORCE today (the version
+  // effective now), not the product row's mirror of the latest version — a
+  // future-dated change must not be quotable before it takes effect.
+  return withCurrentRates(rows, now);
 }
 
 export type PortalCatalogueProduct = {
@@ -61,8 +66,8 @@ export type PortalCatalogueProduct = {
   closingCommFixed: string | null;
 };
 
-export async function getPortalProductCatalogue(): Promise<PortalCatalogueProduct[]> {
-  const rows = await fetchPortalProductRows();
+export async function getPortalProductCatalogue(now: Date = new Date()): Promise<PortalCatalogueProduct[]> {
+  const rows = await fetchPortalProductRows(now);
   return rows.map((p) => ({
     id: p.id,
     productCode: p.productCode,

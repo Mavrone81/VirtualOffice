@@ -21,6 +21,8 @@ import {
 } from "@/lib/schemas";
 import { generateRequirementKey } from "@/lib/product-requirement-key";
 import { env } from "@/lib/env";
+import { canonicalFromInput, canonicalFromRow, changedCommissionFields, earliestRateChangeDate, validateCommission } from "./commission-edit";
+import { VERSION_RESOLUTION_ORDER } from "@/server/commission/version-order";
 
 // Managing products / com codes / rates is Admin-only (docs/05_RBAC.md §3).
 // `manage_products` is in rbac.ts's ADMIN_ONLY_CAPABILITIES, so `can(role,
@@ -72,7 +74,9 @@ export type ProductInput = {
 
 const valueType = (v?: "Percentage" | "Absolute") => (v === "Absolute" ? ComValueType.Absolute : ComValueType.Percentage);
 
-function rateSnapshot(i: ProductInput) {
+type RateFields = Parameters<typeof canonicalFromInput>[0];
+
+function rateSnapshot(i: RateFields) {
   return {
     commissionType: i.commissionType,
     closingCommPct: i.closingCommPct ?? null,
@@ -90,9 +94,25 @@ function rateSnapshot(i: ProductInput) {
 
 function validate(i: ProductInput): string | null {
   if (!i.productCode?.trim() || !i.productName?.trim()) return "codeAndNameRequired";
-  if (i.commissionType === "Percentage" && !i.closingCommPct) return "closingPctRequired";
-  if (i.commissionType === "Fixed" && !i.closingCommFixed) return "closingFixedRequired";
-  return null;
+  return validateCommission(i);
+}
+
+/** The product-row commission columns (everything but effectiveDate) for a
+ *  validated input — ONE mapping shared by create and the edit action. */
+function commissionData(v: RateFields) {
+  return {
+    commissionType: v.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
+    closingCommPct: v.commissionType === "Percentage" ? v.closingCommPct : null,
+    closingCommFixed: v.commissionType === "Fixed" ? v.closingCommFixed : null,
+    companyCutPct: v.companyCutPct || "0",
+    companyCutType: valueType(v.companyCutType),
+    smOverridePct: v.smOverridePct || "0",
+    smOverrideType: valueType(v.smOverrideType),
+    sdOverridePct: v.sdOverridePct || "0",
+    sdOverrideType: valueType(v.sdOverrideType),
+    isExternal: v.isExternal,
+    externalCompanyRetainedPct: v.isExternal ? v.externalCompanyRetainedPct || "0" : null,
+  };
 }
 
 function instalmentOptionOf(o: "None" | "Months12" | "Months12or24"): InstalmentOption {
@@ -172,17 +192,7 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
         productCode: validInput.productCode.trim(),
         productName: validInput.productName.trim(),
         productCategory: validInput.productCategory?.trim() || null,
-        commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
-        closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
-        closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
-        companyCutPct: validInput.companyCutPct || "0",
-        companyCutType: valueType(validInput.companyCutType),
-        smOverridePct: validInput.smOverridePct || "0",
-        smOverrideType: valueType(validInput.smOverrideType),
-        sdOverridePct: validInput.sdOverridePct || "0",
-        sdOverrideType: valueType(validInput.sdOverrideType),
-        isExternal: validInput.isExternal,
-        externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
+        ...commissionData(validInput),
         defaultCompanyId: validInput.defaultCompanyId || null,
         activeStatus: ProductActiveStatus.Active,
         effectiveDate: eff,
@@ -208,9 +218,9 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
 class ProductNotFound extends Error {}
 
 /** Editing an existing product's PRICING ONLY (2026-09-30) —
- *  deliberately separate from `changeRates`: commission/companyCut changes
- *  stay on their own effective-dated versioned path and must NOT be
- *  touched here. `productPricingSchema` is `.strict()`, so a payload
+ *  deliberately separate from `updateProduct`, the only commission-change
+ *  path (effective-dated, versioned, date-guarded): commission/companyCut
+ *  changes must NOT be touched here. `productPricingSchema` is `.strict()`, so a payload
  *  carrying any other key (e.g. a stray `commissionType`) fails validation
  *  rather than silently ignoring or applying it — structural enforcement,
  *  not a convention someone could forget to follow at a call site. */
@@ -251,45 +261,58 @@ export async function updateProductPricing(productId: string, pricing: ProductPr
   return { ok: true };
 }
 
-type ProductDetailsColumns = PricingColumns & {
+type ProductDetailsColumns = PricingColumns & Parameters<typeof canonicalFromRow>[0] & {
   productName: string;
   productCategory: string | null;
   defaultCompanyId: string | null;
 };
 
-/** Details-edit before/after for the audit row — the pricing snapshot plus
- *  name/category/default-company, nothing else from the product (no
- *  commission/company-cut/override field, which this action never writes). */
+/** Details-edit before/after for the audit row — name/category/default
+ *  company, the full commission structure (`rates`, canonical fixed-scale
+ *  strings, effective date included) and the pricing snapshot. Nothing else
+ *  from the product. */
 function productDetailsSnapshot(p: ProductDetailsColumns) {
   return {
     productName: p.productName,
     productCategory: p.productCategory,
     defaultCompanyId: p.defaultCompanyId,
+    rates: canonicalFromRow(p),
     ...pricingSnapshot(p),
   } satisfies Prisma.InputJsonValue;
 }
 
-/** Editing an existing product's NAME/CATEGORY/DEFAULT COMPANY/PRICING in one
- *  screen (2026-10-01) — the combined "edit product" admin screen, replacing
- *  the pricing-only edit above (`updateProductPricing` stays in place,
- *  unused by the new screen once Frontend migrates it, rather than being
- *  removed out from under its current caller in the same change).
- *  `productDetailsSchema` is `.strict()`, so it structurally excludes:
- *    - productCode: READ-ONLY. SaleLineItem carries no productId at all,
- *      only a copied productCode — the one link from a historical sale line
- *      back to a product (Architect,
- *      reviews/product-field-live-vs-snapshot-map-2026-10-01.md). A caller
- *      that sends it fails validation rather than it being silently applied
- *      or silently dropped.
- *    - commissionType/closingCommPct/closingCommFixed/companyCutPct+Type/
- *      smOverridePct+Type/sdOverridePct+Type/isExternal/
- *      externalCompanyRetainedPct: already versioned via
- *      CommissionStructureVersion, resolved by salesDate at close —
- *      changeRates' own write path, not duplicated here.
- *  requiredDocuments/requiresAshesAgreement are LIVE by design (resolved
- *  fresh against the current product at every gate check, never
- *  snapshotted) and have their own add/remove/toggle actions — this one
- *  never reads or writes them. */
+// Thrown INSIDE the transaction (same shape as ProductNotFound). A rate change's
+// effective date may not be in the past (it would reprice pending, unverified
+// sales — see RATE_CHANGE_FLOOR_DAYS_AHEAD) and may not be EARLIER than the
+// product's latest version. The same date as the latest version IS allowed: a
+// same-day correction resolves to the newest version deterministically
+// (VERSION_RESOLUTION_ORDER: effectiveDate, then createdAt).
+class CommissionInvalid extends Error {
+  constructor(readonly key: "closingPctRequired" | "closingFixedRequired") { super(key); }
+}
+class EffectiveDateInPast extends Error {}
+class EffectiveDateBeforeLatestVersion extends Error {}
+
+/** Editing an existing product — everything `createProduct` takes EXCEPT
+ *  productCode: name/category/default company, the commission structure and
+ *  pricing, in one screen and one transaction.
+ *  `productDetailsSchema` is `.strict()`, so productCode is structurally
+ *  READ-ONLY: it is the one link from a historical sale line (which carries
+ *  only a copied productCode, no productId) and from CommissionStructureVersion
+ *  back to a product, so renaming it would orphan both. A caller that sends it
+ *  fails validation rather than it being silently applied or dropped.
+ *
+ *  MONEY ALREADY EARNED MUST NOT MOVE. The engine pays from the
+ *  CommissionStructureVersion a sale line was resolved to when it was verified
+ *  (server/commission/run.ts reads `li.structureVersion.rateSnapshot`), never
+ *  from the product row. So when any commission field or the effective date
+ *  changes, this writes a NEW version (never edits an old one) and updates the product columns as the current-values
+ *  mirror (portal catalogue, admin list, preview). Verified sale lines keep
+ *  their version link, so nothing already computed changes; only sales
+ *  verified from the new effective date on resolve to the new rates. An edit
+ *  that leaves the commission fields as they were writes no version.
+ *  requiredDocuments/requiresAshesAgreement are LIVE by design and have their
+ *  own add/remove/toggle actions — this one never reads or writes them. */
 export async function updateProduct(productId: string, input: ProductDetailsRawInput): Promise<{ ok: boolean; error?: string }> {
   const t = await getTranslations("errors");
   const v = validateInput(productDetailsSchema, input);
@@ -297,82 +320,87 @@ export async function updateProduct(productId: string, input: ProductDetailsRawI
   const validInput = v.data;
   const admin = await requireAdmin();
   if (!admin) return { ok: false, error: t("forbidden") };
+  // A real date (the schema bounds only the string's envelope).
+  const eff = new Date(validInput.effectiveDate);
+  if (Number.isNaN(eff.getTime())) return { ok: false, error: t("invalidInput") };
 
-  const data = {
+  // Name/category/company/pricing are written on EVERY edit. The commission
+  // block (columns + effective date + a new rate version) is written ONLY when
+  // the person actually changed it — see below.
+  const baseData = {
     productName: validInput.productName.trim(),
     productCategory: validInput.productCategory?.trim() || null,
     defaultCompanyId: validInput.defaultCompanyId || null,
     ...pricingData(validInput),
   };
-  // Tier A (money the buyer pays, via the pricing fields in this same
-  // write): the change and its record commit together. `before` is read
-  // INSIDE this same transaction, immediately ahead of the write — not from
-  // an earlier, un-transactional lookup — so the audit's "before" is never
-  // stale against a concurrent edit landing in between.
+  // Tier A (money the buyer pays AND what people are paid): the change and its
+  // record commit together. `before` is read INSIDE this same transaction,
+  // after a row lock, immediately ahead of the write — so the audit's "before"
+  // is never stale against a concurrent edit, and two concurrent rate edits
+  // can't both pass the effective-date check below.
   try {
     await prisma.$transaction(async (db) => {
+      const locked = await db.$queryRaw<{ id: string }[]>`SELECT id FROM products WHERE id = ${productId}::uuid FOR UPDATE`;
+      if (locked.length === 0) throw new ProductNotFound();
       const existing = await db.product.findUnique({ where: { id: productId } });
       if (!existing) throw new ProductNotFound();
       const before = productDetailsSnapshot(existing);
+
+      const changedRates = changedCommissionFields(canonicalFromRow(existing), canonicalFromInput(validInput));
+      if (changedRates.length > 0) {
+        const invalid = validateCommission(validInput);
+        if (invalid) throw new CommissionInvalid(invalid);
+        const effDay = eff.toISOString().slice(0, 10);
+        if (effDay < earliestRateChangeDate()) throw new EffectiveDateInPast();
+        const latest = await db.commissionStructureVersion.findFirst({
+          where: { productCode: existing.productCode },
+          orderBy: [...VERSION_RESOLUTION_ORDER],
+          select: { effectiveDate: true },
+        });
+        if (latest && effDay < latest.effectiveDate.toISOString().slice(0, 10)) throw new EffectiveDateBeforeLatestVersion();
+      }
+
+      // Validation and the date rules apply only to a commission the person
+      // CHANGED. An edit that leaves the block as stored (a rename, a price
+      // edit) is never gated on it — pre-existing invalid commission data
+      // (e.g. a null closing %) must not block unrelated edits, and the stored
+      // values are not rewritten.
+      const data = changedRates.length > 0 ? { ...baseData, ...commissionData(validInput), effectiveDate: eff } : baseData;
       const updated = await db.product.update({ where: { id: productId }, data });
+      let rateVersionId: string | null = null;
+      if (changedRates.length > 0) {
+        const version = await db.commissionStructureVersion.create({
+          data: { productCode: existing.productCode, productId, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
+        });
+        rateVersionId = version.id;
+      }
       await auditTx(db, {
         action: "product.details_updated",
         entityType: "Product",
         entityId: productId,
         actorUserId: admin.user.id,
         before,
-        after: productDetailsSnapshot(updated),
+        after: { ...productDetailsSnapshot(updated), changedRates, rateVersionId },
       });
+      if (changedRates.length > 0) {
+        // A dedicated rate-change record, so a query for rate changes finds
+        // every one (this is the only rate-change path).
+        await auditTx(db, {
+          action: "product.rates_changed",
+          entityType: "Product",
+          entityId: productId,
+          actorUserId: admin.user.id,
+          before: { productCode: existing.productCode, rates: canonicalFromRow(existing) },
+          after: { productCode: existing.productCode, rates: canonicalFromRow(updated), changedRates, rateVersionId },
+        });
+      }
     });
   } catch (e) {
     if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
     if (e instanceof ProductNotFound) return { ok: false, error: t("notFound") };
-    throw e;
-  }
-  revalidatePath("/admin/products");
-  return { ok: true };
-}
-
-/** New effective-dated rate version (history preserved for the engine). */
-export async function changeRates(productId: string, input: ProductInput): Promise<{ ok: boolean; error?: string }> {
-  const t = await getTranslations("errors");
-  const v = validateInput(productSchema, input);
-  if (!v.ok) return { ok: false, error: t("invalidInput") };
-  const validInput = v.data;
-  const admin = await requireAdmin();
-  if (!admin) return { ok: false, error: t("forbidden") };
-  const err = validate(validInput);
-  if (err) return { ok: false, error: t(err) };
-  const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!product) return { ok: false, error: t("notFound") };
-  const eff = new Date(validInput.effectiveDate);
-  // Tier A (commission input): the change and its record commit together.
-  try {
-    await prisma.$transaction(async (db) => {
-    await db.product.update({
-      where: { id: productId },
-      data: {
-        commissionType: validInput.commissionType === "Fixed" ? CommissionType.Fixed : CommissionType.Percentage,
-        closingCommPct: validInput.commissionType === "Percentage" ? validInput.closingCommPct : null,
-        closingCommFixed: validInput.commissionType === "Fixed" ? validInput.closingCommFixed : null,
-        companyCutPct: validInput.companyCutPct || "0",
-        companyCutType: valueType(validInput.companyCutType),
-        smOverridePct: validInput.smOverridePct || "0",
-        smOverrideType: valueType(validInput.smOverrideType),
-        sdOverridePct: validInput.sdOverridePct || "0",
-        sdOverrideType: valueType(validInput.sdOverrideType),
-        isExternal: validInput.isExternal,
-        externalCompanyRetainedPct: validInput.isExternal ? validInput.externalCompanyRetainedPct || "0" : null,
-        effectiveDate: eff,
-      },
-    });
-    await db.commissionStructureVersion.create({
-      data: { productCode: product.productCode, productId, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
-    });
-    await auditTx(db, { action: "product.rates_changed", entityType: "Product", entityId: productId, actorUserId: admin.user.id, after: { productCode: product.productCode, effectiveDate: eff.toISOString(), rates: rateSnapshot(validInput) } });
-    });
-  } catch (e) {
-    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    if (e instanceof CommissionInvalid) return { ok: false, error: t(e.key) };
+    if (e instanceof EffectiveDateInPast) return { ok: false, error: t("effectiveDateInPast") };
+    if (e instanceof EffectiveDateBeforeLatestVersion) return { ok: false, error: t("effectiveDateBeforeLatestVersion") };
     throw e;
   }
   revalidatePath("/admin/products");

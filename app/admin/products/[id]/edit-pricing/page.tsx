@@ -11,7 +11,7 @@ export const metadata = { title: "Edit pricing · Enshrine Admin" };
 
 // Pricing-only edit (2026-09-30): opens the same PricingCard the create
 // form uses, prefilled — never commission, code or effectiveDate, those stay
-// on their existing paths (changeRates / the create form).
+// on their existing paths (the product edit screen / the create form).
 export default async function EditProductPricingPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || !isFullAdmin(session.user.role)) redirect("/admin/dashboard");
