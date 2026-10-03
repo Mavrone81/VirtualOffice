@@ -1230,6 +1230,13 @@
       "receivableSubtitle": "尚有未收余额的交易"
     },
     "myTxn": {
+      "downline": {
+        "label": "下线搜索",
+        "all": "我可见的全部交易",
+        "direct": "我及我的直接招募成员",
+        "self": "仅我本人的销售",
+        "recruitGroup": "直接招募成员"
+      },
       "title": "我的交易",
       "subtitle": "您可见的已成交交易——显示您在每笔交易中的份额",
       "empty": "此视图中暂无交易。",

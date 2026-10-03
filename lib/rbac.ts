@@ -92,3 +92,18 @@ export async function downlineIds(associateId: string): Promise<string[]> {
     SELECT id::text FROM dl;`;
   return rows.map((r) => r.id);
 }
+
+/**
+ * Direct recruits only: the associates whose `direct_upline_id` is this
+ * associate (ONE level down, archived excluded). Contrast {@link downlineIds},
+ * which walks the whole tree and includes self. Not self-inclusive.
+ */
+export async function directRecruits(
+  associateId: string,
+): Promise<{ id: string; fullName: string; associateCode: string }[]> {
+  return prisma.associate.findMany({
+    where: { directUplineId: associateId, archivedAt: null },
+    select: { id: true, fullName: true, associateCode: true },
+    orderBy: { fullName: "asc" },
+  });
+}
