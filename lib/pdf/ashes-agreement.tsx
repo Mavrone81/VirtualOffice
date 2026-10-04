@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { getObject } from "@/lib/storage";
 import { readNric } from "@/server/pii";
-import { agreementContactLine } from "@/lib/company-identity";
+import { resolveAgreementCompany, readAgreementCompanySnapshot, type AgreementCompany, type AgreementCompanySnapshot } from "@/lib/company-identity";
 
 // ---------------------------------------------------------------------------
 // Storage of Pets Ashes Agreement (consolidated menu, Sep 2026). Faithful
@@ -76,18 +76,18 @@ const ordinal = (n: number) => {
 };
 const money = (v: string | null) => (v == null ? null : Number(v).toLocaleString("en-SG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
-function Head() {
+function Head({ co }: { co: AgreementCompany }) {
   return (
     <View style={s.head} fixed>
       <View style={s.headRow}>
         <Text style={s.coName}>ENSHRINE</Text>
         <View>
-          <Text style={s.coEntity}>Enshrine Pets Paradise Pte Ltd</Text>
-          <Text style={s.coEntity}>UEN 202328981K</Text>
+          <Text style={s.coEntity}>{co.name}</Text>
+          <Text style={s.coEntity}>{`UEN ${co.uen}`}</Text>
         </View>
       </View>
       <Text style={s.coMeta}>
-        {agreementContactLine()}
+        {co.contactLine}
       </Text>
     </View>
   );
@@ -162,6 +162,8 @@ export type AshesAgreementData = {
   maintenanceStartYear: number | null;
   additionalTerms: string | null;
   signedAt: Date | null;
+  /** Company block captured at signing (signedTerms.company); null/absent = print the constants. */
+  company?: AgreementCompanySnapshot | null;
   applicantSignatureDataUrl: string | null;
   applicantWitnessName: string | null;
   applicantWitnessNric: string | null;
@@ -222,12 +224,13 @@ function Applicant({ n, name, nric, address, contact, email }: {
 }
 
 function AgreementDoc({ a }: { a: AshesAgreementData }) {
+  const co = resolveAgreementCompany(a.company);
   const isFull = a.paymentPlan === "FullPayment";
   return (
     <Document title="Storage of Pets Ashes Agreement">
       {/* ------------------------------------------------ Page 1 */}
       <Page size="A4" style={s.page}>
-        <Head />
+        <Head co={co} />
         <Footer />
         <Text style={s.title}>Storage of Pets Ashes Agreement</Text>
 
@@ -252,8 +255,7 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
           <Text style={s.fill}>WHEREBY IT IS AGREED</Text> as follows:-
         </Text>
         <N n="1">
-          Enshrine Pets Paradise Pte Ltd (hereinafter known as “the Company”) agrees to let and the Applicant agrees to take Pet
-          Ash Storage unit known as <Text style={s.fill}>{d(a.nicheUnit)}</Text> (hereinafter known as “the said niche”) at the amount
+          {`${co.name} (hereinafter known as “the Company”) agrees to let and the Applicant agrees to take Pet Ash Storage unit known as `}<Text style={s.fill}>{d(a.nicheUnit)}</Text> (hereinafter known as “the said niche”) at the amount
           of <Text style={s.fill}>SINGAPORE DOLLARS {a.amountWords}</Text> (S$<Text style={s.fill}>{money(a.amountNumeric)}</Text>) payable:-
         </N>
         <View style={s.checkboxRow} wrap={false}>
@@ -344,8 +346,8 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
         <View style={s.signBlock} wrap={false}>
           <Text style={s.signTitle}>SIGNED by the Company</Text>
           <Text style={{ fontSize: 8, fontFamily: "Helvetica-Oblique" }}>(With Company stamp affixed where applicable)</Text>
-          <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>:  Enshrine Pets Paradise Pte Ltd</Text></View>
-          <View style={s.signRow}><Text style={s.signLabel}>UEN No.</Text><Text style={s.signValue}>:  202328981K</Text></View>
+          <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>{`:  ${co.name}`}</Text></View>
+          <View style={s.signRow}><Text style={s.signLabel}>UEN No.</Text><Text style={s.signValue}>{`:  ${co.uen}`}</Text></View>
           <View style={[s.signRow, { marginTop: 8 }]}><Text style={s.signLabel}>In the presence of</Text><Text style={{ flex: 1 }}> </Text></View>
           <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>: {d(a.companyWitnessName)}</Text></View>
           <View style={s.signRow}><Text style={s.signLabel}>NRIC No.</Text><Text style={s.signValue}>: {d(a.companyWitnessNric)}</Text></View>
@@ -419,6 +421,8 @@ export async function renderAshesAgreementPdf(agreementId: string): Promise<{ bu
         maintenanceStartYear: a.maintenanceStartYear,
         additionalTerms: a.additionalTerms,
         signedAt: a.signedAt,
+        // Frozen at signing: read from the agreement's own record, never from the Company row.
+        company: readAgreementCompanySnapshot((a.signedTerms as { company?: unknown } | null)?.company),
         applicantSignatureDataUrl,
         applicantWitnessName: a.applicantWitnessName,
         applicantWitnessNric,

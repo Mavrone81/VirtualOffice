@@ -116,16 +116,106 @@ export function gstNumberMissing(c: { gstRegistered: boolean; gstRegNo?: string 
 }
 
 /**
- * The contact block in the header of the ashes and referral agreements. It is
- * built ONLY from LEGACY_DOCUMENT_DEFAULTS (constants), never from the
- * database: these are contract documents, and a later edit on /admin/company
- * must not change the text of an agreement. Sharing the constants keeps them
- * from drifting from the invoice again. The address has always been printed
- * on agreements without the comma the invoice uses; that is preserved.
+ * The contracting company as printed on the ashes and referral agreements
+ * (header, recital, signature block) when there is no at-signing snapshot.
+ * These literals are what both templates printed before the snapshot existed;
+ * they are deliberately separate from LEGACY_DOCUMENT_DEFAULTS.uen (a different
+ * number, kept as it was). Do not edit them to "correct" a signed document.
  */
-export function agreementContactLine(): string {
+export const AGREEMENT_PARTY_DEFAULTS = {
+  name: "Enshrine Pets Paradise Pte Ltd",
+  uen: "202328981K",
+} as const;
+
+/** invoicePrefix of the Company row that is the contracting party on the agreements. */
+export const AGREEMENT_COMPANY_PREFIX = "EPP";
+
+/**
+ * The company block as it was PRINTED on an agreement at the moment it was
+ * signed (stored in the agreement's own at-signing record, never re-read from
+ * the Company row afterwards). Every field holds the value that was printed,
+ * i.e. field-or-constant already resolved; the one exception is gstRegNo, which
+ * has no constant and is null when unset. The reader below still tolerates a
+ * null/empty field and falls back to the constant, so a partial record cannot
+ * print a blank or a marker.
+ */
+export type AgreementCompanySnapshot = {
+  v: 1;
+  name: string | null;
+  uen: string | null;
+  gstRegNo: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+};
+
+type AgreementCompanySource = Pick<CompanyIdentityRow, "legalName" | "address" | "uen" | "contactEmail" | "phone" | "website"> & { gstRegNo?: string | null };
+
+/**
+ * Capture the company block at the moment of signing. `c` is the live Company
+ * row (null when there is none: the constants are then what gets frozen). Each
+ * value is field -> constant, mirroring what the document would print now.
+ * The registered name is legalName only (never the short display name: a
+ * contract names the registered entity).
+ */
+export function snapshotAgreementCompany(c: AgreementCompanySource | null | undefined): AgreementCompanySnapshot {
   const L = LEGACY_DOCUMENT_DEFAULTS;
-  return `Address: ${L.address.replace(",", "")}   Contact: ${L.phone}   Email: ${L.email}   Website: ${L.website}`;
+  return {
+    v: 1,
+    name: clean(c?.legalName) ?? AGREEMENT_PARTY_DEFAULTS.name,
+    uen: clean(c?.uen) ?? AGREEMENT_PARTY_DEFAULTS.uen,
+    gstRegNo: clean(c?.gstRegNo),
+    address: clean(c?.address) ?? L.address.replace(",", ""),
+    phone: clean(c?.phone) ?? L.phone,
+    email: clean(c?.contactEmail) ?? L.email,
+    website: clean(c?.website) ?? L.website,
+  };
+}
+
+/** Parse a stored at-signing record. Anything that is not a version-1 object reads as "no snapshot" (null). */
+export function readAgreementCompanySnapshot(raw: unknown): AgreementCompanySnapshot | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const o = raw as Record<string, unknown>;
+  if (o.v !== 1) return null;
+  const f = (k: string) => (typeof o[k] === "string" ? clean(o[k] as string) : null);
+  return { v: 1, name: f("name"), uen: f("uen"), gstRegNo: f("gstRegNo"), address: f("address"), phone: f("phone"), email: f("email"), website: f("website") };
+}
+
+export type AgreementCompany = {
+  name: string;
+  uen: string;
+  address: string;
+  contactLine: string;
+};
+
+/**
+ * What an agreement prints for the company: the at-signing snapshot, field by
+ * field, else the constants. With no snapshot (every agreement signed before
+ * snapshots existed) this is EXACTLY the constants the templates printed
+ * before, character for character. It reads no database row.
+ */
+export function resolveAgreementCompany(snap?: AgreementCompanySnapshot | null): AgreementCompany {
+  const L = LEGACY_DOCUMENT_DEFAULTS;
+  const name = clean(snap?.name) ?? AGREEMENT_PARTY_DEFAULTS.name;
+  const uen = clean(snap?.uen) ?? AGREEMENT_PARTY_DEFAULTS.uen;
+  const address = clean(snap?.address) ?? L.address.replace(",", "");
+  const phone = clean(snap?.phone) ?? L.phone;
+  const email = clean(snap?.email) ?? L.email;
+  const website = clean(snap?.website) ?? L.website;
+  return { name, uen, address, contactLine: `Address: ${address}   Contact: ${phone}   Email: ${email}   Website: ${website}` };
+}
+
+/**
+ * The contact block in the header of the ashes and referral agreements. With
+ * no argument it is built ONLY from LEGACY_DOCUMENT_DEFAULTS (constants); given
+ * an at-signing snapshot it prints that instead. It never reads the database:
+ * a later edit on /admin/company must not change a signed contract. The address
+ * has always been printed on agreements without the comma the invoice uses;
+ * that is preserved for the constant.
+ */
+export function agreementContactLine(snap?: AgreementCompanySnapshot | null): string {
+  return resolveAgreementCompany(snap).contactLine;
 }
 
 /** "Tel: ... · Email · Website" - each part: field, else legacy default, else marker. */
