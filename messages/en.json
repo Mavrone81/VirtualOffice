@@ -1196,6 +1196,7 @@
     "Accounts": "Accounts",
     "SalesDirector": "Sales Director",
     "SalesManager": "Sales Manager",
+    "SalesAssistantManager": "Sales Assistant Manager",
     "SalesAssociate": "Sales Associate"
   },
   "sales": {
