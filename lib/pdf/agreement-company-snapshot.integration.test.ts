@@ -156,6 +156,7 @@ describe("snapshot absent: output is the constants, exactly as before (ashes 7 r
     const a = await ashesText(null);
     const b = await ashesText(TERMS);
     const c = await ashesText({ ...TERMS, company: null });
+    expect(a.length).toBeGreaterThan(200); // an empty extraction must not pass as agreement
     expect(b).toEqual(a);
     expect(c).toEqual(a);
     const t = a;
@@ -169,6 +170,9 @@ describe("snapshot absent: output is the constants, exactly as before (ashes 7 r
 
   it("ashes: an unreadable or foreign-version company value reads as no snapshot (3 renders)", async () => {
     const constantsText = await ashesText(null);
+    // Floor first: if pdftotext ever returned "" every comparison below would
+    // pass while measuring nothing.
+    expect(constantsText.length).toBeGreaterThan(200);
     for (const bad of [{ v: 2, name: "X" }, "not an object", [FAKE_V1]]) {
       expect(await ashesText({ ...TERMS, company: bad })).toEqual(constantsText);
     }
@@ -195,9 +199,11 @@ describe("snapshot present but partially empty: unfilled fields print the consta
     expect(t).not.toContain(L.email);
   });
 
-  it("ashes: a fully empty snapshot object prints exactly the constants (byte-identical to no snapshot)", async () => {
+  it("ashes: a fully empty snapshot object prints exactly the constants (identical text to no snapshot)", async () => {
     const empty = { v: 1, name: null, uen: null, gstRegNo: null, address: null, phone: null, email: null, website: null };
-    expect(await ashesText({ ...TERMS, company: empty })).toEqual(await ashesText(null));
+    const constantsText = await ashesText(null);
+    expect(constantsText.length).toBeGreaterThan(200); // "" === "" would pass while measuring nothing
+    expect(await ashesText({ ...TERMS, company: empty })).toEqual(constantsText);
   });
 
   it("referral: same field-by-field fallback, registered name keeps its original capitalised form when it is the constant", async () => {
