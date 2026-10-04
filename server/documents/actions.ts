@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { DocumentType, DocumentAssignment } from "@prisma/client";
+import { Prisma, DocumentType, DocumentAssignment } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -78,8 +78,46 @@ export async function deleteDocument(id: string): Promise<{ ok: boolean; error?:
   const session = await requireAdmin();
   if (!session) return { ok: false, error: t("forbidden") };
   const doc = await prisma.document.findUnique({ where: { id }, select: { fileKey: true } });
-  if (doc?.fileKey) await deleteObject(doc.fileKey);
-  await prisma.document.delete({ where: { id } });
+
+  // INT-5. Order matters, and it is not symmetrical: the row delete can be
+  // REFUSED, the file delete essentially cannot. `documents_superseded_by_fkey`
+  // (documents.superseded_by -> documents.id, ON DELETE RESTRICT) refuses to
+  // delete any row a retired template still points at — which is every current
+  // template row that has ever been replaced. Removing the file first turned
+  // that refusal into a surviving row pointing at a file that is already gone:
+  // the document still lists and still opens in the UI, and fails only at
+  // download, with nothing detecting it afterwards.
+  //
+  // So: commit the DB truth FIRST, then remove the file — the same ordering
+  // rule as deleteMarketingCollection (server/marketing/actions.ts). The
+  // explicit transaction matters here because that FK is DEFERRABLE INITIALLY
+  // DEFERRED: its check runs at COMMIT, not at the DELETE statement, so the
+  // refusal can only be known once the transaction has resolved. Nothing is
+  // destroyed before that point, which makes the refusal retryable.
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.document.delete({ where: { id } });
+    });
+  } catch (e) {
+    // P2003 = FK constraint; P2014 = Prisma's own required-relation refusal.
+    // Any other error rethrows exactly as before — in every case the file is
+    // still untouched, because this runs before the delete below.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && (e.code === "P2003" || e.code === "P2014")) {
+      return { ok: false, error: t("documentStillReferenced") };
+    }
+    throw e;
+  }
+
+  // The row is gone, so nothing references this object any more. If removing it
+  // fails, the file is an orphan: it costs disk and breaks nothing, which is
+  // strictly the better failure than the inverse, so it does not fail the
+  // operation. Logged (tag, id and error class only) so it is not silent —
+  // deleteObject itself already swallows a missing file.
+  if (doc?.fileKey) {
+    await deleteObject(doc.fileKey).catch((e: unknown) => {
+      console.error(`[orphaned-object] document ${id} ${e instanceof Error ? e.name : "error"}`);
+    });
+  }
   await logAudit({ action: "document.deleted", entityType: "Document", entityId: id, actorUserId: session.user.id });
   revalidatePath("/admin/documents");
   revalidatePath("/portal/documents");
