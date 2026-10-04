@@ -201,7 +201,9 @@ describe("snapshot present but partially empty: unfilled fields print the consta
 
   it("ashes: a fully empty snapshot object prints exactly the constants (identical text to no snapshot)", async () => {
     const empty = { v: 1, name: null, uen: null, gstRegNo: null, address: null, phone: null, email: null, website: null };
-    expect(await ashesText({ ...TERMS, company: empty })).toEqual(await ashesText(null));
+    const constantsText = await ashesText(null);
+    expect(constantsText.length).toBeGreaterThan(200); // "" === "" would pass while measuring nothing
+    expect(await ashesText({ ...TERMS, company: empty })).toEqual(constantsText);
   });
 
   it("referral: same field-by-field fallback, registered name keeps its original capitalised form when it is the constant", async () => {
