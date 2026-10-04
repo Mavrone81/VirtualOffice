@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { DB_UNSUFFIXED_TEST_FILES } from "./lib/test-support/db-unsuffixed-test-files";
 
 // Tests read the app's env (lib/env.ts validates the FULL schema at import).
 // Load .env deterministically here, once, before any worker starts, instead of
@@ -32,7 +33,8 @@ export default defineConfig({
     // Validate the environment ONCE here rather than letting lib/env.ts throw separately in
     // every test file. See lib/test-support/env-preflight.ts: the per-file throw turns a deliberate
     // fail-closed into a summary that reads like a partial pass, hiding how many tests never
-    // ran. globalSetup applies to every project below.
+    // ran. Each project below lists its own globalSetup explicitly (rather than relying on
+    // inheriting this one) so there is no ambiguity about which checks run where.
     globalSetup: ["./lib/test-support/env-preflight.ts"],
     // A file that collects 0 tests failed to LOAD; it did not run and report nothing. Vitest
     // prints "(0 test)" per file, but 100+ of those scroll above a total that reads as a few
@@ -58,7 +60,18 @@ export default defineConfig({
           // below): confirmed via `npx vitest list --project <name>` before
           // trusting a green run, since a file matching no glob collects and
           // reports nothing.
-          exclude: ["server/**/*.integration.test.ts", "lib/**/*.integration.test.ts"],
+          //
+          // DB_UNSUFFIXED_TEST_FILES (imported above, from lib/test-support/) is excluded too: those files keep
+          // @/lib/db real (no vi.mock) despite being named `*.test.ts`, not
+          // `*.integration.test.ts` — see that constant's own comment. They run
+          // under the "integration-unsuffixed" project instead, which is the
+          // only one that gets db-preflight's reachability check: a file that
+          // hits the real database but isn't in either of this file's two
+          // integration-named globs would otherwise run under "unit" with no
+          // DB check at all, and fail inside its own beforeAll exactly the way
+          // db-preflight.ts exists to prevent (see that file's comment).
+          exclude: ["server/**/*.integration.test.ts", "lib/**/*.integration.test.ts", ...DB_UNSUFFIXED_TEST_FILES],
+          globalSetup: ["./lib/test-support/env-preflight.ts"],
         },
       },
       {
@@ -80,6 +93,32 @@ export default defineConfig({
           // confusing failure than a test timeout.
           testTimeout: 30_000,
           hookTimeout: 30_000,
+          // lib/test-support/db-preflight.ts: prove Postgres is actually
+          // reachable ONCE, before any file in this project loads, instead of
+          // letting each file's own beforeAll find out — which vitest reports
+          // as every test in that file SKIPPED, not FAILED. See that file's
+          // comment for what was measured without it.
+          globalSetup: ["./lib/test-support/env-preflight.ts", "./lib/test-support/db-preflight.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          // Same database, same preflight, same sequential/30s treatment as "integration" —
+          // the only difference is which files are in scope. These keep @/lib/db real but
+          // are named plain `*.test.ts`, so neither integration glob above ever matched them;
+          // left alone they'd run under "unit" with no DB check and no sequential isolation.
+          // See lib/test-support/db-unsuffixed-test-files.ts for how this list was found,
+          // and lib/test-support/db-mock-naming.test.ts for the permanent check that a
+          // 13th such file can't join silently. Not renamed to
+          // `*.integration.test.ts` in this change — that's a naming-convention call for
+          // the team to make, not bundled into a test-honesty fix.
+          name: "integration-unsuffixed",
+          include: DB_UNSUFFIXED_TEST_FILES,
+          fileParallelism: false,
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
+          globalSetup: ["./lib/test-support/env-preflight.ts", "./lib/test-support/db-preflight.ts"],
         },
       },
     ],
