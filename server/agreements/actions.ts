@@ -16,6 +16,7 @@ import { renderAshesAgreementPdf } from "@/lib/pdf/ashes-agreement";
 import type { AshesPet } from "@/lib/pdf/ashes-agreement";
 import { encryptNric, LooksLikeEncryptedError } from "@/lib/crypto";
 import { ashesTermsSnapshot, isAgreementEditableStatus } from "@/lib/ashes-terms-snapshot";
+import { AGREEMENT_COMPANY_PREFIX, snapshotAgreementCompany } from "@/lib/company-identity";
 
 // ---------------------------------------------------------------------------
 // Storage of Pets Ashes Agreement (consolidated menu, Sep 2026). Pipeline:
@@ -219,7 +220,17 @@ export async function signAshesAgreement(
   // A-17 C2/§4: snapshot the terms this signature covers now, so a later
   // money edit can detect drift against exactly this shape (server/sales/
   // actions.ts's ashesTermsChanged uses the identical function).
-  const signedTerms = ashesTermsSnapshot(sub, sub.lineItems);
+  //
+  // The same record also freezes the company block as printed (name, UEN, GST
+  // number, address, phone, email, website) at THIS moment, so the agreement
+  // keeps showing what the signer saw even after /admin/company is edited.
+  // ashesTermsEqual compares named fields only, so the extra key is invisible
+  // to the drift check.
+  const companyRow = await prisma.company.findUnique({
+    where: { invoicePrefix: AGREEMENT_COMPANY_PREFIX },
+    select: { legalName: true, address: true, uen: true, gstRegNo: true, contactEmail: true, phone: true, website: true },
+  });
+  const signedTerms = { ...ashesTermsSnapshot(sub, sub.lineItems), company: snapshotAgreementCompany(companyRow) };
   // MD B3: amountNumeric/amountWords/paymentPlan/bookingFee/monthlyInstalment
   // are "auto-pushed from the submission" (saveAshesAgreement's own words) —
   // but editSale's void-to-Draft reversion (this same file's caller,

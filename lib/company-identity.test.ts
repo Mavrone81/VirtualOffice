@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  resolveInvoiceUen, resolveGstRegNo, gstNumberMissing, agreementContactLine, contactLine, commonValue, sharedIdentity, cleanCompanyDetails, notSet, LEGACY_DOCUMENT_DEFAULTS,
+  resolveInvoiceUen, resolveGstRegNo, gstNumberMissing, agreementContactLine, snapshotAgreementCompany, readAgreementCompanySnapshot, resolveAgreementCompany, AGREEMENT_PARTY_DEFAULTS, contactLine, commonValue, sharedIdentity, cleanCompanyDetails, notSet, LEGACY_DOCUMENT_DEFAULTS,
   type CompanyIdentityRow,
 } from "./company-identity";
 
@@ -151,5 +151,50 @@ describe("GST registration number", () => {
     expect(l).toContain(LEGACY_DOCUMENT_DEFAULTS.website);
     expect(l).toContain(LEGACY_DOCUMENT_DEFAULTS.phone);
     expect(l).not.toContain(",");
+  });
+});
+
+describe("agreement company snapshot", () => {
+  const full = { legalName: "Example Co Pte Ltd", address: "1 Example Road, Singapore 000001", uen: FAKE_UEN, gstRegNo: "M0-0000001-0", contactEmail: "hello@example.invalid", phone: "0000 0001", website: "www.example.invalid" };
+  const none = { legalName: null, address: null, uen: null, gstRegNo: null, contactEmail: null, phone: null, website: null };
+
+  it("snapshot of a filled row stores every field as printed; the address is kept as typed (1 row examined)", () => {
+    expect(snapshotAgreementCompany(full)).toEqual({ v: 1, name: "Example Co Pte Ltd", uen: FAKE_UEN, gstRegNo: "M0-0000001-0", address: "1 Example Road, Singapore 000001", phone: "0000 0001", email: "hello@example.invalid", website: "www.example.invalid" });
+  });
+
+  it("snapshot of an empty row, a missing row and a whitespace row freezes the constants (3 rows examined)", () => {
+    const L = LEGACY_DOCUMENT_DEFAULTS;
+    const expected = { v: 1, name: AGREEMENT_PARTY_DEFAULTS.name, uen: AGREEMENT_PARTY_DEFAULTS.uen, gstRegNo: null, address: L.address.replace(",", ""), phone: L.phone, email: L.email, website: L.website };
+    expect(snapshotAgreementCompany(none)).toEqual(expected);
+    expect(snapshotAgreementCompany(null)).toEqual(expected);
+    expect(snapshotAgreementCompany({ ...none, legalName: "  ", phone: " " })).toEqual(expected);
+  });
+
+  it("registered name is the legal name only: a short display name is never used (1 row examined)", () => {
+    expect(snapshotAgreementCompany({ ...none, legalName: null }).name).toBe(AGREEMENT_PARTY_DEFAULTS.name);
+  });
+
+  it("no snapshot resolves to exactly the constants the templates printed before, character for character (3 inputs examined)", () => {
+    for (const none_ of [undefined, null, snapshotAgreementCompany(null)]) {
+      const r = resolveAgreementCompany(none_);
+      expect(r.name).toBe("Enshrine Pets Paradise Pte Ltd");
+      expect(r.uen).toBe("202328981K");
+      expect(r.address).toBe("74 Lorong 6 Geylang Singapore 399226");
+      expect(r.contactLine).toBe("Address: 74 Lorong 6 Geylang Singapore 399226   Contact: 9009 9234   Email: contact@enshrine.com.sg   Website: www.enshrine.com.sg");
+      expect(agreementContactLine(none_)).toBe(r.contactLine);
+    }
+    expect(agreementContactLine()).toBe(resolveAgreementCompany().contactLine);
+  });
+
+  it("round-trips through JSON; a foreign version, non-object, array or null reads as no snapshot (6 inputs examined)", () => {
+    const snap = snapshotAgreementCompany(full);
+    expect(readAgreementCompanySnapshot(JSON.parse(JSON.stringify(snap)))).toEqual(snap);
+    for (const bad of [null, undefined, "x", 3, [snap], { ...snap, v: 2 }]) expect(readAgreementCompanySnapshot(bad)).toBeNull();
+  });
+
+  it("non-string or blank fields read as unset and fall back per field (1 record examined)", () => {
+    const r = readAgreementCompanySnapshot({ v: 1, name: 5, uen: "  ", address: "9 Partial Lane", phone: null, email: "p@example.invalid" });
+    expect(r).toEqual({ v: 1, name: null, uen: null, gstRegNo: null, address: "9 Partial Lane", phone: null, email: "p@example.invalid", website: null });
+    expect(resolveAgreementCompany(r).contactLine).toBe(`Address: 9 Partial Lane   Contact: ${LEGACY_DOCUMENT_DEFAULTS.phone}   Email: p@example.invalid   Website: ${LEGACY_DOCUMENT_DEFAULTS.website}`);
   });
 });

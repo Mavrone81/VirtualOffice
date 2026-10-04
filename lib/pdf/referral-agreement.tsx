@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { getObject } from "@/lib/storage";
 import { readNric } from "@/server/pii";
-import { agreementContactLine } from "@/lib/company-identity";
+import { AGREEMENT_PARTY_DEFAULTS, resolveAgreementCompany, type AgreementCompany, type AgreementCompanySnapshot } from "@/lib/company-identity";
 
 // ---------------------------------------------------------------------------
 // Referral & Marketing Partnership Agreement (consolidated menu, Sep 2026).
@@ -47,7 +47,7 @@ const s = StyleSheet.create({
   footerText: { fontSize: 7.5, color: MUTED, fontFamily: "Helvetica-Oblique" },
 });
 
-function Head() {
+function Head({ co }: { co: AgreementCompany }) {
   return (
     <View style={s.head} fixed>
       <View style={s.headRow}>
@@ -55,12 +55,12 @@ function Head() {
           <Text style={s.coName}>ENSHRINE</Text>
         </View>
         <View>
-          <Text style={s.coEntity}>Enshrine Pets Paradise Pte Ltd</Text>
-          <Text style={s.coEntity}>UEN 202328981K</Text>
+          <Text style={s.coEntity}>{co.name}</Text>
+          <Text style={s.coEntity}>{`UEN ${co.uen}`}</Text>
         </View>
       </View>
       <Text style={s.coMeta}>
-        {agreementContactLine()}
+        {co.contactLine}
       </Text>
     </View>
   );
@@ -108,6 +108,12 @@ export type ReferralAgreementData = {
   companySignDesignation: string | null;
   companySignatureDataUrl: string | null;
   companySignedAt: Date | null;
+  /**
+   * Company block captured when the VENDOR signed; null/absent = print the
+   * constants. No caller supplies it yet: the referral row has no column to
+   * hold it between signing and approval (see the change notes).
+   */
+  company?: AgreementCompanySnapshot | null;
 };
 
 const dash = "________________";
@@ -115,10 +121,11 @@ const d = (v: string | null | undefined) => (v && v.trim() ? v : dash);
 const dt = (v: Date | null | undefined) => (v ? format(v, "dd MMMM yyyy") : dash);
 
 function AgreementDoc({ a }: { a: ReferralAgreementData }) {
+  const co = resolveAgreementCompany(a.company);
   return (
     <Document title="Referral & Marketing Partnership Agreement">
       <Page size="A4" style={s.page}>
-        <Head />
+        <Head co={co} />
         <Footer />
         <Text style={s.title}>REFERRAL & MARKETING PARTNERSHIP AGREEMENT</Text>
 
@@ -131,8 +138,8 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
 
         <Text style={s.clauseH}>BETWEEN</Text>
         <P>
-          <Text style={s.fill}>ENSHRINE PETS PARADISE PTE. LTD.  (UEN: 202328981K)</Text> a company incorporated in
-          Singapore with its registered office at <Text style={s.fill}>74 Lorong 6 Geylang Singapore 399226.</Text>{" "}
+          <Text style={s.fill}>{`${co.name === AGREEMENT_PARTY_DEFAULTS.name ? "ENSHRINE PETS PARADISE PTE. LTD." : co.name.toUpperCase()}  (UEN: ${co.uen})`}</Text> a company incorporated in
+          Singapore with its registered office at <Text style={s.fill}>{`${co.address.replace(/\.+$/, "")}.`}</Text>{" "}
           (hereinafter referred to as the “Company”)
         </P>
         <Text style={s.clauseH}>AND</Text>
@@ -247,7 +254,7 @@ function AgreementDoc({ a }: { a: ReferralAgreementData }) {
 
         <View wrap={false}>
         <View style={s.signBlock}>
-          <Text style={s.signTitle}>SIGNED by Enshrine Pets Paradise Pte Ltd</Text>
+          <Text style={s.signTitle}>{`SIGNED by ${co.name}`}</Text>
           <View style={s.signRow}><Text style={s.signLabel}>Name</Text><Text style={s.signValue}>: {d(a.companySignName)}</Text></View>
           <View style={s.signRow}><Text style={s.signLabel}>Designation</Text><Text style={s.signValue}>: {d(a.companySignDesignation)}</Text></View>
           <View style={s.signRow}><Text style={s.signLabel}>Date</Text><Text style={s.signValue}>: {dt(a.companySignedAt)}</Text></View>

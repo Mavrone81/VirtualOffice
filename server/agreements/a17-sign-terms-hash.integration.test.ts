@@ -80,7 +80,9 @@ describe("signAshesAgreement — terms snapshot + PDF hash", () => {
 
     const after = await prisma.petsAshesAgreement.findUniqueOrThrow({ where: { id: before.ashesAgreement!.id } });
     expect(after.status).toBe("Signed");
-    expect(after.signedTerms).toEqual({ saleAmount: "1000.00", paymentPlan: "FullPayment", deposit: null, installmentCount: null, products: [TAG + "ASH"] });
+    // The terms keys are unchanged; the record also carries the company block
+    // frozen at signing (server/agreements/agreement-company-snapshot.integration.test.ts covers its content).
+    expect(after.signedTerms).toEqual({ saleAmount: "1000.00", paymentPlan: "FullPayment", deposit: null, installmentCount: null, products: [TAG + "ASH"], company: expect.objectContaining({ v: 1 }) });
     expect(after.signedPdfSha256).toMatch(/^[0-9a-f]{64}$/);
 
     const stored = await getObject(after.agreementPdfKey!);
