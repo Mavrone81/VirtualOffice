@@ -1151,6 +1151,16 @@ model VendorReferral {
   companySignedById       String?   @map("company_signed_by") @db.Uuid
   agreementPdfKey         String?   @map("agreement_pdf_key")
 
+  // The company block as PRINTED when the VENDOR signed (AgreementCompanySnapshot,
+  // lib/company-identity.ts). It needs a column of its own because the vendor signs
+  // at submission and the Company countersigns at approval, which re-renders and
+  // overwrites the stored PDF — so there has to be somewhere to hold the at-signing
+  // values between those two moments. Taking the snapshot at approval instead would
+  // make the countersigned document differ from the one the vendor actually saw and
+  // signed. Null on every row submitted before this column existed; those render
+  // from the constants, exactly as they did.
+  signedCompany Json? @map("signed_company")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
