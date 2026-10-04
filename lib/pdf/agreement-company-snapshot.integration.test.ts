@@ -67,33 +67,35 @@ const ashesText = async (signedTerms: unknown) => {
   prismaMock.petsAshesAgreement.findUnique.mockResolvedValue(ashesRow(signedTerms));
   return toText((await renderAshesAgreementPdf("a1"))!.buffer);
 };
-const ashesBytes = async (signedTerms: unknown) => {
-  prismaMock.petsAshesAgreement.findUnique.mockResolvedValue(ashesRow(signedTerms));
-  return (await renderAshesAgreementPdf("a1"))!.buffer;
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
   live.row = { ...FAKE_V1 };
-  // react-pdf stamps a creation date into every file; freeze the clock so
-  // "identical bytes" tests the content and not the second it was rendered in.
+  // react-pdf stamps a creation date into every file; freeze the clock so a
+  // render is compared on its content, not the second it happened in.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-03T00:00:00Z"));
 });
 afterEach(() => vi.useRealTimers());
 
 describe("snapshot present, company row edited between two renders (ashes 6 renders, referral 3 renders)", () => {
-  it("ashes: identical BYTES before and after the company row is edited, and the company row is never read", async () => {
+  it("ashes: identical CONTENT before and after the company row is edited, and the company row is never read", async () => {
     const signedTerms = { ...TERMS, company: snapshotAgreementCompany(live.row as CompanyRow) };
-    const first = await ashesBytes(signedTerms);
+    const first = await ashesText(signedTerms);
 
     live.row = { ...FAKE_V2 }; // the owner edits /admin/company after signing
-    const second = await ashesBytes(signedTerms);
-    const third = await ashesBytes(signedTerms);
+    const second = await ashesText(signedTerms);
+    const third = await ashesText(signedTerms);
 
-    expect(first.length).toBeGreaterThan(1000);
-    expect(second.equals(first)).toBe(true);
-    expect(third.equals(first)).toBe(true);
+    // Compared on extracted TEXT, not raw bytes. The renderer is NOT
+    // byte-deterministic: identical input produced 2 distinct byte streams in
+    // 24 renders (measured on a Linux runner at f415de1 — it happens not to
+    // reproduce on every machine, which is exactly why a byte assertion here is
+    // wrong rather than merely flaky). Bytes would assert a property the
+    // renderer does not have; the guarantee this test exists for is that the
+    // CONTENT of a signed agreement cannot move, and that is what is asserted.
+    expect(first.length).toBeGreaterThan(200);
+    expect(second).toEqual(first);
+    expect(third).toEqual(first);
     expect(prismaMock.company.findMany).not.toHaveBeenCalled();
     expect(prismaMock.company.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.company.findFirst).not.toHaveBeenCalled();
@@ -146,14 +148,17 @@ describe("snapshot absent: output is the constants, exactly as before (ashes 7 r
     expect(t).toContain(`SIGNED by ${P.name}`);
   };
 
-  it("ashes with signedTerms null, and with a pre-change signedTerms that has no company key: byte-identical to each other even though the company row holds other values", async () => {
+  it("ashes with signedTerms null, and with a pre-change signedTerms that has no company key: identical content to each other even though the company row holds other values", async () => {
     live.row = { ...FAKE_V2 };
-    const a = await ashesBytes(null);
-    const b = await ashesBytes(TERMS);
-    const c = await ashesBytes({ ...TERMS, company: null });
-    expect(a.equals(b)).toBe(true);
-    expect(a.equals(c)).toBe(true);
-    const t = toText(a);
+    // Content, not bytes — see the note on the immutability test above: the
+    // renderer is not byte-deterministic, so byte equality would assert a
+    // property it does not have.
+    const a = await ashesText(null);
+    const b = await ashesText(TERMS);
+    const c = await ashesText({ ...TERMS, company: null });
+    expect(b).toEqual(a);
+    expect(c).toEqual(a);
+    const t = a;
     expect(t).toContain(agreementContactLine().replace(/\s+/g, " "));
     expect(t).toContain(`UEN ${P.uen}`);
     expect(t).toContain(`${P.name} (hereinafter`);
@@ -163,9 +168,9 @@ describe("snapshot absent: output is the constants, exactly as before (ashes 7 r
   });
 
   it("ashes: an unreadable or foreign-version company value reads as no snapshot (3 renders)", async () => {
-    const constantsBytes = await ashesBytes(null);
+    const constantsText = await ashesText(null);
     for (const bad of [{ v: 2, name: "X" }, "not an object", [FAKE_V1]]) {
-      expect((await ashesBytes({ ...TERMS, company: bad })).equals(constantsBytes)).toBe(true);
+      expect(await ashesText({ ...TERMS, company: bad })).toEqual(constantsText);
     }
   });
 
@@ -192,7 +197,7 @@ describe("snapshot present but partially empty: unfilled fields print the consta
 
   it("ashes: a fully empty snapshot object prints exactly the constants (byte-identical to no snapshot)", async () => {
     const empty = { v: 1, name: null, uen: null, gstRegNo: null, address: null, phone: null, email: null, website: null };
-    expect((await ashesBytes({ ...TERMS, company: empty })).equals(await ashesBytes(null))).toBe(true);
+    expect(await ashesText({ ...TERMS, company: empty })).toEqual(await ashesText(null));
   });
 
   it("referral: same field-by-field fallback, registered name keeps its original capitalised form when it is the constant", async () => {
