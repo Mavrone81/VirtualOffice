@@ -341,7 +341,9 @@
     "targetNotSet": "未设定",
     "saveTarget": "保存",
     "clearTarget": "清除",
-    "targetNote": "此为本团队每位成员的默认目标。成员在团队仪表板上设定的个人目标将覆盖它。"
+    "targetNote": "此为本团队每位成员的默认目标。成员在团队仪表板上设定的个人目标将覆盖它。",
+    "individualTargetsHeading": "个人目标",
+    "individualTargetsNote": "仅针对该顾问本期的目标进行覆盖。清除后将恢复为其所属团队的目标（如有）。"
   },
   "commission": {
     "title": "商佣仪表板",
