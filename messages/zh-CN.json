@@ -975,7 +975,7 @@
     "categoryLabel": "类别",
     "defaultBillingEntityLabel": "默认开票主体",
     "effectiveDateLabel": "生效日期",
-    "externalProductLabel": "外部产品（骨灰龛 / 壁龛 / \"师傅\"）",
+    "externalProductLabel": "外部产品",
     "commissionHeading": "佣金",
     "commissionTypeLabel": "佣金类型",
     "enshrineRetainedLabel": "Enshrine 保留比例 %",
