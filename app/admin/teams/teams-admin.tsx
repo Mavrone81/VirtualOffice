@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { setTeamQuota, clearTeamQuota } from "@/server/quota/team-actions";
+import { setTeamQuota, clearTeamQuota, setIndividualQuota, clearIndividualQuota } from "@/server/quota/team-actions";
 import { sanitizeAmountInput } from "@/lib/numeric";
 import { createTeam, addTeamMember, removeTeamMember, setTeamDirector } from "@/server/teams/actions";
 
-type Assoc = { id: string; name: string; designation: string };
+type Assoc = { id: string; name: string; designation: string; monthlyTarget: string | null; yearlyTarget: string | null };
 type Team = { id: string; name: string; directorId: string | null; memberIds: string[]; monthlyTarget: string | null; yearlyTarget: string | null };
 
 const selectCls = "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -61,6 +61,78 @@ export function TeamsAdmin({ teams, associates, month, year }: { teams: Team[]; 
       ) : (
         teams.map((team) => <TeamCard key={team.id} team={team} associates={associates} nameById={nameById} month={month} year={year} />)
       )}
+
+      <Card className="p-5">
+        <h2 className="font-display text-[17px] text-ink">{t("individualTargetsHeading")}</h2>
+        <p className="mt-1 text-[12px] text-muted">{t("individualTargetsNote")}</p>
+        <div className="mt-4 space-y-4">
+          {associates.length === 0 ? (
+            <p className="text-[13px] text-muted">{t("empty")}</p>
+          ) : (
+            associates.map((a) => (
+              <div key={a.id} className="grid gap-3 border-b border-line pb-4 last:border-0 last:pb-0 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                <span className="text-[13px] text-ink">{a.name}</span>
+                <IndividualTargetEditor associateId={a.id} month={month} label={t("monthlyTarget", { period: month })} current={a.monthlyTarget} />
+                <IndividualTargetEditor associateId={a.id} month={year} label={t("yearlyTarget", { period: year })} current={a.yearlyTarget} />
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function IndividualTargetEditor({ associateId, month, label, current }: {
+  associateId: string; month: string; label: string; current: string | null;
+}) {
+  const t = useTranslations("teams");
+  const router = useRouter();
+  const [value, setValue] = useState(current ?? "");
+  const [err, setErr] = useState<string>();
+  const [pending, start] = useTransition();
+  const dirty = value !== (current ?? "");
+
+  return (
+    <div>
+      <Label htmlFor={`iq-${associateId}-${month}`}>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          id={`iq-${associateId}-${month}`}
+          value={value}
+          onChange={(e) => setValue(sanitizeAmountInput(e.target.value))}
+          inputMode="decimal"
+          placeholder={t("targetNotSet")}
+          className="h-9 w-36"
+        />
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={pending || !dirty || !(parseFloat(value) > 0)}
+          onClick={() => start(async () => {
+            setErr(undefined);
+            const r = await setIndividualQuota({ associateId, month, amount: parseFloat(value) });
+            if (r.ok) router.refresh(); else setErr(r.error);
+          })}
+        >
+          {t("saveTarget")}
+        </Button>
+        {current !== null && (
+          <button
+            type="button"
+            disabled={pending}
+            className="text-[12px] text-muted hover:text-danger"
+            onClick={() => start(async () => {
+              setErr(undefined);
+              const r = await clearIndividualQuota({ associateId, month });
+              if (r.ok) { setValue(""); router.refresh(); } else setErr(r.error);
+            })}
+          >
+            {t("clearTarget")}
+          </button>
+        )}
+      </div>
+      {err && <p className="mt-1 text-[11px] text-danger">{err}</p>}
     </div>
   );
 }

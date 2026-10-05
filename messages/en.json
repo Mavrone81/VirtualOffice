@@ -341,7 +341,9 @@
     "targetNotSet": "Not set",
     "saveTarget": "Save",
     "clearTarget": "Clear",
-    "targetNote": "Default for every member of this team. A member's own target, set on the Team Dashboard, overrides it."
+    "targetNote": "Default for every member of this team. A member's own target, set on the Team Dashboard, overrides it.",
+    "individualTargetsHeading": "Individual targets",
+    "individualTargetsNote": "Overrides the team target for this associate only, for this period. Clearing it returns them to their team's target, if any."
   },
   "commission": {
     "title": "Commission Dashboard",
