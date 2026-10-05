@@ -335,6 +335,24 @@ model Candidate {
   convertedAssociateId   String?         @map("converted_associate_id") @db.Uuid
   convertedAssociate     Associate?      @relation("CandidateConverted", fields: [convertedAssociateId], references: [id])
 
+  // The associate code allocated to this candidate at SIGNING, so it exists in
+  // time to be printed into the agreement (the signed PDF is never modified
+  // afterwards, so it cannot be stamped on later).
+  //
+  // 🔴 @unique IS LOAD-BEARING, NOT DEFENSIVE. nextAssociateCode is a
+  // read-then-compute with no lock, so concurrent callers do propose the same
+  // number; what prevented a duplicate before was Associate.associateCode's own
+  // unique index, which rejected the loser loudly and harmlessly, before any
+  // document existed. Allocating earlier moves that burden here. Without this
+  // constraint two candidates could both reserve EN0005, both sign immutable
+  // PDFs printing EN0005, and the clash would surface only at approval — after
+  // two unalterable signed contracts already carried the same number.
+  //
+  // Nullable, and NULL is excluded from uniqueness by Postgres, so any number of
+  // candidates may hold no reservation at once: pre-existing rows, invited rows
+  // that never submitted, and rejected rows all keep NULL without colliding.
+  reservedAssociateCode  String?         @unique @map("reserved_associate_code")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

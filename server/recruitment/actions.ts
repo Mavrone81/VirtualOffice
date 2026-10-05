@@ -19,6 +19,7 @@ import { assertUpload } from "@/lib/file-type";
 import { humanize } from "@/lib/labels";
 import { renderAgreementPdf, formatUplineOrNA, wouldTruncate } from "@/lib/pdf/agreement";
 import { MASTER_TEMPLATE_VERSION, MASTER_TEMPLATE_SHA256 } from "@/lib/pdf/associate-agreement-coordinates";
+import { nextAssociateCode, reserveAssociateCodeForCandidate } from "@/lib/associate-code";
 import { sendMail, onboardingInviteEmail, approvalEmail } from "@/lib/mail";
 import { logAudit, auditTx, AuditWriteError } from "@/lib/audit";
 import { maskedPayee } from "@/server/associates/payee-audit";
@@ -93,63 +94,6 @@ const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
 };
 
 
-const SEQ_PREFIX = "EN";
-const SEQ_RE = /^EN\d+$/;
-
-/** Next code in the `EN####` sequence.
- *
- *  🔴 `associateCode` is a free-text `@unique` column with NO format constraint, so
- *  an unscoped `orderBy: { associateCode: "desc" }` returns whatever sorts highest
- *  LEXICOGRAPHICALLY — any code above "EN…" wins. The previous implementation then
- *  stripped non-digits from that code with `replace(/\D/g, "")`, so a single row
- *  like "MYCOM-A1" yielded "1", returned EN0002, and collided with an existing
- *  associate on the unique index. Observed live: EN0102 was the real high-water
- *  mark while this returned EN0002, and every approval failed.
- *
- *  This is an AVAILABILITY defect, not a test-fixture problem: nothing stops a
- *  non-"EN" code existing in production — a manual entry, an import, a second
- *  company prefix — and the first one that sorts above the sequence breaks
- *  associate creation until a human diagnoses a unique-constraint error pointing
- *  at the wrong thing.
- *
- *  So: scope the query to the sequence's own prefix, and because `startsWith`
- *  narrows but cannot enforce the SHAPE ("ENX-1" still sorts in), take the highest
- *  row that matches the sequence exactly. The numeric part is read by `slice` past
- *  the prefix rather than by stripping non-digits, so a malformed code can never
- *  contribute digits to the result. */
-async function nextAssociateCode(): Promise<string> {
-  // No `orderBy` and no `take`. A FORMAT SCOPE IS NOT AN ORDERING: these are two
-  // separate properties and the sequence needs both.
-  //
-  // 🔴 `orderBy: { associateCode: "desc" }` is TEXT order, so "EN10000" sorts BELOW
-  // "EN9999" ('1' < '9' at the third character). Once EN10000 exists the text
-  // maximum is stuck at EN9999 forever, this proposes EN10000 on every call, and
-  // every associate creation from the 10,000th onward fails on the unique index —
-  // permanently, with no self-correction. Harmless at ten rows, free to prevent
-  // now, and expensive to discover at ten thousand.
-  //
-  // Prisma cannot order by a computed expression, so the numeric maximum is taken
-  // in application code over the sequence's own rows. The payload is one short
-  // column; at any plausible associate count that is negligible, and the real
-  // long-term answer is a dedicated sequence rather than a counter derived from a
-  // display column.
-  const rows = await prisma.associate.findMany({
-    where: { associateCode: { startsWith: SEQ_PREFIX } },
-    select: { associateCode: true },
-  });
-  const numbers = rows
-    .filter((r) => SEQ_RE.test(r.associateCode))
-    .map((r) => parseInt(r.associateCode.slice(SEQ_PREFIX.length), 10));
-  // Rows exist under the prefix but none is a valid sequence code: the sequence
-  // cannot be derived. Fail loudly rather than restart from 1 and collide.
-  if (rows.length > 0 && numbers.length === 0) {
-    throw new Error(
-      `nextAssociateCode: ${rows.length} ${SEQ_PREFIX}-prefixed codes exist but none match ${SEQ_RE}; cannot derive the next code`,
-    );
-  }
-  const n = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
-  return `${SEQ_PREFIX}${String(n).padStart(4, "0")}`;
-}
 
 // ---------------------------------------------------------------------------
 // Invite (admin AND manager/director — one action) — creates a candidate + unique onboarding link
@@ -452,6 +396,20 @@ export async function submitOnboarding(
         select: { fullName: true, associateCode: true, directUpline: { select: { fullName: true, associateCode: true } } },
       })
     : null;
+  // 🔴 Reserve the associate code BEFORE rendering, and render from the value
+  // the database now holds. The owner's ruling moved allocation earlier
+  // precisely so the ID exists in time to be printed: the signed PDF is never
+  // modified after signing, so a number that arrives at approval can never be
+  // added to it. Reserving first (rather than computing a number and writing it
+  // alongside the PDF) is what keeps the document and the record in agreement —
+  // the code is committed and arbitrated by its unique index before a single
+  // byte of the agreement is rendered, so there is no window in which a
+  // rendered PDF could print a number the row does not hold.
+  //
+  // Idempotent per candidate, so a double submit cannot allocate twice: see
+  // reserveAssociateCodeForCandidate.
+  const reservedAssociateCode = await reserveAssociateCodeForCandidate(c.id);
+
   const agreementPdf = await renderAgreementPdf({
     fullName: c.fullName,
     designation: humanize(c.intendedDesignation ?? "Sales Associate"),
@@ -483,9 +441,15 @@ export async function submitOnboarding(
     emergencyAddress: s.emergencyContactAddress?.trim() || null,
     // Scoped exception (owner ruling): "NA" here means a KNOWN absence
     // (this associate genuinely has no upline at this tier) — never used
-    // for a field that's merely uncollected. Associate ID is deliberately
-    // NOT passed: the signed PDF is never modified after signing, and
-    // nextAssociateCode() doesn't exist until approveCandidate runs anyway.
+    // for a field that's merely uncollected.
+    //
+    // Associate ID: now printed, from the code reserved above. It used to be
+    // withheld because the number did not exist until approveCandidate ran and
+    // the signed PDF cannot be modified afterwards; the owner's ruling removed
+    // the first half of that, and the second half is why it must be passed HERE
+    // rather than stamped on later. approveCandidate consumes this same
+    // reserved code, so the document and the associate record cannot disagree.
+    associateId: reservedAssociateCode,
     tier1Manager: formatUplineOrNA(upline),
     tier2Manager: formatUplineOrNA(upline?.directUpline),
     companySignatoryName: companySignatory?.signatoryName ?? null,
@@ -573,7 +537,15 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     ? await prisma.associate.findUnique({ where: { id: c.intendedDirectUplineId } })
     : null;
 
-  const code = await nextAssociateCode();
+  // 🔴 CONSUME the code reserved at signing; never allocate a second one. The
+  // agreement already prints the reserved number and is immutable, so a fresh
+  // nextAssociateCode() here would leave the document saying one number and the
+  // associate record another — worse than the blank box this replaced.
+  //
+  // The fallback covers rows that predate the reservation column: they signed
+  // with an empty official-use box, so there is no number on their document to
+  // contradict, and allocation at approval remains correct for them.
+  const code = c.reservedAssociateCode ?? (await nextAssociateCode());
   // #29: the login gets no password anyone knows — a random value is hashed
   // in and immediately discarded (see below). Entry is by set-password link
   // only, same single-use hashed-token mechanism server/account/actions.ts

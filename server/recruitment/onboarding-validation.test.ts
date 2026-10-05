@@ -8,9 +8,17 @@ const { prismaMock, putObjectMock, rateLimitMock } = vi.hoisted(() => {
       candidate: {
         findUnique: vi.fn(),
         update: throwOnTouch("Candidate write"),
+        // Reserving the associate code (lib/associate-code.ts) is a conditional
+        // write that DOES happen on the valid path, before the agreement is
+        // rendered — so unlike `update` above it must not throw-on-touch. The
+        // invalid-input cases never reach it, because validation rejects first;
+        // the assertion that they allocate nothing is below.
+        updateMany: vi.fn(async () => ({ count: 1 })),
+        findMany: vi.fn(async () => []),
       },
       associate: {
         findUnique: vi.fn(),
+        findMany: vi.fn(async () => []),
       },
       companySignatory: {
         findUnique: vi.fn(),
@@ -81,6 +89,11 @@ describe("submitOnboarding validation", () => {
     expect(r).toEqual({ ok: false, error: "invalidInput" });
     expect(prismaMock.candidate.update).not.toHaveBeenCalled();
     expect(putObjectMock).not.toHaveBeenCalled();
+    // And no associate code is allocated. Codes are reserved at signing now, so
+    // a rejected submission that still burned a number would leave a permanent
+    // gap in the sequence for input that was never accepted. Gaps are tolerated
+    // for abandoned candidates, not manufactured by validation failures.
+    expect(prismaMock.candidate.updateMany).not.toHaveBeenCalled();
   });
 
   it("does not reject cleared optional fields sent as empty strings (form clears to '', not undefined)", async () => {

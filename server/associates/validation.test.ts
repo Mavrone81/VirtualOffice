@@ -4,6 +4,9 @@ const { authMock, prismaMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
     associate: { findFirst: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: "a-new", ...data })) },
+    // The associate-code sequence now also reads reserved candidate codes
+    // (lib/associate-code.ts): none reserved in these fixtures.
+    candidate: { findMany: vi.fn(async () => []) },
   },
 }));
 
