@@ -16,12 +16,21 @@ function esc(v: string): string {
 }
 
 export function buildVCard(c: CardContact): string {
+  // The owner: a card (and the vCard a client saves from it) should show the
+  // name they trade under when they have one, their legal name otherwise —
+  // not both. Same substitution the visible card makes
+  // (components/name-card/studio.tsx's englishName), applied once here so
+  // every call site stays consistent with no per-site logic.
+  const displayName = c.businessName || c.fullName;
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
-    `FN:${esc(c.fullName)}`,
-    `N:${esc(c.fullName)};;;;`,
-    `ORG:${esc(c.businessName ? `Enshrine · ${c.businessName}` : "Enshrine")}`,
+    `FN:${esc(displayName)}`,
+    `N:${esc(displayName)};;;;`,
+    // businessName now holds a PERSON's trading name, not a company — it must
+    // never appear as this vCard's ORG, or a client who scans the QR would
+    // read it as the person's organisation. Unconditional, no interpolation.
+    "ORG:Enshrine",
   ];
   if (c.title) lines.push(`TITLE:${esc(c.title)}`);
   if (c.mobile) lines.push(`TEL;TYPE=CELL:${esc(c.mobile)}`);
