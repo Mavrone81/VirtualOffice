@@ -1196,6 +1196,7 @@
     "Accounts": "财务",
     "SalesDirector": "销售总监",
     "SalesManager": "销售经理",
+    "SalesAssistantManager": "助理销售经理",
     "SalesAssociate": "销售专员"
   },
   "sales": {
