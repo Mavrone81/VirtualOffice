@@ -4,6 +4,7 @@ const { authMock, prismaMock, downlineMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
     associate: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), create: vi.fn() },
+    candidate: { findMany: vi.fn() },
   },
   downlineMock: vi.fn(),
 }));
@@ -45,6 +46,9 @@ beforeEach(() => {
   prismaMock.associate.findMany.mockImplementation(async (args: never) => applyQuery(args));
   prismaMock.associate.findFirst.mockImplementation(async (args: never) => applyQuery(args)[0] ?? null);
   prismaMock.associate.create.mockResolvedValue({});
+  // The sequence now draws its high-water mark from reserved candidate codes too;
+  // default to none reserved, so the existing cases keep their original meaning.
+  prismaMock.candidate.findMany.mockResolvedValue([]);
   downlineMock.mockResolvedValue([]);
 });
 
@@ -90,9 +94,38 @@ describe("associate code sequence is derived only from the EN sequence", () => {
     expect(code).not.toBe("EN10000");
   });
 
+  // 🔴 FINDING-3 REGRESSION. Codes are now reserved on a Candidate at signing and
+  // printed into an immutable agreement before any Associate row exists. This path
+  // (admin creates an associate directly, no candidate involved) used to read ONLY
+  // the associate table, so it would hand out a number already printed on a signed
+  // contract. The high-water mark must span both sources.
+  it("does not reissue a code already RESERVED on a candidate, even though no associate holds it yet", async () => {
+    prismaMock.associate.findMany.mockResolvedValue([{ associateCode: "EN0007" }]);
+    prismaMock.candidate.findMany.mockResolvedValue([
+      { reservedAssociateCode: "EN0008" },
+      { reservedAssociateCode: "EN0009" }, // the real high-water mark lives here, not on an associate
+    ]);
+
+    await createAssociate({ fullName: "Admin Created", designation: "SalesAssociate" });
+
+    const code = prismaMock.associate.create.mock.calls[0][0].data.associateCode;
+    expect(code).toBe("EN0010");
+    // What reading only the associate table produced: a number already stamped
+    // into a signed agreement that nothing could then alter.
+    expect(code).not.toBe("EN0008");
+  });
+
+  it("asks the database for reserved candidate codes under the same prefix scope", async () => {
+    await createAssociate({ fullName: "Scope Check", designation: "SalesAssociate" });
+    expect(prismaMock.candidate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { reservedAssociateCode: { startsWith: "EN" } } }),
+    );
+  });
+
   it("starts at EN0001 when no sequence codes exist at all", async () => {
     prismaMock.associate.findMany.mockResolvedValue([]);
     prismaMock.associate.findFirst.mockResolvedValue(null);
+    prismaMock.candidate.findMany.mockResolvedValue([]);
     await createAssociate({ fullName: "First Person", designation: "SalesAssociate" });
     expect(prismaMock.associate.create.mock.calls[0][0].data.associateCode).toBe("EN0001");
   });

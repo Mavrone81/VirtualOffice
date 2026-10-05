@@ -105,6 +105,13 @@ const OFFICIAL_USE_LEFT_PAD = 6;
 // most dark pixel of "Tier", which has no descender, at 300dpi): Tier 1
 // label baseline 738.48pt, Tier 2 label baseline 756.48pt (both top-left,
 // page-relative — same space as AGREEMENT_FIELD_BOXES).
+// The official-use rows sit on an 18pt pitch and each value ALIGNS TO ITS OWN
+// LABEL's baseline, not to the row's divider rule (see the correction note in
+// associate-agreement-coordinates.ts): 720.48, 738.48, 756.48. The associate-ID
+// row is the first of the three, so its label baseline is one pitch above
+// tier 1's. Verified on a real render, not assumed: the stamped text is asserted
+// to land inside associateIdOfficial's own measured box.
+const ASSOCIATE_ID_OFFICIAL_LABEL_BASELINE = 720.48;
 const TIER1_OFFICIAL_LABEL_BASELINE = 738.48;
 const TIER2_OFFICIAL_LABEL_BASELINE = 756.48;
 // signatureName/signatureNric have NO drawn rule at all (AGREEMENT_FIELD_RULE_Y
@@ -552,12 +559,20 @@ export async function renderAgreementPdf(a: AgreementData): Promise<Buffer> {
   stampField(pageOf(AGREEMENT_FIELD_BOXES.emergencyContactAddress.page), font, AGREEMENT_FIELD_BOXES.emergencyContactAddress, a.emergencyAddress, ruleOpts("emergencyContactAddress"));
   stampField(pageOf(AGREEMENT_FIELD_BOXES.emergencyContactNumber.page), font, AGREEMENT_FIELD_BOXES.emergencyContactNumber, a.emergencyContact, ruleOpts("emergencyContactNumber"));
 
-  // ---- Page 7: For Official Use. Associate ID is deliberately NEVER
-  // stamped, on any call — owner ruling: the signed PDF is never
-  // modified after signing, and the code doesn't exist until approval runs
-  // (nextAssociateCode() is called inside approveCandidate). No caller
-  // should be passing a.associateId here; there is no branch that reads it
-  // at all, so a caller that does pass one has no effect on the signed copy.
+  // ---- Page 7: For Official Use.
+  //
+  // Associate ID is now stamped. It was withheld for two reasons, and only one
+  // of them has changed: the code did not exist until approveCandidate ran
+  // (the owner has ruled that it is allocated earlier, at signing, so it now
+  // does), and the signed PDF is never modified after signing (unchanged, and
+  // the reason this has to be stamped on the ORIGINAL render rather than added
+  // to a signed document later). An absent value still renders nothing, so a
+  // caller with no code — a preview, or a candidate row predating the
+  // reservation column — leaves the box blank exactly as before.
+  stampField(
+    pageOf(AGREEMENT_FIELD_BOXES.associateIdOfficial.page), font, AGREEMENT_FIELD_BOXES.associateIdOfficial, a.associateId ?? null,
+    { leftPad: OFFICIAL_USE_LEFT_PAD, baselineFromTop: ASSOCIATE_ID_OFFICIAL_LABEL_BASELINE },
+  );
   stampField(
     pageOf(AGREEMENT_FIELD_BOXES.tier1ManagerOfficial.page), font, AGREEMENT_FIELD_BOXES.tier1ManagerOfficial, a.tier1Manager,
     { leftPad: OFFICIAL_USE_LEFT_PAD, baselineFromTop: TIER1_OFFICIAL_LABEL_BASELINE },

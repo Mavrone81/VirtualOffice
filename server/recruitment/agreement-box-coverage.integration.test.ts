@@ -37,8 +37,8 @@ function mkTempDir(prefix: string): string {
 
 const { prismaMock, putObjectMock, getObjectMock, rateLimitMock } = vi.hoisted(() => ({
   prismaMock: {
-    candidate: { findUnique: vi.fn(), update: vi.fn() },
-    associate: { findUnique: vi.fn() },
+    candidate: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
+    associate: { findUnique: vi.fn(), findMany: vi.fn() },
     companySignatory: { findUnique: vi.fn() },
   },
   putObjectMock: vi.fn(),
@@ -271,13 +271,12 @@ const CHECKBOX_INK_THRESHOLD = 0.05; // clears the 0% (undrawn) / measured 32.6%
 // and their stated end condition). They're covered below by a dedicated
 // fill/blank pair test, not an allow-list entry.
 //
-// One exemption category remains, an already-decided ruling, never queued:
-//
-// NEVER_STAMPED_BY_DESIGN (1 entry):
-//   - associateIdOfficial: deliberately never stamped, on any call —
-//     the project owner's ruling that the signed PDF is never modified
-//     after signing (lib/pdf/agreement.ts:441-446). No producer, and
-//     permanently so — this is closed, not open.
+// NEVER_STAMPED_BY_DESIGN is now EMPTY. Its single entry, associateIdOfficial,
+// gained a producer when the owner ruled that the associate code is allocated at
+// signing instead of at approval: submitOnboarding reserves it and passes it to
+// the render, so the box is censused like any other text box. The immutability
+// rule that justified the exemption still holds and is why the ID is stamped on
+// the original render rather than added to a signed document afterwards.
 //
 // MUTUALLY-EXCLUSIVE MARK PAIRS (4 boxes, own category — "non-empty value"
 // doesn't apply to a vector mark, and only one member of each pair can ever
@@ -307,11 +306,13 @@ const CHECKBOX_INK_THRESHOLD = 0.05; // clears the 0% (undrawn) / measured 32.6%
 // harness not yet proven against the real render.
 // ---------------------------------------------------------------------------
 
-const NEVER_STAMPED_BY_DESIGN: Record<string, string> = {
-  associateIdOfficial:
-    "Deliberately never stamped on any call, per the owner's ruling that the signed PDF is never modified after signing " +
-    "(lib/pdf/agreement.ts:441-446). Permanent — not an open question, not queued anywhere.",
-};
+// Now EMPTY. associateIdOfficial used to live here; the owner's ruling to allocate
+// the associate code at signing gave it a real producer (submitOnboarding reserves
+// the code and passes it to renderAgreementPdf), so it is censused like any other
+// text box below rather than exempted. The immutability rule it was justified by is
+// unchanged — that is precisely why the ID is stamped on the ORIGINAL render and
+// never added to an already-signed document.
+const NEVER_STAMPED_BY_DESIGN: Record<string, string> = {};
 
 const MUTUALLY_EXCLUSIVE_PAIRS: { active: string; inactive: string; note: string }[] = [
   { active: "commencementOnCheckbox", inactive: "commencementImmediateCheckbox", note: "commencementDate is set in this fixture" },
@@ -325,8 +326,16 @@ const IMAGE_FIELDS = new Set(["signatureImage", "companySignatureImage"]);
 beforeEach(() => {
   vi.clearAllMocks();
   rateLimitMock.checkRateLimit.mockResolvedValue({ allowed: true });
+  // The reservation path (lib/associate-code.ts) runs inside submitOnboarding now.
+  // These mocks model the real protocol rather than returning a fixed string:
+  // no code reserved yet, no codes issued anywhere, so the sequence starts at
+  // EN0001 and the conditional write succeeds.
+  prismaMock.associate.findMany.mockResolvedValue([]);
+  prismaMock.candidate.findMany.mockResolvedValue([]);
+  prismaMock.candidate.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.candidate.findUnique.mockResolvedValue({
     id: "cand-1",
+    reservedAssociateCode: null,
     onboardingStage: "Invited",
     photoFileKey: null,
     signedAgreementFileKey: null,
@@ -423,7 +432,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     // Built-in control: the census reports how many boxes it checked, per the
     // standing "a tool must report how many inputs it consumed" rule.
     console.log(`agreement-box-coverage: ${total} total boxes, ${categorized.length} exempt/categorized, ${expectedTextCount} expected non-empty`);
-    expect(expectedTextCount).toBe(27); // pre-registered count, cross-check only — the per-entry assertions below are the real test (was 26 before CR-0001; CR-0001 adds companySignatureImage to IMAGE_FIELDS and companySignatoryName as a new non-exempt text field, net +1)
+    expect(expectedTextCount).toBe(28); // pre-registered count, cross-check only — the per-entry assertions below are the real test (was 26 before CR-0001, 27 after; associateIdOfficial leaving NEVER_STAMPED_BY_DESIGN makes it 28)
   });
 
   test("every non-exempt text box receives real, non-empty text from the real producer path", async () => {
@@ -439,7 +448,7 @@ describe("associate agreement — every coordinate box has a producer (or a reas
     }
     // Built-in control: input count.
     console.log(`agreement-box-coverage: checked ${checked.length} text boxes for non-empty content`);
-    expect(checked.length).toBe(27); // built-in control: a census over the wrong subject set reports 0 failures for the wrong reason (was 26 before CR-0001, see the PRE-REGISTRATION test above)
+    expect(checked.length).toBe(28); // built-in control: a census over the wrong subject set reports 0 failures for the wrong reason (was 27 before the associate-ID change, see the PRE-REGISTRATION test above)
     expect(failures).toEqual([]);
   });
 

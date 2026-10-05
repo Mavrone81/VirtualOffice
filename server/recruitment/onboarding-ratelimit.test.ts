@@ -6,9 +6,14 @@ const { prismaMock, putObjectMock, rateLimitMock } = vi.hoisted(() => {
       candidate: {
         findUnique: vi.fn(),
         update: vi.fn(),
+        // The associate code is reserved at signing (lib/associate-code.ts):
+        // one scoped read for the high-water mark, one conditional write.
+        findMany: vi.fn(async () => []),
+        updateMany: vi.fn(async () => ({ count: 1 })),
       },
       associate: {
         findUnique: vi.fn(),
+        findMany: vi.fn(async () => []),
       },
       companySignatory: {
         findUnique: vi.fn(),

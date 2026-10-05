@@ -477,20 +477,28 @@ describe("renderAgreementPdf — For Official Use: Tier 1/2 NA and Associate ID"
     expect(textInBoxRow(pdf, AGREEMENT_FIELD_BOXES.religion)).toBe("");
   });
 
-  test("the signed PDF is never modified after signing — Associate ID is NEVER stamped, even when the type carries one", async () => {
-    // A ruling is not enforced by anything unless something asserts it
-    // (AD). Keyed to the rule, not the person who made it — a test name
-    // surfaces in CI output and survives the person moving on; attribution:
-    // the owner's ruling of 2026-09-28, recorded in the team's decision log.
-    // associateId is a real AgreementData field (kept for a possible
-    // future administrative copy) but renderAgreementPdf must never read it
-    // for the SIGNED copy — nextAssociateCode() doesn't exist until
-    // approveCandidate runs anyway. Proved by passing one and asserting
-    // nothing renders in that box, so a future contributor filling in "the
-    // last blank box on a form" gets a red test, not a silently-changed
-    // legal document.
-    const pdf = await renderAgreementPdf({ ...BASE, associateId: "EN9999" });
-    expect(textInBoxRow(pdf, AGREEMENT_FIELD_BOXES.associateIdOfficial)).toBe("");
+  test("Associate ID is stamped in the official-use box when one is supplied, and the box stays blank when none is", async () => {
+    // A ruling is not enforced by anything unless something asserts it.
+    // Keyed to the rule, not the person who made it — a test name surfaces in
+    // CI output and survives the person moving on.
+    //
+    // This test previously asserted the opposite: that associateId was NEVER
+    // stamped. Two reasons were given, and only one has changed. The code did
+    // not exist until approveCandidate ran — the owner has now ruled that it is
+    // allocated at signing, so it does. The signed PDF is never modified after
+    // signing — UNCHANGED, and precisely why the ID must be stamped on this,
+    // the original render, and never added to an already-signed document. The
+    // immutability rule is not weakened by this test flipping; it is the reason
+    // the value has to arrive here or not at all.
+    const withId = await renderAgreementPdf({ ...BASE, associateId: "EN9999" });
+    expect(textInBoxRow(withId, AGREEMENT_FIELD_BOXES.associateIdOfficial)).toBe("EN9999");
+
+    // The differential half: absent still renders nothing, so a preview or a
+    // candidate row predating the reservation column leaves the box blank
+    // exactly as before. Without this, a renderer that printed a constant in
+    // that box would pass the assertion above.
+    const withoutId = await renderAgreementPdf({ ...BASE, associateId: null });
+    expect(textInBoxRow(withoutId, AGREEMENT_FIELD_BOXES.associateIdOfficial)).toBe("");
   });
 });
 
