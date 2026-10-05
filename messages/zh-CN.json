@@ -964,6 +964,10 @@
     "externalRetains": "外部 — Enshrine 保留",
     "bulkToProvider": "余额转至供应商",
     "toggleActive": "切换状态",
+    "deleteProduct": "删除产品",
+    "deleteProductQuestion": "确定永久删除 {code} · {name}？",
+    "deleteProductWarning": "此操作无法撤销。有任何销售记录的产品无法删除 —— 请改用「启用/停用」开关将其停用。",
+    "deleteProductConfirm": "永久删除",
     "noComCodes": "暂无加项编号",
     "addComCode": "+ 加项编号",
     "codePlaceholder": "编号",
@@ -1571,7 +1575,12 @@
     "companyDetailsGstRegNoInvalid": "消费税（GST）注册号为 8 至 15 位字母、数字或连字符。",
     "companyDetailsEmailInvalid": "请输入有效的邮箱地址。",
     "companyDetailsTooLong": "其中一项内容过长。",
-    "documentStillReferenced": "无法删除此文件——仍有其他记录引用它（例如同一模板的较新版本已取代它）。未删除任何内容。"
+    "documentStillReferenced": "无法删除此文件——仍有其他记录引用它（例如同一模板的较新版本已取代它）。未删除任何内容。",
+    "productDeleteBlockedBySale": "无法删除此产品 —— 已有销售记录使用其佣金版本。请改用「启用/停用」开关将其停用。未删除任何内容。",
+    "productDeleteBlockedByUpgradeSale": "无法删除此产品 —— 已有销售记录将其列为升级前的产品。请改用「启用/停用」开关将其停用。未删除任何内容。",
+    "productDeleteBlockedByUpgradeChild": "无法删除此产品 —— 另有产品登记为由其升级而来。请改用「启用/停用」开关将其停用。未删除任何内容。",
+    "productDeleteBlockedByProductCode": "无法删除此产品 —— 已有销售记录使用其产品代码。请改用「启用/停用」开关将其停用。未删除任何内容。",
+    "productDeleteConflict": "此产品未被删除 —— 同一时刻有销售记录写入。未删除任何内容；请重新加载页面后再试。"
   },
   "nameCard": {
     "front": "正面",

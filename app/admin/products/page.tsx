@@ -12,7 +12,7 @@ import { formatSGD, formatPercent, formatByValueType } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ActiveToggle, EditProductLink, ComCodeManager, RequiredDocumentsManager, AshesAgreementToggle } from "./product-controls";
+import { ActiveToggle, EditProductLink, ComCodeManager, RequiredDocumentsManager, AshesAgreementToggle, DeleteProductButton } from "./product-controls";
 
 export const metadata = { title: "Products & commission · Enshrine Admin" };
 
@@ -110,6 +110,22 @@ export default async function ProductsPage() {
                 productId={p.id}
                 requiredDocuments={p.requiredDocuments as { key: string; label_en: string; label_zh: string }[]}
               />
+            )}
+
+            {/* Delete lives in the card footer, behind a rule and right-aligned, so it
+                reads as a separate and heavier action than the Active pill up beside
+                the product code. The two are not alternatives in the UI's grammar:
+                deactivating is the everyday action, deleting is only ever possible for
+                a product with no history at all. */}
+            {canManage && (
+              <div className="mt-4 flex justify-end border-t border-line-200 pt-3">
+                <DeleteProductButton
+                  productId={p.id}
+                  productCode={p.productCode}
+                  productName={p.productName}
+                  canManage={canManage}
+                />
+              </div>
             )}
           </Card>
         ))}

@@ -613,3 +613,150 @@ export async function setProductAshesAgreementFlag(productId: string, requiresAs
   revalidatePath("/admin/products");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Hard delete, allowed ONLY for a product with no history of any kind.
+//
+// 🔴 The owner's ruling is the whole point of this feature: "Delete cannot work
+// if product is sold it can only be deactivated." The refusal is the feature,
+// not an edge case — so none of the four conditions below may be loosened to
+// make delete succeed more often. If a product has history, the answer is the
+// Active toggle (setProductActive above), which is a separate control and stays.
+//
+// 🔴 This is a HARD delete and it must stay one. Product.archivedAt exists and is
+// READ as a filter in four places (app/admin/products/page.tsx,
+// app/admin/commission/page.tsx, server/products/portal-catalogue.ts,
+// server/products/sales-wizard-products.ts) but is WRITTEN by nothing in the
+// codebase. Setting it here instead of deleting would make the product vanish
+// from every list and look like a working delete, while the row — and its
+// productCode, which @@unique([productCode, effectiveDate]) still reserves —
+// stayed behind. That is a worse outcome than either deleting or refusing.
+//
+// WHY A SALE DOES NOT NEED THE PRODUCT ROW, and where the real risk is:
+// SaleLineItem has no productId and no Product relation. It stores productCode
+// and productName as its own text, so a sale's record is self-contained and
+// deleting a product does not corrupt it. The danger runs the other way.
+//
+// 🔴 THREE OF THE FOUR CONDITIONS GUARD AGAINST SILENT DAMAGE, NOT AGAINST AN
+// ERROR. Read the delete rules off the database rather than assuming RESTRICT —
+// only ONE of these refuses anything:
+//     com_codes_product_id_fkey                     RESTRICT
+//     commission_structure_versions_product_id_fkey SET NULL
+//     products_parent_product_id_fkey               SET NULL
+//     sale_line_items_structure_version_id_fkey     SET NULL
+//     (upgrade_parent_product_id)                   no FK at all
+// So without these counts Postgres would not complain, it would quietly rewrite
+// history: (b)'s uuid left dangling with no constraint to catch it, (c)'s child
+// product keeping its row while parentProductId is blanked — the upgrade
+// relationship destroyed with no error raised anywhere — and (a)'s line item
+// keeping its row while structureVersionId is blanked, severing the sale from the
+// rate snapshot it was actually priced with. Every one of those leaves row counts
+// unchanged, which is exactly why the tests assert the LINKS and not just counts.
+type ProductDeleteBlock =
+  | "productDeleteBlockedBySale"
+  | "productDeleteBlockedByUpgradeSale"
+  | "productDeleteBlockedByUpgradeChild"
+  | "productDeleteBlockedByProductCode";
+
+export async function deleteProduct(productId: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+
+  let outcome: { ok: true } | { ok: false; key: ProductDeleteBlock | "notFound" };
+  try {
+    outcome = await prisma.$transaction(
+      async (db): Promise<{ ok: true } | { ok: false; key: ProductDeleteBlock | "notFound" }> => {
+        const product = await db.product.findUnique({
+          where: { id: productId },
+          select: { productCode: true, productName: true },
+        });
+        if (!product) return { ok: false, key: "notFound" };
+
+        // (a) A line item pointing at one of THIS product's commission versions.
+        // Counted FIRST on purpose: the version cleanup further down is only safe
+        // once we know no line item references any of those rows.
+        if (await db.saleLineItem.count({ where: { structureVersion: { productId } } })) {
+          return { ok: false, key: "productDeleteBlockedBySale" };
+        }
+        // (b) The unconstrained uuid. No FK exists, so this count is the only guard.
+        if (await db.saleLineItem.count({ where: { upgradeParentProductId: productId } })) {
+          return { ok: false, key: "productDeleteBlockedByUpgradeSale" };
+        }
+        // (c) Another product names this one as its upgrade parent (ProductUpgrade).
+        if (await db.product.count({ where: { parentProductId: productId } })) {
+          return { ok: false, key: "productDeleteBlockedByUpgradeChild" };
+        }
+        // (d) The backstop, and NOT redundant with (a): structureVersionId is
+        // NULLABLE, so a line item without one slips past (a) entirely and a
+        // productCode match is the only link left. Deliberately conservative —
+        // because @@unique([productCode, effectiveDate]) lets one code have many
+        // product rows, this can refuse a brand-new version of a long-sold code.
+        // That cost is accepted: refusing a deletable product is recoverable,
+        // deleting a product with history is not.
+        if (await db.saleLineItem.count({ where: { productCode: product.productCode } })) {
+          return { ok: false, key: "productDeleteBlockedByProductCode" };
+        }
+
+        // Its com codes are its own: Comcode.productId is NOT NULL and nothing
+        // else references them, so they go with the product.
+        await db.comcode.deleteMany({ where: { productId } });
+        // Its commission versions are NOT solely its own — SaleLineItem.
+        // structureVersionId is a real FK into them and the model declares
+        // `lineItems SaleLineItem[]`, so sales history points straight at these
+        // rows. (a) has already established that none are referenced; the
+        // `lineItems: { none: {} }` scope restates that as a condition of the
+        // delete, so a referenced row could never be removed even if (a) were
+        // ever weakened. Scoped by productId, never productCode: a sibling
+        // product sharing the code has its own versions and must keep them.
+        await db.commissionStructureVersion.deleteMany({ where: { productId, lineItems: { none: {} } } });
+        await db.product.delete({ where: { id: productId } });
+        await auditTx(db, {
+          action: "product.deleted",
+          entityType: "Product",
+          entityId: productId,
+          actorUserId: admin.user.id,
+          before: { productCode: product.productCode, productName: product.productName },
+        });
+        return { ok: true };
+      },
+      // 🔴 Serializable, not the default Read Committed, and this was MEASURED
+      // rather than assumed. The requirement is that a product which passes "never
+      // sold" and is then sold a moment later must not be deleted. Two concurrent
+      // transactions were run against a real database — this delete, and a sale
+      // committing in between the counts and the delete:
+      //
+      //   read committed : delete COMMITTED, product gone, line item left dangling
+      //   serializable   : delete ABORTED (40001/P2034), product still there
+      //
+      // The repo's usual race idiom, `SELECT ... FOR UPDATE`
+      // (server/payouts/actions.ts), cannot help here: there is no existing row to
+      // lock, the conflict is with a row that does not exist yet.
+      //
+      // WHAT MAKES IT WORK, and therefore its limit: SSI aborts on a CYCLE, not on
+      // a single read-write conflict. This transaction reads sale_line_items and
+      // writes products; a real sale reads the product (it needs the code and the
+      // rates) and writes sale_line_items — the two together close the cycle, so
+      // Postgres has to abort one of them. A writer that inserted a line item
+      // pointing at this product WITHOUT ever reading the product row would form no
+      // cycle and would NOT be caught; verified, and it is why the counts above are
+      // the primary guard and this is the backstop, not the reverse. No such writer
+      // exists in the app today, and an FK on upgrade_parent_product_id would be the
+      // real fix for one that did.
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch (e) {
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    // P2034 = serialization failure, P2028 = transaction timeout. Both mean the
+    // delete did not happen and retrying is safe — the same reading these codes
+    // get in server/payouts/actions.ts. Nothing was destroyed.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && ["P2028", "P2034"].includes(e.code)) {
+      return { ok: false, error: t("productDeleteConflict") };
+    }
+    throw e;
+  }
+  if (!outcome.ok) return { ok: false, error: t(outcome.key) };
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/commission");
+  return { ok: true };
+}

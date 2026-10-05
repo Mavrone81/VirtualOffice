@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { setProductActive, addComCode, toggleComCode, addProductRequiredDocument, removeProductRequiredDocument, setProductAshesAgreementFlag } from "@/server/products/actions";
+import { setProductActive, addComCode, toggleComCode, addProductRequiredDocument, removeProductRequiredDocument, setProductAshesAgreementFlag, deleteProduct } from "@/server/products/actions";
+import { Button } from "@/components/ui/button";
+import { Banner } from "@/components/ui/banner";
 import { bilingualLabel } from "@/lib/labels";
 
 export function ActiveToggle({ id, active }: { id: string; active: boolean }) {
@@ -182,5 +184,85 @@ export function AshesAgreementToggle({ productId, requiresAshesAgreement }: { pr
     >
       {pending ? "…" : requiresAshesAgreement ? t("ashesAgreementOn") : t("ashesAgreementOff")}
     </button>
+  );
+}
+
+// Hard delete, and deliberately NOT shaped like the ActiveToggle above.
+//
+// The owner's model is two-step — "Delete cannot work if product is sold it can
+// only be deactivated" — so these are two different controls with two different
+// outcomes, and this one must not read as another state pill. ActiveToggle is a
+// small inline pill next to the product code; this is a danger-toned text action
+// in the card's footer that expands into a confirmation panel naming the product.
+//
+// No window.confirm(): that is the marketing library's pattern, not the admin
+// area's. This follows the inline "expand, then confirm" panel used by
+// app/admin/sales/verify/reject-button.tsx (Button variant="danger" + Banner for
+// the server's refusal), so a refusal is readable prose in the page rather than
+// a browser dialog that has already closed.
+//
+// The server's refusal is RETURNED, not thrown, and it names which history blocks
+// the delete and points at the Active toggle — so it is shown verbatim here
+// instead of being replaced with a generic failure message.
+export function DeleteProductButton({
+  productId,
+  productCode,
+  productName,
+  canManage,
+}: {
+  productId: string;
+  productCode: string;
+  productName: string;
+  canManage: boolean;
+}) {
+  const t = useTranslations("products");
+  const tc = useTranslations("common");
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState<string>();
+
+  // Courtesy gate only, matching EditProductLink: a user the action would reject
+  // never sees the control. requireAdmin() in the action is what enforces it.
+  if (!canManage) return null;
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setOpen(true); setErr(undefined); }}
+        className="text-[12px] text-muted hover:text-danger hover:underline"
+      >
+        {t("deleteProduct")}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-danger/20 bg-danger-50 p-3 text-[12px]">
+      <div className="font-medium text-ink">{t("deleteProductQuestion", { code: productCode, name: productName })}</div>
+      <div className="text-muted">{t("deleteProductWarning")}</div>
+      {err && <Banner tone="danger">{err}</Banner>}
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="danger"
+          disabled={pending}
+          onClick={() =>
+            start(async () => {
+              const r = await deleteProduct(productId);
+              // On success the row is gone, so the panel goes with it on refresh.
+              if (r.ok) { setOpen(false); router.refresh(); }
+              else setErr(r.error ?? t("deleteProduct"));
+            })
+          }
+        >
+          {pending ? "…" : t("deleteProductConfirm")}
+        </Button>
+        <button type="button" className="text-muted hover:underline" onClick={() => { setOpen(false); setErr(undefined); }}>
+          {tc("cancel")}
+        </button>
+      </div>
+    </div>
   );
 }
