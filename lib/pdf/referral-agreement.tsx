@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { getObject } from "@/lib/storage";
 import { readNric } from "@/server/pii";
-import { AGREEMENT_PARTY_DEFAULTS, resolveAgreementCompany, type AgreementCompany, type AgreementCompanySnapshot } from "@/lib/company-identity";
+import { AGREEMENT_PARTY_DEFAULTS, readAgreementCompanySnapshot, resolveAgreementCompany, type AgreementCompany, type AgreementCompanySnapshot } from "@/lib/company-identity";
 
 // ---------------------------------------------------------------------------
 // Referral & Marketing Partnership Agreement (consolidated menu, Sep 2026).
@@ -121,7 +121,16 @@ const d = (v: string | null | undefined) => (v && v.trim() ? v : dash);
 const dt = (v: Date | null | undefined) => (v ? format(v, "dd MMMM yyyy") : dash);
 
 function AgreementDoc({ a }: { a: ReferralAgreementData }) {
-  const co = resolveAgreementCompany(a.company);
+  // Validate here too, not only where the snapshot is read out of the database.
+  // resolveAgreementCompany ignores the version marker and calls .trim() on
+  // whatever it is given, so an object of the right shape but the wrong version
+  // would print as the contracting party, and a non-string field would throw
+  // TypeError mid-render. Both were unreachable while no caller supplied a
+  // snapshot; submitReferralPartnership now does, and this function is exported
+  // (renderReferralAgreementPdfFromData) for callers that may not validate.
+  // readAgreementCompanySnapshot is idempotent on an already-valid snapshot, so
+  // this changes nothing for correct input.
+  const co = resolveAgreementCompany(readAgreementCompanySnapshot(a.company));
   return (
     <Document title="Referral & Marketing Partnership Agreement">
       <Page size="A4" style={s.page}>
@@ -319,6 +328,14 @@ export async function renderReferralAgreementPdf(vendorReferralId: string): Prom
         companySignDesignation: v.companySignDesignation,
         companySignatureDataUrl: await toDataUrl(v.companySignatureKey),
         companySignedAt: v.companySignedAt,
+        // 🔴 READ BACK the block frozen when the VENDOR signed — never a fresh
+        // snapshot here. This runs at approval, after the countersignature, and
+        // re-snapshotting would print whatever /admin/company says now, so the
+        // countersigned document would stop matching the one the vendor signed.
+        // Null (every row submitted before the column existed) resolves to the
+        // same constants this template printed before, so those rows are
+        // unchanged. No Company row is read on this path at all.
+        company: readAgreementCompanySnapshot(v.signedCompany),
       }}
     />,
   );

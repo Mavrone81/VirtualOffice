@@ -12,6 +12,7 @@ import { putObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { encryptNric, LooksLikeEncryptedError } from "@/lib/crypto";
 import { renderReferralAgreementPdfFromData } from "@/lib/pdf/referral-agreement";
+import { AGREEMENT_COMPANY_PREFIX, snapshotAgreementCompany } from "@/lib/company-identity";
 
 const MAX_BYTES = 15_000_000;
 
@@ -131,6 +132,22 @@ export async function submitReferralPartnership(
   const signatureKey = `vendors/${id}/vendor-signature.png`;
   await putObject(signatureKey, Buffer.from(signatureBytes));
 
+  // 🔴 Freeze the company block HERE, at the moment the vendor signs — read the
+  // live Company row once, before the render, and use the same frozen values for
+  // both the PDF the vendor receives and the column that outlives this request.
+  //
+  // This is the only correct moment. The vendor signs in person at submission;
+  // an admin countersigns at approval, which re-renders from the stored row and
+  // OVERWRITES this PDF. A snapshot taken at approval would therefore print
+  // whatever /admin/company happened to say later, and the countersigned
+  // document would no longer match the one the vendor read and signed. Approval
+  // reads this column back (renderReferralAgreementPdf) and never re-snapshots.
+  const companyRow = await prisma.company.findUnique({
+    where: { invoicePrefix: AGREEMENT_COMPANY_PREFIX },
+    select: { legalName: true, address: true, uen: true, gstRegNo: true, contactEmail: true, phone: true, website: true },
+  });
+  const signedCompany = snapshotAgreementCompany(companyRow);
+
   // Vendor-signed agreement PDF, rendered at submission (the Company
   // countersigns at approval, which re-renders the final document).
   const pdf = await renderReferralAgreementPdfFromData({
@@ -147,6 +164,7 @@ export async function submitReferralPartnership(
     companySignDesignation: null,
     companySignatureDataUrl: null,
     companySignedAt: null,
+    company: signedCompany,
   });
   const pdfKey = `vendors/${id}/agreement.pdf`;
   await putObject(pdfKey, pdf);
@@ -169,6 +187,9 @@ export async function submitReferralPartnership(
       vendorSignerDesignation: input.vendorSignerDesignation?.trim() || null,
       vendorSignatureKey: signatureKey,
       agreementPdfKey: pdfKey,
+      // The SAME object that was just rendered above — not a second snapshot,
+      // which could differ if the company row changed mid-request.
+      signedCompany,
     },
   });
   await logAudit({ action: "referral.submitted", entityType: "VendorReferral", entityId: vendor.id });
