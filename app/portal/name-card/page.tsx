@@ -32,7 +32,7 @@ export default async function NameCardPage() {
       <PageHeader title={tNav("nameCard")} subtitle={tCard("subtitle")} />
       <NameCardStudio
         editable
-        data={{ chineseName: card?.chineseName ?? "", englishName: me.fullName, title, hp: me.mobileNumber, email: me.email, qrDataUrl: qr }}
+        data={{ chineseName: card?.chineseName ?? "", englishName: me.businessName || me.fullName, title, hp: me.mobileNumber, email: me.email, qrDataUrl: qr }}
       />
     </>
   );

@@ -277,7 +277,7 @@ export default async function AdminAssociateDetailPage({ params }: { params: Pro
             editable
             canEditTitle
             lastEditedBy={lastEditedBy}
-            data={{ chineseName: card?.chineseName ?? "", englishName: a.fullName, title: cardTitle, hp: a.mobileNumber, email: a.email, qrDataUrl: cardQr }}
+            data={{ chineseName: card?.chineseName ?? "", englishName: a.businessName || a.fullName, title: cardTitle, hp: a.mobileNumber, email: a.email, qrDataUrl: cardQr }}
           />
         </Card>
       )}
