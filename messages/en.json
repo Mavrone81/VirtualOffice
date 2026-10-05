@@ -1567,7 +1567,8 @@
     "companyDetailsPaynowUenInvalid": "A PayNow UEN is 9 or 10 letters and digits.",
     "companyDetailsGstRegNoInvalid": "A GST registration number is 8 to 15 letters, digits or hyphens.",
     "companyDetailsEmailInvalid": "Enter a valid email address.",
-    "companyDetailsTooLong": "One of the values is too long."
+    "companyDetailsTooLong": "One of the values is too long.",
+    "documentStillReferenced": "This document can't be deleted — another record still refers to it (for example, a newer version of the same template replaced it). Nothing was deleted."
   },
   "nameCard": {
     "front": "Front",

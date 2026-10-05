@@ -1567,7 +1567,8 @@
     "companyDetailsPaynowUenInvalid": "PayNow UEN 为 9 或 10 位字母及数字。",
     "companyDetailsGstRegNoInvalid": "消费税（GST）注册号为 8 至 15 位字母、数字或连字符。",
     "companyDetailsEmailInvalid": "请输入有效的邮箱地址。",
-    "companyDetailsTooLong": "其中一项内容过长。"
+    "companyDetailsTooLong": "其中一项内容过长。",
+    "documentStillReferenced": "无法删除此文件——仍有其他记录引用它（例如同一模板的较新版本已取代它）。未删除任何内容。"
   },
   "nameCard": {
     "front": "正面",
