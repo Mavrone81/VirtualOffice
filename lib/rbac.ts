@@ -77,6 +77,32 @@ export const roleLabel: Record<AppRole, string> = {
 };
 
 /**
+ * ITEM 7 (downline lookup). THE single choke point for who may look up WHOSE
+ * downline — used for both halves of that feature, which are two separate
+ * authorisation decisions on one rule, not one:
+ *   (a) the search box — which names it may even return (returning a name
+ *       the viewer may not open is itself a disclosure: who exists, their
+ *       code, their designation — even before any click-through refusal);
+ *   (b) the subject query — whose rows the resulting table may show.
+ * Call this ONCE per request and use its result for both; never re-derive
+ * the same condition at either call site.
+ *
+ * Admin/Accounts: `null`, meaning UNRESTRICTED — deliberately not an array,
+ * so a caller can never mistake "no limit" for "empty" (`[].includes(x)` is
+ * always false, which would make an admin's lookup refuse everything).
+ * Every other role: their OWN downline (self-inclusive, via {@link
+ * downlineIds}) — a director sees their own team only, never a peer
+ * director's, by the owner's explicit ruling. A subject id a caller got from
+ * a query parameter must be checked against this before it is trusted for
+ * anything; "admin sees everyone" widens what this returns, it does not
+ * remove the check at either call site.
+ */
+export async function downlineLookupScope(viewer: { id: string; role: AppRole }): Promise<string[] | null> {
+  if (isAdminRole(viewer.role)) return null;
+  return downlineIds(viewer.id);
+}
+
+/**
  * Recursive downline closure: the associate plus all recursive descendants by
  * `direct_upline_id` (archived excluded). Used for SD/SM scoping (PRD §5).
  */

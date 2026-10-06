@@ -1386,7 +1386,22 @@
       "setQuota": "Set",
       "save": "Save",
       "colYearTarget": "Target (this year)",
-      "teamTargetTag": "team"
+      "teamTargetTag": "team",
+      "downlineLookupTitle": "Downline Lookup",
+      "downlineLookupSubtitle": "Look up any individual's downline, scoped to what you're allowed to see.",
+      "searchPlaceholder": "Search by code, name, email or business name",
+      "searchBtn": "Search",
+      "noMatches": "No matches in your scope.",
+      "subjectNotFound": "No matching record.",
+      "thisMonth": "This month",
+      "thisYear": "This year",
+      "colLevel": "Level",
+      "colClosed": "Closed",
+      "colPending": "Pending",
+      "colRejected": "Rejected",
+      "colTarget": "Target",
+      "subjectTag": "SUBJECT",
+      "dashHint": "A dash means no target is set for this period — not a target of zero."
     },
     "search": {
       "all": "All",
