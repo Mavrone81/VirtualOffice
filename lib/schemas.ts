@@ -371,7 +371,13 @@ export type InviteCandidateSchemaInput = z.infer<typeof inviteCandidateSchema>;
 // form never prefills the encrypted values, so an empty field means "unchanged".
 export const updateAssociateSchema = newAssociateSchema
   .omit({ directUplineCode: true, secondUplineCode: true })
-  .extend({ joinDate: dateStr.optional() });
+  // email is MANDATORY on create and OPTIONAL here on purpose. The create path is
+  // where the login gets provisioned from, so an associate must not be born
+  // without one. An EDIT is a different question: every associate on file already
+  // has an address, the form's other identity fields are keep-if-blank here, and
+  // making a rename or a bank-detail change fail because an unrelated field was
+  // not re-sent would be a new failure mode in exchange for nothing.
+  .extend({ email: z.string().trim().email().max(200).optional(), joinDate: dateStr.optional() });
 export type UpdateAssociateSchemaInput = z.infer<typeof updateAssociateSchema>;
 
 // ---------------------------------------------------------------------------
