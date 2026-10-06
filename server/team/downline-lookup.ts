@@ -23,7 +23,7 @@ function periodRange(period: Period, now: Date): { start: Date; end: Date } {
  * whatever a click-through would later refuse.
  */
 export async function searchDownlineCandidates(
-  viewer: { id: string; role: AppRole },
+  viewer: { associateId: string; role: AppRole },
   query: string,
 ): Promise<{ id: string; associateCode: string; fullName: string; designation: string }[]> {
   const q = query.trim();
@@ -74,6 +74,23 @@ function assignLevels(rootId: string, members: { id: string; directUplineId: str
   return levels;
 }
 
+/**
+ * There are two booking paths, and they mark a closed sale in DIFFERENT
+ * fields: verifySale (flow=ClosedDeal) sets status=Verified and never
+ * touches closedAt; closeSale (flow=Legacy) sets closedAt and never touches
+ * status. A predicate keyed on status alone reads every closed Legacy row
+ * as still pending. closedAt wins when both could apply (defensive only —
+ * the "already processed" guards elsewhere mean a row is never both
+ * Rejected and closedAt-set in practice).
+ */
+export function isClosedSubmission(s: { status: SubmissionStatus; closedAt: Date | null }): boolean {
+  return s.closedAt !== null || s.status === SubmissionStatus.Verified;
+}
+/** Never true for a row {@link isClosedSubmission} already counted, and never true once rejected. */
+export function isPendingSubmission(s: { status: SubmissionStatus; closedAt: Date | null }): boolean {
+  return !isClosedSubmission(s) && s.status !== SubmissionStatus.Rejected;
+}
+
 export type DownlineLookupRow = {
   id: string; associateCode: string; fullName: string; designation: string; level: number;
   uplineCode: string | null; closed: string; pending: string; rejected: string; commission: string;
@@ -92,7 +109,7 @@ export type DownlineLookupResult = {
  * — the one disclosure this function must not make is which one happened.
  */
 export async function getDownlineLookup(
-  viewer: { id: string; role: AppRole },
+  viewer: { associateId: string; role: AppRole },
   subjectId: string,
   period: Period,
   now: Date = new Date(),
@@ -112,7 +129,7 @@ export async function getDownlineLookup(
 
   const [members, submissions, ledgerRows, targets] = await Promise.all([
     prisma.associate.findMany({ where: { id: { in: downlineOnly } }, select: { id: true, associateCode: true, fullName: true, designation: true, directUplineId: true, associateStatus: true }, orderBy: { associateCode: "asc" } }),
-    prisma.salesSubmission.findMany({ where: { closingAssociateId: { in: allIds }, salesDate: { gte: start, lt: end } }, select: { closingAssociateId: true, saleAmount: true, status: true } }),
+    prisma.salesSubmission.findMany({ where: { closingAssociateId: { in: allIds }, salesDate: { gte: start, lt: end } }, select: { closingAssociateId: true, saleAmount: true, status: true, closedAt: true } }),
     prisma.commissionLedger.findMany({ where: { associateId: { in: allIds } }, select: { associateId: true, amount: true, payoutMonth: true } }),
     resolveTargetsFor(allIds, now),
   ]);
@@ -125,8 +142,8 @@ export async function getDownlineLookup(
 
   function moneyFor(id: string) {
     const subs = submissions.filter((s) => s.closingAssociateId === id);
-    const closed = sum(subs.filter((s) => s.status === SubmissionStatus.Verified).map((s) => s.saleAmount));
-    const pending = sum(subs.filter((s) => s.status === SubmissionStatus.Submitted || s.status === SubmissionStatus.QuotationApproved).map((s) => s.saleAmount));
+    const closed = sum(subs.filter(isClosedSubmission).map((s) => s.saleAmount));
+    const pending = sum(subs.filter(isPendingSubmission).map((s) => s.saleAmount));
     const rejected = sum(subs.filter((s) => s.status === SubmissionStatus.Rejected).map((s) => s.saleAmount));
     const commission = sum(ledgerInPeriod.filter((l) => l.associateId === id).map((l) => l.amount));
     const t = period === "month" ? targets.get(id)?.month : targets.get(id)?.year;
