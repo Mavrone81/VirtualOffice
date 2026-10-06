@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { ApprovalStatus, AssociateStatus, Designation, PaymentMethod, AppRole } from "@prisma/client";
+import { Prisma, ApprovalStatus, AssociateStatus, Designation, PaymentMethod, AppRole } from "@prisma/client";
 import { hash } from "@node-rs/argon2";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -486,5 +486,221 @@ export async function uploadOfflineSignedAgreement(associateId: string, file: Fi
 
   revalidatePath("/admin/associates");
   revalidatePath("/portal/pfile");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Archive / delete ("Delete associate after deactivated")
+//
+// Two distinct operations, not one — an admin reaching for "remove this
+// person" should land on archive; delete is the separate, narrow path.
+//
+// ARCHIVE is the normal path: sets archivedAt (same shape as
+// archiveMarketingCollection in server/marketing/actions.ts — a toggle, not a
+// one-way action) on an Inactive associate. Every existing `archivedAt: null`
+// read filter (lib/rbac.ts downlineIds/directRecruits, server/sales/actions.ts,
+// server/recruitment/team-dashboard.ts, and six admin/portal page queries)
+// then excludes them automatically — nothing about those filters changes here;
+// this is the first code path that ever writes a non-null value for them to
+// react to. History (ledger lines, submissions, transactions, payouts) is
+// untouched and reversible by archiving false.
+//
+// HARD DELETE is the narrow path, for an associate that has never been used.
+// Refused unless the associate is Inactive AND none of a specific list of
+// relations are non-empty. Every count below runs INSIDE the same transaction
+// as the delete, not before it — an associate that passes the check and
+// acquires history a moment later must not be deleted.
+// ---------------------------------------------------------------------------
+
+/** Carries which specific condition blocked a delete, with its count, so the
+ *  caller returns a named reason ("has 3 associates reporting to them") rather
+ *  than a generic failure. Thrown inside the transaction, caught outside it. */
+class AssociateInUse extends Error {
+  constructor(
+    public readonly reasonKey: string,
+    public readonly count: number,
+  ) {
+    super(`associate in use: ${reasonKey} (${count})`);
+  }
+}
+
+/**
+ * Archive (or restore) an associate. Archiving requires Inactive — the
+ * owner's deactivate-first rule applies to BOTH operations below, not only
+ * delete. Restoring (archived=false) has no precondition, same as the
+ * marketing toggle this mirrors.
+ */
+export async function archiveAssociate(id: string, archived: boolean): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+  const actor = admin.user.id;
+
+  try {
+    await prisma.$transaction(async (db) => {
+      const existing = await db.associate.findUnique({ where: { id }, select: { associateStatus: true, archivedAt: true } });
+      if (!existing) throw new AssociateInUse("notFound", 0);
+      if (archived && existing.associateStatus !== AssociateStatus.Inactive) {
+        throw new AssociateInUse("notInactive", 0);
+      }
+      await db.associate.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
+      await auditTx(db, {
+        action: archived ? "associate.archived" : "associate.unarchived",
+        entityType: "Associate",
+        entityId: id,
+        actorUserId: actor,
+        before: { archivedAt: existing.archivedAt },
+        after: { archivedAt: archived ? "set" : null },
+      });
+    });
+  } catch (e) {
+    if (e instanceof AssociateInUse) {
+      if (e.reasonKey === "notFound") return { ok: false, error: t("notFound") };
+      return { ok: false, error: t("associateNotInactive") };
+    }
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    throw e;
+  }
+  revalidatePath("/admin/associates");
+  revalidatePath(`/admin/associates/${id}`);
+  revalidatePath("/admin/teams");
+  return { ok: true };
+}
+
+/**
+ * Permanently remove an associate that has never been used. Refuses unless
+ * ALL hold: Inactive, zero sales/commission/payout/voucher/quotation/vendor
+ * history, zero assigned-or-owned documents, zero downline (either tier), not
+ * an intended upline on any candidate, and not a converted-from-candidate
+ * record. Every count runs inside the same transaction as the delete.
+ *
+ * Also defensively clears (never deletes) Candidate.invitedById/reviewedById
+ * where they point at this associate's own user account — not part of the
+ * owner's blocking-condition list, added because leaving them would hit an
+ * FK constraint on the user delete below for an edge case the spec doesn't
+ * name (an Inactive associate whose account invited/reviewed candidates
+ * while previously Active). Flagged in the delivery report, not silently
+ * folded in as if it were asked for.
+ *
+ * Does NOT rely on a schema-level cascade — every deletion below is explicit,
+ * in FK-safe order, inside one transaction with the blocking-condition counts.
+ */
+export async function deleteAssociate(id: string): Promise<{ ok: boolean; error?: string }> {
+  const t = await getTranslations("errors");
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("forbidden") };
+  const actor = admin.user.id;
+
+  try {
+    await prisma.$transaction(async (db) => {
+      const a = await db.associate.findUnique({
+        where: { id },
+        select: { associateCode: true, fullName: true, associateStatus: true, user: { select: { id: true } } },
+      });
+      if (!a) throw new AssociateInUse("notFound", 0);
+      if (a.associateStatus !== AssociateStatus.Inactive) throw new AssociateInUse("notInactive", 0);
+
+      const [
+        submissions,
+        transactions,
+        ledgerLines,
+        payouts,
+        vouchers,
+        quotations,
+        vendorReferrals,
+        ownedDocs,
+        assignedDocs,
+        directDownline,
+        secondDownline,
+        intendedUpline,
+        convertedFrom,
+      ] = await Promise.all([
+        db.salesSubmission.count({ where: { closingAssociateId: id } }),
+        db.salesTransaction.count({ where: { closingAssociateId: id } }),
+        db.commissionLedger.count({ where: { associateId: id } }),
+        db.monthlyPayout.count({ where: { associateId: id } }),
+        db.paymentVoucher.count({ where: { associateId: id } }),
+        db.quotation.count({ where: { associateId: id } }),
+        db.vendorReferral.count({ where: { submittedByAssociateId: id } }),
+        db.document.count({ where: { ownerAssociateId: id } }),
+        db.document.count({ where: { assignedAssociateId: id } }),
+        db.associate.count({ where: { directUplineId: id } }),
+        db.associate.count({ where: { secondUplineId: id } }),
+        db.candidate.count({ where: { intendedDirectUplineId: id } }),
+        db.candidate.count({ where: { convertedAssociateId: id } }),
+      ]);
+
+      const salesHistory = submissions + transactions;
+      if (salesHistory > 0) throw new AssociateInUse("salesHistory", salesHistory);
+      if (ledgerLines > 0) throw new AssociateInUse("commissionHistory", ledgerLines);
+      if (payouts > 0) throw new AssociateInUse("payoutHistory", payouts);
+      if (vouchers > 0) throw new AssociateInUse("paymentVouchers", vouchers);
+      if (quotations > 0) throw new AssociateInUse("quotations", quotations);
+      if (vendorReferrals > 0) throw new AssociateInUse("vendorReferrals", vendorReferrals);
+      const documents = ownedDocs + assignedDocs;
+      if (documents > 0) throw new AssociateInUse("documents", documents);
+      const downline = directDownline + secondDownline;
+      if (downline > 0) throw new AssociateInUse("downline", downline);
+      if (intendedUpline > 0) throw new AssociateInUse("intendedUpline", intendedUpline);
+      if (convertedFrom > 0) throw new AssociateInUse("convertedFromCandidate", convertedFrom);
+
+      // Never used — safe to remove. FK-safe order: documents before their
+      // parent row, the user's own records before the user, the user before
+      // the associate (associate.user is optional so order here doesn't
+      // strictly require it, but keeping it last matches "the associate row
+      // is the final truth" in every other action in this file).
+      const userId = a.user?.id ?? null;
+      if (userId) {
+        await db.pFileDocument.deleteMany({ where: { pFile: { userId } } });
+        await db.pFile.deleteMany({ where: { userId } });
+        await db.nameCard.deleteMany({ where: { userId } });
+        await db.noticeRead.deleteMany({ where: { userId } });
+        // Defensive, not part of the owner's spec — see function doc comment.
+        await db.candidate.updateMany({ where: { invitedById: userId }, data: { invitedById: null } });
+        await db.candidate.updateMany({ where: { reviewedById: userId }, data: { reviewedById: null } });
+      }
+      await db.salesQuota.deleteMany({ where: { associateId: id } });
+      await db.teamMember.deleteMany({ where: { associateId: id } });
+      if (userId) await db.user.delete({ where: { id: userId } });
+      await db.associate.delete({ where: { id } });
+
+      await auditTx(db, {
+        action: "associate.deleted",
+        entityType: "Associate",
+        entityId: id,
+        actorUserId: actor,
+        before: { associateCode: a.associateCode, fullName: a.fullName },
+      });
+    });
+  } catch (e) {
+    if (e instanceof AssociateInUse) {
+      switch (e.reasonKey) {
+        case "notFound": return { ok: false, error: t("notFound") };
+        case "notInactive": return { ok: false, error: t("associateNotInactive") };
+        case "salesHistory": return { ok: false, error: t("associateHasSalesHistory", { count: e.count }) };
+        case "commissionHistory": return { ok: false, error: t("associateHasCommissionHistory", { count: e.count }) };
+        case "payoutHistory": return { ok: false, error: t("associateHasPayoutHistory", { count: e.count }) };
+        case "paymentVouchers": return { ok: false, error: t("associateHasPaymentVouchers", { count: e.count }) };
+        case "quotations": return { ok: false, error: t("associateHasQuotations", { count: e.count }) };
+        case "vendorReferrals": return { ok: false, error: t("associateHasVendorReferrals", { count: e.count }) };
+        case "documents": return { ok: false, error: t("associateHasDocuments", { count: e.count }) };
+        case "downline": return { ok: false, error: t("associateHasDownline", { count: e.count }) };
+        case "intendedUpline": return { ok: false, error: t("associateIsIntendedUpline", { count: e.count }) };
+        case "convertedFromCandidate": return { ok: false, error: t("associateIsConvertedCandidate") };
+      }
+    }
+    if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
+    // Safety net, same shape as deleteDocument (server/documents/actions.ts,
+    // release/doc-delete-ordering): a reference this function's explicit
+    // checks above didn't anticipate still refuses as a named error, not a
+    // raw 500 — the explicit checks above exist for a BETTER message, not as
+    // the only thing standing between this call and a DB exception.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && (e.code === "P2003" || e.code === "P2014")) {
+      return { ok: false, error: t("associateStillReferenced") };
+    }
+    throw e;
+  }
+  revalidatePath("/admin/associates");
+  revalidatePath("/admin/teams");
   return { ok: true };
 }
