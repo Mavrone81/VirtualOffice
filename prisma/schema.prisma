@@ -535,7 +535,14 @@ model Product {
   upgrades                   Product[]           @relation("ProductUpgrade")
   activeStatus               ProductActiveStatus @default(Active) @map("active_status")
   effectiveDate              DateTime            @map("effective_date") @db.Date
-  remarks                    String?
+  // Owner-requested product description, shown to associates and on the
+  // admin list/forms. Reuses what was the dead `remarks` column (owner's
+  // ruling, considered and overruled against adding a sibling column) —
+  // renamed via migration, never written or read as a Product field before
+  // this change (prisma/migrations/<ts>_rename_product_remarks_to_description).
+  // No @map needed: Prisma's default column name IS "description", which the
+  // migration's zero-drift check (see that migration's own comment) proves.
+  description                String?
 
   // A-17 ⓢ Q6: per-product required-document checklist, e.g. [{key, label_en,
   // label_zh}]. Empty means nothing is required for this product; G3 checks

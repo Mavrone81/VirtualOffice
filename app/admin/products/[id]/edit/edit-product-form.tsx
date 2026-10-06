@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { updateProduct } from "@/server/products/actions";
 import { PricingCard, type PricingValue } from "../../pricing-card";
 import { CommissionCard, type CommissionValue } from "../../commission-card";
+import { PRODUCT_DESCRIPTION_MAX } from "@/lib/product-limits";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -17,6 +18,7 @@ const selectCls =
 export type EditProductInitial = {
   productName: string;
   productCategory: string;
+  description: string;
   defaultCompanyId: string;
   pricing: PricingValue;
   commission: CommissionValue;
@@ -44,6 +46,7 @@ export function EditProductForm({
   const [error, setError] = useState<string>();
   const [productName, setProductName] = useState(initial.productName);
   const [productCategory, setProductCategory] = useState(initial.productCategory);
+  const [description, setDescription] = useState(initial.description);
   const [defaultCompanyId, setDefaultCompanyId] = useState(initial.defaultCompanyId);
   const [pricing, setPricing] = useState<PricingValue>(initial.pricing);
   const setPricingPatch = (patch: Partial<PricingValue>) => setPricing((p) => ({ ...p, ...patch }));
@@ -69,6 +72,7 @@ export function EditProductForm({
       const r = await updateProduct(productId, {
         productName,
         productCategory: orUndef(productCategory),
+        description: orUndef(description),
         defaultCompanyId: orUndef(defaultCompanyId),
         ...commission,
         listedPrice: pricing.listedPrice,
@@ -95,6 +99,20 @@ export function EditProductForm({
           <div>
             <Label htmlFor="cat">{t("categoryLabel")}</Label>
             <Input id="cat" value={productCategory} onChange={(e) => setProductCategory(e.target.value)} placeholder="Funeral" />
+          </div>
+          <div className="sm:col-span-2">
+            <div className="flex items-baseline justify-between">
+              <Label htmlFor="desc">{t("descriptionLabel")}</Label>
+              <span className="text-[11px] text-muted-2">{description.length}/{PRODUCT_DESCRIPTION_MAX}</span>
+            </div>
+            <textarea
+              id="desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={PRODUCT_DESCRIPTION_MAX}
+              rows={3}
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-action focus:outline-none"
+            />
           </div>
           <div>
             <Label htmlFor="co">{t("defaultBillingEntityLabel")}</Label>

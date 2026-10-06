@@ -21,6 +21,10 @@ export function ProductCard({ p, t, tc }: { p: PortalCatalogueProduct; t: Transl
           <div className="mt-0.5 text-[12px] text-muted">
             {p.productCategory ?? "—"} · {p.companyName}
           </div>
+          {/* Validated up to 500 chars server-side (lib/schemas.ts) — clamped
+              visually here too, independently of whatever length passed
+              validation, so it can't blow out this dense a card. */}
+          {p.description && <div className="mt-1 line-clamp-2 text-[12px] text-muted">{p.description}</div>}
         </div>
         <StatusPill status={p.activeStatus} label={p.activeStatus === "Active" ? tc("active") : tc("inactive")} />
       </div>

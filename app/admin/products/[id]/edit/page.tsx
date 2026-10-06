@@ -27,6 +27,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       productCode: true,
       productName: true,
       productCategory: true,
+      description: true,
       defaultCompanyId: true,
       commissionType: true,
       closingCommPct: true,
@@ -95,6 +96,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         initial={{
           productName: product.productName,
           productCategory: product.productCategory ?? "",
+          description: product.description ?? "",
           defaultCompanyId: product.defaultCompanyId ?? "",
           pricing: initialPricing,
           commission: initialCommission,

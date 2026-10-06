@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { createProduct, type ProductInput } from "@/server/products/actions";
 import { PricingCard, emptyPricing, type PricingValue } from "../pricing-card";
 import { CommissionCard } from "../commission-card";
+import { PRODUCT_DESCRIPTION_MAX } from "@/lib/product-limits";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -73,6 +74,20 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
           <div>
             <Label htmlFor="cat">{t("categoryLabel")}</Label>
             <Input id="cat" value={f.productCategory ?? ""} onChange={(e) => set({ productCategory: e.target.value })} placeholder="Funeral" />
+          </div>
+          <div className="sm:col-span-2">
+            <div className="flex items-baseline justify-between">
+              <Label htmlFor="desc">{t("descriptionLabel")}</Label>
+              <span className="text-[11px] text-muted-2">{(f.description ?? "").length}/{PRODUCT_DESCRIPTION_MAX}</span>
+            </div>
+            <textarea
+              id="desc"
+              value={f.description ?? ""}
+              onChange={(e) => set({ description: e.target.value })}
+              maxLength={PRODUCT_DESCRIPTION_MAX}
+              rows={3}
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-action focus:outline-none"
+            />
           </div>
           <div>
             <Label htmlFor="co">{t("defaultBillingEntityLabel")}</Label>

@@ -16,6 +16,7 @@ export const PORTAL_PRODUCT_SELECT = {
   productCode: true,
   productName: true,
   productCategory: true,
+  description: true,
   activeStatus: true,
   listedPrice: true,
   discountedPrice: true,
@@ -52,6 +53,7 @@ export type PortalCatalogueProduct = {
   productCode: string;
   productName: string;
   productCategory: string | null;
+  description: string | null;
   companyName: string;
   activeStatus: string;
   listedPrice: string | null;
@@ -73,6 +75,7 @@ export async function getPortalProductCatalogue(now: Date = new Date()): Promise
     productCode: p.productCode,
     productName: p.productName,
     productCategory: p.productCategory,
+    description: p.description,
     companyName: p.defaultCompany?.name ?? "—",
     activeStatus: p.activeStatus,
     listedPrice: p.listedPrice?.toFixed(2) ?? null,

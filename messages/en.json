@@ -1043,6 +1043,7 @@
     "commissionIncompleteNote": "This product's stored commission is incomplete, so the field below is shown. Other changes still save without it; fill it in to correct the commission (that starts a new rate version).",
     "rateChangeDateInPast": "The effective date can't be in the past. Choose today or a later date to save this change.",
     "priceNotSet": "Price not set",
+    "descriptionLabel": "Description",
     "catalogue": {
       "title": "Products & Services",
       "subtitle": "What you can transact today",

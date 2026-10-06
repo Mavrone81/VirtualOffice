@@ -40,6 +40,9 @@ export type ProductInput = {
   productCode: string;
   productName: string;
   productCategory?: string;
+  // Owner-requested product description — same optional/trim shape as
+  // productCategory. Bounded in productSchema (lib/schemas.ts), not here.
+  description?: string;
   commissionType: "Percentage" | "Fixed";
   closingCommPct?: string;
   closingCommFixed?: string;
@@ -192,6 +195,7 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
         productCode: validInput.productCode.trim(),
         productName: validInput.productName.trim(),
         productCategory: validInput.productCategory?.trim() || null,
+        description: validInput.description?.trim() || null,
         ...commissionData(validInput),
         defaultCompanyId: validInput.defaultCompanyId || null,
         activeStatus: ProductActiveStatus.Active,
@@ -264,6 +268,7 @@ export async function updateProductPricing(productId: string, pricing: ProductPr
 type ProductDetailsColumns = PricingColumns & Parameters<typeof canonicalFromRow>[0] & {
   productName: string;
   productCategory: string | null;
+  description: string | null;
   defaultCompanyId: string | null;
 };
 
@@ -275,6 +280,7 @@ function productDetailsSnapshot(p: ProductDetailsColumns) {
   return {
     productName: p.productName,
     productCategory: p.productCategory,
+    description: p.description,
     defaultCompanyId: p.defaultCompanyId,
     rates: canonicalFromRow(p),
     ...pricingSnapshot(p),
@@ -330,6 +336,7 @@ export async function updateProduct(productId: string, input: ProductDetailsRawI
   const baseData = {
     productName: validInput.productName.trim(),
     productCategory: validInput.productCategory?.trim() || null,
+    description: validInput.description?.trim() || null,
     defaultCompanyId: validInput.defaultCompanyId || null,
     ...pricingData(validInput),
   };

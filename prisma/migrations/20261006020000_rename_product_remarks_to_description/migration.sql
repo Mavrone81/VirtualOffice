@@ -1,0 +1,18 @@
+-- Owner-requested product description. Reuses the dead Product.remarks
+-- column (verified before this migration: zero rows with it set in
+-- production, and no code anywhere reads or writes it as a Product field —
+-- it is distinct from the six OTHER unrelated `remarks` columns on other
+-- tables, none of which this migration touches).
+--
+-- RENAME, not DROP+ADD. `prisma migrate dev` cannot infer a rename from the
+-- schema diff alone (one field removed, a differently-named one added) and
+-- generates DROP COLUMN "remarks" + ADD COLUMN "description" instead, which
+-- is also indistinguishable in a migration DIFF from a genuine drop. On this
+-- table that currently loses nothing (no row has remarks set), but a
+-- migration is permanent: it replays verbatim on every future environment
+-- and any rebuild from history, and a DROP there would discard the column
+-- forever at that replay, regardless of what's in it by then. RENAME COLUMN
+-- preserves both the data and the column's identity through every future
+-- replay, which is the whole reason to hand-write this rather than accept
+-- what migrate dev would generate.
+ALTER TABLE "products" RENAME COLUMN "remarks" TO "description";
