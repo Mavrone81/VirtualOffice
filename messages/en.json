@@ -964,6 +964,10 @@
     "externalRetains": "External — Enshrine retains",
     "bulkToProvider": "bulk to provider",
     "toggleActive": "Toggle active",
+    "deleteProduct": "Delete product",
+    "deleteProductQuestion": "Delete {code} · {name} permanently?",
+    "deleteProductWarning": "This can't be undone. A product with any sales history can't be deleted — use the Active toggle to deactivate it instead.",
+    "deleteProductConfirm": "Delete permanently",
     "noComCodes": "No add-on com codes",
     "addComCode": "+ com code",
     "codePlaceholder": "CODE",
@@ -1571,7 +1575,12 @@
     "companyDetailsGstRegNoInvalid": "A GST registration number is 8 to 15 letters, digits or hyphens.",
     "companyDetailsEmailInvalid": "Enter a valid email address.",
     "companyDetailsTooLong": "One of the values is too long.",
-    "documentStillReferenced": "This document can't be deleted — another record still refers to it (for example, a newer version of the same template replaced it). Nothing was deleted."
+    "documentStillReferenced": "This document can't be deleted — another record still refers to it (for example, a newer version of the same template replaced it). Nothing was deleted.",
+    "productDeleteBlockedBySale": "This product can't be deleted — a recorded sale uses one of its commission rate versions. Use the Active toggle to deactivate it instead. Nothing was deleted.",
+    "productDeleteBlockedByUpgradeSale": "This product can't be deleted — a recorded sale lists it as the product being upgraded from. Use the Active toggle to deactivate it instead. Nothing was deleted.",
+    "productDeleteBlockedByUpgradeChild": "This product can't be deleted — another product is registered as an upgrade from it. Use the Active toggle to deactivate it instead. Nothing was deleted.",
+    "productDeleteBlockedByProductCode": "This product can't be deleted — a recorded sale already uses its product code. Use the Active toggle to deactivate it instead. Nothing was deleted.",
+    "productDeleteConflict": "This product wasn't deleted — a sale was recorded against it at the same moment. Nothing was deleted; reload the page and try again."
   },
   "nameCard": {
     "front": "Front",
