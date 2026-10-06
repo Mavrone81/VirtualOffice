@@ -22,6 +22,7 @@ const MANAGER_DESIGNATIONS: Designation[] = [Designation.SalesManager, Designati
 export default async function AssociatesPage({ searchParams }: { searchParams: Promise<AssociateSearch> }) {
   const t = await getTranslations("associates");
   const tf = await getTranslations("filters");
+  const tr = await getTranslations("recruitment");
 
   const rawSp = await searchParams;
   const sp = parseAssociateSearch(rawSp);
@@ -63,7 +64,18 @@ export default async function AssociatesPage({ searchParams }: { searchParams: P
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/admin/associates/export">{t("exportContacts")}</a>
         </Button>
+        {/* The recruitment pipeline, which is how a Manager or Director adds
+            someone: the candidate is emailed a link, fills in their own details
+            and signs the agreement, and only then becomes an associate. "New
+            associate" beside it writes the associate record directly — no
+            email, no agreement — which is right for entering someone who
+            already exists, and wrong for a new recruit. Both are admin-only by
+            the layout gate; this button reuses the invite page that was already
+            there, unreachable from here. */}
         <Button asChild>
+          <Link href="/admin/recruitment/new">{tr("inviteCandidate")}</Link>
+        </Button>
+        <Button asChild variant="secondary">
           <Link href="/admin/associates/new">{t("newAssociate")}</Link>
         </Button>
       </PageHeader>
