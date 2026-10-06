@@ -10,7 +10,8 @@
     "check:env": "tsx scripts/check-env-example.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:unit": "vitest run --project unit"
+    "test:unit": "vitest run --project unit",
+    "test:components": "vitest run --project components"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

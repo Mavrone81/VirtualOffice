@@ -115,22 +115,34 @@ describe("products list — a scheduled rate change is visible", () => {
 });
 
 describe("product edit — stored commission data that would fail validation", () => {
-  // An EXTERNAL product with no closing %: its closing fields are normally hidden.
+  // An EXTERNAL product with no closing %. Before 2026-10 its closing fields
+  // were normally hidden (the old engine never paid a closing commission on
+  // an external line); now that the engine pays it exactly like internal,
+  // they are never hidden — see the two tests below.
   const legacy = () => fakeProduct.findUnique.mockImplementation(async () => ({ ...row, isExternal: true, externalCompanyRetainedPct: dec("5"), closingCommPct: null }));
 
-  it("opening the edit screen SURFACES the offending field (and says why) instead of hiding it", async () => {
+  it("opening the edit screen shows the offending field and says why", async () => {
     who.session = ADMIN;
     legacy();
     const page = await openEditPage();
-    expect(page).toContain('id="closing"'); // visible although the product is external
+    expect(page).toContain('id="closing"');
     expect(page).toContain("closingPctRequired"); // the reason, next to it
-    expect(page).toContain("commissionIncompleteNote");
   });
 
-  it("a healthy external product still hides the closing fields", async () => {
+  // 2026-10: external products pay the associate exactly like internal
+  // (owner ruling, item 4) — closing/cut/SM/SD are no longer internal-only
+  // fields, so a HEALTHY external product shows them too, same as a healthy
+  // internal one. This replaces "a healthy external product still hides the
+  // closing fields", which tested the behaviour this change exists to fix.
+  it("a healthy external product SHOWS the closing/cut/SM/SD fields (2026-10: no longer internal-only)", async () => {
     who.session = ADMIN;
     fakeProduct.findUnique.mockImplementation(async () => ({ ...row, isExternal: true, externalCompanyRetainedPct: dec("5") }));
-    expect(await openEditPage()).not.toContain('id="closing"');
+    const page = await openEditPage();
+    expect(page).toContain('id="closing"');
+    expect(page).toContain('id="cut"');
+    expect(page).toContain('id="sm"');
+    expect(page).toContain('id="sd"');
+    expect(page).toContain('id="ext"'); // the external-only retained-% field, additionally present
   });
 
   it("a name-only Save on it succeeds and writes NO commission column", async () => {

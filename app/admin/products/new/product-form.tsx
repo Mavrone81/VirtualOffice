@@ -15,6 +15,34 @@ import { PRODUCT_DESCRIPTION_MAX } from "@/lib/product-limits";
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
 
+// Pristine defaults for the rate fields a fresh toggle of isExternal should
+// swap — PD's B-10 defaults for internal, zero for external, since an
+// external product's closing/cut/SM/SD were previously these SAME internal
+// defaults, submitted whether or not anyone chose them (the engine simply
+// never read them for an external line; it does now). externalCompanyRetainedPct
+// is included too: its own displayed default ("5", commission-card.tsx) was
+// never seeded into form state, so an untouched field stored null while the
+// screen showed "5". A field still holding the default for the side being
+// LEFT is swapped to the default for the side being entered; a field the
+// admin actually typed into no longer matches that default and is left alone.
+type RateDefaults = Pick<ProductInput, "closingCommPct" | "companyCutPct" | "smOverridePct" | "sdOverridePct" | "externalCompanyRetainedPct">;
+const PRISTINE_INTERNAL: RateDefaults = { closingCommPct: "100", companyCutPct: "10", smOverridePct: "3", sdOverridePct: "2", externalCompanyRetainedPct: undefined };
+const PRISTINE_EXTERNAL: RateDefaults = { closingCommPct: "0", companyCutPct: "0", smOverridePct: "0", sdOverridePct: "0", externalCompanyRetainedPct: "5" };
+
+// Swaps each rate field individually — only those still at the default for
+// the side being left — rather than a generic keyof loop, which TypeScript
+// can't type-check across fields of different optionality (closingCommPct
+// etc. vs. the optional externalCompanyRetainedPct).
+function swapPristineRates(p: RateDefaults, from: RateDefaults, to: RateDefaults): RateDefaults {
+  return {
+    closingCommPct: p.closingCommPct === from.closingCommPct ? to.closingCommPct : p.closingCommPct,
+    companyCutPct: p.companyCutPct === from.companyCutPct ? to.companyCutPct : p.companyCutPct,
+    smOverridePct: p.smOverridePct === from.smOverridePct ? to.smOverridePct : p.smOverridePct,
+    sdOverridePct: p.sdOverridePct === from.sdOverridePct ? to.sdOverridePct : p.sdOverridePct,
+    externalCompanyRetainedPct: p.externalCompanyRetainedPct === from.externalCompanyRetainedPct ? to.externalCompanyRetainedPct : p.externalCompanyRetainedPct,
+  };
+}
+
 export function ProductForm({ companies, today }: { companies: { id: string; name: string }[]; today: string }) {
   const t = useTranslations("products");
   const tc = useTranslations("common");
@@ -30,7 +58,13 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
     companyCutType: "Percentage", smOverrideType: "Percentage", sdOverrideType: "Percentage",
     isExternal: false, effectiveDate: today, defaultCompanyId: companies[0]?.id,
   });
-  const set = (patch: Partial<ProductInput>) => setF((p) => ({ ...p, ...patch }));
+  const set = (patch: Partial<ProductInput>) =>
+    setF((p) => {
+      if (patch.isExternal === undefined || patch.isExternal === p.isExternal) return { ...p, ...patch };
+      const from = p.isExternal ? PRISTINE_EXTERNAL : PRISTINE_INTERNAL;
+      const to = patch.isExternal ? PRISTINE_EXTERNAL : PRISTINE_INTERNAL;
+      return { ...p, ...swapPristineRates(p, from, to), ...patch };
+    });
   const [pricing, setPricing] = useState<PricingValue>(emptyPricing);
   const setPricingPatch = (patch: Partial<PricingValue>) => setPricing((p) => ({ ...p, ...patch }));
 
