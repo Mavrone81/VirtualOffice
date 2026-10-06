@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX } from "./name-card-limits";
+import { PRODUCT_DESCRIPTION_MAX } from "./product-limits";
 import { D } from "./money";
 
 export { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX };
@@ -260,6 +261,14 @@ const productCommissionShape = {
 export const productDetailsShape = {
   productName: name,
   productCategory: z.string().trim().max(100).optional(),
+  // Owner-requested product description — same optional/trim/max shape as
+  // productCategory just above. Bounded here (server-side, since this is
+  // what the server actions validate against) and nowhere else: no database
+  // length constraint (Product.description is a plain String? column,
+  // destructive to widen later if one existed), and the admin list / portal
+  // card clamp it visually on top of this, since 500 characters passing
+  // validation is still too long for a dense grid row.
+  description: z.string().trim().max(PRODUCT_DESCRIPTION_MAX).optional(),
   defaultCompanyId: id.optional(),
   ...productCommissionShape,
   ...productPricingShape,
@@ -280,6 +289,7 @@ export const productSchema = z.object({
   productCode: z.string().trim().min(1).max(40),
   productName: name,
   productCategory: z.string().trim().max(100).optional(),
+  description: z.string().trim().max(PRODUCT_DESCRIPTION_MAX).optional(),
   defaultCompanyId: id.optional(),
   ...productCommissionShape,
   ...productPricingShape,

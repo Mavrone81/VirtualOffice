@@ -68,6 +68,10 @@ export default async function ProductsPage() {
                 <div className="mt-0.5 text-[12px] text-muted">
                   {p.productCategory ?? "—"} · {p.defaultCompany?.name ?? t("noDefaultEntity")} · eff. {format(p.effectiveDate, "dd MMM yyyy")}
                 </div>
+                {/* Validated up to 500 chars (lib/schemas.ts) — a bound on the input is
+                    not a bound on the rendering, so this clamps visually on top of that,
+                    independently of whatever length actually passed validation. */}
+                {p.description && <div className="mt-1 line-clamp-2 max-w-md text-[12px] text-muted">{p.description}</div>}
               </div>
               <div className="flex items-start gap-6">
                 <div className="text-right text-[12px]">

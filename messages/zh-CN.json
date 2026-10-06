@@ -1043,6 +1043,7 @@
     "commissionIncompleteNote": "此产品已存储的佣金不完整，因此显示下方字段。不填写也可保存其他更改；填写后即可更正佣金（将启动新的费率版本）。",
     "rateChangeDateInPast": "生效日期不能是过去的日期。请选择今天或之后的日期才能保存此更改。",
     "priceNotSet": "尚未设置价格",
+    "descriptionLabel": "产品描述",
     "catalogue": {
       "title": "产品与服务",
       "subtitle": "当前可交易的产品",

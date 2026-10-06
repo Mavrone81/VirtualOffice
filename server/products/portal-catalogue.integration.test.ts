@@ -38,6 +38,7 @@ const ALLOWED_TOP_LEVEL_KEYS = [
   "productCode",
   "productName",
   "productCategory",
+  "description",
   "activeStatus",
   "listedPrice",
   "discountedPrice",
