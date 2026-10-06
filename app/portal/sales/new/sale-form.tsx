@@ -32,7 +32,7 @@ export type SaleFormInitial = {
   lines: Line[]; split2: Split; split3: Split;
 };
 
-export function SaleForm({ products, associates, today, initial, submissionId, fromQuotationCode, fromQuotationId }: { products: FormProduct[]; associates: { id: string; name: string }[]; today: string; initial?: SaleFormInitial; submissionId?: string; fromQuotationCode?: string; fromQuotationId?: string }) {
+export function SaleForm({ products, associates, today, initial, submissionId, fromQuotationCode, fromQuotationId, basePath = "/portal/sales" }: { products: FormProduct[]; associates: { id: string; name: string }[]; today: string; initial?: SaleFormInitial; submissionId?: string; fromQuotationCode?: string; fromQuotationId?: string; /** Where this submission lives once it's saved — the admin reuse of this form (item 9) passes "/admin/sales" so success doesn't navigate into the portal tree, which bounces an admin straight back out (app/portal/layout.tsx's isAdminRole redirect). Defaults to the portal's own path, so every existing caller is unaffected. */ basePath?: string }) {
   const isEdit = !!submissionId;
   const router = useRouter();
   const t = useTranslations("portal");
@@ -120,7 +120,7 @@ export function SaleForm({ products, associates, today, initial, submissionId, f
       const newId = (res as { id?: string }).id;
       const warned = !!(res as { warning?: unknown }).warning;
       const hasTxnCode = !!(res as { transactionCode?: string }).transactionCode;
-      if (res.ok) router.push(isEdit ? `/portal/sales/${submissionId}` : (warned || hasTxnCode) && newId ? `/portal/sales/${newId}` : "/portal/sales");
+      if (res.ok) router.push(isEdit ? `${basePath}/${submissionId}` : (warned || hasTxnCode) && newId ? `${basePath}/${newId}` : basePath);
       else setError(res.error ?? t("saleForm.couldNotSubmit"));
     });
   }
