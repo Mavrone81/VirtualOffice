@@ -59,6 +59,11 @@ export const adminNav: NavGroup[] = [
       {
         labelKey: "groupFormsSubmission", icon: FileSignature,
         children: [
+          // Item 9 (owner: admin must be able to submit a sale, same flow as
+          // everyone else). Reuses the "transactionSubmission" labelKey
+          // portalNav's own submit-a-sale entry already uses — same action,
+          // same meaning, not a new translation.
+          { labelKey: "transactionSubmission", href: "/admin/sales/new", icon: Receipt },
           { labelKey: "quotations", href: "/admin/quotations", icon: BadgeCheck, badgeKey: "quotations" },
           { labelKey: "splitApprovals", href: "/admin/split-approvals", icon: Split },
           { labelKey: "salesVerify", href: "/admin/sales/verify", icon: FileCheck },
