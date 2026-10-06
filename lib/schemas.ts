@@ -316,7 +316,12 @@ export const newAssociateSchema = z.object({
   fullName: name,
   businessName: z.string().trim().max(200).optional(),
   mobileNumber: z.string().trim().max(30).optional(),
-  email: z.string().trim().email().max(200).optional(),
+  // MANDATORY. setApprovalStatus provisions the login only when the associate
+  // already has an email at the moment of approval, and nothing re-runs that
+  // afterwards — so an associate created without one is approved, active and
+  // permanently unable to log in, with no way to fix it from any screen.
+  // inviteCandidate has always required an email; this closes the other door.
+  email: z.string().trim().email().max(200),
   // Encrypted at rest (lib/crypto.ts encryptPII) — validate shape/length only.
   nric: z.string().trim().min(1).max(40).optional(),
   dateOfBirth: dateStr.optional(),

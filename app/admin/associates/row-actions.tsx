@@ -113,7 +113,10 @@ export function AssociateRowActions({
           {t("reactivate")}
         </Button>
       )}
-      {status === "Inactive" && (
+      {/* Both deactivated states, matching the server guard. Suspend is the only
+          way this UI takes an APPROVED associate out of service, so gating on
+          Inactive alone hid these controls from every such record. */}
+      {(status === "Inactive" || status === "Suspended") && (
         <>
           <Button size="sm" variant="secondary" disabled={pending} onClick={() => run(() => archiveAssociate(id, true))}>
             {t("archive")}

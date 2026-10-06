@@ -333,6 +333,40 @@ describe("deleteAssociate", () => {
     expect(stillThere).not.toBeNull();
   });
 
+  // The owner's rule is "deactivate, then delete". Suspend is the ONLY control the
+  // admin UI offers for taking an APPROVED associate out of service, and it writes
+  // Suspended, not Inactive — so a guard that accepted Inactive alone made delete
+  // unreachable for exactly the associates the rule was written for.
+  it("an unused SUSPENDED associate is deleted — the state the Suspend button actually produces", async () => {
+    const a = await mkAssociate("SUSPDEL", { associateStatus: "Suspended" as never });
+    expect(await prisma.associate.count({ where: { id: a.id } })).toBe(1);
+
+    const result = await deleteAssociate(a.id);
+    expect(result).toEqual({ ok: true });
+
+    expect(await prisma.associate.count({ where: { id: a.id } })).toBe(0);
+  });
+
+  it("a SUSPENDED associate WITH a downline is still REFUSED — widening the lifecycle gate did not weaken the never-used checks", async () => {
+    const a = await mkAssociate("SUSPUSED", { associateStatus: "Suspended" as never });
+    const child = await mkAssociate("SUSPUSEDCHILD", { directUplineId: a.id });
+
+    const result = await deleteAssociate(a.id);
+    expect(result).toEqual({ ok: false, error: "associateHasDownline" });
+
+    // Both sides survive: the refusal protected the parent AND did not orphan the child.
+    expect(await prisma.associate.count({ where: { id: a.id } })).toBe(1);
+    expect(await prisma.associate.count({ where: { id: child.id } })).toBe(1);
+  });
+
+  it("a TERMINATED associate is still REFUSED — only Inactive and Suspended are deletable", async () => {
+    const a = await mkAssociate("TERMDEL", { associateStatus: "Terminated" as never });
+
+    const result = await deleteAssociate(a.id);
+    expect(result).toEqual({ ok: false, error: "associateNotInactive" });
+    expect(await prisma.associate.count({ where: { id: a.id } })).toBe(1);
+  });
+
   it("an unused Inactive associate is deleted, and their user and p_file go with them", async () => {
     const a = await mkAssociate("UNUSED");
     const user = await prisma.user.create({
