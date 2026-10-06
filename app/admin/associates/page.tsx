@@ -106,9 +106,12 @@ export default async function AssociatesPage({ searchParams }: { searchParams: P
                     <td className="px-5 py-3 text-muted">{a.directUpline?.associateCode ?? "—"}</td>
                     <td className="px-5 py-3 text-muted-2">{a.user ? "✓" : "—"}</td>
                     <td className="px-5 py-3"><StatusPill status={a.approvalStatus} /></td>
-                    <td className="px-5 py-3"><StatusPill status={a.associateStatus} /></td>
                     <td className="px-5 py-3">
-                      <AssociateRowActions id={a.id} approval={a.approvalStatus} status={a.associateStatus} />
+                      <StatusPill status={a.associateStatus} />
+                      {a.archivedAt && <span className="ml-1 rounded-full bg-paper-200 px-2 py-0.5 text-[11px] text-muted">{t("archived")}</span>}
+                    </td>
+                    <td className="px-5 py-3">
+                      <AssociateRowActions id={a.id} approval={a.approvalStatus} status={a.associateStatus} archived={a.archivedAt !== null} />
                     </td>
                   </tr>
                 ))}

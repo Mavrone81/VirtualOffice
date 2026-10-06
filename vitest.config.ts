@@ -121,6 +121,27 @@ export default defineConfig({
           globalSetup: ["./lib/test-support/env-preflight.ts", "./lib/test-support/db-preflight.ts"],
         },
       },
+      {
+        extends: true,
+        test: {
+          // First component-render tests in this repo: the other projects' tests
+          // call a Server Component as a plain function and walk its returned
+          // element tree (e.g. server/team/performance-page.test.ts) — that works
+          // because an async Server Component is just a function returning
+          // elements. A CLIENT component using hooks (useState/useTransition) is
+          // not: calling it directly throws "invalid hook call" with no React
+          // dispatcher installed, so proving a refusal message actually reaches
+          // the screen (not just the action's return value) needs a real DOM and
+          // a real render pass — environment: "jsdom", not "node", and
+          // @testing-library/react rather than calling the function by hand.
+          // Own project rather than folding into "unit" so "unit" stays exactly
+          // as fast and dependency-light as it already is for every other file.
+          name: "components",
+          environment: "jsdom",
+          include: ["app/**/*.test.tsx", "components/**/*.test.tsx"],
+          globalSetup: ["./lib/test-support/env-preflight.ts"],
+        },
+      },
     ],
   },
 });
