@@ -19,8 +19,9 @@ const TAG = "DLLK-";
 let directorId = "", memberId = "", grandchildId = "", strangerId = "";
 let otherDirectorId = "", otherMemberId = "";
 let periodSubjectId = "", unsetTargetId = "";
+let legacyClosedId = "";
 
-const admin = { id: "00000000-0000-0000-0000-000000000000", role: "Admin" as const };
+const admin = { associateId: "00000000-0000-0000-0000-000000000000", role: "Admin" as const };
 
 async function makeAssociate(code: string, designation: Designation, directUplineId?: string) {
   return (await prisma.associate.create({
@@ -42,11 +43,16 @@ beforeAll(async () => {
 
   periodSubjectId = await makeAssociate(TAG + "PER", Designation.SalesAssociate, directorId);
   unsetTargetId = await makeAssociate(TAG + "NOTARGET", Designation.SalesAssociate, directorId);
+  // Deliberately NOT under directorId — this fixture exists only to prove
+  // the Closed predicate, not to re-test scope, and giving it an upline
+  // would silently change the director's downline count the scope/search
+  // tests above assert exactly.
+  legacyClosedId = await makeAssociate(TAG + "LEGACY", Designation.SalesAssociate);
 });
 
 afterAll(async () => {
   await prisma.salesQuota.deleteMany({ where: { associateId: { in: [periodSubjectId, unsetTargetId] } } });
-  await prisma.salesSubmission.deleteMany({ where: { closingAssociateId: { in: [periodSubjectId, memberId] } } });
+  await prisma.salesSubmission.deleteMany({ where: { closingAssociateId: { in: [periodSubjectId, memberId, legacyClosedId] } } });
   await prisma.associate.deleteMany({ where: { associateCode: { startsWith: TAG } } });
 });
 
@@ -56,7 +62,7 @@ describe("downlineLookupScope — the single named choke point (lib/rbac.ts)", (
   });
 
   it("Director: their own self-inclusive downline, and nothing outside it", async () => {
-    const scope = await downlineLookupScope({ id: directorId, role: "SalesDirector" });
+    const scope = await downlineLookupScope({ associateId: directorId, role: "SalesDirector" });
     expect(scope).not.toBeNull();
     // The fixture's director has 5 people in their own tree (self, member,
     // grandchild, plus the two associates set up below for the period/target
@@ -73,7 +79,7 @@ describe("downlineLookupScope — the single named choke point (lib/rbac.ts)", (
 describe("getDownlineLookup — the subject id from the request is never trusted on its own", () => {
   // CASE (i): director requests a subject INSIDE their downline → allowed.
   it("director requesting a subject inside their own downline is allowed", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, memberId, "month");
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, memberId, "month");
     expect(result).not.toBeNull();
     expect(result?.subject.id).toBe(memberId);
   });
@@ -81,13 +87,13 @@ describe("getDownlineLookup — the subject id from the request is never trusted
   // CASE (ii): director requests a subject OUTSIDE their downline → refused,
   // and the refusal must be indistinguishable from "does not exist".
   it("director requesting a subject OUTSIDE their downline is refused (null)", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, strangerId, "month");
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, strangerId, "month");
     expect(result).toBeNull();
   });
 
   it("a genuinely nonexistent subject id returns the SAME null a refusal does", async () => {
     const result = await getDownlineLookup(
-      { id: directorId, role: "SalesDirector" },
+      { associateId: directorId, role: "SalesDirector" },
       "00000000-0000-0000-0000-000000000000",
       "month",
     );
@@ -105,7 +111,7 @@ describe("getDownlineLookup — the subject id from the request is never trusted
   // Cross-director isolation: a DIFFERENT director's own team member is also
   // outside this director's scope — "own team only" is not "any director's team".
   it("a different director's team member is also refused to this director", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, otherMemberId, "month");
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, otherMemberId, "month");
     expect(result).toBeNull();
   });
 
@@ -120,7 +126,7 @@ describe("getDownlineLookup — the subject id from the request is never trusted
 
 describe("searchDownlineCandidates — CASE (iv): the search box itself is scoped, not just the table", () => {
   it("director's search returns ONLY in-scope names — asserted on the returned rows, with a stated count", async () => {
-    const candidates = await searchDownlineCandidates({ id: directorId, role: "SalesDirector" }, TAG);
+    const candidates = await searchDownlineCandidates({ associateId: directorId, role: "SalesDirector" }, TAG);
     // The assertion below examines every row this call returned: exactly 5
     // (director, member, grandchild, and the two period/target fixture
     // associates, all under this director), never the 8 TAG-tagged
@@ -143,7 +149,7 @@ describe("searchDownlineCandidates — CASE (iv): the search box itself is scope
   });
 
   it("an empty query returns no rows, for any role (no empty-string LIKE '%%' scan)", async () => {
-    expect(await searchDownlineCandidates({ id: directorId, role: "SalesDirector" }, "")).toEqual([]);
+    expect(await searchDownlineCandidates({ associateId: directorId, role: "SalesDirector" }, "")).toEqual([]);
     expect(await searchDownlineCandidates(admin, "")).toEqual([]);
   });
 });
@@ -165,7 +171,7 @@ describe("the three sales columns — rejected is excluded from every total", ()
   const NOW = new Date(2026, 5, 15); // fixed "today": 15 Jun 2026
 
   it("THIS MONTH — closed and pending are correct, and the 5000.00 rejected row is in neither", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, periodSubjectId, "month", NOW);
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, periodSubjectId, "month", NOW);
     expect(result?.subject.closed).toBe("1000.00");
     expect(result?.subject.pending).toBe("300.00");
     expect(result?.subject.rejected).toBe("5000.00");
@@ -176,8 +182,27 @@ describe("the three sales columns — rejected is excluded from every total", ()
     expect(row?.status).toBe("Rejected");
   });
 
+  // THE LEGACY BOOKING PATH, end-to-end through getDownlineLookup's real
+  // select + moneyFor wiring (not just the pure predicate unit test). This
+  // is the exact row shape closeSale produces: closedAt set, status still
+  // Submitted, never reaching Verified.
+  it("a Legacy-closed row (closedAt set, status still Submitted) counts as CLOSED, not pending, through the real query path", async () => {
+    await prisma.salesSubmission.create({
+      data: { clientName: "Fake client E", salesDate: new Date("2026-06-08"), saleAmount: "700.00", paymentPlan: "FullPayment", closingAssociateId: legacyClosedId, status: "Submitted", closedAt: new Date("2026-06-09") },
+    });
+    const result = await getDownlineLookup(admin, legacyClosedId, "month", NOW);
+    expect(result?.subject.closed).toBe("700.00");
+    expect(result?.subject.pending).toBe("0.00");
+  });
+
+  it("CONTROL — that row really is status Submitted with closedAt set (the Legacy shape isn't simulated by status alone)", async () => {
+    const row = await prisma.salesSubmission.findFirst({ where: { closingAssociateId: legacyClosedId } });
+    expect(row?.status).toBe("Submitted");
+    expect(row?.closedAt).not.toBeNull();
+  });
+
   it("THIS YEAR — the February sale (outside the month) joins closed; rejected is STILL excluded", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, periodSubjectId, "year", NOW);
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, periodSubjectId, "year", NOW);
     expect(result?.subject.closed).toBe("3000.00"); // 1000 (June) + 2000 (Feb) — NOT 8000, which is what including rejected would give
     expect(result?.subject.pending).toBe("300.00");
     expect(result?.subject.rejected).toBe("5000.00");
@@ -197,13 +222,13 @@ describe("period toggle moves BOTH sales and target together — never just one 
   const NOW = new Date(2026, 5, 15);
 
   it("monthly view: monthly target (4000), not the yearly one", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, periodSubjectId, "month", NOW);
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, periodSubjectId, "month", NOW);
     expect(result?.subject.target?.source).toBe("individual");
     expect(Number(result?.subject.target?.amount)).toBe(4000);
   });
 
   it("yearly view: yearly target (50000), not the monthly one — same subject, same request shape, different period", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, periodSubjectId, "year", NOW);
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, periodSubjectId, "year", NOW);
     expect(result?.subject.target?.source).toBe("individual");
     expect(Number(result?.subject.target?.amount)).toBe(50000);
   });
@@ -211,7 +236,7 @@ describe("period toggle moves BOTH sales and target together — never just one 
 
 describe("an unset target renders as absent (null), never as a $0 row", () => {
   it("no SalesQuota row and no team → target is null, not \"0.00\"", async () => {
-    const result = await getDownlineLookup({ id: directorId, role: "SalesDirector" }, unsetTargetId, "month");
+    const result = await getDownlineLookup({ associateId: directorId, role: "SalesDirector" }, unsetTargetId, "month");
     expect(result?.subject.target).toBeNull();
   });
 });

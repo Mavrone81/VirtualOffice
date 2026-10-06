@@ -97,9 +97,9 @@ export const roleLabel: Record<AppRole, string> = {
  * anything; "admin sees everyone" widens what this returns, it does not
  * remove the check at either call site.
  */
-export async function downlineLookupScope(viewer: { id: string; role: AppRole }): Promise<string[] | null> {
+export async function downlineLookupScope(viewer: { associateId: string; role: AppRole }): Promise<string[] | null> {
   if (isAdminRole(viewer.role)) return null;
-  return downlineIds(viewer.id);
+  return downlineIds(viewer.associateId);
 }
 
 /**
