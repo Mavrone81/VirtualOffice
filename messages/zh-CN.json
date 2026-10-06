@@ -1386,7 +1386,22 @@
       "setQuota": "设定",
       "save": "保存",
       "colYearTarget": "目标（本年）",
-      "teamTargetTag": "团队"
+      "teamTargetTag": "团队",
+      "downlineLookupTitle": "下线查询",
+      "downlineLookupSubtitle": "查询任何人的下线，范围限定于您有权查看的部分。",
+      "searchPlaceholder": "按编号、姓名、邮箱或企业名称搜索",
+      "searchBtn": "搜索",
+      "noMatches": "您的权限范围内没有匹配结果。",
+      "subjectNotFound": "未找到匹配记录。",
+      "thisMonth": "本月",
+      "thisYear": "本年",
+      "colLevel": "层级",
+      "colClosed": "已结算",
+      "colPending": "待处理",
+      "colRejected": "已拒绝",
+      "colTarget": "目标",
+      "subjectTag": "查询对象",
+      "dashHint": "“—”表示该期间未设定目标，并非目标为零。"
     },
     "search": {
       "all": "全部",
