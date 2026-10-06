@@ -40,12 +40,27 @@ describe("createAssociate validation", () => {
     const r = await createAssociate({
       fullName: "Jane Tan",
       designation: "SalesAssociate",
-      email: "",
+      email: "jane.tan@example.test",
       nric: "",
       dateOfBirth: "",
       bankAccountNumber: "",
     });
     expect(r.ok).toBe(true);
     expect(r.error).toBeUndefined();
+  });
+
+  // email left that group deliberately. The login is provisioned from it AT
+  // approval and never afterwards, so a blank one produces an associate who can
+  // never sign in. blankToUndefined turns the form's "" into undefined, which the
+  // now-required field rejects — the same outcome as omitting it entirely.
+  it("REJECTS a blank email — no longer one of the clearable optional fields", async () => {
+    expect(await createAssociate({ fullName: "Jane Tan", designation: "SalesAssociate", email: "" })).toEqual({
+      ok: false,
+      error: "invalidInput",
+    });
+    expect(await createAssociate({ fullName: "Jane Tan", designation: "SalesAssociate" })).toEqual({
+      ok: false,
+      error: "invalidInput",
+    });
   });
 });

@@ -98,7 +98,7 @@ describe("updateAssociateUplines", () => {
 
 describe("createAssociate second upline", () => {
   it("auto-derives the second upline from the direct upline's own upline when not given", async () => {
-    const r = await createAssociate({ fullName: "New Person", designation: "SalesAssociate", directUplineCode: "EN0002" });
+    const r = await createAssociate({ email: "fixture1@example.test", fullName: "New Person", designation: "SalesAssociate", directUplineCode: "EN0002" });
     expect(r.ok).toBe(true);
     // direct = sd (EN0002); sd.directUplineId = top → second auto-derives to "top"
     expect(prismaMock.associate.create).toHaveBeenCalledWith(
@@ -109,7 +109,7 @@ describe("createAssociate second upline", () => {
   it("uses the admin's explicit second upline over the auto-derived default", async () => {
     // direct = sd (EN0002) would auto-derive second to "top"; explicit EN0003 (sm) must win.
     const r = await createAssociate({
-      fullName: "New Person", designation: "SalesAssociate", directUplineCode: "EN0002", secondUplineCode: "EN0003",
+      email: "fixture2@example.test", fullName: "New Person", designation: "SalesAssociate", directUplineCode: "EN0002", secondUplineCode: "EN0003",
     });
     expect(r.ok).toBe(true);
     expect(prismaMock.associate.create).toHaveBeenCalledWith(

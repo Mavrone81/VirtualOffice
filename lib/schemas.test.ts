@@ -300,10 +300,20 @@ describe("productPricingSchema", () => {
 
 describe("newAssociateSchema", () => {
   it("accepts a minimal valid associate and rejects a bad email", () => {
-    expect(newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesAssociate" }).success).toBe(true);
+    expect(
+      newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesAssociate", email: "jane@example.com" }).success,
+    ).toBe(true);
     expect(
       newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesAssociate", email: "not-an-email" }).success,
     ).toBe(false);
+  });
+
+  // The login email is what setApprovalStatus provisions the account from, and it
+  // is read ONCE at approval — an associate approved without one can never log in
+  // and no screen can repair it. So "no email" is rejected at the door, not later.
+  it("REJECTS an associate with no email at all — the login provisioning depends on it", () => {
+    expect(newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesAssociate" }).success).toBe(false);
+    expect(newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "SalesAssociate", email: "" }).success).toBe(false);
   });
   it("rejects an unknown designation", () => {
     expect(newAssociateSchema.safeParse({ fullName: "Jane Tan", designation: "CEO" }).success).toBe(false);

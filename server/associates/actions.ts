@@ -59,6 +59,18 @@ export async function revealAssociatePii(
 }
 
 // app_role provisioned from org designation (16-Jul: each sales tier has its own role; cf. roleForDesignation in lib/rbac.ts)
+// Archive and hard-delete both require the associate to be out of service first
+// (the owner's deactivate-before-delete rule). BOTH deactivated states count.
+// Inactive is where a never-approved associate starts; Suspended is the only
+// deactivated state the admin UI can actually reach for someone who HAS been
+// approved, because "Suspend" is the only control offered there and it does not
+// write Inactive. Accepting Inactive alone therefore made delete unreachable for
+// every approved associate — the opposite of the rule it was meant to enforce.
+// Terminated is deliberately excluded: that is an end state for someone who did
+// serve, not an unused record. This gates LIFECYCLE only; every "never used"
+// check below is unchanged and is what actually protects history.
+const DEACTIVATED: AssociateStatus[] = [AssociateStatus.Inactive, AssociateStatus.Suspended];
+
 const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
   SalesDirector: AppRole.SalesDirector,
   SalesManager: AppRole.SalesManager,
@@ -540,7 +552,7 @@ export async function archiveAssociate(id: string, archived: boolean): Promise<{
     await prisma.$transaction(async (db) => {
       const existing = await db.associate.findUnique({ where: { id }, select: { associateStatus: true, archivedAt: true } });
       if (!existing) throw new AssociateInUse("notFound", 0);
-      if (archived && existing.associateStatus !== AssociateStatus.Inactive) {
+      if (archived && !DEACTIVATED.includes(existing.associateStatus)) {
         throw new AssociateInUse("notInactive", 0);
       }
       await db.associate.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
@@ -598,7 +610,7 @@ export async function deleteAssociate(id: string): Promise<{ ok: boolean; error?
         select: { associateCode: true, fullName: true, associateStatus: true, user: { select: { id: true } } },
       });
       if (!a) throw new AssociateInUse("notFound", 0);
-      if (a.associateStatus !== AssociateStatus.Inactive) throw new AssociateInUse("notInactive", 0);
+      if (!DEACTIVATED.includes(a.associateStatus)) throw new AssociateInUse("notInactive", 0);
 
       const [
         submissions,

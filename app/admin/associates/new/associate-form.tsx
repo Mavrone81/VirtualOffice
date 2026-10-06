@@ -49,7 +49,9 @@ export function AssociateForm({ uplines }: { uplines: { code: string; label: str
           </div>
           <div>
             <Label htmlFor="em">{t("form.emailLogin")}</Label>
-            <Input id="em" type="email" value={f.email ?? ""} onChange={(e) => set({ email: e.target.value })} />
+            {/* required: the login is provisioned from this address at approval,
+                once, and an associate approved without one can never sign in. */}
+            <Input id="em" type="email" required value={f.email ?? ""} onChange={(e) => set({ email: e.target.value })} />
           </div>
           <div>
             <Label htmlFor="nric">{t("form.nric")}</Label>

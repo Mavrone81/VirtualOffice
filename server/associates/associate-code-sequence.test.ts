@@ -54,7 +54,7 @@ beforeEach(() => {
 
 describe("associate code sequence is derived only from the EN sequence", () => {
   it("ignores a non-EN code that sorts above the sequence, instead of restarting from its digits", async () => {
-    const r = await createAssociate({ fullName: "New Person", designation: "SalesAssociate" });
+    const r = await createAssociate({ email: "fixture1@example.test", fullName: "New Person", designation: "SalesAssociate" });
 
     expect(r.ok).toBe(true);
     expect(prismaMock.associate.create).toHaveBeenCalledTimes(1);
@@ -69,7 +69,7 @@ describe("associate code sequence is derived only from the EN sequence", () => {
   });
 
   it("asks the database only for codes in the sequence's own prefix", async () => {
-    await createAssociate({ fullName: "Another Person", designation: "SalesAssociate" });
+    await createAssociate({ email: "fixture2@example.test", fullName: "Another Person", designation: "SalesAssociate" });
     expect(prismaMock.associate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { associateCode: { startsWith: "EN" } } }),
     );
@@ -86,7 +86,7 @@ describe("associate code sequence is derived only from the EN sequence", () => {
       return prefix ? wide.filter((r) => r.associateCode.startsWith(prefix)) : wide;
     });
 
-    await createAssociate({ fullName: "Ten Thousandth", designation: "SalesAssociate" });
+    await createAssociate({ email: "fixture3@example.test", fullName: "Ten Thousandth", designation: "SalesAssociate" });
 
     const code = prismaMock.associate.create.mock.calls[0][0].data.associateCode;
     expect(code).toBe("EN10001");
@@ -106,7 +106,7 @@ describe("associate code sequence is derived only from the EN sequence", () => {
       { reservedAssociateCode: "EN0009" }, // the real high-water mark lives here, not on an associate
     ]);
 
-    await createAssociate({ fullName: "Admin Created", designation: "SalesAssociate" });
+    await createAssociate({ email: "fixture4@example.test", fullName: "Admin Created", designation: "SalesAssociate" });
 
     const code = prismaMock.associate.create.mock.calls[0][0].data.associateCode;
     expect(code).toBe("EN0010");
@@ -116,7 +116,7 @@ describe("associate code sequence is derived only from the EN sequence", () => {
   });
 
   it("asks the database for reserved candidate codes under the same prefix scope", async () => {
-    await createAssociate({ fullName: "Scope Check", designation: "SalesAssociate" });
+    await createAssociate({ email: "fixture5@example.test", fullName: "Scope Check", designation: "SalesAssociate" });
     expect(prismaMock.candidate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { reservedAssociateCode: { startsWith: "EN" } } }),
     );
@@ -126,7 +126,7 @@ describe("associate code sequence is derived only from the EN sequence", () => {
     prismaMock.associate.findMany.mockResolvedValue([]);
     prismaMock.associate.findFirst.mockResolvedValue(null);
     prismaMock.candidate.findMany.mockResolvedValue([]);
-    await createAssociate({ fullName: "First Person", designation: "SalesAssociate" });
+    await createAssociate({ email: "fixture6@example.test", fullName: "First Person", designation: "SalesAssociate" });
     expect(prismaMock.associate.create.mock.calls[0][0].data.associateCode).toBe("EN0001");
   });
 });
