@@ -128,14 +128,50 @@ describe("commission engine (16-Jul model)", () => {
     expect(reconciles).toBe(true);
   });
 
-  it("External 5% retained → provider 950 / Enshrine 50 (unchanged)", () => {
+  // `base` carries companyCutPct/smOverridePct/sdOverridePct = 2/5/3 (for the
+  // INTERNAL cases above) and directUpline/secondUpline eligible — fields the
+  // pre-2026-10 engine silently ignored for an external line. Zeroed here so
+  // this test keeps isolating exactly what it always intended (just the
+  // provider/retained split), now that those fields are no longer ignored —
+  // see the full unified arithmetic (closing/cut/overrides all applying to
+  // external too) in the two tests below instead.
+  it("External 5% retained, no closing/cut/overrides configured → provider 950 / Enshrine 50 (unchanged)", () => {
     const { lines, reconciles } = computeLineCommission({
       ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "1000", closingCommPct: "0",
+      companyCutPct: "0", smOverridePct: "0", sdOverridePct: "0",
       isExternal: true, externalCompanyRetainedPct: "5",
     });
     expect(pick(lines, LedgerLineType.ExternalPayable)).toBe("950");
     expect(pick(lines, LedgerLineType.CompanyRetained)).toBe("50");
     expect(reconciles).toBe(true);
+  });
+
+  // The owner's own worked example (brief, item 4): external pays the
+  // associate exactly like internal, on top of the provider split, with the
+  // resulting company take permitted to go negative.
+  it("External, owner's worked example: $10,000 @ 10/2/5/3, 5% retained → net 800, SM 500, SD 300, company -1,100, reconciles", () => {
+    const { lines, reconciles } = computeLineCommission({
+      ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
+      isExternal: true, externalCompanyRetainedPct: "5",
+    });
+    expect(pick(lines, LedgerLineType.ExternalPayable)).toBe("9500");
+    expect(pick(lines, LedgerLineType.Personal, "closer")).toBe("800");
+    expect(pick(lines, LedgerLineType.Override, "sm")).toBe("500");
+    expect(pick(lines, LedgerLineType.Override, "sd")).toBe("300");
+    expect(pick(lines, LedgerLineType.CompanyRetained)).toBe("-1100");
+    expect(reconciles).toBe(true);
+  });
+
+  // Permitted, not prevented: the negative figure books as-is, with no floor.
+  it("External negative CompanyRetained is PERMITTED: the ledger books the negative figure and the sale still reconciles", () => {
+    const { lines, reconciles } = computeLineCommission({
+      ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
+      isExternal: true, externalCompanyRetainedPct: "5",
+    });
+    const company = lines.find((l) => l.lineType === LedgerLineType.CompanyRetained)!;
+    expect(company.amount.isNegative()).toBe(true);
+    expect(company.amount.toString()).toBe("-1100");
+    expect(reconciles).toBe(true); // not merely non-crashing: the sale balances to lineSaleAmount exactly
   });
 
   it("add-on com codes: 2% of sale + $20 absolute (extra, attributed to closer)", () => {
@@ -150,5 +186,58 @@ describe("commission engine (16-Jul model)", () => {
     expect(addons.find((a) => a.comCode === "SEA")?.amount.toString()).toBe("200");
     expect(addons.find((a) => a.comCode === "REM")?.amount.toString()).toBe("20");
     expect(addons.every((a) => a.associateId === "closer")).toBe(true);
+    // retainedBase === lineSale for an internal line, so this also pins that
+    // the basis recorded on the ledger line is unaffected by the G1 fix below.
+    expect(addons.find((a) => a.comCode === "SEA")?.basisAmount.toString()).toBe("10000");
+  });
+
+  // G1 (item 4 follow-up, Part 4): disabling behavior and watching the whole
+  // suite stay green turned this up — add-on com codes applied to an external
+  // line with zero test coverage either way. Resolved: a Percentage add-on
+  // must be % of retainedBase (the company's actual share of an external
+  // sale), not the full sale — most of an external sale is externalPayable,
+  // money that never reaches the company, so computing a bonus against it
+  // would make the company fund that bonus from revenue it never received.
+  it("G1: an external line's add-on com codes resolve against retainedBase, not the full sale", () => {
+    const { lines, reconciles } = computeLineCommission({
+      ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "0",
+      companyCutPct: "0", smOverridePct: "0", sdOverridePct: "0",
+      isExternal: true, externalCompanyRetainedPct: "5",
+      comCodes: [
+        { comCode: "SEA", valueType: ComValueType.Percentage, value: "2" },
+        { comCode: "REM", valueType: ComValueType.Absolute, value: "20" },
+      ],
+    });
+    // retainedBase = 5% of 10,000 = 500.
+    const addons = lines.filter((l) => l.lineType === LedgerLineType.AddOn);
+    const sea = addons.find((a) => a.comCode === "SEA")!;
+    expect(sea.amount.toString()).toBe("10"); // 2% of retainedBase (500) — 2% of the sale would wrongly be 200
+    expect(sea.basisAmount.toString()).toBe("500");
+    const rem = addons.find((a) => a.comCode === "REM")!;
+    expect(rem.amount.toString()).toBe("20"); // absolute — unaffected by which basis the Percentage add-ons use
+    // Add-ons stay "extra", outside the reconciliation — exactly as for
+    // internal (header comment above); this fix doesn't change that.
+    expect(reconciles).toBe(true);
+  });
+
+  // G2 (item 4 follow-up, Part 4): the external retained % recorded as
+  // rateOrValue on the CompanyRetained line — AD's own code comment calls it
+  // "preserved exactly as the pre-unification code recorded it" — had zero
+  // test coverage; set to null, nothing noticed. Pinned both ways.
+  it("G2: the external retained % is preserved as rateOrValue on the CompanyRetained line", () => {
+    const { lines } = computeLineCommission({
+      ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
+      isExternal: true, externalCompanyRetainedPct: "5",
+    });
+    const company = lines.find((l) => l.lineType === LedgerLineType.CompanyRetained)!;
+    expect(company.rateOrValue?.toString()).toBe("5");
+  });
+
+  it("G2 control: an INTERNAL line's CompanyRetained rateOrValue stays null", () => {
+    const { lines } = computeLineCommission({
+      ...base, commissionType: CommissionType.Percentage, lineSaleAmount: "10000", closingCommPct: "10",
+    });
+    const company = lines.find((l) => l.lineType === LedgerLineType.CompanyRetained)!;
+    expect(company.rateOrValue).toBeNull();
   });
 });

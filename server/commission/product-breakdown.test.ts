@@ -87,12 +87,58 @@ describe("computeProductBreakdown — B-6 per-product breakdown table", () => {
     });
   });
 
-  it("external: doesn't run through the engine — shows a flat provider/company split", () => {
+  // 2026-10: external now pays on top of the provider split, exactly like
+  // internal — reuses computeProductPreview at RATE_BASE, same as the
+  // uniform-percentage case above. `base`'s closing 100 / cut 10 / SM 3 / SD
+  // 2 at RATE_BASE 10,000, 5% retained: retainedBase 500, netToCloser 9000,
+  // SM 300, SD 200 → companyRetained = 500 − 9000 − 300 − 200 = −9000 →
+  // ratePct divides by 100 → "-90%". Deliberately exercises the negative
+  // case, not just a tidy positive one.
+  it("external, uniform percentage: the real breakdown — provider, net to closer, both overrides, and a NEGATIVE company-retained figure", () => {
     const product: BreakdownProduct = { ...base, productCode: "P4", productName: "Product Four", isExternal: true, externalCompanyRetainedPct: "5" };
     const row = computeProductBreakdown(product);
     expect(row).toEqual({
       productCode: "P4", productName: "Product Four", kind: "external",
-      providerKeepsPct: "95%", companyRetainedPct: "5%",
+      providerKeepsPct: "95%", netToCloser: "90%", directOverride: "3%", secondOverride: "2%", companyRetained: "-90%",
     });
+  });
+
+  it("external, uniform percentage: matches the engine's own figures exactly (not a second formula)", () => {
+    const product: BreakdownProduct = { ...base, productCode: "P4", productName: "Product Four", isExternal: true, externalCompanyRetainedPct: "5" };
+    const row = computeProductBreakdown(product) as Extract<ReturnType<typeof computeProductBreakdown>, { kind: "external" }>;
+    const r = computeLineCommission({
+      lineItemId: "l1", lineSaleAmount: "10000", commissionType: CommissionType.Percentage, closingCommPct: "100",
+      companyCutPct: "10", companyCutType: ComValueType.Percentage,
+      smOverridePct: "3", smOverrideType: ComValueType.Percentage,
+      sdOverridePct: "2", sdOverrideType: ComValueType.Percentage,
+      isExternal: true, externalCompanyRetainedPct: "5", comCodes: [],
+      closer: { associateId: "c", designation: Designation.SalesAssociate },
+      directUpline: { associateId: "u1", designation: Designation.SalesManager, eligible: true },
+      secondUpline: { associateId: "u2", designation: Designation.SalesDirector, eligible: true },
+    });
+    const company = r.lines.find((l) => l.lineType === "CompanyRetained")!.amount;
+    expect(r.reconciles).toBe(true);
+    expect(Number(row.companyRetained!.replace("%", "")) * 100).toBe(company.toNumber());
+  });
+
+  // No production instance of a Fixed or mixed-type external product today.
+  // Kept to the pre-2026-10 flat split rather than inventing a sale-dependent
+  // figure for a case nothing exercises — see the type's own comment.
+  it("external, Fixed commission (no production instance): falls back to providerKeepsPct only, no invented net/override figures", () => {
+    const product: BreakdownProduct = {
+      ...base, productCode: "P5", productName: "Product Five", isExternal: true, externalCompanyRetainedPct: "5",
+      commissionType: CommissionType.Fixed, closingCommFixed: "550", closingCommPct: null,
+    };
+    const row = computeProductBreakdown(product);
+    expect(row).toEqual({ productCode: "P5", productName: "Product Five", kind: "external", providerKeepsPct: "95%" });
+  });
+
+  it("external, mixed types (no production instance): falls back to providerKeepsPct only", () => {
+    const product: BreakdownProduct = {
+      ...base, productCode: "P6", productName: "Product Six", isExternal: true, externalCompanyRetainedPct: "5",
+      smOverridePct: "30", smOverrideType: ComValueType.Absolute,
+    };
+    const row = computeProductBreakdown(product);
+    expect(row).toEqual({ productCode: "P6", productName: "Product Six", kind: "external", providerKeepsPct: "95%" });
   });
 });

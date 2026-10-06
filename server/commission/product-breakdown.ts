@@ -19,7 +19,17 @@ export type BreakdownProduct = {
 };
 
 export type ProductBreakdownRow =
-  | { productCode: string; productName: string; kind: "external"; providerKeepsPct: string; companyRetainedPct: string }
+  | {
+      productCode: string; productName: string; kind: "external";
+      providerKeepsPct: string;
+      // Present only for the uniform-percentage case (the real case in
+      // production, and the only one this computes through the engine's own
+      // formula — see computeProductBreakdown's header comment). A Fixed or
+      // mixed-type external product has no real instance to date; its row
+      // carries providerKeepsPct only, same as before this change, rather
+      // than a sale-dependent figure invented for a case nothing exercises.
+      netToCloser?: string; directOverride?: string; secondOverride?: string; companyRetained?: string;
+    }
   | {
       productCode: string; productName: string; kind: "uniform";
       netToCloser: string; directOverride: string; secondOverride: string;
@@ -71,25 +81,50 @@ const ratePct = (v: string) => `${D(v).div(100).toString()}%`;
  *
  * Mixed (some fields % others $ on the same product) can't resolve to either
  * without a concrete sale amount, so both derived figures show "depends on
- * sale amount" instead of guessing a basis. External products don't go
- * through the engine at all (isExternal) — the company keeps a flat cut of
- * whatever the provider bills.
+ * sale amount" instead of guessing a basis.
+ *
+ * External, uniform-percentage (2026-10, the real case — PETCRE is the only
+ * external product in production and it is Percentage/Percentage): the
+ * engine now pays the associate on an external line exactly like internal,
+ * so this reuses computeProductPreview at RATE_BASE exactly as the internal
+ * uniform-percentage branch does below — NOT a second formula — passing
+ * isExternal/externalRetainedPct through. The resulting companyRetained can
+ * be negative; nothing here clamps it (owner ruling, server/commission/
+ * engine.ts's own header comment has the full worked arithmetic). A Fixed or
+ * mixed-type external product has no production instance; its row keeps the
+ * pre-2026-10 flat providerKeepsPct only — see the type's own comment.
  */
 export function computeProductBreakdown(p: BreakdownProduct): ProductBreakdownRow {
-  if (p.isExternal) {
-    const companyPct = Number(p.externalCompanyRetainedPct ?? 0);
-    return {
-      productCode: p.productCode, productName: p.productName, kind: "external",
-      providerKeepsPct: `${100 - companyPct}%`,
-      companyRetainedPct: `${companyPct}%`,
-    };
-  }
-
   const closingIsPercent = p.commissionType === CommissionType.Percentage;
   const uniform =
     closingIsPercent === (p.companyCutType === ComValueType.Percentage) &&
     closingIsPercent === (p.smOverrideType === ComValueType.Percentage) &&
     closingIsPercent === (p.sdOverrideType === ComValueType.Percentage);
+
+  if (p.isExternal) {
+    const retainedPct = Number(p.externalCompanyRetainedPct ?? 0);
+    const providerKeepsPct = `${100 - retainedPct}%`;
+    if (!uniform || !closingIsPercent) {
+      return { productCode: p.productCode, productName: p.productName, kind: "external", providerKeepsPct };
+    }
+    const preview = computeProductPreview({
+      salesAmount: RATE_BASE,
+      closing: { value: p.closingCommPct ?? 0, percent: true },
+      companyCutPool: { value: p.companyCutPct, percent: true },
+      smOverride: { value: p.smOverridePct, percent: true },
+      sdOverride: { value: p.sdOverridePct, percent: true },
+      isExternal: true,
+      externalRetainedPct: p.externalCompanyRetainedPct ?? 0,
+    });
+    return {
+      productCode: p.productCode, productName: p.productName, kind: "external",
+      providerKeepsPct: ratePct(preview.externalPayable),
+      netToCloser: ratePct(preview.netToCloser),
+      directOverride: ratePct(preview.smOverride),
+      secondOverride: ratePct(preview.sdOverride),
+      companyRetained: ratePct(preview.companyRetained),
+    };
+  }
 
   if (!uniform) {
     return {

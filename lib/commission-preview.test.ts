@@ -102,4 +102,55 @@ describe("computeProductPreview", () => {
     expect(r.reconciles).toBe(true);
     expect(company.amount.toString()).toBe(p.companyRetained);
   });
+
+  // T6 (item 4 brief): the same pin, for EXTERNAL products. This exact class
+  // of drift already happened once for internal (the header comment above),
+  // where the preview showed -$300 while the engine booked $700 — a preview
+  // that disagrees with the engine is worse than no preview, since the admin
+  // configures against a number that is not what gets paid. Three cases,
+  // including one that goes negative (the owner's own worked example).
+  it.each([
+    { closing: "10", pool: "2", sm: "5", sd: "3", retained: "5" }, // owner's worked example: company goes negative
+    { closing: "100", pool: "10", sm: "2", sd: "1", retained: "20" },
+    { closing: "0", pool: "0", sm: "0", sd: "0", retained: "5" },
+  ])(
+    "EXTERNAL matches the engine's CompanyRetained AND ExternalPayable lines (closing $closing%, retained $retained%)",
+    ({ closing, pool, sm, sd, retained }) => {
+      const p = computeProductPreview({
+        salesAmount: "10000",
+        closing: { value: closing, percent: true },
+        companyCutPool: { value: pool, percent: true },
+        smOverride: { value: sm, percent: true },
+        sdOverride: { value: sd, percent: true },
+        isExternal: true,
+        externalRetainedPct: retained,
+      });
+      const upline = (id: string) => ({ associateId: id, designation: Designation.SalesManager, eligible: true });
+      const r = computeLineCommission({
+        lineItemId: "l1",
+        commissionType: CommissionType.Percentage,
+        lineSaleAmount: "10000",
+        closingCommPct: closing,
+        companyCutPct: pool, companyCutType: ComValueType.Percentage,
+        smOverridePct: sm, smOverrideType: ComValueType.Percentage,
+        sdOverridePct: sd, sdOverrideType: ComValueType.Percentage,
+        isExternal: true,
+        externalCompanyRetainedPct: retained,
+        comCodes: [],
+        closer: { associateId: "c", designation: Designation.SalesAssociate },
+        directUpline: upline("u1"),
+        secondUpline: upline("u2"),
+      });
+      const company = r.lines.find((l) => l.lineType === LedgerLineType.CompanyRetained)!;
+      const payable = r.lines.find((l) => l.lineType === LedgerLineType.ExternalPayable)!;
+      const closerLine = r.lines.find((l) => l.lineType === LedgerLineType.Personal && l.associateId === "c")!;
+      expect(r.reconciles).toBe(true);
+      // netToCloser agreement is the point of T6 — assert it directly (the
+      // closer's own ledger line carries it as basisAmount), not just the
+      // two totals it feeds into.
+      expect(closerLine.basisAmount.toString()).toBe(p.netToCloser);
+      expect(company.amount.toString()).toBe(p.companyRetained);
+      expect(payable.amount.toString()).toBe(p.externalPayable);
+    },
+  );
 });

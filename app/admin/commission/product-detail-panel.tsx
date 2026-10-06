@@ -93,21 +93,24 @@ export function ProductDetailPanel({ rows }: { rows: ProductBreakdownRow[] }) {
           </select>
 
           <div className="mt-3 divide-y divide-line-200 border-t border-line-200">
-            {selected.kind === "external" ? (
-              <p className="py-3 text-[13px] text-muted">
-                {t("externalNote", { provider: selected.providerKeepsPct, company: selected.companyRetainedPct })}
-              </p>
+            {selected.kind === "external" && selected.netToCloser === undefined ? (
+              // Fixed/mixed-type external: no production instance (see
+              // product-breakdown.ts) — same flat note as before 2026-10,
+              // rather than a sale-dependent figure invented for a case
+              // nothing exercises.
+              <p className="py-3 text-[13px] text-muted">{t("externalProviderOnlyNote", { provider: selected.providerKeepsPct })}</p>
             ) : (
               <>
                 <Field label={t("colSaleAmount")} value={ILLUSTRATIVE_SALE_AMOUNT} badge={t("exampleBadge")} />
                 <p className="pb-2 text-[11px] text-muted-2">{t("saleAmountNote", { amount: ILLUSTRATIVE_SALE_AMOUNT })}</p>
-                <Field label={t("colNetToCloser")} value={selected.kind === "uniform" ? selected.netToCloser : t("dependsOnSaleAmount")} />
-                <Field label={t("colDirectOverride")} value={selected.directOverride} />
-                <Field label={t("colSecondOverride")} value={selected.secondOverride} />
-                {selected.kind === "uniform" && (
+                {selected.kind === "external" && <Field label={t("colProviderPayable")} value={selected.providerKeepsPct} />}
+                <Field label={t("colNetToCloser")} value={selected.kind === "uniform" || selected.kind === "external" ? selected.netToCloser! : t("dependsOnSaleAmount")} />
+                <Field label={t("colDirectOverride")} value={selected.directOverride!} />
+                <Field label={t("colSecondOverride")} value={selected.secondOverride!} />
+                {(selected.kind === "uniform" || selected.kind === "external") && (
                   <Field
                     label={t("colCompanyRetained")}
-                    value={selected.companyRetainedIsExpression ? `${t("saleWord")} − ${selected.companyRetained}` : selected.companyRetained}
+                    value={selected.kind === "uniform" && selected.companyRetainedIsExpression ? `${t("saleWord")} − ${selected.companyRetained}` : selected.companyRetained!}
                   />
                 )}
                 {selected.kind === "mixed" && <Field label={t("colCompanyRetained")} value={t("dependsOnSaleAmount")} />}
