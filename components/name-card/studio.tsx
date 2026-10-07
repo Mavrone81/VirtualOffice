@@ -42,6 +42,13 @@ const TIMES_NEW_ROMAN = "'Tinos', 'Times New Roman', Georgia, serif";
 // that it travel with the font).
 const ALEX_BRUSH = "'Alex Brush', cursive";
 const W = 661, H = 1075, DISPLAY_SCALE = 0.5;
+// Card-face typography the owner tunes by eye against a printed reference. Kept
+// here as named constants so the next nudge is a number change, not a hunt
+// through inline styles. All three are in card px (W = 661), NOT display px —
+// the preview is drawn at DISPLAY_SCALE but exports at full size.
+const NAME_STROKE = 0.9; // outline painted around the name's glyphs; see the note at its use
+const TITLE_SHIFT = 40;  // designation, px right of centre
+const HP_SHIFT = 40;     // mobile, px left of centre
 
 export type CardData = {
   chineseName: string;
@@ -200,21 +207,33 @@ export function NameCardStudio({
               {preview.chineseName && (
                 <div style={{ position: "absolute", top: 410, left: 0, right: 0, textAlign: "center", fontFamily: "'Ma Shan Zheng', cursive", fontSize: 38, color: "#1a1f2b" }}>{preview.chineseName}</div>
               )}
-              {/* The owner asked for the name in bold (2026-10-07). That OVERRIDES the
-                  earlier C-1 note here, which said no synthetic bold because it distorts a
-                  cursive face's letterforms. That reasoning still holds, and is why the
-                  weight is 600 rather than 700: Alex Brush ships ONE file
-                  (AlexBrush-Regular.ttf, weight 400) and has no bold face at all, so any bold
-                  is the browser's synthetic emboldening — it thickens strokes without
-                  redrawing them, which closes up a script's loops the heavier it gets. 600 is
-                  the lightest step that still reads as bold.
+              {/* The owner asked for the name in bold (2026-10-07), then for MORE bold after
+                  seeing it (same day) — hence the paint-based thickening rather than a higher
+                  font-weight. Alex Brush ships ONE file (AlexBrush-Regular.ttf, weight 400)
+                  and has no bold face, so font-weight can only ever ask the browser to
+                  synthesise one. Synthetic bold on a cursive face is both too weak to read as
+                  bold at 600 and, pushed to 700, closes up the script's loops — and how much
+                  it thickens is up to the rasteriser, so the printed PNG need not match the
+                  screen. -webkit-text-stroke paints a measured outline around the real
+                  glyph outlines instead: the letterforms are unchanged, the amount is
+                  explicit in px rather than left to a font-matching heuristic, and it is an
+                  ordinary paint operation, so html-to-image's rasterisation reproduces it.
+                  Weight stays 400 so the two mechanisms cannot compound.
 
                   The card exports by rasterising this DOM (html-to-image toPng), so what
                   renders here is exactly what the PNG and the PDF carry — no separate
                   handling is needed in the export path. */}
-              <div style={{ position: "absolute", top: 460, left: 0, right: 0, textAlign: "center", fontFamily: ALEX_BRUSH, fontSize: 52, fontWeight: 600, color: "#111" }}>{preview.englishName}</div>
-              <div style={{ position: "absolute", top: 520, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontStyle: "italic", fontSize: 29, color: "#33383f" }}>{preview.title}</div>
-              {preview.hp && <div style={{ position: "absolute", top: 560, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontSize: 29, fontWeight: 700, color: "#1a1f2b" }}>HP: {preview.hp}</div>}
+              <div style={{ position: "absolute", top: 460, left: 0, right: 0, textAlign: "center", fontFamily: ALEX_BRUSH, fontSize: 52, fontWeight: 400, WebkitTextStroke: `${NAME_STROKE}px #111`, color: "#111" }}>{preview.englishName}</div>
+              {/* Designation sits right of centre and the mobile left of it, matching the
+                  reference card the owner supplied (2026-10-07). Padding, not a transform:
+                  the box still spans the full width and still centres its text, so the shift
+                  survives a long designation (it re-centres within the narrowed box instead
+                  of overflowing one edge), and it is plain box model that rasterises
+                  identically in the PNG export. NOTE the factor of two — padding narrows the
+                  box from one side only, so the CENTRE moves by half the padding. The
+                  constants below are the intended centre shift; the doubling happens here. */}
+              <div style={{ position: "absolute", top: 520, left: 0, right: 0, paddingLeft: TITLE_SHIFT * 2, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontStyle: "italic", fontSize: 29, color: "#33383f" }}>{preview.title}</div>
+              {preview.hp && <div style={{ position: "absolute", top: 560, left: 0, right: 0, paddingRight: HP_SHIFT * 2, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontSize: 29, fontWeight: 700, color: "#1a1f2b" }}>HP: {preview.hp}</div>}
               {preview.email && <div style={{ position: "absolute", top: 602, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontStyle: "italic", fontSize: 26, color: "#222" }}>Email: {preview.email}</div>}
               <div style={{ position: "absolute", top: 875, left: 60, fontSize: 32, color: "#1a1f2b", lineHeight: 1.25 }}>{ADDRESS[0]}<br />{ADDRESS[1]}</div>
               <div style={{ position: "absolute", top: 978, left: 60, fontStyle: "italic", fontSize: 20, color: "#1a1f2b" }}>
