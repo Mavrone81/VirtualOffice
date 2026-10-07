@@ -348,6 +348,7 @@
     "clearTarget": "Clear",
     "targetNote": "Default for every member of this team. A member's own target, set on the Team Dashboard, overrides it.",
     "individualTargetsHeading": "Individual targets",
+    "individualTargetsUnassignedHeading": "Individual targets — not in a team",
     "individualTargetsNote": "Overrides the team target for this associate only, for this period. Clearing it returns them to their team's target, if any."
   },
   "commission": {

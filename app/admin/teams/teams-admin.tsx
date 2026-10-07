@@ -21,6 +21,10 @@ export function TeamsAdmin({ teams, associates, month, year }: { teams: Team[]; 
   const router = useRouter();
   const nameById = new Map(associates.map((a) => [a.id, a.name]));
   const directors = associates.filter((a) => a.designation === "SalesDirector");
+  // Membership, not the director field: heading a team is a separate
+  // relationship and does not put someone in the member list.
+  const inSomeTeam = new Set(teams.flatMap((tm) => tm.memberIds));
+  const unassigned = associates.filter((a) => !inSomeTeam.has(a.id));
   const [name, setName] = useState("");
   const [directorId, setDirectorId] = useState("");
   const [err, setErr] = useState<string>();
@@ -62,23 +66,30 @@ export function TeamsAdmin({ teams, associates, month, year }: { teams: Team[]; 
         teams.map((team) => <TeamCard key={team.id} team={team} associates={associates} nameById={nameById} month={month} year={year} />)
       )}
 
-      <Card className="p-5">
-        <h2 className="font-display text-[17px] text-ink">{t("individualTargetsHeading")}</h2>
-        <p className="mt-1 text-[12px] text-muted">{t("individualTargetsNote")}</p>
-        <div className="mt-4 space-y-4">
-          {associates.length === 0 ? (
-            <p className="text-[13px] text-muted">{t("empty")}</p>
-          ) : (
-            associates.map((a) => (
+      {/* Individual targets moved INTO each team card above (owner, 2026-10-07),
+          so a member is edited next to the team whose target they override
+          rather than hunted for in one long list at the foot of the page.
+
+          This card is what is left over, and it is not cosmetic: team
+          membership is optional, so without it every associate who belongs to
+          no team would have no individual target editor anywhere on the site.
+          A director counts here too — directorId is a separate field from
+          members, so heading a team does not make someone a member of it. */}
+      {unassigned.length > 0 && (
+        <Card className="p-5">
+          <h2 className="font-display text-[17px] text-ink">{t("individualTargetsUnassignedHeading")}</h2>
+          <p className="mt-1 text-[12px] text-muted">{t("individualTargetsNote")}</p>
+          <div className="mt-4 space-y-4">
+            {unassigned.map((a) => (
               <div key={a.id} className="grid gap-3 border-b border-line pb-4 last:border-0 last:pb-0 sm:grid-cols-[1fr_auto_auto] sm:items-end">
                 <span className="text-[13px] text-ink">{a.name}</span>
                 <IndividualTargetEditor associateId={a.id} month={month} label={t("monthlyTarget", { period: month })} current={a.monthlyTarget} />
                 <IndividualTargetEditor associateId={a.id} month={year} label={t("yearlyTarget", { period: year })} current={a.yearlyTarget} />
               </div>
-            ))
-          )}
-        </div>
-      </Card>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
@@ -143,6 +154,12 @@ function TeamCard({ team, associates, nameById, month, year }: { team: Team; ass
   const [addId, setAddId] = useState("");
   const [pending, start] = useTransition();
   const available = associates.filter((a) => !team.memberIds.includes(a.id));
+  // Members in the team's own order, dropping any id with no matching
+  // associate — the associate query filters to active, approved and
+  // unarchived, so a membership row can outlive the person it points at.
+  const members = team.memberIds
+    .map((mid) => associates.find((a) => a.id === mid))
+    .filter((a): a is Assoc => a !== undefined);
 
   return (
     <Card className="p-5">
@@ -201,6 +218,28 @@ function TeamCard({ team, associates, nameById, month, year }: { team: Team; ass
         <TargetEditor teamId={team.id} periodType="Yearly" period={year} label={t("yearlyTarget", { period: year })} current={team.yearlyTarget} />
       </div>
       <p className="mt-2 text-[11px] text-muted">{t("targetNote")}</p>
+
+      {/* Each member's own override, directly under the team target it
+          overrides (owner, 2026-10-07). Driven off `members`, the same list the
+          chips above render, so the two cannot disagree about who is on the
+          team. An associate on two teams is editable from either card and both
+          write the same per-associate row — router.refresh() re-renders the
+          whole page, so the other card cannot be left showing a stale value. */}
+      {members.length > 0 && (
+        <div className="mt-4 border-t border-line pt-4">
+          <h4 className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">{t("individualTargetsHeading")}</h4>
+          <p className="mt-1 text-[11px] text-muted">{t("individualTargetsNote")}</p>
+          <div className="mt-3 space-y-4">
+            {members.map((a) => (
+              <div key={a.id} className="grid gap-3 border-b border-line pb-4 last:border-0 last:pb-0 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                <span className="text-[13px] text-ink">{a.name}</span>
+                <IndividualTargetEditor associateId={a.id} month={month} label={t("monthlyTarget", { period: month })} current={a.monthlyTarget} />
+                <IndividualTargetEditor associateId={a.id} month={year} label={t("yearlyTarget", { period: year })} current={a.yearlyTarget} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
