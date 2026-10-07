@@ -4,6 +4,7 @@ import { teamScopeIds, parseTeamSearchParam, resolveTeamSearchScope } from "@/li
 import { fetchTeamSalesCommissionByTransaction } from "@/server/sales/team-commission-column";
 import { myOverridesSummary } from "@/server/dashboard/my-overrides";
 import type { AppRole } from "@prisma/client";
+import { EXCLUDE_MD_CUT } from "@/server/commission/md-visibility";
 
 /**
  * Everything the manager view of Team Performance reads, in one place so
@@ -60,7 +61,7 @@ export async function fetchTeamPerformance(input: {
       : Promise.resolve([]),
     effectiveIds.length
       ? prisma.commissionLedger.findMany({
-          where: { associateId: { in: effectiveIds } },
+          where: { associateId: { in: effectiveIds }, ...EXCLUDE_MD_CUT },
           orderBy: { createdAt: "desc" },
           include: { transaction: { select: { transactionCode: true } }, associate: { select: { associateCode: true } } },
           take: 200,

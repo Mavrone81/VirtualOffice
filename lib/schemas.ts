@@ -234,6 +234,11 @@ const productCommissionShape = {
   smOverrideType: comValueTypeEnum.optional(),
   sdOverridePct: rate,
   sdOverrideType: comValueTypeEnum.optional(),
+  // Optional so a caller written before 2026-10-07 still validates; it then
+  // snapshots as "0", i.e. no managing-director cut, which is the pre-change
+  // behaviour. The 30%-of-company-cut default is the FORM's, not the schema's.
+  mdCutPct: rate.optional(),
+  mdCutType: comValueTypeEnum.optional(),
   isExternal: z.boolean(),
   externalCompanyRetainedPct: rate.optional(),
   effectiveDate: dateStr,

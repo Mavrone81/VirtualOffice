@@ -63,7 +63,11 @@ describe("fetchTeamPerformance — the guard sits before every query", () => {
       expect(spies.downlineRows).toHaveBeenCalled();
       const where = (c: { mock: { calls: unknown[][] } }) => (c.mock.calls[0][0] as { where: unknown }).where;
       expect(where(spies.submissionFindMany)).toEqual({ closingAssociateId: { in: ["M1", "M2"] } });
-      expect(where(spies.ledgerFindMany)).toEqual({ associateId: { in: ["M1", "M2"] } });
+      // The managing-director cut is admin-only, so every team-scoped ledger
+      // read carries its exclusion (server/commission/md-visibility.ts). This
+      // assertion is deliberately exact: a loose match here would not notice
+      // the filter being dropped.
+      expect(where(spies.ledgerFindMany)).toEqual({ associateId: { in: ["M1", "M2"] }, lineType: { not: "ManagingDirectorCut" } });
     });
   }
 
@@ -79,7 +83,7 @@ describe("fetchTeamPerformance — the guard sits before every query", () => {
     const sub = (spies.submissionFindMany.mock.calls[0] as unknown as [{ where: unknown }])[0].where;
     const led = (spies.ledgerFindMany.mock.calls[0] as unknown as [{ where: unknown }])[0].where;
     expect(sub).toEqual({ closingAssociateId: { in: ["22222222-2222-4222-8222-222222222222"] } });
-    expect(led).toEqual({ associateId: { in: ["22222222-2222-4222-8222-222222222222"] } });
+    expect(led).toEqual({ associateId: { in: ["22222222-2222-4222-8222-222222222222"] }, lineType: { not: "ManagingDirectorCut" } });
     spies.downlineRows.mockResolvedValue([{ id: ME }, { id: "M1" }, { id: "M2" }]);
   });
 });

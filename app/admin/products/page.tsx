@@ -97,6 +97,9 @@ export default async function ProductsPage() {
                 <span>{t("companyCutLabel")} <b className="text-ink">{formatByValueType(p.companyCutPct, p.companyCutType)}</b></span>
                 <span>{t("smLabel")} <b className="text-ink">{formatByValueType(p.smOverridePct, p.smOverrideType)}</b></span>
                 <span>{t("sdLabel")} <b className="text-ink">{formatByValueType(p.sdOverridePct, p.sdOverrideType)}</b></span>
+                {/* Admin product page — one of the three screens the owner
+                    named as allowed to show this (2026-10-07). */}
+                <span>{t("mdCutLabel")} <b className="text-ink">{formatByValueType(p.mdCutPct, p.mdCutType)}</b></span>
               </div>
             ) : (
               <div className="mt-3 text-[12px] text-muted">

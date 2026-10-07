@@ -87,6 +87,11 @@ const WELCOME_LINK_TTL_MS = 24 * 60 * 60 * 1000;
 
 // app_role provisioned from org designation (16-Jul: each sales tier has its own role; cf. roleForDesignation in lib/rbac.ts)
 const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
+  // A Managing Director is a sales DESIGNATION the owner added for the
+  // managing-director cut (2026-10-07); AppRole has no matching value and the
+  // owner asked for a designation and a cut, not an access change. Mapped to
+  // the highest existing sales role so permissions are unchanged in substance.
+  ManagingDirector: AppRole.SalesDirector,
   SalesDirector: AppRole.SalesDirector,
   SalesManager: AppRole.SalesManager,
   SalesAssistantManager: AppRole.SalesAssistantManager,

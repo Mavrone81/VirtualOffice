@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { sum } from "@/lib/money";
 import { downlineIds } from "@/lib/rbac";
 import { teamScopeIds } from "@/lib/team";
+import { EXCLUDE_MD_CUT } from "@/server/commission/md-visibility";
 
 /**
  * The set of associate ids a "My Dashboard" aggregates over, per the role's
@@ -41,7 +42,10 @@ export type DashboardMetrics = {
  */
 export async function dashboardMetrics(scopeIds: string[] | null): Promise<DashboardMetrics> {
   const txWhere = scopeIds === null ? {} : { closingAssociateId: { in: scopeIds } };
-  const ledgerWhere = scopeIds === null ? {} : { associateId: { in: scopeIds } };
+  // EXCLUDE_MD_CUT on BOTH branches, including the admin-wide one: the owner
+  // named three admin screens as the complete list of places this figure may
+  // appear, and the admin dashboard is not one of them.
+  const ledgerWhere = scopeIds === null ? { ...EXCLUDE_MD_CUT } : { associateId: { in: scopeIds }, ...EXCLUDE_MD_CUT };
   const [tx, ledger] = await Promise.all([
     prisma.salesTransaction.findMany({ where: txWhere, select: { saleAmount: true } }),
     prisma.commissionLedger.findMany({ where: ledgerWhere, select: { amount: true, status: true, payout: { select: { payoutStatus: true } } } }),

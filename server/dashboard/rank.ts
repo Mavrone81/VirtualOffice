@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { D, ZERO } from "@/lib/money";
 import { periodKeys } from "@/lib/quota";
 import { rankByCommissionReceived, type RankResult } from "@/lib/rank-band";
+import { EXCLUDE_MD_CUT } from "@/server/commission/md-visibility";
 
 /**
  * A-2: this associate's percentile band, ranked against every active
@@ -40,6 +41,7 @@ export async function myRankResult(associateId: string): Promise<RankResult | nu
       by: ["associateId"],
       where: {
         associateId: { not: null },
+        ...EXCLUDE_MD_CUT,
         status: { not: LedgerStatus.Cancelled },
         payout: { payoutStatus: PayoutStatus.Paid, payoutMonth: { startsWith: `${year}-` } },
       },

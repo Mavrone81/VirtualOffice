@@ -25,6 +25,15 @@ export type CanonicalCommission = {
   smOverrideType: "Percentage" | "Absolute";
   sdOverridePct: string;
   sdOverrideType: "Percentage" | "Absolute";
+  // Managing Director's cut (2026-10-07). It belongs in this canonical
+  // form for the same reason every other rate does: this type decides
+  // whether an edit wrote a NEW commission version. Left out, changing ONLY
+  // the MD cut would compare equal to the stored row, no version would be
+  // written, and the engine — which pays from the version, not from the
+  // product row — would keep using the old rate while the product screen
+  // showed the new one.
+  mdCutPct: string;
+  mdCutType: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct: string | null;
   effectiveDate: string;
@@ -40,6 +49,8 @@ type CommissionInput = {
   smOverrideType?: "Percentage" | "Absolute";
   sdOverridePct: string;
   sdOverrideType?: "Percentage" | "Absolute";
+  mdCutPct?: string;
+  mdCutType?: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct?: string;
   effectiveDate: string;
@@ -56,6 +67,8 @@ type CommissionRow = {
   smOverrideType: "Percentage" | "Absolute";
   sdOverridePct: DecimalLike;
   sdOverrideType: "Percentage" | "Absolute";
+  mdCutPct: DecimalLike;
+  mdCutType: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct: DecimalLike | null;
   effectiveDate: Date;
@@ -79,6 +92,8 @@ export function canonicalFromInput(i: CommissionInput): CanonicalCommission {
     smOverrideType: i.smOverrideType ?? "Percentage",
     sdOverridePct: pct(i.sdOverridePct || "0"),
     sdOverrideType: i.sdOverrideType ?? "Percentage",
+    mdCutPct: pct(i.mdCutPct || "0"),
+    mdCutType: i.mdCutType ?? "Percentage",
     isExternal: i.isExternal,
     externalCompanyRetainedPct: i.isExternal ? pct(i.externalCompanyRetainedPct || "0") : null,
     effectiveDate: day(new Date(i.effectiveDate)),
@@ -101,6 +116,8 @@ export function canonicalFromRow(r: CommissionRow): CanonicalCommission {
     smOverrideType: r.smOverrideType,
     sdOverridePct: pct(r.sdOverridePct),
     sdOverrideType: r.sdOverrideType,
+    mdCutPct: pct(r.mdCutPct),
+    mdCutType: r.mdCutType,
     isExternal: r.isExternal,
     externalCompanyRetainedPct: r.isExternal ? pct(r.externalCompanyRetainedPct ?? "0") : null,
     effectiveDate: day(r.effectiveDate),

@@ -12,6 +12,10 @@ export type RateSnapshot = {
   smOverrideType?: ComValueType | null;
   sdOverridePct: string;
   sdOverrideType?: ComValueType | null;
+  // Absent on every version written before 2026-10-07. Reading it as 0 is what
+  // keeps historical sales recomputing to the figures they were booked at.
+  mdCutPct?: string | null;
+  mdCutType?: ComValueType | null;
   isExternal: boolean;
   externalCompanyRetainedPct?: string | null;
 };
@@ -41,6 +45,8 @@ export function toLineInput(
     closer: { associateId: string; designation: Designation };
     directUpline: UplineInput;
     secondUpline: UplineInput;
+    /** Resolved once per run, not per line — the same people on every sale. */
+    managingDirectors?: { associateId: string; eligible: boolean }[];
     associate2: SplitInput | null;
     associate3: SplitInput | null;
   },
@@ -59,6 +65,8 @@ export function toLineInput(
     smOverrideType: rs.smOverrideType ?? ComValueType.Percentage,
     sdOverridePct: rs.sdOverridePct ?? "0",
     sdOverrideType: rs.sdOverrideType ?? ComValueType.Percentage,
+    mdCutPct: rs.mdCutPct ?? "0",
+    mdCutType: rs.mdCutType ?? ComValueType.Percentage,
     isExternal: li.isExternal,
     externalCompanyRetainedPct: rs.externalCompanyRetainedPct ?? null,
     comCodes,

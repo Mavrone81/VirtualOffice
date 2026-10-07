@@ -159,11 +159,25 @@ export async function runCommissionTx(db: Db, transactionId: string): Promise<Ru
   // instead; everything below only depends on this shape, not on where it came from.
   const { directUpline, secondUpline, associate2, associate3, eligible, nameOf } = await loadCommissionParties(db, tx);
 
+  // The managing-director cut's recipients. Resolved ONCE for the whole
+  // transaction, not per line: unlike the uplines this does not depend on who
+  // closed the sale — it is whoever currently holds the designation.
+  // Eligibility uses the same rule as an upline (Approved + Active), so a
+  // suspended managing director's share reverts to the company exactly as an
+  // ineligible upline's override does.
+  const managingDirectors = (
+    await db.associate.findMany({
+      where: { designation: Designation.ManagingDirector, archivedAt: null },
+      select: { id: true, approvalStatus: true, associateStatus: true },
+    })
+  ).map((m) => ({ associateId: m.id, eligible: m.approvalStatus === "Approved" && m.associateStatus === "Active" }));
+
   const lineInputs: LineInput[] = tx.lineItems.map((li) =>
     toLineInput(li, li.structureVersion?.rateSnapshot, {
       closer: { associateId: tx.closingAssociateId, designation: tx.closingAssociate.designation },
       directUpline,
       secondUpline,
+      managingDirectors,
       associate2,
       associate3,
     }),

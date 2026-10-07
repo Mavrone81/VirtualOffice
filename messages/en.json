@@ -1060,7 +1060,9 @@
       "colCategory": "Category",
       "colCompany": "Company",
       "colStatus": "Status"
-    }
+    },
+    "mdCutLabel": "Managing Director cut",
+    "mdCutHelp": "Taken from the company cut and shared by everyone with the Managing Director designation. Defaults to 30% of the company cut. Admin-only — it is never shown to associates."
   },
   "recruitment": {
     "title": "Recruitment",
@@ -1339,6 +1341,7 @@
     "SalesAssistantManager": "Sales Assistant Manager",
     "SalesManager": "Sales Manager",
     "SalesDirector": "Sales Director",
+    "ManagingDirector": "Managing Director",
     "PayNow": "PayNow",
     "BankTransfer": "Bank Transfer",
     "FullPayment": "Full Payment",

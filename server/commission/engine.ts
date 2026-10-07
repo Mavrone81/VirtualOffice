@@ -23,12 +23,23 @@ export type LineInput = {
   /** SD Overriding — % of the SALES AMOUNT (or absolute), paid to the second upline (Tier 2). */
   sdOverridePct: Numeric;
   sdOverrideType?: ComValueType | null;
+  /** Managing Director's cut — % of the SALES AMOUNT (or absolute), SHARED
+   *  equally by every eligible holder of the ManagingDirector designation.
+   *  Same arithmetic as the two overrides above; what differs is who it
+   *  resolves to — a designation, not a position in the closer's chain — so it
+   *  is paid on every sale, including one a Managing Director closed
+   *  themselves, and reverts to the company when nobody eligible holds it. */
+  mdCutPct?: Numeric | null;
+  mdCutType?: ComValueType | null;
   isExternal: boolean;
   externalCompanyRetainedPct?: Numeric | null;
   comCodes: ComCodeInput[];
   closer: { associateId: string; designation: Designation };
   directUpline: UplineInput;
   secondUpline: UplineInput;
+  /** Every associate holding the ManagingDirector designation. Not part of the
+   *  closer's upline chain: the same list on every sale. */
+  managingDirectors?: { associateId: string; eligible: boolean }[];
   /** Optional Net-to-Closer shares for Associate 2 / Associate 3 (Flow 3 split). */
   associate2?: SplitInput | null;
   associate3?: SplitInput | null;
@@ -104,6 +115,22 @@ export function computeLineCommission(line: LineInput): LineResult {
   const smAmt = line.directUpline?.eligible ? resolve(lineSale, line.smOverrideType ?? ComValueType.Percentage, line.smOverridePct) : ZERO;
   const sdAmt = line.secondUpline?.eligible ? resolve(lineSale, line.sdOverrideType ?? ComValueType.Percentage, line.sdOverridePct) : ZERO;
 
+  // Managing Director's cut. Resolved like an override, then SHARED equally
+  // between every eligible holder (owner: "whoever is given this designation
+  // will share the Managing director cut").
+  //
+  // Each share rounds to the cent independently, so the shares need not re-add
+  // to mdPool — three holders of a $10 cut take 3.33 each and a cent is left
+  // over. mdPaid is therefore the SUM OF WHAT IS ACTUALLY BOOKED, never the
+  // pool, and that is what the company's residual subtracts. Subtracting the
+  // pool would leave the company's books short by a cent that no ledger line
+  // accounts for, on every multi-holder sale, and `reconciles` below would
+  // start failing for a reason that has nothing to do with the sale.
+  const mdHolders = (line.managingDirectors ?? []).filter((m) => m.eligible);
+  const mdPool = mdHolders.length ? resolve(lineSale, line.mdCutType ?? ComValueType.Percentage, line.mdCutPct ?? 0) : ZERO;
+  const mdShares = mdHolders.map((m) => ({ associateId: m.associateId, amount: round2(mdPool.div(mdHolders.length)) }));
+  const mdPaid = mdShares.reduce((t, x) => t.add(x.amount), ZERO);
+
   // Net-to-Closer split across Associate 1 (submitter) / 2 / 3.
   const split2 = line.associate2 ? resolve(netToCloser, line.associate2.valueType, line.associate2.value) : ZERO;
   const split3 = line.associate3 ? resolve(netToCloser, line.associate3.valueType, line.associate3.value) : ZERO;
@@ -112,7 +139,7 @@ export function computeLineCommission(line: LineInput): LineResult {
   // Company take = whatever is left of the retained base after associates +
   // overrides (absorbs reverted overrides + rounding). Negative is permitted
   // for external — see the header comment.
-  const companyTake = round2(retainedBase.sub(netToCloser).sub(smAmt).sub(sdAmt));
+  const companyTake = round2(retainedBase.sub(netToCloser).sub(smAmt).sub(sdAmt).sub(mdPaid));
 
   if (line.isExternal) {
     out.push({ lineItemId: line.lineItemId, associateId: null, lineType: LedgerLineType.ExternalPayable, comCode: null, basisAmount: lineSale, rateOrValue: null, amount: externalPayable });
@@ -129,6 +156,15 @@ export function computeLineCommission(line: LineInput): LineResult {
   }
   if (line.secondUpline?.eligible && sdAmt.gt(0)) {
     out.push({ lineItemId: line.lineItemId, associateId: line.secondUpline.associateId, lineType: LedgerLineType.Override, comCode: null, basisAmount: lineSale, rateOrValue: D(line.sdOverridePct), amount: sdAmt });
+  }
+  // Its OWN line type, not Override. The owner's rule is that nobody but an
+  // admin ever sees this figure, and a distinguishable type is what lets every
+  // associate-facing aggregate exclude it with one condition, instead of each
+  // one being trusted to remember a magic comCode.
+  for (const share of mdShares) {
+    if (share.amount.gt(0)) {
+      out.push({ lineItemId: line.lineItemId, associateId: share.associateId, lineType: LedgerLineType.ManagingDirectorCut, comCode: null, basisAmount: lineSale, rateOrValue: D(line.mdCutPct ?? 0), amount: share.amount });
+    }
   }
   out.push({
     lineItemId: line.lineItemId, associateId: null, lineType: LedgerLineType.CompanyRetained, comCode: null, basisAmount: lineSale,
@@ -157,10 +193,15 @@ export function computeLineCommission(line: LineInput): LineResult {
     out.push({ lineItemId: line.lineItemId, associateId: line.closer.associateId, lineType: LedgerLineType.AddOn, comCode: cc.comCode, basisAmount: retainedBase, rateOrValue: D(cc.value), amount: amt });
   }
 
-  // the whole sale reconciles: closer + split2 + split3 + overrides + company
-  // + provider payable = sale (add-ons are extra). externalPayable is ZERO
-  // for internal, so this is exactly the pre-existing internal check.
-  const reconciles = closerAmt.add(split2).add(split3).add(smAmt).add(sdAmt).add(companyTake).add(externalPayable).equals(lineSale);
+  // the whole sale reconciles: closer + split2 + split3 + overrides + the
+  // managing-director cut + company + provider payable = sale (add-ons are
+  // extra). externalPayable is ZERO for internal, so this is exactly the
+  // pre-existing internal check.
+  //
+  // mdPaid, not mdPool: this must add what was actually BOOKED, matching what
+  // companyTake subtracted. Using the pool here would make every multi-holder
+  // sale fail to reconcile by the rounding remainder.
+  const reconciles = closerAmt.add(split2).add(split3).add(smAmt).add(sdAmt).add(mdPaid).add(companyTake).add(externalPayable).equals(lineSale);
   return { lines: out, reconciles };
 }
 

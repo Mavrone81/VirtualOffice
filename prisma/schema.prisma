@@ -29,6 +29,11 @@ enum AppRole {
 }
 
 enum Designation {
+  // Managing Director (owner, 2026-10-07). A sales designation like the rest,
+  // so it needs nothing special to reach the name card — that card already
+  // prints the designation. Everyone holding it SHARES each product's
+  // Managing Director cut; see server/commission/engine.ts.
+  ManagingDirector      @map("Managing Director")
   SalesAssociate        @map("Sales Associate")
   SalesAssistantManager @map("Sales Assistant Manager")
   SalesManager          @map("Sales Manager")
@@ -170,6 +175,11 @@ enum InvoicePaymentMethod {
 enum LedgerLineType {
   Personal
   Override
+  // The Managing Director's cut (owner, 2026-10-07). Deliberately its OWN type
+  // rather than an Override: the owner's rule is that nobody but an admin ever
+  // sees this figure, and only a distinguishable type lets every
+  // associate-facing aggregate exclude it with one condition.
+  ManagingDirectorCut @map("Managing Director Cut")
   AddOn           @map("Add-on")
   CompanyRetained @map("Company Retained")
   ExternalPayable @map("External Payable")
@@ -525,6 +535,15 @@ model Product {
   smOverrideType             ComValueType        @default(Percentage) @map("sm_override_type")
   sdOverridePct              Decimal             @default(0) @map("sd_override_pct") @db.Decimal(14, 4)
   sdOverrideType             ComValueType        @default(Percentage) @map("sd_override_type")
+  // Managing Director's cut (owner, 2026-10-07). Mechanically identical to the
+  // SM/SD overrides above — a % of the SALES AMOUNT or an absolute value,
+  // resolved per line and taken out of what the company keeps — but paid to
+  // EVERY associate holding the ManagingDirector designation, shared equally
+  // between them, rather than to a position in the closer's upline chain. Defaults to 0 so EVERY product
+  // that exists today keeps its current arithmetic until an admin sets it; the
+  // "30% of the company cut" default applies to the FORM, not the column.
+  mdCutPct                   Decimal             @default(0) @map("md_cut_pct") @db.Decimal(14, 4)
+  mdCutType                  ComValueType        @default(Percentage) @map("md_cut_type")
   companyRetainedPct         Decimal?            @map("company_retained_pct") @db.Decimal(7, 4)
   isExternal                 Boolean             @default(false) @map("is_external")
   externalCompanyRetainedPct Decimal?            @map("external_company_retained_pct") @db.Decimal(7, 4)
