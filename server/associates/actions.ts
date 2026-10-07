@@ -19,6 +19,7 @@ import { newAssociateSchema, updateAssociateSchema } from "@/lib/schemas";
 import { putObject } from "@/lib/storage";
 import { assertDocumentUpload } from "@/lib/file-type";
 import { fileSignedAgreement } from "@/server/recruitment/file-signed-agreement";
+import { normalizeEmail } from "@/lib/email";
 
 async function requireAdmin() {
   const session = await auth();
@@ -159,7 +160,7 @@ export async function createAssociate(input: NewAssociateInput): Promise<{ ok: b
       fullName: validInput.fullName.trim(),
       businessName: validInput.businessName?.trim() || null,
       mobileNumber: validInput.mobileNumber?.trim() || null,
-      email: validInput.email?.trim() || null,
+      email: normalizeEmail(validInput.email),
       nric: validInput.nric ? encryptPII(validInput.nric.trim()) : null,
       dateOfBirth: validInput.dateOfBirth ? new Date(validInput.dateOfBirth) : null,
       designation: validInput.designation,
@@ -244,7 +245,7 @@ export async function updateAssociate(
     fullName: v.fullName.trim(),
     businessName: v.businessName?.trim() || null,
     mobileNumber: v.mobileNumber?.trim() || null,
-    email: v.email?.trim() || null,
+    email: normalizeEmail(v.email),
     dateOfBirth: v.dateOfBirth ? new Date(v.dateOfBirth) : null,
     joinDate: v.joinDate ? new Date(v.joinDate) : null,
     designation: v.designation,
@@ -390,7 +391,7 @@ export async function setApprovalStatus(
   let provisioned: { userId: string; role: string } | null = null;
   if (pwHash && a.email) {
     const user = await db.user.create({
-      data: { email: a.email, passwordHash: pwHash, role: ROLE_FOR_DESIGNATION[a.designation], associateId: a.id, mustResetPassword: true },
+      data: { email: normalizeEmail(a.email)!, passwordHash: pwHash, role: ROLE_FOR_DESIGNATION[a.designation], associateId: a.id, mustResetPassword: true },
     });
     await db.pFile.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, associateId: a.id } });
     provisioned = { userId: user.id, role: user.role };

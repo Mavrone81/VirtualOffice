@@ -73,7 +73,7 @@ beforeAll(async () => {
   // previous failed run under this tag before creating the ORIGINAL row.
   await prisma.companySignatory.deleteMany({});
   adminUserId = (await prisma.user.create({
-    data: { email: `${TAG}admin-${randomUUID()}@example.com`, passwordHash: "x", role: "Admin" as never },
+    data: { email: `${TAG.toLowerCase()}admin-${randomUUID()}@example.com`, passwordHash: "x", role: "Admin" as never },
     select: { id: true },
   })).id;
 });
