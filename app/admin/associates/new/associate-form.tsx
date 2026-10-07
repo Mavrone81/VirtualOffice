@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { createAssociate, type NewAssociateInput } from "@/server/associates/actions";
+import { DESIGNATION_OPTIONS } from "@/lib/roles";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -70,10 +71,9 @@ export function AssociateForm({ uplines, teams }: { uplines: { code: string; lab
           <div>
             <Label htmlFor="des">{t("form.designation")}</Label>
             <select id="des" className={selectCls} value={f.designation} onChange={(e) => set({ designation: e.target.value as NewAssociateInput["designation"] })}>
-              <option value="SalesAssociate">{t("form.desSalesAssociate")}</option>
-              <option value="SalesAssistantManager">{t("form.desAsmgr")}</option>
-              <option value="SalesManager">{t("form.desSalesMgr")}</option>
-              <option value="SalesDirector">{t("form.desSalesDir")}</option>
+              {DESIGNATION_OPTIONS.map((d) => (
+                <option key={d.value} value={d.value}>{t(d.labelKey)}</option>
+              ))}
             </select>
           </div>
           <div>
