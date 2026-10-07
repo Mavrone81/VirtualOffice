@@ -72,6 +72,11 @@ export async function revealAssociatePii(
 const DEACTIVATED: AssociateStatus[] = [AssociateStatus.Inactive, AssociateStatus.Suspended];
 
 const ROLE_FOR_DESIGNATION: Record<Designation, AppRole> = {
+  // A Managing Director is a sales DESIGNATION the owner added for the
+  // managing-director cut (2026-10-07); AppRole has no matching value and the
+  // owner asked for a designation and a cut, not an access change. Mapped to
+  // the highest existing sales role so permissions are unchanged in substance.
+  ManagingDirector: AppRole.SalesDirector,
   SalesDirector: AppRole.SalesDirector,
   SalesManager: AppRole.SalesManager,
   SalesAssistantManager: AppRole.SalesAssistantManager,

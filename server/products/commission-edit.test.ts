@@ -11,6 +11,10 @@ const row = {
   companyCutPct: new Prisma.Decimal("2"), companyCutType: "Percentage" as const,
   smOverridePct: new Prisma.Decimal("5"), smOverrideType: "Percentage" as const,
   sdOverridePct: new Prisma.Decimal("3"), sdOverrideType: "Percentage" as const,
+  // The stored row's managing-director cut is 0 while `input` omits it, so the
+  // two still canonicalise equal — the "unchanged" case this fixture exists to
+  // assert, and the real state of every product created before 2026-10-07.
+  mdCutPct: new Prisma.Decimal("0"), mdCutType: "Percentage" as const,
   isExternal: false, externalCompanyRetainedPct: null, effectiveDate: new Date("2098-01-01"),
 };
 
@@ -22,6 +26,16 @@ describe("commission-edit canonical form", () => {
 
   it("names exactly the fields that differ", () => {
     expect(changedCommissionFields(canonicalFromRow(row), canonicalFromInput({ ...input, smOverridePct: "5.5", effectiveDate: "2098-02-01" }))).toEqual(["smOverridePct", "effectiveDate"]);
+  });
+
+  // Without this, changing ONLY the managing-director cut would canonicalise
+  // equal to the stored row, so no new CommissionStructureVersion would be
+  // written — and the engine pays from the VERSION, not the product row. The
+  // screen would show the new rate while every sale kept using the old one,
+  // with nothing anywhere reporting a problem.
+  it("a managing-director cut change is detected on its own", () => {
+    expect(changedCommissionFields(canonicalFromRow(row), canonicalFromInput({ ...input, mdCutPct: "0.6" }))).toEqual(["mdCutPct"]);
+    expect(changedCommissionFields(canonicalFromRow(row), canonicalFromInput({ ...input, mdCutType: "Absolute" }))).toEqual(["mdCutType"]);
   });
 
   it("maps like createProduct: the closing value only for its own type, the retained % only when external", () => {

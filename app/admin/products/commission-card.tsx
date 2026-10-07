@@ -29,6 +29,8 @@ export type CommissionValue = {
   smOverrideType?: "Percentage" | "Absolute";
   sdOverridePct: string;
   sdOverrideType?: "Percentage" | "Absolute";
+  mdCutPct?: string;
+  mdCutType?: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct?: string;
   effectiveDate: string;
@@ -183,6 +185,22 @@ export function CommissionCard({
             base={Number(salesAmount) || undefined}
             placeholder="3"
           />
+        </div>
+        <div>
+          {/* Admin-only: the owner's rule is that this figure never appears
+              outside the product screens and the admin payout page, which is
+              why it has no counterpart anywhere in the portal. */}
+          <Label htmlFor="md">{t("mdCutLabel")}</Label>
+          <PercentAmountInput
+            id="md"
+            value={f.mdCutPct ?? ""}
+            valueType={f.mdCutType ?? "Percentage"}
+            onValueChange={(v) => set({ mdCutPct: v })}
+            onTypeChange={(tp) => set({ mdCutType: tp })}
+            base={Number(salesAmount) || undefined}
+            placeholder="3"
+          />
+          <p className="mt-1 text-[11px] text-muted">{t("mdCutHelp")}</p>
         </div>
       </div>
 

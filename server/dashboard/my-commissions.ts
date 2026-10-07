@@ -1,6 +1,7 @@
 import { LedgerStatus, PayoutStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { D } from "@/lib/money";
+import { EXCLUDE_MD_CUT } from "@/server/commission/md-visibility";
 
 export type CommissionLedgerRow = Prisma.CommissionLedgerGetPayload<{
   include: { transaction: true; payout: { select: { payoutStatus: true } } };
@@ -39,21 +40,22 @@ export async function myCommissionsSummary(associateId: string): Promise<MyCommi
     prisma.commissionLedger.aggregate({
       where: {
         associateId,
+        ...EXCLUDE_MD_CUT,
         status: LedgerStatus.Eligible,
         OR: [{ payoutId: null }, { payout: { payoutStatus: { not: PayoutStatus.Paid } } }],
       },
       _sum: { amount: true },
     }),
     prisma.commissionLedger.aggregate({
-      where: { associateId, status: LedgerStatus.Pending },
+      where: { associateId, ...EXCLUDE_MD_CUT, status: LedgerStatus.Pending },
       _sum: { amount: true },
     }),
     prisma.commissionLedger.aggregate({
-      where: { associateId, status: { not: LedgerStatus.Cancelled }, payout: { payoutStatus: PayoutStatus.Paid } },
+      where: { associateId, ...EXCLUDE_MD_CUT, status: { not: LedgerStatus.Cancelled }, payout: { payoutStatus: PayoutStatus.Paid } },
       _sum: { amount: true },
     }),
     prisma.commissionLedger.findMany({
-      where: { associateId },
+      where: { associateId, ...EXCLUDE_MD_CUT },
       include: { transaction: true, payout: { select: { payoutStatus: true } } },
       orderBy: { createdAt: "desc" },
       take: 100,

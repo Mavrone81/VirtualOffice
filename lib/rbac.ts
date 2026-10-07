@@ -22,6 +22,11 @@ export const ROLE_HOME: Record<AppRole, string> = {
  */
 export function roleForDesignation(d: Designation): AppRole {
   switch (d) {
+    // No AppRole for this one: it is a sales designation the owner added for
+    // the managing-director cut (2026-10-07), not an access change, so it takes
+    // the highest existing sales role. Kept exhaustive deliberately — the
+    // compiler flagged this the moment the enum grew, which is the point.
+    case "ManagingDirector": return "SalesDirector";
     case "SalesDirector": return "SalesDirector";
     case "SalesManager": return "SalesManager";
     case "SalesAssistantManager": return "SalesAssistantManager";

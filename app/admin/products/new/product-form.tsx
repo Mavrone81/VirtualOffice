@@ -25,9 +25,20 @@ const selectCls =
 // screen showed "5". A field still holding the default for the side being
 // LEFT is swapped to the default for the side being entered; a field the
 // admin actually typed into no longer matches that default and is left alone.
-type RateDefaults = Pick<ProductInput, "closingCommPct" | "companyCutPct" | "smOverridePct" | "sdOverridePct" | "externalCompanyRetainedPct">;
-const PRISTINE_INTERNAL: RateDefaults = { closingCommPct: "100", companyCutPct: "10", smOverridePct: "3", sdOverridePct: "2", externalCompanyRetainedPct: undefined };
-const PRISTINE_EXTERNAL: RateDefaults = { closingCommPct: "0", companyCutPct: "0", smOverridePct: "0", sdOverridePct: "0", externalCompanyRetainedPct: "5" };
+type RateDefaults = Pick<ProductInput, "closingCommPct" | "companyCutPct" | "smOverridePct" | "sdOverridePct" | "mdCutPct" | "externalCompanyRetainedPct">;
+
+/** The owner's rule: a new product's Managing Director cut defaults to 30% OF
+ *  THE COMPANY CUT (2026-10-07). Expressed here rather than as a column default
+ *  on purpose — a database default would re-price every product that already
+ *  exists the moment the migration ran. Trailing zeros are trimmed so 30% of
+ *  "10" reads "3", not "3.0000", which is what an admin would have typed. */
+export function mdCutDefaultFor(companyCutPct: string | undefined): string {
+  const n = Number(companyCutPct);
+  if (!Number.isFinite(n)) return "0";
+  return String(Number((n * 0.3).toFixed(4)));
+}
+const PRISTINE_INTERNAL: RateDefaults = { closingCommPct: "100", companyCutPct: "10", smOverridePct: "3", sdOverridePct: "2", mdCutPct: mdCutDefaultFor("10"), externalCompanyRetainedPct: undefined };
+const PRISTINE_EXTERNAL: RateDefaults = { closingCommPct: "0", companyCutPct: "0", smOverridePct: "0", sdOverridePct: "0", mdCutPct: mdCutDefaultFor("0"), externalCompanyRetainedPct: "5" };
 
 // Swaps each rate field individually — only those still at the default for
 // the side being left — rather than a generic keyof loop, which TypeScript
@@ -39,6 +50,7 @@ function swapPristineRates(p: RateDefaults, from: RateDefaults, to: RateDefaults
     companyCutPct: p.companyCutPct === from.companyCutPct ? to.companyCutPct : p.companyCutPct,
     smOverridePct: p.smOverridePct === from.smOverridePct ? to.smOverridePct : p.smOverridePct,
     sdOverridePct: p.sdOverridePct === from.sdOverridePct ? to.sdOverridePct : p.sdOverridePct,
+    mdCutPct: p.mdCutPct === from.mdCutPct ? to.mdCutPct : p.mdCutPct,
     externalCompanyRetainedPct: p.externalCompanyRetainedPct === from.externalCompanyRetainedPct ? to.externalCompanyRetainedPct : p.externalCompanyRetainedPct,
   };
 }
@@ -55,11 +67,20 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
     // closing 100 / company cut pool 10 / direct-upline 3 / second-upline 2.
     // Initial form values only — existing products keep whatever they were saved with.
     closingCommPct: "100", companyCutPct: "10", smOverridePct: "3", sdOverridePct: "2",
-    companyCutType: "Percentage", smOverrideType: "Percentage", sdOverrideType: "Percentage",
+    mdCutPct: mdCutDefaultFor("10"),
+    companyCutType: "Percentage", smOverrideType: "Percentage", sdOverrideType: "Percentage", mdCutType: "Percentage",
     isExternal: false, effectiveDate: today, defaultCompanyId: companies[0]?.id,
   });
   const set = (patch: Partial<ProductInput>) =>
     setF((p) => {
+      // Keep the MD cut tracking 30% of the company cut WHILE it is still
+      // whatever that rule produced — i.e. until the admin types their own
+      // figure, after which it stops moving. Same principle as the pristine
+      // swap below: a value the admin chose is never overwritten.
+      if (patch.companyCutPct !== undefined && patch.companyCutPct !== p.companyCutPct) {
+        const untouched = (p.mdCutPct ?? "") === mdCutDefaultFor(p.companyCutPct);
+        if (untouched) patch = { ...patch, mdCutPct: mdCutDefaultFor(patch.companyCutPct) };
+      }
       if (patch.isExternal === undefined || patch.isExternal === p.isExternal) return { ...p, ...patch };
       const from = p.isExternal ? PRISTINE_EXTERNAL : PRISTINE_INTERNAL;
       const to = patch.isExternal ? PRISTINE_EXTERNAL : PRISTINE_INTERNAL;

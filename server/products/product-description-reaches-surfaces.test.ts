@@ -62,7 +62,11 @@ const row: Record<string, unknown> = {
   description: null as string | null,
   defaultCompanyId: null, commissionType: "Percentage", closingCommPct: dec("10"), closingCommFixed: null,
   companyCutPct: dec("2"), companyCutType: "Percentage", smOverridePct: dec("5"), smOverrideType: "Percentage",
-  sdOverridePct: dec("3"), sdOverrideType: "Percentage", isExternal: false, externalCompanyRetainedPct: null,
+  sdOverridePct: dec("3"), sdOverrideType: "Percentage",
+  // Real rows are NOT NULL DEFAULT 0 for these (see the managing_director_cut
+  // migration), so a fixture without them is not a product that can exist.
+  mdCutPct: dec("0"), mdCutType: "Percentage",
+  isExternal: false, externalCompanyRetainedPct: null,
   effectiveDate: new Date("2099-01-01"), activeStatus: "Active", requiresAshesAgreement: false, requiredDocuments: [],
   comCodes: [], defaultCompany: null,
   listedPrice: dec("999.99"), discountedPrice: null, closingBasis: "ListedPrice", instalmentOption: "None",
@@ -90,7 +94,7 @@ const EMPTY_PRICING: PricingValue = { listedPrice: "", discountedPrice: "", clos
 const EMPTY_COMMISSION: CommissionValue = {
   commissionType: "Percentage", closingCommPct: "10", closingCommFixed: undefined,
   companyCutPct: "2", companyCutType: "Percentage", smOverridePct: "5", smOverrideType: "Percentage",
-  sdOverridePct: "3", sdOverrideType: "Percentage", isExternal: false, externalCompanyRetainedPct: undefined,
+  sdOverridePct: "3", sdOverrideType: "Percentage", mdCutPct: "0", mdCutType: "Percentage", isExternal: false, externalCompanyRetainedPct: undefined,
   effectiveDate: "2099-01-01",
 };
 function renderEditForm(description: string): string {

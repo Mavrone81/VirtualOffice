@@ -53,7 +53,11 @@ const row: Record<string, unknown> = {
   id: PRODUCT_ID, productCode: "FUN-BASE", productName: "Basic Funeral Pakcage", productCategory: "Funeral",
   defaultCompanyId: null, commissionType: "Percentage", closingCommPct: dec("10"), closingCommFixed: null,
   companyCutPct: dec("2"), companyCutType: "Percentage", smOverridePct: dec("5"), smOverrideType: "Percentage",
-  sdOverridePct: dec("3"), sdOverrideType: "Percentage", isExternal: false, externalCompanyRetainedPct: null,
+  sdOverridePct: dec("3"), sdOverrideType: "Percentage",
+  // Real rows are NOT NULL DEFAULT 0 for these (see the managing_director_cut
+  // migration), so a fixture without them is not a product that can exist.
+  mdCutPct: dec("0"), mdCutType: "Percentage",
+  isExternal: false, externalCompanyRetainedPct: null,
   effectiveDate: new Date("2099-01-01"), activeStatus: "Active", requiresAshesAgreement: false, requiredDocuments: [],
   comCodes: [], defaultCompany: null,
   listedPrice: dec("999.99"), discountedPrice: null, closingBasis: "ListedPrice", instalmentOption: "None",

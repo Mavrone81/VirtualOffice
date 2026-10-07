@@ -52,6 +52,10 @@ export type ProductInput = {
   smOverrideType?: "Percentage" | "Absolute";
   sdOverridePct: string;
   sdOverrideType?: "Percentage" | "Absolute";
+  /** Managing Director's cut. Optional: a caller written before 2026-10-07
+   *  snapshots "0", i.e. the pre-change arithmetic. */
+  mdCutPct?: string;
+  mdCutType?: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct?: string;
   defaultCompanyId?: string;
@@ -90,6 +94,8 @@ function rateSnapshot(i: RateFields) {
     smOverrideType: i.smOverrideType ?? "Percentage",
     sdOverridePct: i.sdOverridePct,
     sdOverrideType: i.sdOverrideType ?? "Percentage",
+    mdCutPct: i.mdCutPct ?? "0",
+    mdCutType: i.mdCutType ?? "Percentage",
     isExternal: i.isExternal,
     externalCompanyRetainedPct: i.externalCompanyRetainedPct ?? null,
   } satisfies Prisma.InputJsonValue;

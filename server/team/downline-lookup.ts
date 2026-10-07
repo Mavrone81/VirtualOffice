@@ -6,6 +6,7 @@ import { inPeriod } from "@/lib/quota";
 import { sum } from "@/lib/money";
 import { SubmissionStatus } from "@prisma/client";
 import type { AppRole } from "@prisma/client";
+import { EXCLUDE_MD_CUT } from "@/server/commission/md-visibility";
 
 export type Period = "month" | "year";
 
@@ -130,7 +131,7 @@ export async function getDownlineLookup(
   const [members, submissions, ledgerRows, targets] = await Promise.all([
     prisma.associate.findMany({ where: { id: { in: downlineOnly } }, select: { id: true, associateCode: true, fullName: true, designation: true, directUplineId: true, associateStatus: true }, orderBy: { associateCode: "asc" } }),
     prisma.salesSubmission.findMany({ where: { closingAssociateId: { in: allIds }, salesDate: { gte: start, lt: end } }, select: { closingAssociateId: true, saleAmount: true, status: true, closedAt: true } }),
-    prisma.commissionLedger.findMany({ where: { associateId: { in: allIds } }, select: { associateId: true, amount: true, payoutMonth: true } }),
+    prisma.commissionLedger.findMany({ where: { associateId: { in: allIds }, ...EXCLUDE_MD_CUT }, select: { associateId: true, amount: true, payoutMonth: true } }),
     resolveTargetsFor(allIds, now),
   ]);
 
