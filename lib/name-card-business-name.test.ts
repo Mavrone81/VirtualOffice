@@ -111,7 +111,7 @@ describe("name card — business name substitution: the admin edit-any view (sou
 describe("name card — business name substitution (T3: vCard FN/N/ORG)", () => {
   it("businessName set: FN and N carry it, ORG is plain Enshrine with no middot and no appended name", () => {
     const vcf = buildVCard({ fullName: "Jane Tan", businessName: "Lotus Trading Pte Ltd", title: "Senior Associate" });
-    expect(vcf).toContain("FN:Lotus Trading Pte Ltd\r\n");
+    expect(vcf).toContain("FN:Lotus Trading Pte Ltd - Senior Associate\r\n");
     expect(vcf).toContain("N:Lotus Trading Pte Ltd;;;;\r\n");
     expect(vcf).toContain("ORG:Enshrine\r\n");
     expect(vcf).not.toContain("·"); // no middot anywhere
@@ -120,14 +120,14 @@ describe("name card — business name substitution (T3: vCard FN/N/ORG)", () => 
 
   it("businessName null: FN and N fall back to the legal name, ORG is still plain Enshrine", () => {
     const vcf = buildVCard({ fullName: "Jane Tan", businessName: null, title: "Senior Associate" });
-    expect(vcf).toContain("FN:Jane Tan\r\n");
+    expect(vcf).toContain("FN:Jane Tan - Senior Associate\r\n");
     expect(vcf).toContain("N:Jane Tan;;;;\r\n");
     expect(vcf).toContain("ORG:Enshrine\r\n");
   });
 
   it("businessName \"\" (empty string): same fallback as null — the vCard builder's `||` matters here too", () => {
     const vcf = buildVCard({ fullName: "Jane Tan", businessName: "", title: "Senior Associate" });
-    expect(vcf).toContain("FN:Jane Tan\r\n");
+    expect(vcf).toContain("FN:Jane Tan - Senior Associate\r\n");
     expect(vcf).toContain("N:Jane Tan;;;;\r\n");
   });
 
@@ -138,29 +138,59 @@ describe("name card — business name substitution (T3: vCard FN/N/ORG)", () => 
   });
 });
 
-describe("name card — business name substitution (T4: the two admin-own-card call sites, byte-identical)", () => {
-  it("app/admin/name-card/page.tsx's call shape ({ fullName, title, email }, no businessName key) — same output as before this patch", () => {
-    // Exact call shape at that file's line 26. No businessName key at all,
-    // same as today — an Admin has none to pass, and that file is untouched.
-    const vcf = buildVCard({ fullName: "Staff Member", title: "Admin", email: "staff@example.com" });
-    expect(vcf).toBe(
-      "BEGIN:VCARD\r\n" +
-      "VERSION:3.0\r\n" +
-      "FN:Staff Member\r\n" +
-      "N:Staff Member;;;;\r\n" +
-      "ORG:Enshrine\r\n" +
-      "TITLE:Admin\r\n" +
-      "EMAIL;TYPE=INTERNET:staff@example.com\r\n" +
-      "NOTE:Enshrine Associate\r\n" +
-      "END:VCARD",
-    );
+describe("name card — the admin's OWN card (T4: now associate-sourced, was session-sourced)", () => {
+  // These two call sites were deliberately excluded by the earlier patch, whose
+  // own comment gave the reason: "an Admin has none to pass". That premise was
+  // measured against production and is false — every user on file, both admins
+  // included, has an associate profile (25 of 25). So the admin's own card was
+  // showing a session display name and no mobile at all (hp was hardcoded null)
+  // while every other card in the product showed the trading name and the
+  // number. These tests pin the corrected behaviour and the fallback.
+  const ADMIN_ASSOCIATE = {
+    fullName: "Tan Wei Ming",
+    businessName: "Marcus Tan",
+    mobile: "80000000",
+    email: "marcus@example.com",
+    associateCode: "EN0002",
+  };
+
+  it("business name set: the card and its vCard both carry the trading name, and the MOBILE is present", () => {
+    const vcf = buildVCard({ ...ADMIN_ASSOCIATE, title: "Admin" });
+    expect(vcf).toContain("FN:Marcus Tan - Admin\r\n");
+    expect(vcf).toContain("N:Marcus Tan;;;;\r\n");
+    expect(vcf).not.toContain("Tan Wei Ming");
+    // The whole second half of the owner's report: the number was never rendered.
+    expect(vcf).toContain("TEL;TYPE=CELL:80000000\r\n");
   });
 
-  it("app/admin/name-card/vcf/route.ts's call shape (adds no mobile, no associateCode) — same output as before this patch", () => {
-    // Exact call shape at that file's line 15.
+  it("business name absent: falls back to the legal name, mobile still present", () => {
+    const vcf = buildVCard({ ...ADMIN_ASSOCIATE, businessName: null, title: "Admin" });
+    expect(vcf).toContain("FN:Tan Wei Ming - Admin\r\n");
+    expect(vcf).toContain("TEL;TYPE=CELL:80000000\r\n");
+  });
+
+  it("business name empty string: same fallback as null — the `||` matters here too", () => {
+    const vcf = buildVCard({ ...ADMIN_ASSOCIATE, businessName: "", title: "Admin" });
+    expect(vcf).toContain("FN:Tan Wei Ming - Admin\r\n");
+  });
+
+  it("FALLBACK — a login with no associate record at all still renders: session name, and no TEL to invent", () => {
+    // The only surviving use of the old shape. A user without an associate has
+    // no mobile and no trading name, so the card degrades rather than blanking.
     const vcf = buildVCard({ fullName: "Staff Member", title: "Admin", email: "staff@example.com" });
+    expect(vcf).toContain("FN:Staff Member - Admin\r\n");
     expect(vcf).not.toContain("TEL;TYPE=CELL");
-    expect(vcf).not.toContain("Enshrine Associate A"); // no associateCode suffix
-    expect(vcf).toContain("NOTE:Enshrine Associate\r\n");
+  });
+
+  it("both admin surfaces read the SAME source, so a saved contact cannot disagree with the card", () => {
+    const page = readFileSync("app/admin/name-card/page.tsx", "utf8");
+    const route = readFileSync("app/admin/name-card/vcf/route.ts", "utf8");
+    for (const src of [page, route]) {
+      expect(src).toContain("me.businessName || me.fullName");
+      expect(src).toContain("session.user.associateId");
+    }
+    // The card's visible mobile slot: hp was literally `null` before this patch.
+    expect(page).toContain("hp: mobile");
+    expect(page).not.toContain("hp: null");
   });
 });
