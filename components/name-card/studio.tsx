@@ -200,10 +200,19 @@ export function NameCardStudio({
               {preview.chineseName && (
                 <div style={{ position: "absolute", top: 410, left: 0, right: 0, textAlign: "center", fontFamily: "'Ma Shan Zheng', cursive", fontSize: 38, color: "#1a1f2b" }}>{preview.chineseName}</div>
               )}
-              {/* C-1: Alex Brush is a script face with its own built-in slant/weight —
-                  no synthetic italic/bold here, which would distort a cursive font's
-                  own letterforms rather than just making it heavier. */}
-              <div style={{ position: "absolute", top: 460, left: 0, right: 0, textAlign: "center", fontFamily: ALEX_BRUSH, fontSize: 52, color: "#111" }}>{preview.englishName}</div>
+              {/* The owner asked for the name in bold (2026-10-07). That OVERRIDES the
+                  earlier C-1 note here, which said no synthetic bold because it distorts a
+                  cursive face's letterforms. That reasoning still holds, and is why the
+                  weight is 600 rather than 700: Alex Brush ships ONE file
+                  (AlexBrush-Regular.ttf, weight 400) and has no bold face at all, so any bold
+                  is the browser's synthetic emboldening — it thickens strokes without
+                  redrawing them, which closes up a script's loops the heavier it gets. 600 is
+                  the lightest step that still reads as bold.
+
+                  The card exports by rasterising this DOM (html-to-image toPng), so what
+                  renders here is exactly what the PNG and the PDF carry — no separate
+                  handling is needed in the export path. */}
+              <div style={{ position: "absolute", top: 460, left: 0, right: 0, textAlign: "center", fontFamily: ALEX_BRUSH, fontSize: 52, fontWeight: 600, color: "#111" }}>{preview.englishName}</div>
               <div style={{ position: "absolute", top: 520, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontStyle: "italic", fontSize: 29, color: "#33383f" }}>{preview.title}</div>
               {preview.hp && <div style={{ position: "absolute", top: 560, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontSize: 29, fontWeight: 700, color: "#1a1f2b" }}>HP: {preview.hp}</div>}
               {preview.email && <div style={{ position: "absolute", top: 602, left: 0, right: 0, textAlign: "center", fontFamily: TIMES_NEW_ROMAN, fontStyle: "italic", fontSize: 26, color: "#222" }}>Email: {preview.email}</div>}
