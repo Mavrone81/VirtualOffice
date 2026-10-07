@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
-import { canRecruit, isManagerRole } from "@/lib/rbac";
+import { isManagerRole } from "@/lib/rbac";
 import { parseTab } from "@/lib/recruitment-view";
 import { formatSGD, ZERO } from "@/lib/money";
 import { humanize } from "@/lib/labels";
@@ -31,18 +31,19 @@ const BASE_PATH = "/portal/team/performance";
 //   - isManagerRole (SAM/SM/SD): the six tiles + the team sales and
 //     commission tables. fetchTeamPerformance refuses a non-manager before
 //     its first query, so this branch is not the only line of defence.
-//     Below them, ONLY when canRecruit(role) (SM/SD), the per-associate
-//     downline table (transacted value, gross commission, my direct / 2nd
-//     upline overriding) is embedded: the same RecruitmentView the route
-//     always rendered, so a Manager or Director loses nothing by this merge.
-//     It is not rendered at all otherwise, so its queries never run.
-//   - everyone else: RecruitmentView mode="performance", which has its own
-//     canRecruit eligibility branch (the downline table, or the "not
-//     eligible yet" card) and never runs the team-wide queries.
+//     Below them RecruitmentView is embedded unconditionally, and resolves
+//     canRecruit itself: SM/SD get the per-associate downline table
+//     (transacted value, gross commission, my direct / 2nd upline
+//     overriding), everyone else gets the "not eligible for recruitment yet"
+//     card. The downline queries still only run when canRecruit is true.
+//   - everyone else: the same RecruitmentView mode="performance" on its own,
+//     via the early return, never running the team-wide queries.
 // Sales Assistant Manager is the role where the two checks disagree
 // (isManagerRole true, canRecruit false): it takes the manager branch here,
-// exactly as it could already reach Team Sales / Team Commissions, and gets
-// NO downline table or not-eligible card under its tiles.
+// exactly as it could already reach Team Sales / Team Commissions, and now
+// gets the not-eligible card under its tiles (owner request, 7 Oct 2026).
+// Until then that one role saw the page simply stop after the commission
+// table — no table, no card, no explanation.
 export default async function TeamPerformancePage({
   searchParams,
 }: {
@@ -211,12 +212,19 @@ export default async function TeamPerformancePage({
         )}
       </Card>
 
-      {canRecruit(session.user.role) && (
-        <div className="mt-6">
-          <h2 className="mb-3 font-display text-[18px] text-ink">{t("performance.downlineHeading")}</h2>
-          <RecruitmentView mode="performance" basePath={BASE_PATH} tab={parseTab(sp.tab)} mgr={sp.mgr ?? null} embedded />
-        </div>
-      )}
+      {/* Rendered for EVERY manager role, eligible to recruit or not. The
+          component owns the distinction: canRecruit true (SM/SD) gives the
+          downline table, false (Sales Assistant Manager) gives the "not
+          eligible for recruitment yet" card — the same card a non-manager
+          already sees via the early return above. It is not gated here, so a
+          SAM can no longer land on a page that simply stops after the
+          commission table with nothing saying why. Ineligible costs no extra
+          queries: RecruitmentView sets treeIds = [me] without walking a
+          downline when canRecruit is false. */}
+      <div className="mt-6">
+        <h2 className="mb-3 font-display text-[18px] text-ink">{t("performance.downlineHeading")}</h2>
+        <RecruitmentView mode="performance" basePath={BASE_PATH} tab={parseTab(sp.tab)} mgr={sp.mgr ?? null} embedded />
+      </div>
     </>
   );
 }
