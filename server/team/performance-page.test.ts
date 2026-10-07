@@ -46,10 +46,18 @@ describe("Team Performance page — which branch renders which view", () => {
     });
   }
 
-  it("SalesAssistantManager (manager, NOT canRecruit): team tables, and the downline view is not rendered, so its query cannot run", async () => {
+  // Owner request, 7 Oct 2026. This role previously asserted toHaveLength(0):
+  // the page stopped after the commission table with nothing under it, because
+  // the block was gated on canRecruit and SAM is the one role where
+  // isManagerRole and canRecruit disagree. It now renders the SAME embedded
+  // view the recruiting roles get; RecruitmentView's own canRecruit branch
+  // turns it into the "not eligible for recruitment yet" card rather than a
+  // table, so the downline query still cannot run for this role.
+  it("SalesAssistantManager (manager, NOT canRecruit): team tables AND the embedded view, which renders as the not-eligible card", async () => {
     const found = await render("SalesAssistantManager");
     expect(h.fetchTeam).toHaveBeenCalled();
-    expect(found).toHaveLength(0);
+    expect(found).toHaveLength(1);
+    expect(found[0].props).toMatchObject({ mode: "performance", embedded: true });
   });
 
   for (const role of ["SalesAssociate", "Admin"] as AppRole[]) {
