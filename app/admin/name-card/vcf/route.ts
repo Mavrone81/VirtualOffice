@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { roleLabel } from "@/lib/rbac";
 import { humanize } from "@/lib/labels";
 import { buildVCard } from "@/lib/vcard";
+import { ownAssociate } from "@/server/name-card/own-associate";
 
 export const dynamic = "force-dynamic";
 
@@ -11,15 +12,15 @@ export async function GET() {
   const session = await auth();
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
 
-  // Same source as the card itself (app/admin/name-card/page.tsx): the saved
-  // contact has to match what the card shows, or a client saves one name and
-  // reads another.
-  const [user, me] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true } }),
-    session.user.associateId
-      ? prisma.associate.findUnique({ where: { id: session.user.associateId } })
-      : Promise.resolve(null),
-  ]);
+  // Same source as the card itself — literally, now: both call ownAssociate,
+  // so the saved contact cannot show a different name or title from the card
+  // a client is holding. See server/name-card/own-associate.ts for why the
+  // login email is tried when the session carries no associateId.
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true } });
+  const me = await ownAssociate({
+    associateId: session.user.associateId,
+    email: user?.email ?? session.user.email ?? null,
+  });
   const name = me ? me.businessName || me.fullName : session.user.name ?? "Enshrine";
   const vcf = buildVCard({
     fullName: me?.fullName ?? name,
