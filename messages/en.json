@@ -221,6 +221,7 @@
       "directUpline": "Direct upline",
       "noneHead": "— None (division head) —",
       "teamDivision": "Team / division",
+      "teamNone": "— none —",
       "recruitingManager": "Recruiting manager",
       "payment": "Payment",
       "paymentMethod": "Payment method",

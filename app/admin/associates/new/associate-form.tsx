@@ -12,7 +12,7 @@ import { createAssociate, type NewAssociateInput } from "@/server/associates/act
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
 
-export function AssociateForm({ uplines }: { uplines: { code: string; label: string; upCode: string | null }[] }) {
+export function AssociateForm({ uplines, teams }: { uplines: { code: string; label: string; upCode: string | null }[]; teams: string[] }) {
   const t = useTranslations("associates");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -108,7 +108,19 @@ export function AssociateForm({ uplines }: { uplines: { code: string; label: str
           </div>
           <div>
             <Label htmlFor="team">{t("form.teamDivision")}</Label>
-            <Input id="team" value={f.teamName ?? ""} onChange={(e) => set({ teamName: e.target.value })} />
+            {/* A managed list, not free text. Every division already exists as a
+                Team row, and all 25 associates were using exactly three of them —
+                held in sync by typing discipline alone. One "Vincent Lim division"
+                in lower case would have created a phantom division and quietly
+                dropped that person out of their own division everywhere it is
+                grouped, with nothing to flag it. New divisions are created on the
+                Teams page, which is what that page is for. */}
+            <select id="team" className={selectCls} value={f.teamName ?? ""} onChange={(e) => set({ teamName: e.target.value })}>
+              <option value="">{t("form.teamNone")}</option>
+              {teams.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
           </div>
           <div>
             <Label htmlFor="rm">{t("form.recruitingManager")}</Label>

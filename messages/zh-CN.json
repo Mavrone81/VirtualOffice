@@ -221,6 +221,7 @@
       "directUpline": "直属上线",
       "noneHead": "— 无（团队负责人）—",
       "teamDivision": "团队 / 部门",
+      "teamNone": "— 无 —",
       "recruitingManager": "招募经理",
       "payment": "付款信息",
       "paymentMethod": "付款方式",

@@ -9,14 +9,18 @@ export const metadata = { title: "New associate · Enshrine Admin" };
 export default async function NewAssociatePage() {
   const t = await getTranslations("associates");
 
-  const uplines = await prisma.associate.findMany({
-    orderBy: { associateCode: "asc" },
-    select: { associateCode: true, fullName: true, designation: true, directUpline: { select: { associateCode: true } } },
-  });
+  const [uplines, teams] = await Promise.all([
+    prisma.associate.findMany({
+      orderBy: { associateCode: "asc" },
+      select: { associateCode: true, fullName: true, designation: true, directUpline: { select: { associateCode: true } } },
+    }),
+    prisma.team.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { name: true } }),
+  ]);
   return (
     <>
       <PageHeader title={t("new.title")} subtitle={t("new.subtitle")} />
       <AssociateForm
+        teams={teams.map((x) => x.name)}
         uplines={uplines.map((u) => ({
           code: u.associateCode,
           label: `${u.associateCode} · ${u.fullName} (${humanize(u.designation)})`,
