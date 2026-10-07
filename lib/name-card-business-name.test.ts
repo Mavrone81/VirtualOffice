@@ -70,8 +70,14 @@ async function renderPortalCard(businessName: string | null): Promise<string> {
 /** The englishName slot's own style-tagged div, so a match on the NAME string
  *  can't accidentally hit some unrelated place in the page (e.g. a <title>). */
 function englishNameSlotText(html: string): string {
-  const m = html.match(/font-family:&#x27;Alex Brush&#x27;, cursive;font-size:52px;color:#111">([^<]*)</);
-  expect(m, "englishName slot (Alex Brush, 52px) not found in rendered output").toBeTruthy();
+  // Anchored on the FONT FAMILY alone, then skipping whatever other style
+  // properties follow. The previous version pinned the exact declaration string
+  // ("...cursive;font-size:52px;color:#111") and broke the moment a font-weight
+  // was added between them — a styling change that has nothing to do with WHICH
+  // NAME this helper exists to read. The family is what identifies the slot;
+  // everything after it is presentation this assertion should not care about.
+  const m = html.match(/font-family:&#x27;Alex Brush&#x27;, cursive;[^"]*">([^<]*)</);
+  expect(m, "englishName slot (Alex Brush) not found in rendered output").toBeTruthy();
   return m![1];
 }
 
