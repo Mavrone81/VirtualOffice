@@ -1061,8 +1061,7 @@
       "colCompany": "公司",
       "colStatus": "状态"
     },
-    "mdCutLabel": "董事总经理分成",
-    "mdCutHelp": "从公司分成中扣除，由所有具备董事总经理职级的人共享。默认为公司分成的 30%。仅管理员可见，不会显示给业务员。"
+    "mdCutLabel": "董事总经理分成"
   },
   "recruitment": {
     "title": "招募",

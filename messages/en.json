@@ -1061,8 +1061,7 @@
       "colCompany": "Company",
       "colStatus": "Status"
     },
-    "mdCutLabel": "Managing Director cut",
-    "mdCutHelp": "Taken from the company cut and shared by everyone with the Managing Director designation. Defaults to 30% of the company cut. Admin-only — it is never shown to associates."
+    "mdCutLabel": "Managing Director cut"
   },
   "recruitment": {
     "title": "Recruitment",
