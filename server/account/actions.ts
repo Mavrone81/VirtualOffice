@@ -12,6 +12,7 @@ import { auditTx, AuditWriteError } from "@/lib/audit";
 import { sendMail, resetPasswordEmail } from "@/lib/mail";
 import { generateTempPassword } from "@/lib/temp-password";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
+import { normalizeEmail } from "@/lib/email";
 
 const MIN_LEN = 8;
 
@@ -32,8 +33,8 @@ function sha256(v: string): string {
  * When the email matches an active user, a one-hour reset link is emailed.
  */
 export async function requestPasswordReset(email: string): Promise<{ ok: boolean }> {
-  const e = email?.trim().toLowerCase();
-  const id = e ?? "";
+  const normalizedEmail = normalizeEmail(email);
+  const id = normalizedEmail ?? "";
   // Rate-limit BEFORE any DB lookup. Mirrors the login pattern in auth.ts:
   // when already blocked, return immediately WITHOUT calling recordFailure.
   // (WINDOW_MS === LOCKOUT_MS, so an unconditional recordFailure while
@@ -48,8 +49,8 @@ export async function requestPasswordReset(email: string): Promise<{ ok: boolean
   // not the email matches a real account — so an attacker can't distinguish
   // "no such user" from attempt-counting behavior either.
   await recordFailure(id, "password_reset");
-  if (e) {
-    const user = await prisma.user.findUnique({ where: { email: e } });
+  if (normalizedEmail) {
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (user?.isActive) {
       const token = randomBytes(32).toString("base64url");
       await prisma.user.update({

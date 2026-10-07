@@ -28,6 +28,7 @@ import { onboardingSchema, inviteCandidateSchema } from "@/lib/schemas";
 import { findInvalidOnboardingFields, ONBOARDING_REQUIRED_ERROR_CODE } from "@/lib/onboarding-fields";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 import { fileSignedAgreement } from "@/server/recruitment/file-signed-agreement";
+import { normalizeEmail } from "@/lib/email";
 
 async function requireAdmin() {
   const session = await auth();
@@ -418,7 +419,7 @@ export async function submitOnboarding(
   const agreementPdf = await renderAgreementPdf({
     fullName: c.fullName,
     designation: humanize(c.intendedDesignation ?? "Sales Associate"),
-    email: c.email,
+    email: normalizeEmail(c.email),
     mobile: c.mobileNumber,
     nricMasked: maskNric(s.nric.trim()),
     teamName: c.intendedTeam,
@@ -569,7 +570,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
         fullName: c.fullName,
         businessName: p.businessName ?? null,
         mobileNumber: c.mobileNumber,
-        email: c.email,
+        email: normalizeEmail(c.email),
         nric: p.nric ?? null, // already ciphertext
         dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : null,
         designation: c.intendedDesignation!,
@@ -615,7 +616,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
     }
 
     // provision a login if the candidate email is not already taken
-    const existing = await tx.user.findUnique({ where: { email: c.email } });
+    const existing = await tx.user.findUnique({ where: { email: normalizeEmail(c.email)! } });
     let filedUserId: string;
     if (!existing) {
       provisioned = true;
@@ -625,7 +626,7 @@ export async function approveCandidate(id: string): Promise<{ ok: boolean; error
       const unusablePasswordHash = await hash(randomBytes(32).toString("base64url"));
       const user = await tx.user.create({
         data: {
-          email: c.email,
+          email: normalizeEmail(c.email)!,
           passwordHash: unusablePasswordHash,
           role: ROLE_FOR_DESIGNATION[c.intendedDesignation!],
           associateId: associate.id,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { normalizeEmail } from "@/lib/email";
 
 /**
  * The associate record behind the signed-in user's OWN name card.
@@ -28,6 +29,10 @@ export async function ownAssociate(params: { associateId?: string | null; email?
     const linked = await prisma.associate.findUnique({ where: { id: params.associateId } });
     if (linked) return linked;
   }
-  if (params.email) return prisma.associate.findFirst({ where: { email: params.email } });
+  // Normalised, because a miss here is silent: the card falls back to the
+  // role label ("Product Owner") instead of the designation, which is the
+  // very bug this function was added to fix.
+  const normalizedEmail = normalizeEmail(params.email);
+  if (normalizedEmail) return prisma.associate.findFirst({ where: { email: normalizedEmail } });
   return null;
 }
