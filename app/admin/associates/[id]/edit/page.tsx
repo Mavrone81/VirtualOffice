@@ -20,6 +20,14 @@ export default async function EditAssociatePage({ params }: { params: Promise<{ 
   const t = await getTranslations("associates");
 
   const a = await prisma.associate.findUnique({ where: { id } });
+  const activeTeams = await prisma.team.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { name: true } });
+  // The associate's CURRENT division is always offered, even when it is no
+  // longer an active team or never matched one. Without this, opening the edit
+  // form for someone on a deactivated or mistyped division shows a blank select
+  // and silently rewrites their division the moment anything else is saved — a
+  // data change nobody asked for and nobody would see.
+  const teams = activeTeams.map((x) => x.name);
+  if (a?.teamName && !teams.includes(a.teamName)) teams.push(a.teamName);
   if (!a) notFound();
 
   const initial: EditInitial = {
@@ -42,7 +50,7 @@ export default async function EditAssociatePage({ params }: { params: Promise<{ 
   return (
     <>
       <PageHeader title={t("edit.title", { name: a.fullName })} subtitle={`${a.associateCode}`} />
-      <EditAssociateForm id={id} initial={initial} />
+      <EditAssociateForm id={id} initial={initial} teams={teams} />
     </>
   );
 }
