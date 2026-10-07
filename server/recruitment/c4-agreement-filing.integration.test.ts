@@ -47,7 +47,7 @@ let adminUserId = "";
 
 beforeAll(async () => {
   adminUserId = (await prisma.user.create({
-    data: { email: `${TAG}admin-${randomUUID()}@example.com`, passwordHash: "x", role: "Admin" as never },
+    data: { email: `${TAG.toLowerCase()}admin-${randomUUID()}@example.com`, passwordHash: "x", role: "Admin" as never },
   })).id;
   userIds.push(adminUserId);
   ADMIN.user.id = adminUserId;
@@ -67,7 +67,7 @@ afterAll(async () => {
 
 describe("C-4: existing-user candidate approval files the agreement in the P-File", () => {
   it("files the signed agreement even when a User already exists for the candidate's email", async () => {
-    const email = `${TAG}existing-${randomUUID()}@example.com`;
+    const email = `${TAG.toLowerCase()}existing-${randomUUID()}@example.com`;
     // A User already exists under this email BEFORE approval — the exact
     // condition that skips P-File creation in the current code (the `if
     // (!existing)` branch around the login-provisioning block).
@@ -96,7 +96,7 @@ describe("C-4: existing-user candidate approval files the agreement in the P-Fil
   });
 
   it("a new-user approval still files the agreement exactly once (no duplicate)", async () => {
-    const email = `${TAG}newuser-${randomUUID()}@example.com`;
+    const email = `${TAG.toLowerCase()}newuser-${randomUUID()}@example.com`;
     const c = await makeCandidate(email);
     candidateIds.push(c.id);
     who.session = { user: { associateId: c.id, id: "sess-candidate" } };
@@ -132,7 +132,7 @@ describe("C-4: existing-user candidate approval files the agreement in the P-Fil
 
 describe("C-4: offline (paper-signed) agreement upload", () => {
   async function makeApprovedAssociateWithoutPortalSigning() {
-    const email = `${TAG}offline-${randomUUID()}@example.com`;
+    const email = `${TAG.toLowerCase()}offline-${randomUUID()}@example.com`;
     const user = await prisma.user.create({ data: { email, passwordHash: "x", role: "SalesAssociate" as never } });
     userIds.push(user.id);
     const assoc = await prisma.associate.create({
@@ -179,7 +179,7 @@ describe("C-4: offline (paper-signed) agreement upload", () => {
 
 describe("C-4 (DevSecOps/PD review): concurrent offline uploads for the same associate are serialised", () => {
   it("a race between two concurrent uploads produces exactly one filed document, never two", async () => {
-    const email = `${TAG}race-${randomUUID()}@example.com`;
+    const email = `${TAG.toLowerCase()}race-${randomUUID()}@example.com`;
     const user = await prisma.user.create({ data: { email, passwordHash: "x", role: "SalesAssociate" as never } });
     userIds.push(user.id);
     const assoc = await prisma.associate.create({

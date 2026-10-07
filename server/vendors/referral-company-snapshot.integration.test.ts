@@ -138,7 +138,7 @@ beforeAll(async () => {
   ({ submitReferralPartnership, approveReferral } = (await import("./actions")) as never);
 
   adminUserId = (await prisma.user.create({
-    data: { email: `${TAG}${Date.now()}@example.invalid`, passwordHash: "not-a-real-hash", role: "Admin" as never },
+    data: { email: `${TAG.toLowerCase()}${Date.now()}@example.invalid`, passwordHash: "not-a-real-hash", role: "Admin" as never },
     select: { id: true },
   })).id;
 

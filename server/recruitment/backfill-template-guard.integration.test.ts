@@ -144,7 +144,7 @@ beforeAll(async () => {
       data: {
         fullName: `${TAG}Candidate ${i}`,
         mobileNumber: "91234567",
-        email: `${TAG}${i}-${randomUUID()}@example.invalid`,
+        email: `${TAG.toLowerCase()}${i}-${randomUUID()}@example.invalid`,
         intendedDesignation: "SalesAssociate" as never,
         onboardingToken: randomUUID(),
         onboardingStage: "Invited" as never,

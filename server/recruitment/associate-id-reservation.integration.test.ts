@@ -86,7 +86,7 @@ async function makeCandidate(label: string) {
   const c = await prisma.candidate.create({
     data: {
       fullName: `${TAG}${label}`, mobileNumber: "91234567",
-      email: `${TAG}${label}-${randomUUID()}@example.invalid`,
+      email: `${TAG.toLowerCase()}${label}-${randomUUID()}@example.invalid`,
       intendedDesignation: "SalesAssociate" as never,
       onboardingToken: randomUUID(),
       onboardingStage: "Invited" as never,
@@ -103,7 +103,7 @@ beforeAll(async () => {
   vi.resetModules();
   ({ submitOnboarding, approveCandidate } = (await import("./actions")) as never);
   adminUserId = (await prisma.user.create({
-    data: { email: `${TAG}${Date.now()}@example.invalid`, passwordHash: "not-a-real-hash", role: "Admin" as never },
+    data: { email: `${TAG.toLowerCase()}${Date.now()}@example.invalid`, passwordHash: "not-a-real-hash", role: "Admin" as never },
     select: { id: true },
   })).id;
 }, 120_000);
