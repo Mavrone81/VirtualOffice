@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX } from "./name-card-limits";
 import { PRODUCT_DESCRIPTION_MAX } from "./product-limits";
 import { D } from "./money";
+import { DESIGNATION_VALUES } from "./roles";
 
 export { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX };
 
@@ -330,7 +331,10 @@ export const newAssociateSchema = z.object({
   // Encrypted at rest (lib/crypto.ts encryptPII) — validate shape/length only.
   nric: z.string().trim().min(1).max(40).optional(),
   dateOfBirth: dateStr.optional(),
-  designation: z.enum(["SalesAssociate", "SalesAssistantManager", "SalesManager", "SalesDirector"]),
+  // From the ONE list in lib/roles.ts. Hand-written here before, which meant
+  // a designation could exist in the database and still be rejected on the
+  // way in — see DESIGNATION_OPTIONS for what that cost.
+  designation: z.enum(DESIGNATION_VALUES),
   directUplineCode: code.optional(),
   secondUplineCode: code.optional(),
   teamName: z.string().trim().max(200).optional(),

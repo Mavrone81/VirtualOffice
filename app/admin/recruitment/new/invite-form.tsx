@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { inviteCandidate, type InviteInput } from "@/server/recruitment/actions";
+import { DESIGNATION_OPTIONS } from "@/lib/roles";
 
 const selectCls =
   "h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none";
@@ -146,10 +147,9 @@ export function InviteForm({
           <div>
             <Label htmlFor="des">{t("form.intendedDesignation")}</Label>
             <select id="des" className={selectCls} value={f.intendedDesignation} onChange={(e) => set({ intendedDesignation: e.target.value as InviteInput["intendedDesignation"] })}>
-              <option value="SalesAssociate">{t("form.desSalesAssociate")}</option>
-              <option value="SalesAssistantManager">{t("form.desAsmgr")}</option>
-              <option value="SalesManager">{t("form.desSalesMgr")}</option>
-              <option value="SalesDirector">{t("form.desSalesDir")}</option>
+              {DESIGNATION_OPTIONS.map((d) => (
+                <option key={d.value} value={d.value}>{t(d.labelKey)}</option>
+              ))}
             </select>
           </div>
           <div>
