@@ -75,6 +75,27 @@ describe("an admin can reach, and open, their own sales", () => {
     }
   });
 
+  // Next.js permits only a known set of exports from a page.tsx and fails the
+  // BUILD on anything else ("X is not a valid Page export field"). tsc does not
+  // check this, so the first version of this change passed every local test and
+  // broke the deploy. The build is the real check; this is the cheap one that
+  // runs in seconds.
+  it("no page.tsx exports a name Next.js would reject", () => {
+    const ALLOWED = new Set([
+      "default", "metadata", "generateMetadata", "dynamic", "revalidate", "fetchCache",
+      "runtime", "preferredRegion", "dynamicParams", "generateStaticParams",
+      "maxDuration", "experimental_ppr", "viewport", "generateViewport", "config",
+    ]);
+    const offenders: string[] = [];
+    for (const f of pages(join(ROOT, "app"))) {
+      for (const [i, line] of readFileSync(f, "utf8").split("\n").entries()) {
+        const m = /^export (?:async )?(?:const|function|let|var|class)\s+([A-Za-z_$][\w$]*)/.exec(line);
+        if (m && !ALLOWED.has(m[1])) offenders.push(`${f.slice(ROOT.length + 1)}:${i + 1}  ${m[1]}`);
+      }
+    }
+    expect(offenders, "move it to a sibling module; a page.tsx may only export default/metadata/route config").toEqual([]);
+  });
+
   // Control: proves the scan reads real files. Without it, a wrong ROOT makes
   // the offender check pass by finding nothing at all.
   it("control — the scan finds admin sale pages", () => {
