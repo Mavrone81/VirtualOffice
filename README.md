@@ -1,5 +1,41 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Prerequisites
+
+Beyond `pnpm install`, the test suite shells out to real binaries and talks to a
+real database. Missing any of these does not skip the affected tests — they fail,
+and the failure looks like a regression rather than a missing tool.
+
+| Needed for | Install |
+|---|---|
+| Everything — the project targets **Node 22** (the default `node` on some machines is newer and breaks jsdom/esbuild) | `nvm use 22` |
+| The PDF tests, which rasterise generated PDFs and compare ink coverage | `brew install ghostscript poppler` |
+| The two `integration` test projects | any PostgreSQL 16 the `DATABASE_URL` can reach |
+
+CI installs `poppler-utils` and `ghostscript` for the same reason and fails
+loudly if they are not on `PATH` afterwards, rather than letting the PDF tests
+die with ENOENT (see `.github/workflows/ci-cd.yml`).
+
+A throwaway database for the integration projects:
+
+```bash
+docker run -d --rm --name vo-itest \
+  -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=votest \
+  -p 55433:5432 postgres:16-alpine
+
+export DATABASE_URL="postgresql://test:test@127.0.0.1:55433/votest"
+npx prisma migrate deploy        # NOT `db push` — see below
+npx vitest run --project integration --project integration-unsuffixed
+```
+
+> **Use `prisma migrate deploy`, never `prisma db push`, to prepare a test
+> database.** `db push` derives the schema from `schema.prisma` and therefore
+> skips every statement that exists only inside a migration — raw SQL, CHECK
+> constraints, sequences. The database it builds looks correct and silently
+> cannot reproduce whole classes of failure, so the tests pass locally and fail
+> in CI.
+
+
 ## Getting Started
 
 First, run the development server:
