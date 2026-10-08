@@ -26,7 +26,13 @@ function share(type: ComValueType | null, value: { toString(): string } | null):
   return type === ComValueType.Percentage ? `${Number(value)}%` : formatSGD(value as never);
 }
 
-export default async function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+/** Where these links point. The admin routes render the SAME page under
+ *  /admin/sales, and app/portal/layout.tsx redirects any admin out of /portal —
+ *  so a hardcoded /portal link here bounces an admin straight back to the admin
+ *  dashboard the moment they click it. SaleForm already took this prop for the
+ *  same reason; the list and detail pages did not, which is why an admin could
+ *  submit a sale and then not open it (owner, 2026-10-08). */
+export async function SaleDetailPageWithBase({ params, basePath }: { params: Promise<{ id: string }>; basePath: string }) {
   const session = await auth();
   const associateId = session?.user.associateId ?? null;
   if (!associateId) redirect("/portal/dashboard");
@@ -63,8 +69,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
       <PageHeader title={s.clientName} subtitle={`${formatSGD(s.saleAmount)} · ${format(s.salesDate, "d MMM yyyy")}`}>
         <span className="flex items-center gap-2">
           <StatusPill status={s.status} />
-          <Button asChild variant="secondary"><Link href="/portal/sales">{t("saleDetail.back")}</Link></Button>
-          {editable && <Button asChild><Link href={`/portal/sales/${s.id}/edit`}>{t("saleDetail.edit")}</Link></Button>}
+          <Button asChild variant="secondary"><Link href={basePath}>{t("saleDetail.back")}</Link></Button>
+          {editable && <Button asChild><Link href={`${basePath}/${s.id}/edit`}>{t("saleDetail.edit")}</Link></Button>}
         </span>
       </PageHeader>
 
@@ -138,7 +144,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
               {env.A17_CLOSED_DEAL_FLOW && s.ashesAgreement && (
                 <p className="text-[12px] text-muted">
                   {t("saleDetail.ashesAgreementLabel")}: {ashesEditable ? (
-                    <Link href={`/portal/sales/${s.id}/agreement`} className="text-action hover:underline">{t(`saleDetail.ashesAgreementStatus.${s.ashesAgreement.status.toLowerCase()}`)}</Link>
+                    <Link href={`${basePath}/${s.id}/agreement`} className="text-action hover:underline">{t(`saleDetail.ashesAgreementStatus.${s.ashesAgreement.status.toLowerCase()}`)}</Link>
                   ) : (
                     <span className="text-ink">{t(`saleDetail.ashesAgreementStatus.${s.ashesAgreement.status.toLowerCase()}`)}</span>
                   )}
@@ -176,4 +182,9 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 
 function DocLink({ href, label }: { href: string; label: string }) {
   return <a href={href} target="_blank" rel="noopener" className="block text-[13px] font-medium text-action hover:underline">⤓ {label}</a>;
+}
+
+
+export default async function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return SaleDetailPageWithBase({ params, basePath: "/portal/sales" });
 }

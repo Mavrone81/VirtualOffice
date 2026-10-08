@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, UserPlus, Users, BadgeCheck, Receipt, Tags, Calculator,
+  LayoutDashboard, UserPlus, Users, BadgeCheck, Receipt, ReceiptText, Tags, Calculator,
   FileText, Banknote, Megaphone, FolderOpen, Handshake, FileSignature,
   IdCard, FolderLock, Network, ScrollText, ClipboardCheck, Split, FileCheck,
   TrendingUp, Wallet, HandCoins, ListChecks, Mail, Image, Palette,
@@ -64,6 +64,11 @@ export const adminNav: NavGroup[] = [
           // portalNav's own submit-a-sale entry already uses — same action,
           // same meaning, not a new translation.
           { labelKey: "transactionSubmission", href: "/admin/sales/new", icon: Receipt },
+            // The admin's OWN submitted sales. /admin/sales has existed since
+            // item 9 but nothing ever linked to it, so an admin could submit a
+            // sale and then have nowhere to see it (owner, 2026-10-08). A page
+            // with no route into it is the same as no page.
+            { labelKey: "mySales", href: "/admin/sales", icon: ReceiptText },
           { labelKey: "quotations", href: "/admin/quotations", icon: BadgeCheck, badgeKey: "quotations" },
           { labelKey: "splitApprovals", href: "/admin/split-approvals", icon: Split },
           { labelKey: "salesVerify", href: "/admin/sales/verify", icon: FileCheck },
