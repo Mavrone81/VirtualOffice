@@ -103,6 +103,64 @@ describe("computeProductPreview", () => {
     expect(company.amount.toString()).toBe(p.companyRetained);
   });
 
+  // The pin above existed and still let the Managing Director cut drift: the
+  // engine booked it from #160 while the preview never computed it, so company
+  // retained read HIGH by that amount. The pin did not fail because no case
+  // here SET an MD cut — a correct instrument measuring the wrong rows. These
+  // two cases set the fields the earlier ones left at their defaults.
+  it("pins the MD override and an ABSOLUTE Enshrine-retained against the engine", () => {
+    const md = { associateId: "md1", eligible: true };
+    const p = computeProductPreview({
+      salesAmount: "10000",
+      closing: { value: "10", percent: true },
+      companyCutPool: { value: "2", percent: true },
+      smOverride: { value: "5", percent: true },
+      sdOverride: { value: "3", percent: true },
+      mdOverride: { value: "0.6", percent: true },
+      isExternal: true,
+      externalRetainedPct: "900",
+      externalRetainedIsPercent: false,
+    });
+    const upline = (id: string) => ({ associateId: id, designation: Designation.SalesManager, eligible: true });
+    const r = computeLineCommission({
+      lineItemId: "l1",
+      commissionType: CommissionType.Percentage,
+      lineSaleAmount: "10000",
+      closingCommPct: "10",
+      companyCutPct: "2", companyCutType: ComValueType.Percentage,
+      smOverridePct: "5", smOverrideType: ComValueType.Percentage,
+      sdOverridePct: "3", sdOverrideType: ComValueType.Percentage,
+      mdCutPct: "0.6", mdCutType: ComValueType.Percentage,
+      isExternal: true,
+      externalCompanyRetainedPct: "900",
+      externalCompanyRetainedType: ComValueType.Absolute,
+      comCodes: [],
+      closer: { associateId: "c", designation: Designation.SalesAssociate },
+      directUpline: upline("u1"),
+      secondUpline: upline("u2"),
+      managingDirectors: [md],
+    });
+    const company = r.lines.find((l) => l.lineType === LedgerLineType.CompanyRetained)!;
+    const mdLine = r.lines.find((l) => l.lineType === LedgerLineType.ManagingDirectorCut)!;
+    expect(r.reconciles).toBe(true);
+    expect(p.mdOverride).toBe(mdLine.amount.toString());
+    expect(p.companyRetained).toBe(company.amount.toString());
+  });
+
+  // Control: without it, the case above could pass with an MD cut of zero on
+  // both sides, which proves nothing.
+  it("control — the MD override in that pin is a real non-zero figure", () => {
+    const p = computeProductPreview({
+      salesAmount: "10000",
+      closing: { value: "10", percent: true },
+      companyCutPool: { value: "2", percent: true },
+      smOverride: { value: "0", percent: true },
+      sdOverride: { value: "0", percent: true },
+      mdOverride: { value: "0.6", percent: true },
+    });
+    expect(Number(p.mdOverride)).toBe(60);
+  });
+
   // T6 (item 4 brief): the same pin, for EXTERNAL products. This exact class
   // of drift already happened once for internal (the header comment above),
   // where the preview showed -$300 while the engine booked $700 — a preview

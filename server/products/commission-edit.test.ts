@@ -15,7 +15,7 @@ const row = {
   // two still canonicalise equal — the "unchanged" case this fixture exists to
   // assert, and the real state of every product created before 2026-10-07.
   mdCutPct: new Prisma.Decimal("0"), mdCutType: "Percentage" as const,
-  isExternal: false, externalCompanyRetainedPct: null, effectiveDate: new Date("2098-01-01"),
+  isExternal: false, externalCompanyRetainedPct: null, externalCompanyRetainedType: "Percentage" as const, effectiveDate: new Date("2098-01-01"),
 };
 
 describe("commission-edit canonical form", () => {
@@ -36,6 +36,18 @@ describe("commission-edit canonical form", () => {
   it("a managing-director cut change is detected on its own", () => {
     expect(changedCommissionFields(canonicalFromRow(row), canonicalFromInput({ ...input, mdCutPct: "0.6" }))).toEqual(["mdCutPct"]);
     expect(changedCommissionFields(canonicalFromRow(row), canonicalFromInput({ ...input, mdCutType: "Absolute" }))).toEqual(["mdCutType"]);
+  });
+
+  // Same reasoning as the managing-director case above: switching Enshrine
+  // retained from a percentage to an absolute amount changes what every
+  // external sale pays, so it has to count as a commission edit and write a
+  // new version. Left out, the screen would show the new setting while the
+  // engine kept using the old one.
+  it("an Enshrine-retained TYPE change is detected on its own", () => {
+    const ext = { ...input, isExternal: true, externalCompanyRetainedPct: "5" };
+    const extRow = { ...row, isExternal: true, externalCompanyRetainedPct: new Prisma.Decimal("5") };
+    expect(changedCommissionFields(canonicalFromRow(extRow), canonicalFromInput({ ...ext, externalCompanyRetainedType: "Absolute" })))
+      .toEqual(["externalCompanyRetainedType"]);
   });
 
   it("maps like createProduct: the closing value only for its own type, the retained % only when external", () => {

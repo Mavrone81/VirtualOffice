@@ -66,7 +66,7 @@ const row: Record<string, unknown> = {
   // Real rows are NOT NULL DEFAULT 0 for these (see the managing_director_cut
   // migration), so a fixture without them is not a product that can exist.
   mdCutPct: dec("0"), mdCutType: "Percentage",
-  isExternal: false, externalCompanyRetainedPct: null,
+  isExternal: false, externalCompanyRetainedPct: null, externalCompanyRetainedType: "Percentage",
   effectiveDate: new Date("2099-01-01"), activeStatus: "Active", requiresAshesAgreement: false, requiredDocuments: [],
   comCodes: [], defaultCompany: null,
   listedPrice: dec("999.99"), discountedPrice: null, closingBasis: "ListedPrice", instalmentOption: "None",
@@ -94,7 +94,7 @@ const EMPTY_PRICING: PricingValue = { listedPrice: "", discountedPrice: "", clos
 const EMPTY_COMMISSION: CommissionValue = {
   commissionType: "Percentage", closingCommPct: "10", closingCommFixed: undefined,
   companyCutPct: "2", companyCutType: "Percentage", smOverridePct: "5", smOverrideType: "Percentage",
-  sdOverridePct: "3", sdOverrideType: "Percentage", mdCutPct: "0", mdCutType: "Percentage", isExternal: false, externalCompanyRetainedPct: undefined,
+  sdOverridePct: "3", sdOverrideType: "Percentage", mdCutPct: "0", mdCutType: "Percentage", isExternal: false, externalCompanyRetainedPct: undefined, externalCompanyRetainedType: "Percentage",
   effectiveDate: "2099-01-01",
 };
 function renderEditForm(description: string): string {

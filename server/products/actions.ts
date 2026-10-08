@@ -58,6 +58,7 @@ export type ProductInput = {
   mdCutType?: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct?: string;
+  externalCompanyRetainedType?: "Percentage" | "Absolute";
   defaultCompanyId?: string;
   effectiveDate: string;
   // Pricing (2026-09-30) — see lib/schemas.ts productPricingShape/pricingRefine
@@ -98,6 +99,7 @@ function rateSnapshot(i: RateFields) {
     mdCutType: i.mdCutType ?? "Percentage",
     isExternal: i.isExternal,
     externalCompanyRetainedPct: i.externalCompanyRetainedPct ?? null,
+    externalCompanyRetainedType: i.externalCompanyRetainedType ?? "Percentage",
   } satisfies Prisma.InputJsonValue;
 }
 

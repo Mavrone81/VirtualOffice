@@ -18,6 +18,7 @@ export type RateSnapshot = {
   mdCutType?: ComValueType | null;
   isExternal: boolean;
   externalCompanyRetainedPct?: string | null;
+  externalCompanyRetainedType?: ComValueType | null;
 };
 
 /** A submission's Associate 2/3 split, as the engine takes it. */
@@ -69,6 +70,7 @@ export function toLineInput(
     mdCutType: rs.mdCutType ?? ComValueType.Percentage,
     isExternal: li.isExternal,
     externalCompanyRetainedPct: rs.externalCompanyRetainedPct ?? null,
+    externalCompanyRetainedType: rs.externalCompanyRetainedType ?? ComValueType.Percentage,
     comCodes,
     ...ctx,
   };

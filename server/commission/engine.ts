@@ -32,7 +32,10 @@ export type LineInput = {
   mdCutPct?: Numeric | null;
   mdCutType?: ComValueType | null;
   isExternal: boolean;
+  /** Enshrine's retained share of an external sale — a % of the sale OR an
+   *  absolute amount (owner CR1, 2026-10-08). Was percentage-only. */
   externalCompanyRetainedPct?: Numeric | null;
+  externalCompanyRetainedType?: ComValueType | null;
   comCodes: ComCodeInput[];
   closer: { associateId: string; designation: Designation };
   directUpline: UplineInput;
@@ -99,7 +102,12 @@ export function computeLineCommission(line: LineInput): LineResult {
   // below this line runs identically for both — internal is simply the
   // retainedBase = lineSale case.
   const externalRetainedPct = D(line.externalCompanyRetainedPct ?? 0);
-  const retainedBase = line.isExternal ? pctOf(lineSale, externalRetainedPct) : lineSale;
+  // resolve(), not pctOf(): this field may now be an absolute amount. For a
+  // Percentage it computes exactly what pctOf did, so every existing product is
+  // unchanged.
+  const retainedBase = line.isExternal
+    ? resolve(lineSale, line.externalCompanyRetainedType ?? ComValueType.Percentage, externalRetainedPct)
+    : lineSale;
   const externalPayable = line.isExternal ? round2(lineSale.sub(retainedBase)) : ZERO;
 
   const closing =

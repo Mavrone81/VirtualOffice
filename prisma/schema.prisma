@@ -546,7 +546,13 @@ model Product {
   mdCutType                  ComValueType        @default(Percentage) @map("md_cut_type")
   companyRetainedPct         Decimal?            @map("company_retained_pct") @db.Decimal(7, 4)
   isExternal                 Boolean             @default(false) @map("is_external")
-  externalCompanyRetainedPct Decimal?            @map("external_company_retained_pct") @db.Decimal(7, 4)
+  // Widened from (7,4) to (14,4) and given a type column (owner CR1, 2026-10-08):
+  // this was the ONLY commission field that could not be an absolute amount —
+  // company cut, SM, SD and the MD cut all already carried a ComValueType. The
+  // narrow precision was what made it percentage-only in practice: (7,4) tops
+  // out below 1,000, so it could never have held a dollar figure.
+  externalCompanyRetainedPct  Decimal?           @map("external_company_retained_pct") @db.Decimal(14, 4)
+  externalCompanyRetainedType ComValueType       @default(Percentage) @map("external_company_retained_type")
   defaultCompanyId           String?             @map("default_company_id") @db.Uuid
   defaultCompany             Company?            @relation(fields: [defaultCompanyId], references: [id])
   parentProductId            String?             @map("parent_product_id") @db.Uuid

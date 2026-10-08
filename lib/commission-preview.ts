@@ -9,6 +9,8 @@ export type ProductPreviewInput = {
   companyCutPool: PreviewField;
   smOverride: PreviewField;
   sdOverride: PreviewField;
+  /** Managing Director override. Absent on an older caller = no MD cut. */
+  mdOverride?: PreviewField;
   /** External product (2026-10): the retained base is a % of the sale instead
    *  of the whole sale, and the rest routes to the provider. Defaults false —
    *  omitting both this and externalRetainedPct keeps every existing call
@@ -18,6 +20,9 @@ export type ProductPreviewInput = {
    *  and the schema's externalCompanyRetainedPct exactly. Ignored unless
    *  isExternal is true. */
   externalRetainedPct?: Numeric;
+  /** false = the retained figure above is an absolute amount, not a percentage
+   *  (owner CR1, 2026-10-08). Omitted = percentage, the prior behaviour. */
+  externalRetainedIsPercent?: boolean;
 };
 
 export type ProductPreview = {
@@ -26,6 +31,7 @@ export type ProductPreview = {
   companyCutPool: string;
   smOverride: string;
   sdOverride: string;
+  mdOverride: string;
   netToCloser: string;
   companyRetained: string;
   /** The base companyRetained is computed from: the sale itself (internal),
@@ -68,16 +74,26 @@ export function computeProductPreview(i: ProductPreviewInput): ProductPreview {
   const cutPool = amount(sale, i.companyCutPool);
   const sm = amount(sale, i.smOverride);
   const sd = amount(sale, i.sdOverride);
+  // The MD override was missing here while the engine already booked it, so
+  // this preview under-reported it and over-reported company retained by the
+  // same amount (shipped in #160, caught by the owner 2026-10-08).
+  const md = i.mdOverride ? amount(sale, i.mdOverride) : ZERO;
   const netToCloser = round2(closing.sub(cutPool));
-  const retainedBase = i.isExternal ? pctOf(sale, D(i.externalRetainedPct ?? 0)) : sale;
+  // Absolute or percentage, mirroring the engine's resolve() (owner CR1).
+  const retainedBase = i.isExternal
+    ? (i.externalRetainedIsPercent === false
+        ? round2(i.externalRetainedPct ?? 0)
+        : pctOf(sale, D(i.externalRetainedPct ?? 0)))
+    : sale;
   const externalPayable = i.isExternal ? round2(sale.sub(retainedBase)) : ZERO;
-  const companyRetained = round2(retainedBase.sub(netToCloser).sub(sm).sub(sd));
+  const companyRetained = round2(retainedBase.sub(netToCloser).sub(sm).sub(sd).sub(md));
   return {
     salesAmount: sale.toString(),
     closing: closing.toString(),
     companyCutPool: cutPool.toString(),
     smOverride: sm.toString(),
     sdOverride: sd.toString(),
+    mdOverride: md.toString(),
     netToCloser: netToCloser.toString(),
     companyRetained: companyRetained.toString(),
     retainedBase: retainedBase.toString(),

@@ -997,8 +997,8 @@
     "externalPayableLabel": "外部供应商应付款",
     "percentageOfSale": "销售百分比",
     "fixedAmount": "固定金额",
-    "closingAmountFixed": "成交金额（S$）",
-    "closingAmountPct": "成交百分比 %",
+    "closingAmountFixed": "佣金（固定金额）",
+    "closingAmountPct": "佣金 %",
     "companyCutPoolLabel": "公司抽成比例 %（奖池）",
     "smOverrideLabel": "直属上线 override",
     "sdOverrideLabel": "第二上线 override",
@@ -1062,7 +1062,9 @@
       "colCompany": "公司",
       "colStatus": "状态"
     },
-    "mdCutLabel": "董事总经理分成"
+    "mdCutLabel": "董事总经理分成",
+    "previewClosingAmount": "成交金额",
+    "previewCommission": "佣金"
   },
   "recruitment": {
     "title": "招募",
