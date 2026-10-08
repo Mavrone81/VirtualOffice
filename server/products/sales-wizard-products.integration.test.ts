@@ -7,12 +7,27 @@
 // entry). Mirrors portal-catalogue.integration.test.ts's method.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { fetchActiveSalesWizardProducts, SALES_WIZARD_PRODUCT_SELECT } from "./sales-wizard-products";
+import { fetchActiveSalesWizardProducts, toFormProducts, SALES_WIZARD_PRODUCT_SELECT } from "./sales-wizard-products";
 
 const TAG = "SALESWIZPROD-";
 const COMPANY_PREFIX = "SALESWIZPRODTEST";
 
-const ALLOWED_TOP_LEVEL_KEYS = ["id", "productCode", "productName", "requiresAshesAgreement", "comCodes", "defaultCompany"].sort();
+// listedPrice/discountedPrice added 2026-10-08. Pricing is NOT like commission:
+// it is what the customer is quoted, and the person submitting the sale has to
+// see it — without it the amount field could not be filled and the form showed
+// a blank price and a S$0.00 total. The thing this file actually protects is
+// commission and company-cut data reaching an associate's browser, and that is
+// asserted explicitly below rather than left implied by this list.
+const ALLOWED_TOP_LEVEL_KEYS = ["id", "productCode", "productName", "requiresAshesAgreement", "listedPrice", "discountedPrice", "comCodes", "defaultCompany"].sort();
+
+/** The columns that must NEVER reach the sales wizard, named rather than
+ *  inferred from the absence of everything else. An allow-list grows when a
+ *  feature needs a field; this list is the part that must not. */
+const FORBIDDEN_KEYS = [
+  "companyCutPct", "companyCutType", "closingCommPct", "closingCommFixed",
+  "smOverridePct", "sdOverridePct", "mdCutPct", "mdCutType",
+  "externalCompanyRetainedPct", "commissionType",
+];
 const ALLOWED_COMCODE_KEYS = ["id", "comCode", "label", "valueType", "value"].sort();
 
 let companyId = "";
@@ -76,6 +91,22 @@ describe("sales wizard products — explicit select, proved on returned rows", (
     for (const c of row?.comCodes ?? []) {
       expect(Object.keys(c).sort()).toEqual(ALLOWED_COMCODE_KEYS);
     }
+  });
+
+  it("no commission or company-cut column reaches the wizard — the rule this file exists for", async () => {
+    const rows = await prisma.product.findMany({ where: { productCode: TAG + "1" }, select: SALES_WIZARD_PRODUCT_SELECT });
+    const row = rows[0] as Record<string, unknown>;
+    const leaked = FORBIDDEN_KEYS.filter((k) => k in row);
+    expect(leaked, "commission data must never reach an associate's browser").toEqual([]);
+  });
+
+  it("pricing IS present, and a product with no discount reports discounted = listed", async () => {
+    const rows = await prisma.product.findMany({ where: { productCode: TAG + "1" }, select: SALES_WIZARD_PRODUCT_SELECT });
+    const [form] = toFormProducts(rows);
+    expect(form.listedPrice).toBe("500");
+    // The fallback the owner asked for: no discount set means the discounted
+    // figure shown is the listed one, never a blank.
+    expect(form.discountedPrice).toBe(form.listedPrice);
   });
 
   it("sanity: the row is real, not a vacuous pass from an empty/missing result", async () => {

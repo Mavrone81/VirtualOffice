@@ -768,7 +768,9 @@
       "splitType": "Type",
       "splitNone": "— none —",
       "couldNotSubmit": "Could not submit.",
-      "saveChanges": "Save changes"
+      "saveChanges": "Save changes",
+      "listedPrice": "Listed",
+      "discountedPrice": "Discounted"
     },
     "commissions": {
       "pageTitle": "My commissions",
