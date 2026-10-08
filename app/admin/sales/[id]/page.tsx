@@ -1,4 +1,4 @@
-import { SaleDetailPageWithBase } from "@/app/portal/sales/[id]/page";
+import { SaleDetailPageWithBase } from "@/app/portal/sales/[id]/sale-detail-page";
 
 // Same component as the portal's sale detail, with the admin base path. It gates
 // on session.associateId + row ownership, not on role or route, so it was always

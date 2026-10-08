@@ -1,4 +1,4 @@
-import { MySalesPageWithBase } from "@/app/portal/sales/page";
+import { MySalesPageWithBase } from "@/app/portal/sales/my-sales-page";
 
 // The admin's own "my sales" list. Renders the portal page with the ADMIN base
 // path, so its row and button links stay inside /admin — a /portal link bounces
