@@ -67,7 +67,7 @@ const row: Record<string, unknown> = {
   // Real rows are NOT NULL DEFAULT 0 for these (see the managing_director_cut
   // migration), so a fixture without them is not a product that can exist.
   mdCutPct: dec("0"), mdCutType: "Percentage",
-  isExternal: false, externalCompanyRetainedPct: null,
+  isExternal: false, externalCompanyRetainedPct: null, externalCompanyRetainedType: "Percentage",
   effectiveDate: new Date("2099-01-01"), activeStatus: "Active", requiresAshesAgreement: false, requiredDocuments: [],
   comCodes: [], defaultCompany: null, listedPrice: dec("999.99"), discountedPrice: null,
   closingBasis: "ListedPrice", instalmentOption: "None", bookingFee: null, monthlyInstalment12: null, monthlyInstalment24: null,

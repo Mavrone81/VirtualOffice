@@ -33,6 +33,7 @@ export type CommissionValue = {
   mdCutType?: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct?: string;
+  externalCompanyRetainedType?: "Percentage" | "Absolute";
   effectiveDate: string;
 };
 
@@ -87,8 +88,10 @@ export function CommissionCard({
         companyCutPool: { value: f.companyCutPct || "0", percent: f.companyCutType !== "Absolute" },
         smOverride: { value: f.smOverridePct || "0", percent: f.smOverrideType !== "Absolute" },
         sdOverride: { value: f.sdOverridePct || "0", percent: f.sdOverrideType !== "Absolute" },
+        mdOverride: { value: f.mdCutPct || "0", percent: f.mdCutType !== "Absolute" },
         isExternal: f.isExternal,
         externalRetainedPct: f.externalCompanyRetainedPct || "0",
+        externalRetainedIsPercent: f.externalCompanyRetainedType !== "Absolute",
       });
     } catch {
       return null;
@@ -144,7 +147,17 @@ export function CommissionCard({
       {f.isExternal && (
         <div className="mb-4 max-w-xs">
           <Label htmlFor="ext">{t("enshrineRetainedLabel")}</Label>
-          <Input id="ext" value={f.externalCompanyRetainedPct ?? "5"} onChange={(e) => set({ externalCompanyRetainedPct: e.target.value })} />
+          {/* CR1 (owner, 2026-10-08): the one commission field that was
+              percentage-only; now the same control its siblings already used. */}
+          <PercentAmountInput
+            id="ext"
+            value={f.externalCompanyRetainedPct ?? "5"}
+            valueType={f.externalCompanyRetainedType ?? "Percentage"}
+            onValueChange={(v) => set({ externalCompanyRetainedPct: v })}
+            onTypeChange={(tp) => set({ externalCompanyRetainedType: tp })}
+            base={Number(salesAmount) || undefined}
+            placeholder="5"
+          />
           <p className="mt-1 text-[12px] text-muted-2">{t("externalProviderNote")}</p>
         </div>
       )}
@@ -221,10 +234,21 @@ export function CommissionCard({
         )}
         {preview ? (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-[13px]">
-            <dt className="text-body">{t("closingAmountPct")}</dt><dd className="text-right font-medium text-ink">{money(preview.closing)}</dd>
+            {/* CR3 (owner, 2026-10-08): his order exactly. Closing Amount is the
+                PRICE the commission is taken on (listed or discounted, per the
+                pricing section) — absent before, so the panel opened on a
+                commission figure with nothing to read it against. The Managing
+                Director line was missing entirely: the engine booked it while
+                this preview did not, so company retained read HIGH by that
+                amount on every product carrying an MD cut. */}
+            <dt className="text-body">{t("previewClosingAmount")}</dt>
+            <dd className="text-right text-ink">{money(preview.salesAmount)}</dd>
+            <dt className="text-body">{t("previewCommission")}</dt>
+            <dd className="text-right font-medium text-ink">{money(preview.closing)}</dd>
             <dt className="text-body">{t("companyCutPoolLabel")}</dt><dd className="text-right text-ink">{money(preview.companyCutPool)}</dd>
             <dt className="text-body">{t("smOverrideLabel")}</dt><dd className="text-right text-ink">{money(preview.smOverride)}</dd>
             <dt className="text-body">{t("sdOverrideLabel")}</dt><dd className="text-right text-ink">{money(preview.sdOverride)}</dd>
+            <dt className="text-body">{t("mdCutLabel")}</dt><dd className="text-right text-ink">{money(preview.mdOverride)}</dd>
             <dt className="mt-1 border-t border-line pt-1 font-semibold text-ink">{t("netToCloserLabel")}</dt>
             <dd className="mt-1 border-t border-line pt-1 text-right font-semibold text-action">{money(preview.netToCloser)}</dd>
             {f.isExternal && (

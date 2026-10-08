@@ -242,6 +242,7 @@ const productCommissionShape = {
   mdCutType: comValueTypeEnum.optional(),
   isExternal: z.boolean(),
   externalCompanyRetainedPct: rate.optional(),
+  externalCompanyRetainedType: comValueTypeEnum.optional(),
   effectiveDate: dateStr,
 };
 

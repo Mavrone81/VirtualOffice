@@ -36,6 +36,7 @@ export type CanonicalCommission = {
   mdCutType: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct: string | null;
+  externalCompanyRetainedType: "Percentage" | "Absolute";
   effectiveDate: string;
 };
 
@@ -53,6 +54,7 @@ type CommissionInput = {
   mdCutType?: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct?: string;
+  externalCompanyRetainedType?: "Percentage" | "Absolute";
   effectiveDate: string;
 };
 
@@ -71,6 +73,7 @@ type CommissionRow = {
   mdCutType: "Percentage" | "Absolute";
   isExternal: boolean;
   externalCompanyRetainedPct: DecimalLike | null;
+  externalCompanyRetainedType: "Percentage" | "Absolute";
   effectiveDate: Date;
 };
 
@@ -96,6 +99,7 @@ export function canonicalFromInput(i: CommissionInput): CanonicalCommission {
     mdCutType: i.mdCutType ?? "Percentage",
     isExternal: i.isExternal,
     externalCompanyRetainedPct: i.isExternal ? pct(i.externalCompanyRetainedPct || "0") : null,
+      externalCompanyRetainedType: i.externalCompanyRetainedType ?? "Percentage",
     effectiveDate: day(new Date(i.effectiveDate)),
   };
 }
@@ -120,6 +124,7 @@ export function canonicalFromRow(r: CommissionRow): CanonicalCommission {
     mdCutType: r.mdCutType,
     isExternal: r.isExternal,
     externalCompanyRetainedPct: r.isExternal ? pct(r.externalCompanyRetainedPct ?? "0") : null,
+      externalCompanyRetainedType: r.externalCompanyRetainedType,
     effectiveDate: day(r.effectiveDate),
   };
 }

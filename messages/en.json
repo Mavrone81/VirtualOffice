@@ -997,8 +997,8 @@
     "externalPayableLabel": "External provider payable",
     "percentageOfSale": "Percentage of sale",
     "fixedAmount": "Fixed amount",
-    "closingAmountFixed": "Closing amount (S$)",
-    "closingAmountPct": "Closing %",
+    "closingAmountFixed": "Commission (fixed amount)",
+    "closingAmountPct": "Commission %",
     "companyCutPoolLabel": "Company cut % (pool)",
     "smOverrideLabel": "Direct-upline override",
     "sdOverrideLabel": "Second-upline override",
@@ -1062,7 +1062,9 @@
       "colCompany": "Company",
       "colStatus": "Status"
     },
-    "mdCutLabel": "Managing Director cut"
+    "mdCutLabel": "Managing Director cut",
+    "previewClosingAmount": "Closing Amount",
+    "previewCommission": "Commission"
   },
   "recruitment": {
     "title": "Recruitment",
