@@ -1,4 +1,4 @@
-import { EditSalePageWithBase } from "@/app/portal/sales/[id]/edit/page";
+import { EditSalePageWithBase } from "@/app/portal/sales/[id]/edit/edit-sale-page";
 
 // The admin-side edit route. Without it the detail page's Edit button pointed at
 // a /portal path that bounces.
