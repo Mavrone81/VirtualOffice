@@ -13,7 +13,13 @@ import { TABLE_HEAD_ROW_CLS, TABLE_HEAD_CELL_CLS } from "@/components/ui/table";
 
 export const metadata = { title: "My sales · Enshrine Portal" };
 
-export default async function MySalesPage() {
+/** Where these links point. The admin routes render the SAME page under
+ *  /admin/sales, and app/portal/layout.tsx redirects any admin out of /portal —
+ *  so a hardcoded /portal link here bounces an admin straight back to the admin
+ *  dashboard the moment they click it. SaleForm already took this prop for the
+ *  same reason; the list and detail pages did not, which is why an admin could
+ *  submit a sale and then not open it (owner, 2026-10-08). */
+export async function MySalesPageWithBase({ basePath }: { basePath: string }) {
   const session = await auth();
   const associateId = session?.user.associateId ?? null;
 
@@ -32,14 +38,14 @@ export default async function MySalesPage() {
     <>
       <PageHeader title={t("sales.pageTitle")} subtitle={t("sales.pageSubtitle")}>
         <Button asChild>
-          <Link href="/portal/sales/new">{t("sales.submitSale")}</Link>
+          <Link href={`${basePath}/new`}>{t("sales.submitSale")}</Link>
         </Button>
       </PageHeader>
 
       <Card className="overflow-hidden">
         {submissions.length === 0 ? (
           <div className="px-5 py-12 text-center text-[13px] text-muted">
-            {t("sales.noSales")} <Link href="/portal/sales/new" className="text-action">{t("sales.submitFirst")}</Link>
+            {t("sales.noSales")} <Link href={`${basePath}/new`} className="text-action">{t("sales.submitFirst")}</Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -67,7 +73,7 @@ export default async function MySalesPage() {
                     <td className="px-5 py-3 text-ink">{formatSGD(s.saleAmount)}</td>
                     <td className="px-5 py-3 text-muted">{humanize(s.paymentPlan)}</td>
                     <td className="px-5 py-3"><StatusPill status={s.status} /></td>
-                    <td className="px-5 py-3 text-right"><Link href={`/portal/sales/${s.id}`} className="text-[12px] text-action hover:underline">{t("sales.view")}</Link></td>
+                    <td className="px-5 py-3 text-right"><Link href={`${basePath}/${s.id}`} className="text-[12px] text-action hover:underline">{t("sales.view")}</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -77,4 +83,9 @@ export default async function MySalesPage() {
       </Card>
     </>
   );
+}
+
+
+export default async function MySalesPage() {
+  return MySalesPageWithBase({ basePath: "/portal/sales" });
 }

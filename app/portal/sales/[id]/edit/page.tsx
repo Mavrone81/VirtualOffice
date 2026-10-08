@@ -11,7 +11,7 @@ import { fetchActiveSalesWizardProducts, toFormProducts } from "@/server/product
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit sale · Enshrine Portal" };
 
-export default async function EditSalePage({ params }: { params: Promise<{ id: string }> }) {
+export async function EditSalePageWithBase({ params, basePath }: { params: Promise<{ id: string }>; basePath: string }) {
   const session = await auth();
   const associateId = session?.user.associateId ?? null;
   if (!associateId) redirect("/portal/dashboard");
@@ -21,7 +21,7 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
   const s = await prisma.salesSubmission.findUnique({ where: { id }, include: { lineItems: true } });
   if (!s || s.closingAssociateId !== associateId) notFound();
   // Only editable while still Submitted (before admin approves the quotation).
-  if (s.status !== SubmissionStatus.Submitted) redirect(`/portal/sales/${id}`);
+  if (s.status !== SubmissionStatus.Submitted) redirect(`${basePath}/${id}`);
 
   const products = await fetchActiveSalesWizardProducts();
   const formProducts = toFormProducts(products);
@@ -67,4 +67,9 @@ export default async function EditSalePage({ params }: { params: Promise<{ id: s
       />
     </>
   );
+}
+
+
+export default async function EditSalePage({ params }: { params: Promise<{ id: string }> }) {
+  return EditSalePageWithBase({ params, basePath: "/portal/sales" });
 }

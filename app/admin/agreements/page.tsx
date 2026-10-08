@@ -55,7 +55,7 @@ export default async function AdminAgreementsPage() {
                           {t("list.viewPdf")}
                         </a>
                       ) : (
-                        <Link href={`/portal/sales/${a.submissionId}/agreement`} className="text-[12px] text-action hover:underline">
+                        <Link href={`/admin/sales/${a.submissionId}/agreement`} className="text-[12px] text-action hover:underline">
                           {t("list.open")}
                         </Link>
                       )}
