@@ -11,6 +11,7 @@ import { submitSale, editSale } from "@/server/sales/actions";
 import { PercentAmountInput } from "@/components/ui/percent-amount-input";
 import { INSTALLMENT_MONTHS } from "@/lib/installment-months";
 import { useTranslations } from "next-intl";
+import { formatSGD } from "@/lib/money";
 
 export type FormProduct = {
   id: string;
@@ -18,6 +19,10 @@ export type FormProduct = {
   productName: string;
   companyName: string;
   requiresAshesAgreement: boolean;
+  /** The product's quoted prices. `discountedPrice` falls back to the listed
+   *  price when no discount is set, so a card never shows a blank. */
+  listedPrice: string | null;
+  discountedPrice: string | null;
   comCodes: { id: string; label: string; valueType: string; value: string }[];
 };
 
@@ -48,7 +53,7 @@ export function SaleForm({ products, associates, today, initial, submissionId, f
   const [plan, setPlan] = useState<"Full Payment" | "Installment">(initial?.plan ?? "Full Payment");
   const [deposit, setDeposit] = useState(initial?.deposit ?? "");
   const [installmentCount, setInstallmentCount] = useState(initial?.installmentCount ?? "12");
-  const [lines, setLines] = useState<Line[]>(initial?.lines ?? [{ productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }]);
+  const [lines, setLines] = useState<Line[]>(initial?.lines ?? [{ productId: products[0]?.id ?? "", amount: products[0]?.listedPrice ?? "", comCodeIds: [] }]);
   const [split2, setSplit2] = useState<Split>(initial?.split2 ?? { associateId: "", valueType: "Percentage", value: "" });
   const [split3, setSplit3] = useState<Split>(initial?.split3 ?? { associateId: "", valueType: "Percentage", value: "" });
   const [documents, setDocuments] = useState<File[]>([]);
@@ -189,7 +194,7 @@ export function SaleForm({ products, associates, today, initial, submissionId, f
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => setLines((ls) => [...ls, { productId: products[0]?.id ?? "", amount: "", comCodeIds: [] }])}
+            onClick={() => setLines((ls) => [...ls, { productId: products[0]?.id ?? "", amount: products[0]?.listedPrice ?? "", comCodeIds: [] }])}
           >
             <Plus className="h-4 w-4" /> {t("saleForm.addLine")}
           </Button>
@@ -206,7 +211,13 @@ export function SaleForm({ products, associates, today, initial, submissionId, f
                     <select
                       id={`p${i}`}
                       value={line.productId}
-                      onChange={(e) => setLine(i, { productId: e.target.value, comCodeIds: [] })}
+                      onChange={(e) => {
+                        // Choosing a product fills the amount with its LISTED
+                        // price (owner, 2026-10-08). It stays editable — a sale
+                        // closed at the discounted price is typed over.
+                        const picked = productById.get(e.target.value);
+                        setLine(i, { productId: e.target.value, comCodeIds: [], amount: picked?.listedPrice ?? "" });
+                      }}
                       className="h-11 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-action focus:outline-none"
                     >
                       {products.map((p) => (
@@ -228,6 +239,15 @@ export function SaleForm({ products, associates, today, initial, submissionId, f
                     )}
                   </div>
                 </div>
+                {/* What the product is priced at, so the amount above can be
+                    checked against it. Discounted falls back to listed when no
+                    discount exists, rather than rendering blank. */}
+                {product?.listedPrice && (
+                  <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-muted">
+                    <span>{t("saleForm.listedPrice")}: <b className="text-ink">{formatSGD(product.listedPrice)}</b></span>
+                    <span>{t("saleForm.discountedPrice")}: <b className="text-ink">{formatSGD(product.discountedPrice ?? product.listedPrice)}</b></span>
+                  </div>
+                )}
                 {product && product.comCodes.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-3">
                     {product.comCodes.map((cc) => (

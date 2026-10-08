@@ -768,7 +768,9 @@
       "splitType": "类型",
       "splitNone": "— 无 —",
       "couldNotSubmit": "提交失败，请重试。",
-      "saveChanges": "保存更改"
+      "saveChanges": "保存更改",
+      "listedPrice": "标价",
+      "discountedPrice": "折扣价"
     },
     "commissions": {
       "pageTitle": "我的佣金",
