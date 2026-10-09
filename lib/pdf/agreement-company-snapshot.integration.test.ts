@@ -57,7 +57,7 @@ const ashesRow = (signedTerms: unknown) => ({
   id: "a1", submission: { clientName: "Test Client" }, storageSpaceLocation: "X", nicheUnit: "1", pets: [], applicant1Name: "Test Applicant",
   applicant1Nric: null, applicant1Address: "1 Example Road", applicant1Contact: "000", applicant1Email: "a@example.invalid", applicant2Name: null, applicant2Nric: null,
   applicant2Address: null, applicant2Contact: null, applicant2Email: null, amountNumeric: { toFixed: () => "100.00" }, amountWords: "One hundred",
-  paymentPlan: "FullPayment", bookingFee: null, monthlyInstalment: null, instalmentDayOfMonth: null, maintenanceStartYear: null, additionalTerms: null,
+  paymentPlan: "FullPayment", bookingFee: null, monthlyInstalment: null, instalmentMonths: null, instalmentDayOfMonth: null, maintenanceStartYear: null, additionalTerms: null,
   signedAt: new Date("2026-09-01T00:00:00Z"), applicantSignatureKey: null, applicantWitnessName: null, applicantWitnessNric: null, companyWitnessName: null, companyWitnessNric: null,
   signedTerms,
 });

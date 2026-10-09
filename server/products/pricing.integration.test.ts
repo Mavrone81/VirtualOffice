@@ -34,7 +34,7 @@ const BASE_COMMISSION = {
 
 const BASE_PRICING = {
   listedPrice: "999.99",
-  instalmentOption: "None" as const,
+  
 };
 
 let productId = "";
@@ -76,7 +76,7 @@ async function seedProductRaw(code: string) {
       // closingBasis deliberately NOT the default (ListedPrice) — a clobber
       // that reset it back to the default would otherwise be indistinguishable
       // from "left untouched" in the assertions below.
-      listedPrice: "999.99", discountedPrice: "888.88", instalmentOption: "None", closingBasis: "DiscountedPrice",
+      listedPrice: "999.99", discountedPrice: "888.88", closingBasis: "DiscountedPrice",
     },
   });
 }
@@ -89,21 +89,21 @@ describe("createProduct / updateProductPricing — role gate (isFullAdmin, not m
 
   it("Accounts passes isAdminRole but is refused — the narrower isFullAdmin gate, not just any admin-area role", async () => {
     who.session = ACCOUNTS;
-    const r = await updateProductPricing(productId, { listedPrice: "500.00", instalmentOption: "None" });
+    const r = await updateProductPricing(productId, { listedPrice: "500.00" });
     expect(r).toEqual({ ok: false, error: "forbidden" });
     who.session = ADMIN;
   });
 
   it("a plain associate is refused too (the floor case, not sufficient alone)", async () => {
     who.session = ASSOCIATE;
-    const r = await updateProductPricing(productId, { listedPrice: "500.00", instalmentOption: "None" });
+    const r = await updateProductPricing(productId, { listedPrice: "500.00" });
     expect(r).toEqual({ ok: false, error: "forbidden" });
     who.session = ADMIN;
   });
 
   it("Admin succeeds", async () => {
     who.session = ADMIN;
-    const r = await updateProductPricing(productId, { listedPrice: "500.00", instalmentOption: "None" });
+    const r = await updateProductPricing(productId, { listedPrice: "500.00" });
     expect(r).toEqual({ ok: true });
   });
 });
@@ -112,7 +112,7 @@ describe("updateProductPricing — PRICING FIELDS ONLY, structurally (.strict())
   it("a payload carrying a non-pricing key (commissionType) is rejected, and the actual column is untouched", async () => {
     const id = await freshProduct(TAG + "STRICT1");
     const before = await prisma.product.findUniqueOrThrow({ where: { id } });
-    const r = await updateProductPricing(id, { listedPrice: "1.00", instalmentOption: "None", commissionType: "Fixed" } as unknown as ProductPricingInput);
+    const r = await updateProductPricing(id, { listedPrice: "1.00", commissionType: "Fixed" } as unknown as ProductPricingInput);
     expect(r).toEqual({ ok: false, error: "invalidInput" });
     const after = await prisma.product.findUniqueOrThrow({ where: { id } });
     expect(after.commissionType).toBe(before.commissionType);
@@ -126,7 +126,7 @@ describe("updateProductPricing — audit atomicity", () => {
     const before = await prisma.auditLog.count({ where: { entityId: id, action: "product.pricing_updated" } });
     expect(before).toBe(0);
 
-    const r = await updateProductPricing(id, { listedPrice: "1234.56", discountedPrice: "999.00", instalmentOption: "None" });
+    const r = await updateProductPricing(id, { listedPrice: "1234.56", discountedPrice: "999.00" });
     expect(r).toEqual({ ok: true });
 
     const rows = await prisma.auditLog.findMany({ where: { entityId: id, action: "product.pricing_updated" } });
@@ -141,7 +141,7 @@ describe("updateProductPricing — audit atomicity", () => {
     const before = await prisma.product.findUniqueOrThrow({ where: { id } });
 
     await failAuditsFor("product.pricing_updated");
-    const r = await updateProductPricing(id, { listedPrice: "1.00", instalmentOption: "None" });
+    const r = await updateProductPricing(id, { listedPrice: "1.00" });
     expect(r).toEqual({ ok: false, error: "auditUnavailable" });
 
     const after = await prisma.product.findUniqueOrThrow({ where: { id } });
@@ -153,7 +153,7 @@ describe("updateProductPricing — audit atomicity", () => {
 describe("updateProductPricing does not clobber the commission columns", () => {
   it("updateProductPricing leaves the commission and effectiveDate columns untouched", async () => {
     const seeded = await seedProductRaw(TAG + "NOCLOBBER2");
-    const r = await updateProductPricing(seeded.id, { listedPrice: "42.00", instalmentOption: "None" });
+    const r = await updateProductPricing(seeded.id, { listedPrice: "42.00" });
     expect(r).toEqual({ ok: true });
     const after = await prisma.product.findUniqueOrThrow({ where: { id: seeded.id } });
     expect(after.listedPrice?.toFixed(2)).toBe("42.00"); // proves updateProductPricing DID run
@@ -170,7 +170,7 @@ describe("updateProductPricing — closingBasis (2026-10-01)", () => {
     expect(before.closingBasis).toBe("ListedPrice"); // the DB/zod default, never sent explicitly by freshProduct
 
     const r = await updateProductPricing(id, {
-      listedPrice: "500.00", discountedPrice: "450.00", instalmentOption: "None", closingBasis: "DiscountedPrice",
+      listedPrice: "500.00", discountedPrice: "450.00", closingBasis: "DiscountedPrice",
     });
     expect(r).toEqual({ ok: true });
 
@@ -185,7 +185,7 @@ describe("updateProductPricing — closingBasis (2026-10-01)", () => {
 
   it("accepts DiscountedPrice when discountedPrice is set in the SAME call (a normal edit, not just a pre-existing discount)", async () => {
     const id = await freshProduct(TAG + "CB-OK1");
-    const r = await updateProductPricing(id, { listedPrice: "500.00", discountedPrice: "400.00", instalmentOption: "None", closingBasis: "DiscountedPrice" });
+    const r = await updateProductPricing(id, { listedPrice: "500.00", discountedPrice: "400.00", closingBasis: "DiscountedPrice" });
     expect(r).toEqual({ ok: true });
   });
 
@@ -196,7 +196,7 @@ describe("updateProductPricing — closingBasis (2026-10-01)", () => {
     // Clearing the discount while the basis is still DiscountedPrice — the
     // UI is expected to switch the basis back to ListedPrice itself, so this
     // models the server catching a client that didn't (or a direct caller).
-    const r = await updateProductPricing(id, { listedPrice: "999.99", instalmentOption: "None", closingBasis: "DiscountedPrice" });
+    const r = await updateProductPricing(id, { listedPrice: "999.99", closingBasis: "DiscountedPrice" });
     expect(r).toEqual({ ok: false, error: "invalidInput" });
 
     const after = await prisma.product.findUniqueOrThrow({ where: { id } });
@@ -207,32 +207,39 @@ describe("updateProductPricing — closingBasis (2026-10-01)", () => {
     // (what the UI actually does), succeeds — proving the rejection above is
     // about the DiscountedPrice+no-discount combination specifically, not
     // about clearing a discount in general.
-    const control = await updateProductPricing(id, { listedPrice: "999.99", instalmentOption: "None", closingBasis: "ListedPrice" });
+    const control = await updateProductPricing(id, { listedPrice: "999.99", closingBasis: "ListedPrice" });
     expect(control).toEqual({ ok: true });
   });
 });
 
-describe("updateProductPricing — server nulls what the instalment option doesn't call for", () => {
-  it("switching an existing Months12or24 product back to None nulls booking/monthly fields, even if the caller sends stale ones", async () => {
+describe("updateProductPricing — server nulls/replaces what an empty plan list doesn't call for", () => {
+  it("dropping the last plan nulls bookingFee, even if the caller sends a stale value back", async () => {
     const id = await freshProduct(TAG + "NULLOUT1", {
-      instalmentOption: "Months12or24", bookingFee: "50.00", monthlyInstalment12: "41.66", monthlyInstalment24: "20.83",
+      bookingFee: "50.00", instalmentPlans: [{ months: 12, monthlyAmount: "41.66" }],
     });
-    // The caller sends the STALE values
-    // back (a real client could easily still be holding them in its form
-    // state after flipping the option to None) — pricingRefine never
-    // forbids these keys when instalmentOption is "None", so this is a
-    // valid payload, not a hypothetical one. Sending nothing here made all
-    // three nulling branches pass vacuously (undefined ?? null is null
-    // whether or not the conditional exists) — proved by mutation: this
-    // exact call, with these exact stale values, is what makes it fail.
-    const r = await updateProductPricing(id, {
-      listedPrice: "999.99", instalmentOption: "None",
-      bookingFee: "50.00", monthlyInstalment12: "41.66", monthlyInstalment24: "20.83",
-    });
+    // The caller sends a STALE bookingFee back (a real client could easily
+    // still be holding it in form state after clearing every plan row) —
+    // pricingRefine never forbids bookingFee when instalmentPlans is empty,
+    // so this is a valid payload, not a hypothetical one.
+    const r = await updateProductPricing(id, { listedPrice: "999.99", bookingFee: "50.00", instalmentPlans: [] });
     expect(r).toEqual({ ok: true });
     const row = await prisma.product.findUniqueOrThrow({ where: { id } });
     expect(row.bookingFee).toBeNull();
-    expect(row.monthlyInstalment12).toBeNull();
-    expect(row.monthlyInstalment24).toBeNull();
+    expect(await prisma.productInstalmentPlan.count({ where: { productId: id } })).toBe(0);
+  });
+
+  it("replacing a two-plan product with one different plan leaves exactly that one plan row, not three", async () => {
+    const id = await freshProduct(TAG + "REPLACE1", {
+      bookingFee: "50.00", instalmentPlans: [{ months: 12, monthlyAmount: "41.66" }, { months: 24, monthlyAmount: "20.83" }],
+    });
+    const r = await updateProductPricing(id, {
+      listedPrice: "999.99", bookingFee: "30.00", instalmentPlans: [{ months: 6, monthlyAmount: "161.66" }],
+    });
+    expect(r).toEqual({ ok: true });
+    // This assertion examines every plan row the product has after the edit.
+    const rows = await prisma.productInstalmentPlan.findMany({ where: { productId: id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].months).toBe(6);
+    expect(rows[0].monthlyAmount?.toFixed(2)).toBe("161.66");
   });
 });

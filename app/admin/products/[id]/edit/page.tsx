@@ -46,10 +46,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       listedPrice: true,
       discountedPrice: true,
       closingBasis: true,
-      instalmentOption: true,
       bookingFee: true,
-      monthlyInstalment12: true,
-      monthlyInstalment24: true,
+      instalmentPlans: { select: { months: true, monthlyAmount: true }, orderBy: { months: "asc" } },
     },
   });
   if (!product) notFound();
@@ -66,10 +64,11 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     listedPrice: product.listedPrice?.toFixed(2) ?? "",
     discountedPrice: product.discountedPrice?.toFixed(2) ?? "",
     closingBasis: product.closingBasis,
-    instalmentOption: product.instalmentOption,
     bookingFee: product.bookingFee?.toFixed(2) ?? "",
-    monthlyInstalment12: product.monthlyInstalment12?.toFixed(2) ?? "",
-    monthlyInstalment24: product.monthlyInstalment24?.toFixed(2) ?? "",
+    // Loaded from storage, so always `touched: true` — see pricing-card.tsx's
+    // InstalmentPlanValue doc comment for why an existing saved amount is
+    // never silently recomputed over.
+    instalmentPlans: product.instalmentPlans.map((p) => ({ months: String(p.months), monthlyAmount: p.monthlyAmount?.toFixed(2) ?? "", touched: true })),
   };
 
   // Decimal.toString() drops trailing zeros ("10", not "10.0000"), which is what

@@ -47,7 +47,7 @@ vi.mock("@/lib/audit", async (orig) => ({ ...(await orig<typeof import("@/lib/au
 
 // Prisma Decimal columns read back as Decimals; stored strings need the same shape.
 const dec = (v: unknown) => (typeof v === "string" ? new Prisma.Decimal(v) : v);
-const DECIMAL_COLS = new Set(["listedPrice", "discountedPrice", "bookingFee", "monthlyInstalment12", "monthlyInstalment24"]);
+const DECIMAL_COLS = new Set(["listedPrice", "discountedPrice", "bookingFee"]);
 const PRODUCT_ID = "11111111-1111-1111-1111-111111111111";
 const row: Record<string, unknown> = {
   id: PRODUCT_ID, productCode: "FUN-BASE", productName: "Basic Funeral Pakcage", productCategory: "Funeral",
@@ -60,8 +60,8 @@ const row: Record<string, unknown> = {
   isExternal: false, externalCompanyRetainedPct: null, externalCompanyRetainedType: "Percentage",
   effectiveDate: new Date("2099-01-01"), activeStatus: "Active", requiresAshesAgreement: false, requiredDocuments: [],
   comCodes: [], defaultCompany: null,
-  listedPrice: dec("999.99"), discountedPrice: null, closingBasis: "ListedPrice", instalmentOption: "None",
-  bookingFee: null, monthlyInstalment12: null, monthlyInstalment24: null,
+  listedPrice: dec("999.99"), discountedPrice: null, closingBasis: "ListedPrice",
+  bookingFee: null, instalmentPlans: [],
 };
 Object.assign(fakeProduct, {
   findUnique: vi.fn(async () => ({ ...row })),
@@ -79,6 +79,7 @@ vi.mock("@/lib/db", () => {
     $queryRaw: async () => [{ id: PRODUCT_ID }],
     commissionStructureVersion: { findFirst: vi.fn(async () => null), findMany: (a: unknown) => versionFind(a), create: vi.fn() },
     company: { findMany: vi.fn(async () => []) },
+    productInstalmentPlan: { findMany: vi.fn(async () => []), deleteMany: vi.fn(async () => ({ count: 0 })), createMany: vi.fn(async () => ({ count: 0 })) },
     $transaction: async (fn: (db: unknown) => unknown) => fn(prisma),
   };
   return { prisma };

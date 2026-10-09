@@ -22,7 +22,7 @@ const ADMIN = { user: { associateId: null, id: "11111111-1111-1111-1111-11111111
 const D = (s: string) => new Date(s + "T12:00:00");
 const V1 = "2098-01-01", V2 = "2098-06-01";
 const RATES = { commissionType: "Percentage" as const, companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3", isExternal: false };
-const PRICING = { listedPrice: "10000.00", instalmentOption: "None" as const };
+const PRICING = { listedPrice: "10000.00" };
 let id = "", companyId = "";
 
 beforeAll(async () => {

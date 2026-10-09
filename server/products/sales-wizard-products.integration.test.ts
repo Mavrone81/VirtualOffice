@@ -52,7 +52,6 @@ beforeAll(async () => {
       effectiveDate: new Date("2099-01-01"),
       activeStatus: "Active",
       listedPrice: "500.00",
-      instalmentOption: "None",
       comCodes: {
         create: [{ comCode: TAG + "CC1", label: "Fake add-on", valueType: "Percentage", value: "2", active: true }],
       },

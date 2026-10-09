@@ -70,7 +70,7 @@ const row: Record<string, unknown> = {
   isExternal: false, externalCompanyRetainedPct: null, externalCompanyRetainedType: "Percentage",
   effectiveDate: new Date("2099-01-01"), activeStatus: "Active", requiresAshesAgreement: false, requiredDocuments: [],
   comCodes: [], defaultCompany: null, listedPrice: dec("999.99"), discountedPrice: null,
-  closingBasis: "ListedPrice", instalmentOption: "None", bookingFee: null, monthlyInstalment12: null, monthlyInstalment24: null,
+  closingBasis: "ListedPrice", bookingFee: null, instalmentPlans: [],
 };
 
 // Counts default to 0 (nothing blocks) so the happy path is reachable; a test that

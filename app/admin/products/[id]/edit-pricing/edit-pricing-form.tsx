@@ -20,8 +20,8 @@ export function EditPricingForm({ productId, initial }: { productId: string; ini
 
   const incomplete =
     !pricing.listedPrice ||
-    (pricing.instalmentOption !== "None" && (!pricing.bookingFee || !pricing.monthlyInstalment12)) ||
-    (pricing.instalmentOption === "Months12or24" && !pricing.monthlyInstalment24);
+    (pricing.instalmentPlans.length > 0 && !pricing.bookingFee) ||
+    pricing.instalmentPlans.some((p) => !p.months || !p.monthlyAmount);
 
   function submit() {
     setError(undefined);
@@ -30,10 +30,8 @@ export function EditPricingForm({ productId, initial }: { productId: string; ini
         listedPrice: pricing.listedPrice,
         discountedPrice: orUndef(pricing.discountedPrice),
         closingBasis: pricing.closingBasis,
-        instalmentOption: pricing.instalmentOption,
         bookingFee: orUndef(pricing.bookingFee),
-        monthlyInstalment12: orUndef(pricing.monthlyInstalment12),
-        monthlyInstalment24: orUndef(pricing.monthlyInstalment24),
+        instalmentPlans: pricing.instalmentPlans.map((p) => ({ months: Number(p.months), monthlyAmount: p.monthlyAmount })),
       });
       if (r.ok) router.push("/admin/products");
       else setError(r.error ?? t("couldNotSavePricing"));

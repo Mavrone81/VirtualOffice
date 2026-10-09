@@ -158,6 +158,11 @@ export type AshesAgreementData = {
   paymentPlan: "FullPayment" | "Installment";
   bookingFee: string | null;
   monthlyInstalment: string | null;
+  // The sale's actual instalment term (server/sales's installmentCount) —
+  // null for FullPayment (unused) or a pre-2026-10-09 row the backfill
+  // couldn't resolve. Renders as "____", same fallback as instalmentDayOfMonth
+  // just below, never a silent "12".
+  instalmentMonths: number | null;
   instalmentDayOfMonth: number | null;
   maintenanceStartYear: number | null;
   additionalTerms: string | null;
@@ -268,13 +273,16 @@ function AgreementDoc({ a }: { a: AshesAgreementData }) {
           <Text style={s.box}>{isFull ? " " : "X"}</Text>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 9 }}><Text style={s.fill}>Instalment Payment</Text></Text>
-            <Text style={{ fontSize: 9 }}>-   12 Months Interest Free Instalment.</Text>
+            <Text style={{ fontSize: 9 }}>
+              -   <Text style={s.fill}>{isFull || !a.instalmentMonths ? "____" : a.instalmentMonths}</Text> Months Interest Free Instalment.
+            </Text>
             <Text style={{ fontSize: 9 }}>
               -   Booking Fee for the amount of (S$<Text style={s.fill}>{isFull ? dash : (money(a.bookingFee) ?? dash)}</Text>) payable upon signing of Storage of Pets Ashes Agreement.
             </Text>
             <Text style={{ fontSize: 9 }}>
               -   Subsequent monthly instalment for the amount of (S$<Text style={s.fill}>{isFull ? dash : (money(a.monthlyInstalment) ?? dash)}</Text>) payable monthly in advance without
-              deduction whatsoever on the <Text style={s.fill}>{isFull || !a.instalmentDayOfMonth ? "____" : ordinal(a.instalmentDayOfMonth)}</Text> day of each calendar month for a period of 12 calendar months.
+              deduction whatsoever on the <Text style={s.fill}>{isFull || !a.instalmentDayOfMonth ? "____" : ordinal(a.instalmentDayOfMonth)}</Text> day of each calendar month for a period of{" "}
+              <Text style={s.fill}>{isFull || !a.instalmentMonths ? "____" : a.instalmentMonths}</Text> calendar months.
             </Text>
           </View>
         </View>
@@ -417,6 +425,7 @@ export async function renderAshesAgreementPdf(agreementId: string): Promise<{ bu
         paymentPlan: a.paymentPlan === "FullPayment" ? "FullPayment" : "Installment",
         bookingFee: a.bookingFee ? a.bookingFee.toFixed(2) : null,
         monthlyInstalment: a.monthlyInstalment ? a.monthlyInstalment.toFixed(2) : null,
+        instalmentMonths: a.instalmentMonths,
         instalmentDayOfMonth: a.instalmentDayOfMonth,
         maintenanceStartYear: a.maintenanceStartYear,
         additionalTerms: a.additionalTerms,

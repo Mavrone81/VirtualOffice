@@ -91,7 +91,7 @@ describe("security + commission inputs", () => {
     const r = await updateProduct(productId, {
       productName: "Fake product", commissionType: "Percentage", closingCommPct: "25", companyCutPct: "0",
       smOverridePct: "0", sdOverridePct: "0", isExternal: false, effectiveDate: "2196-06-01",
-      listedPrice: "1.00", instalmentOption: "None",
+      listedPrice: "1.00",
     });
     expect(r).toEqual({ ok: false, error: "auditUnavailable" });
     expect(await prisma.commissionStructureVersion.count({ where: { productId } })).toBe(before);
