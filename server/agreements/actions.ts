@@ -140,6 +140,7 @@ export async function saveAshesAgreement(
     paymentPlan: sub.paymentPlan,
     bookingFee: isInstalment ? sub.deposit : null,
     monthlyInstalment: monthly,
+    instalmentMonths: isInstalment ? sub.installmentCount : null,
     instalmentDayOfMonth: isInstalment ? (input.instalmentDayOfMonth ?? null) : null,
     maintenanceStartYear: input.maintenanceStartYear ?? new Date().getFullYear() + 1,
     additionalTerms: input.additionalTerms?.trim() || null,
@@ -255,6 +256,7 @@ export async function signAshesAgreement(
       status: AshesAgreementStatus.Signed, signedAt: new Date(), applicantSignatureKey: signatureKey, signedTerms,
       amountNumeric: sub.saleAmount, amountWords: amountToWords(sub.saleAmount.toString()),
       paymentPlan: sub.paymentPlan, bookingFee: isInstalment ? sub.deposit : null, monthlyInstalment,
+      instalmentMonths: isInstalment ? sub.installmentCount : null,
     },
   });
   if (cas.count !== 1) {

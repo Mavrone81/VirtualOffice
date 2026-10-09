@@ -40,25 +40,20 @@ export function ProductCard({ p, t, tc }: { p: PortalCatalogueProduct; t: Transl
         )}
       </div>
 
-      {p.instalmentOption !== "None" && (
+      {p.instalmentPlans.length > 0 && (
         <div className="mt-2 space-y-0.5 text-[12px] text-muted">
-          <div className="font-medium text-ink">{t("instalmentOptionLabel")}: {t(p.instalmentOption === "Months12" ? "instalment12Months" : "instalmentBuyerChoice")}</div>
           {p.bookingFee != null && (
             <div>
               {t("bookingFeeLabel")}: <b className="text-ink">{formatSGD(D(p.bookingFee))}</b>
             </div>
           )}
-          {p.monthlyInstalment12 != null && (
-            <div>
-              {p.instalmentOption === "Months12or24" ? t("hint12Months") : t("monthlyInstalmentLabel")}:{" "}
-              <b className="text-ink">{formatSGD(D(p.monthlyInstalment12))}</b>
-            </div>
-          )}
-          {p.monthlyInstalment24 != null && (
-            <div>
-              {t("hint24Months")}: <b className="text-ink">{formatSGD(D(p.monthlyInstalment24))}</b>
-            </div>
-          )}
+          {p.instalmentPlans.map((plan) => (
+            plan.monthlyAmount != null && (
+              <div key={plan.months}>
+                {t("portalInstalmentFor", { months: String(plan.months) })}: <b className="text-ink">{formatSGD(D(plan.monthlyAmount))}</b>
+              </div>
+            )
+          ))}
         </div>
       )}
 

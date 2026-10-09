@@ -579,24 +579,34 @@ model Product {
   // Pricing (2026-09-30): nullable because existing rows predate this
   // feature — the admin form REQUIRES listedPrice for any create/edit going
   // forward (lib/schemas.ts productPricingSchema), but the column itself
-  // must accept null so this migration is additive, no backfill. The three
-  // instalment amount fields are server-nulled whenever instalmentOption
-  // doesn't call for them (see server/products/actions.ts), never left to
-  // the UI alone to hide.
-  listedPrice         Decimal?          @map("listed_price") @db.Decimal(14, 2)
-  discountedPrice     Decimal?          @map("discounted_price") @db.Decimal(14, 2)
-  instalmentOption    InstalmentOption  @default(None) @map("instalment_option")
-  bookingFee          Decimal?          @map("booking_fee") @db.Decimal(14, 2)
-  monthlyInstalment12 Decimal?          @map("monthly_instalment_12") @db.Decimal(14, 2)
-  monthlyInstalment24 Decimal?          @map("monthly_instalment_24") @db.Decimal(14, 2)
+  // must accept null so this migration is additive, no backfill.
+  listedPrice     Decimal? @map("listed_price") @db.Decimal(14, 2)
+  discountedPrice Decimal? @map("discounted_price") @db.Decimal(14, 2)
+  // Instalments (owner's change, 2026-10-09): full payment is always
+  // available and is the absence of a constraint, never a row. instalment
+  // plans are a repeatable add-on list (ProductInstalmentPlan below), one
+  // row per admin-typed month count, replacing the fixed Months12/
+  // Months12or24 enum. bookingFee stays a Product column — one fee per
+  // product, shared by every plan on it, not per-plan.
+  //
+  // instalmentOption/monthlyInstalment12/monthlyInstalment24 below are FROZEN
+  // (migration 20261009_product_instalment_plans backfills ProductInstalmentPlan
+  // from them, then nothing reads or writes them again) — left in place,
+  // nullable, for one release rather than dropped, since that backfill has
+  // never run on production data and a dropped column can't be rolled back.
+  instalmentOption    InstalmentOption @default(None) @map("instalment_option")
+  bookingFee          Decimal?         @map("booking_fee") @db.Decimal(14, 2)
+  monthlyInstalment12 Decimal?         @map("monthly_instalment_12") @db.Decimal(14, 2)
+  monthlyInstalment24 Decimal?         @map("monthly_instalment_24") @db.Decimal(14, 2)
   // Closing basis (2026-10-01): additive, NOT NULL with a DB default so
   // every pre-existing row becomes ListedPrice (owner's ruling — "it should
   // be the same as listed price") without a backfill. zod defaults new
   // writes to the same value when the caller omits it.
-  closingBasis        ClosingBasis      @default(ListedPrice) @map("closing_basis")
+  closingBasis ClosingBasis @default(ListedPrice) @map("closing_basis")
 
-  comCodes Comcode[]
-  versions CommissionStructureVersion[]
+  comCodes       Comcode[]
+  versions       CommissionStructureVersion[]
+  instalmentPlans ProductInstalmentPlan[]
 
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
@@ -604,6 +614,29 @@ model Product {
 
   @@unique([productCode, effectiveDate])
   @@map("products")
+}
+
+// Owner's change (2026-10-09): instalments are a repeatable add-on list, not
+// a fixed 12/24-month enum choice. Full payment is NOT a row here — every
+// product has it, always; "no rows" means "full payment only". monthlyAmount
+// is the quoted monthly the admin form computes (round2((closing price −
+// Product.bookingFee) / months)) and may freely override — same arithmetic
+// the sale side already runs per-sale (server/sales/actions.ts), just quoted
+// ahead of time at the product level.
+model ProductInstalmentPlan {
+  id            String   @id @default(uuid()) @db.Uuid
+  productId     String   @map("product_id") @db.Uuid
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  months        Int
+  monthlyAmount Decimal? @map("monthly_amount") @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Two 12-month plans on one product is nonsense (the owner's framing) —
+  // enforced here, not just in the form.
+  @@unique([productId, months])
+  @@map("product_instalment_plans")
 }
 
 model Comcode {
@@ -1252,6 +1285,12 @@ model PetsAshesAgreement {
   paymentPlan          PaymentPlan @map("payment_plan")
   bookingFee           Decimal?    @map("booking_fee") @db.Decimal(14, 2)
   monthlyInstalment    Decimal?    @map("monthly_instalment") @db.Decimal(14, 2)
+  // The sale's actual instalment term (server/sales's installmentCount) —
+  // added (2026-10-09) because the rendered agreement hardcoded "12" in its
+  // prose regardless of the real term, wrong for every sale on a different
+  // term. Backfilled from the linked submission's installmentCount for every
+  // existing Installment-plan row (migration 20261009_ashes_instalment_months).
+  instalmentMonths     Int?        @map("instalment_months")
   instalmentDayOfMonth Int?        @map("instalment_day_of_month")
   maintenanceStartYear Int?        @map("maintenance_start_year")
   additionalTerms      String?     @map("additional_terms")

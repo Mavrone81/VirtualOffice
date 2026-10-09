@@ -43,10 +43,8 @@ const ALLOWED_TOP_LEVEL_KEYS = [
   "listedPrice",
   "discountedPrice",
   "closingBasis",
-  "instalmentOption",
   "bookingFee",
-  "monthlyInstalment12",
-  "monthlyInstalment24",
+  "instalmentPlans",
   "commissionType",
   "closingCommPct",
   "closingCommFixed",
@@ -81,7 +79,6 @@ beforeAll(async () => {
       effectiveDate: new Date("2099-01-01"),
       activeStatus: "Active",
       listedPrice: "500.00",
-      instalmentOption: "None",
     },
   });
 });

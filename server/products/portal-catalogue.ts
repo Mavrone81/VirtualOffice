@@ -21,10 +21,8 @@ export const PORTAL_PRODUCT_SELECT = {
   listedPrice: true,
   discountedPrice: true,
   closingBasis: true,
-  instalmentOption: true,
   bookingFee: true,
-  monthlyInstalment12: true,
-  monthlyInstalment24: true,
+  instalmentPlans: { select: { months: true, monthlyAmount: true }, orderBy: { months: "asc" } },
   commissionType: true,
   closingCommPct: true,
   closingCommFixed: true,
@@ -59,10 +57,8 @@ export type PortalCatalogueProduct = {
   listedPrice: string | null;
   discountedPrice: string | null;
   closingBasis: "ListedPrice" | "DiscountedPrice";
-  instalmentOption: "None" | "Months12" | "Months12or24";
   bookingFee: string | null;
-  monthlyInstalment12: string | null;
-  monthlyInstalment24: string | null;
+  instalmentPlans: { months: number; monthlyAmount: string | null }[];
   commissionType: "Percentage" | "Fixed";
   closingCommPct: string | null;
   closingCommFixed: string | null;
@@ -81,10 +77,8 @@ export async function getPortalProductCatalogue(now: Date = new Date()): Promise
     listedPrice: p.listedPrice?.toFixed(2) ?? null,
     discountedPrice: p.discountedPrice?.toFixed(2) ?? null,
     closingBasis: p.closingBasis,
-    instalmentOption: p.instalmentOption,
     bookingFee: p.bookingFee?.toFixed(2) ?? null,
-    monthlyInstalment12: p.monthlyInstalment12?.toFixed(2) ?? null,
-    monthlyInstalment24: p.monthlyInstalment24?.toFixed(2) ?? null,
+    instalmentPlans: p.instalmentPlans.map((pl) => ({ months: pl.months, monthlyAmount: pl.monthlyAmount?.toFixed(2) ?? null })),
     commissionType: p.commissionType,
     closingCommPct: p.closingCommPct?.toFixed(4) ?? null,
     closingCommFixed: p.closingCommFixed?.toFixed(2) ?? null,

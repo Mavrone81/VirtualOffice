@@ -37,7 +37,7 @@ const BASE_RATES = {
   isExternal: false,
   effectiveDate: "2099-01-01",
 };
-const BASE_PRICING = { listedPrice: "999.99", instalmentOption: "None" as const };
+const BASE_PRICING = { listedPrice: "999.99" };
 
 beforeAll(() => { who.session = ADMIN; });
 afterAll(async () => {

@@ -151,31 +151,39 @@ export type ComCodeInput = z.infer<typeof comCodeSchema>;
 //     any other key (commission, codes, effectiveDate, ...) fails validation
 //     rather than being silently ignored.
 // ---------------------------------------------------------------------------
-const instalmentOptionEnum = z.enum(["None", "Months12", "Months12or24"]);
 // Closing basis (2026-10-01): which price commission/company cut/overrides
-// are calculated against. Independent of instalmentOption — see
-// prisma/schema.prisma's ClosingBasis comment. Defaults to "ListedPrice" so
+// are calculated against. Independent of the instalment plan list below —
+// see prisma/schema.prisma's ClosingBasis comment. Defaults to "ListedPrice" so
 // every existing caller (admin form not yet updated, every pre-closing-basis
 // test fixture) keeps working unchanged, matching the DB column's default.
 const closingBasisEnum = z.enum(["ListedPrice", "DiscountedPrice"]);
 
+// Owner's change (2026-10-09): instalments are a repeatable add-on list, one
+// row per admin-typed month count — replaces the fixed Months12/Months12or24
+// enum. No upper cap on `months` itself (a ruling for the owner, not this
+// code, unlike the SALE side's installmentCount a few lines up, which stays
+// at max(24)) — 1200 (100 years) below is a pure overflow/abuse sanity bound
+// on the Int column, not a business rule.
+const instalmentPlanShape = z.object({
+  months: z.number().int().positive().max(1200),
+  monthlyAmount: money,
+});
+
 const productPricingShape = {
   listedPrice: money,
   discountedPrice: money.optional(),
-  instalmentOption: instalmentOptionEnum,
   bookingFee: money.optional(),
-  monthlyInstalment12: money.optional(),
-  monthlyInstalment24: money.optional(),
+  // Capped at 12 rows as the same kind of sanity bound as `months` above —
+  // not a business rule.
+  instalmentPlans: z.array(instalmentPlanShape).max(12).default([]),
   closingBasis: closingBasisEnum.default("ListedPrice"),
 };
 
 type ProductPricingShape = {
   listedPrice: string;
   discountedPrice?: string;
-  instalmentOption: z.infer<typeof instalmentOptionEnum>;
   bookingFee?: string;
-  monthlyInstalment12?: string;
-  monthlyInstalment24?: string;
+  instalmentPlans: { months: number; monthlyAmount: string }[];
   closingBasis: z.infer<typeof closingBasisEnum>;
 };
 
@@ -193,16 +201,16 @@ function pricingRefine(v: ProductPricingShape, ctx: z.RefinementCtx): void {
   if (v.closingBasis === "DiscountedPrice" && v.discountedPrice === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["closingBasis"], message: "closingBasisRequiresDiscount" });
   }
-  if (v.instalmentOption !== "None") {
-    if (v.bookingFee === undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["bookingFee"], message: "bookingFeeRequired" });
-    }
-    if (v.monthlyInstalment12 === undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["monthlyInstalment12"], message: "monthlyInstalment12Required" });
-    }
+  if (v.instalmentPlans.length > 0 && v.bookingFee === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["bookingFee"], message: "bookingFeeRequired" });
   }
-  if (v.instalmentOption === "Months12or24" && v.monthlyInstalment24 === undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["monthlyInstalment24"], message: "monthlyInstalment24Required" });
+  // Two plans at the same month count is nonsense (the owner's own framing)
+  // — mirrored here from the DB's own @@unique([productId, months]) so a bad
+  // submission is refused with a field-level message, not a raw constraint
+  // violation.
+  const months = v.instalmentPlans.map((p) => p.months);
+  if (new Set(months).size !== months.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["instalmentPlans"], message: "instalmentPlanMonthsDuplicate" });
   }
 }
 

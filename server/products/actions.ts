@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { CommissionType, ComValueType, InstalmentOption, ClosingBasis, ProductActiveStatus, Prisma } from "@prisma/client";
+import { CommissionType, ComValueType, ClosingBasis, ProductActiveStatus, Prisma } from "@prisma/client";
+import { D } from "@/lib/money";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -65,14 +66,16 @@ export type ProductInput = {
   // for the shared shape + business rules; ProductPricingInput below. Optional
   // HERE (the raw, not-yet-validated input type) only so the pre-pricing
   // admin form still compiles while its pricing fields are optional —
-  // productSchema itself still REQUIRES listedPrice/instalmentOption at
-  // runtime; validateInput() below returns invalidInput if they're missing.
+  // productSchema itself still REQUIRES listedPrice at runtime;
+  // validateInput() below returns invalidInput if it's missing.
   listedPrice?: string;
   discountedPrice?: string;
-  instalmentOption?: "None" | "Months12" | "Months12or24";
   bookingFee?: string;
-  monthlyInstalment12?: string;
-  monthlyInstalment24?: string;
+  // Instalments (owner's change, 2026-10-09) — a repeatable add-on list, one
+  // row per admin-typed month count. Empty/omitted means full payment only;
+  // see lib/schemas.ts productPricingShape/pricingRefine for the shape and
+  // rules (bookingFee required once any plan exists, months unique).
+  instalmentPlans?: { months: number; monthlyAmount: string }[];
   // Closing basis (2026-10-01) — see lib/schemas.ts closingBasisEnum/
   // pricingRefine. Optional here for the same reason the pricing fields
   // above are: productPricingSchema/productSchema default it server-side
@@ -126,58 +129,72 @@ function commissionData(v: RateFields) {
   };
 }
 
-function instalmentOptionOf(o: "None" | "Months12" | "Months12or24"): InstalmentOption {
-  if (o === "Months12") return InstalmentOption.Months12;
-  if (o === "Months12or24") return InstalmentOption.Months12or24;
-  return InstalmentOption.None;
-}
-
 function closingBasisOf(b: "ListedPrice" | "DiscountedPrice"): ClosingBasis {
   return b === "DiscountedPrice" ? ClosingBasis.DiscountedPrice : ClosingBasis.ListedPrice;
 }
 
 /** Maps validated pricing input to the exact `product.update`/`.create` data
- *  shape — including nulling every instalment field the chosen option does
- *  NOT call for, unconditionally. This runs server-side regardless of what
- *  the caller sent, so a stale bookingFee/monthly value from before an
- *  option change can never survive in the DB just because the UI stopped
- *  showing its input. */
+ *  shape for the PRODUCT ROW ONLY — instalment plans are a child table, set
+ *  separately by {@link replaceInstalmentPlans}, never through this object.
+ *  bookingFee is nulled unconditionally when there are no plans, regardless
+ *  of what the caller sent, so a stale fee from before the last plan was
+ *  removed can never survive in the DB just because the UI stopped showing
+ *  its input.
+ *
+ *  instalmentOption/monthlyInstalment12/monthlyInstalment24 (the pre-2026-10-09
+ *  columns) are deliberately ABSENT from this object — frozen, per the
+ *  schema comment, not written by any caller after this change. */
 function pricingData(p: ProductPricingInput) {
-  const needsInstalment = p.instalmentOption !== "None";
-  const needsBothMonths = p.instalmentOption === "Months12or24";
   return {
     listedPrice: p.listedPrice,
     discountedPrice: p.discountedPrice ?? null,
-    instalmentOption: instalmentOptionOf(p.instalmentOption),
-    bookingFee: needsInstalment ? (p.bookingFee ?? null) : null,
-    monthlyInstalment12: needsInstalment ? (p.monthlyInstalment12 ?? null) : null,
-    monthlyInstalment24: needsBothMonths ? (p.monthlyInstalment24 ?? null) : null,
+    bookingFee: p.instalmentPlans.length > 0 ? (p.bookingFee ?? null) : null,
     closingBasis: closingBasisOf(p.closingBasis),
   };
+}
+
+/** Replaces a product's ENTIRE instalment plan list inside an existing
+ *  transaction — the caller always sends the complete desired list, same
+ *  whole-value-replacement semantics as every other pricing field (an edit
+ *  that drops a plan deletes it, it does not leave it to be reconciled).
+ *  `deleteMany` on a product with no existing rows (create, or an edit that
+ *  never had any) is a harmless no-op. */
+async function replaceInstalmentPlans(
+  db: Prisma.TransactionClient,
+  productId: string,
+  plans: { months: number; monthlyAmount: string }[],
+): Promise<void> {
+  await db.productInstalmentPlan.deleteMany({ where: { productId } });
+  if (plans.length > 0) {
+    await db.productInstalmentPlan.createMany({
+      data: plans.map((p) => ({ productId, months: p.months, monthlyAmount: p.monthlyAmount })),
+    });
+  }
 }
 
 type PricingColumns = {
   listedPrice: Prisma.Decimal | null;
   discountedPrice: Prisma.Decimal | null;
-  instalmentOption: InstalmentOption;
   bookingFee: Prisma.Decimal | null;
-  monthlyInstalment12: Prisma.Decimal | null;
-  monthlyInstalment24: Prisma.Decimal | null;
   closingBasis: ClosingBasis;
 };
+type InstalmentPlanColumns = { months: number; monthlyAmount: Prisma.Decimal | string | null };
 
 /** Pricing-only before/after for the audit row — money values as fixed
  *  2dp decimal strings (never a JS number, and never Decimal's own
  *  toString(), which strips trailing zeros — "999.00" must read as
- *  "999.00" in the audit record, not "999"), nothing else from the product. */
-function pricingSnapshot(p: PricingColumns) {
+ *  "999.00" in the audit record, not "999"), nothing else from the product.
+ *  `plans` is read separately from the child table (never from the Product
+ *  row, which no longer carries them) and sorted by months so the audit
+ *  record doesn't depend on insertion order. */
+function pricingSnapshot(p: PricingColumns, plans: InstalmentPlanColumns[]) {
   return {
     listedPrice: p.listedPrice?.toFixed(2) ?? null,
     discountedPrice: p.discountedPrice?.toFixed(2) ?? null,
-    instalmentOption: p.instalmentOption,
     bookingFee: p.bookingFee?.toFixed(2) ?? null,
-    monthlyInstalment12: p.monthlyInstalment12?.toFixed(2) ?? null,
-    monthlyInstalment24: p.monthlyInstalment24?.toFixed(2) ?? null,
+    instalmentPlans: [...plans]
+      .sort((a, b) => a.months - b.months)
+      .map((pl) => ({ months: pl.months, monthlyAmount: pl.monthlyAmount !== null ? D(pl.monthlyAmount).toFixed(2) : null })),
     closingBasis: p.closingBasis,
   } satisfies Prisma.InputJsonValue;
 }
@@ -211,10 +228,11 @@ export async function createProduct(input: ProductInput): Promise<{ ok: boolean;
         ...pricingData(validInput),
       },
     });
+    await replaceInstalmentPlans(db, product.id, validInput.instalmentPlans);
     await db.commissionStructureVersion.create({
       data: { productCode: product.productCode, productId: product.id, effectiveDate: eff, rateSnapshot: rateSnapshot(validInput) },
     });
-    await auditTx(db, { action: "product.created", entityType: "Product", entityId: product.id, actorUserId: admin.user.id, after: { productCode: product.productCode, effectiveDate: eff.toISOString(), rates: rateSnapshot(validInput), pricing: pricingSnapshot(product) } });
+    await auditTx(db, { action: "product.created", entityType: "Product", entityId: product.id, actorUserId: admin.user.id, after: { productCode: product.productCode, effectiveDate: eff.toISOString(), rates: rateSnapshot(validInput), pricing: pricingSnapshot(product, validInput.instalmentPlans) } });
     });
   } catch (e) {
     if (e instanceof AuditWriteError) return { ok: false, error: t("auditUnavailable") };
@@ -253,15 +271,17 @@ export async function updateProductPricing(productId: string, pricing: ProductPr
     await prisma.$transaction(async (db) => {
       const existing = await db.product.findUnique({ where: { id: productId } });
       if (!existing) throw new ProductNotFound();
-      const before = pricingSnapshot(existing);
+      const existingPlans = await db.productInstalmentPlan.findMany({ where: { productId }, select: { months: true, monthlyAmount: true } });
+      const before = pricingSnapshot(existing, existingPlans);
       const updated = await db.product.update({ where: { id: productId }, data });
+      await replaceInstalmentPlans(db, productId, validInput.instalmentPlans);
       await auditTx(db, {
         action: "product.pricing_updated",
         entityType: "Product",
         entityId: productId,
         actorUserId: admin.user.id,
         before,
-        after: pricingSnapshot(updated),
+        after: pricingSnapshot(updated, validInput.instalmentPlans),
       });
     });
   } catch (e) {
@@ -284,14 +304,14 @@ type ProductDetailsColumns = PricingColumns & Parameters<typeof canonicalFromRow
  *  company, the full commission structure (`rates`, canonical fixed-scale
  *  strings, effective date included) and the pricing snapshot. Nothing else
  *  from the product. */
-function productDetailsSnapshot(p: ProductDetailsColumns) {
+function productDetailsSnapshot(p: ProductDetailsColumns, plans: InstalmentPlanColumns[]) {
   return {
     productName: p.productName,
     productCategory: p.productCategory,
     description: p.description,
     defaultCompanyId: p.defaultCompanyId,
     rates: canonicalFromRow(p),
-    ...pricingSnapshot(p),
+    ...pricingSnapshot(p, plans),
   } satisfies Prisma.InputJsonValue;
 }
 
@@ -359,7 +379,8 @@ export async function updateProduct(productId: string, input: ProductDetailsRawI
       if (locked.length === 0) throw new ProductNotFound();
       const existing = await db.product.findUnique({ where: { id: productId } });
       if (!existing) throw new ProductNotFound();
-      const before = productDetailsSnapshot(existing);
+      const existingPlans = await db.productInstalmentPlan.findMany({ where: { productId }, select: { months: true, monthlyAmount: true } });
+      const before = productDetailsSnapshot(existing, existingPlans);
 
       const changedRates = changedCommissionFields(canonicalFromRow(existing), canonicalFromInput(validInput));
       if (changedRates.length > 0) {
@@ -382,6 +403,7 @@ export async function updateProduct(productId: string, input: ProductDetailsRawI
       // values are not rewritten.
       const data = changedRates.length > 0 ? { ...baseData, ...commissionData(validInput), effectiveDate: eff } : baseData;
       const updated = await db.product.update({ where: { id: productId }, data });
+      await replaceInstalmentPlans(db, productId, validInput.instalmentPlans);
       let rateVersionId: string | null = null;
       if (changedRates.length > 0) {
         const version = await db.commissionStructureVersion.create({
@@ -395,7 +417,7 @@ export async function updateProduct(productId: string, input: ProductDetailsRawI
         entityId: productId,
         actorUserId: admin.user.id,
         before,
-        after: { ...productDetailsSnapshot(updated), changedRates, rateVersionId },
+        after: { ...productDetailsSnapshot(updated, validInput.instalmentPlans), changedRates, rateVersionId },
       });
       if (changedRates.length > 0) {
         // A dedicated rate-change record, so a query for rate changes finds

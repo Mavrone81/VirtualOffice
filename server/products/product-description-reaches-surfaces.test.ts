@@ -69,8 +69,8 @@ const row: Record<string, unknown> = {
   isExternal: false, externalCompanyRetainedPct: null, externalCompanyRetainedType: "Percentage",
   effectiveDate: new Date("2099-01-01"), activeStatus: "Active", requiresAshesAgreement: false, requiredDocuments: [],
   comCodes: [], defaultCompany: null,
-  listedPrice: dec("999.99"), discountedPrice: null, closingBasis: "ListedPrice", instalmentOption: "None",
-  bookingFee: null, monthlyInstalment12: null, monthlyInstalment24: null,
+  listedPrice: dec("999.99"), discountedPrice: null, closingBasis: "ListedPrice",
+  bookingFee: null, instalmentPlans: [],
 };
 
 beforeEach(() => {
@@ -90,7 +90,7 @@ async function renderEditPage(): Promise<string> {
   return renderToStaticMarkup(el);
 }
 
-const EMPTY_PRICING: PricingValue = { listedPrice: "", discountedPrice: "", closingBasis: "ListedPrice", instalmentOption: "None", bookingFee: "", monthlyInstalment12: "", monthlyInstalment24: "" };
+const EMPTY_PRICING: PricingValue = { listedPrice: "", discountedPrice: "", closingBasis: "ListedPrice", bookingFee: "", instalmentPlans: [] };
 const EMPTY_COMMISSION: CommissionValue = {
   commissionType: "Percentage", closingCommPct: "10", closingCommFixed: undefined,
   companyCutPct: "2", companyCutType: "Percentage", smOverridePct: "5", smOverrideType: "Percentage",
@@ -117,7 +117,7 @@ function renderPortalCard(description: string | null): string {
   const p: PortalCatalogueProduct = {
     id: PRODUCT_ID, productCode: "FUN-BASE", productName: "Basic Funeral Package", productCategory: "Funeral",
     description, companyName: "Enshrine", activeStatus: "Active", listedPrice: "999.99", discountedPrice: null,
-    closingBasis: "ListedPrice", instalmentOption: "None", bookingFee: null, monthlyInstalment12: null, monthlyInstalment24: null,
+    closingBasis: "ListedPrice", bookingFee: null, instalmentPlans: [],
     commissionType: "Percentage", closingCommPct: "10.0000", closingCommFixed: null,
   };
   return renderToStaticMarkup(h(ProductCard, { p, t: fakeTranslator(), tc: (k: string) => k }));

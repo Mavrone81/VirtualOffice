@@ -37,6 +37,7 @@ export async function createAshesDraftTx(
       paymentPlan: params.paymentPlan,
       bookingFee: isInstalment ? depositD : null,
       monthlyInstalment: monthly,
+      instalmentMonths: isInstalment ? params.installmentCount : null,
       maintenanceStartYear: new Date().getFullYear() + 1,
       createdById: params.createdById,
     },

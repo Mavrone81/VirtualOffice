@@ -34,7 +34,7 @@ const BASE_RATES = {
   effectiveDate: "2099-01-01",
 };
 const BASE_COMMISSION = { productName: "Fake edit product", ...BASE_RATES };
-const BASE_PRICING = { listedPrice: "999.99", instalmentOption: "None" as const };
+const BASE_PRICING = { listedPrice: "999.99" };
 const BASE_DETAILS: ProductDetailsRawInput = { productName: "Fake edit product", ...BASE_RATES, ...BASE_PRICING };
 
 let companyId = "";
@@ -72,7 +72,7 @@ async function seedProductRaw(code: string) {
       commissionType: "Percentage", closingCommPct: "10", companyCutPct: "2",
       smOverridePct: "5", sdOverridePct: "3", isExternal: false,
       effectiveDate: new Date("2099-01-01"),
-      listedPrice: "999.99", discountedPrice: "888.88", instalmentOption: "None",
+      listedPrice: "999.99", discountedPrice: "888.88",
     },
   });
 }
@@ -127,7 +127,7 @@ describe("updateProduct — actually updates name/category/default company toget
     const id = await freshProduct(TAG + "EDIT1");
     const r = await updateProduct(id, {
       productName: "New Name", productCategory: "New Category", defaultCompanyId: companyId, ...BASE_RATES,
-      listedPrice: "1500.00", discountedPrice: "1200.00", instalmentOption: "None",
+      listedPrice: "1500.00", discountedPrice: "1200.00",
     });
     expect(r).toEqual({ ok: true });
     const after = await prisma.product.findUniqueOrThrow({ where: { id } });
@@ -156,7 +156,7 @@ describe("updateProduct — audit atomicity", () => {
     const before = await prisma.auditLog.count({ where: { entityId: id, action: "product.details_updated" } });
     expect(before).toBe(0);
 
-    const r = await updateProduct(id, { productName: "Audited Name", ...BASE_RATES, productCategory: "Audited Category", defaultCompanyId: companyId, listedPrice: "42.00", instalmentOption: "None" });
+    const r = await updateProduct(id, { productName: "Audited Name", ...BASE_RATES, productCategory: "Audited Category", defaultCompanyId: companyId, listedPrice: "42.00" });
     expect(r).toEqual({ ok: true });
 
     const rows = await prisma.auditLog.findMany({ where: { entityId: id, action: "product.details_updated" } });
@@ -186,7 +186,7 @@ describe("updateProduct — audit atomicity", () => {
 describe("updateProduct vs the columns it must not rewrite", () => {
   it("updateProduct, sent the commission values the row already holds, leaves those columns and effectiveDate untouched and writes no rate version", async () => {
     const seeded = await seedProductRaw(TAG + "NOCLOBBER2");
-    const r = await updateProduct(seeded.id, { productName: "Renamed Only", ...BASE_RATES, listedPrice: "42.00", instalmentOption: "None" });
+    const r = await updateProduct(seeded.id, { productName: "Renamed Only", ...BASE_RATES, listedPrice: "42.00" });
     expect(r).toEqual({ ok: true });
     const after = await prisma.product.findUniqueOrThrow({ where: { id: seeded.id } });
     expect(after.productName).toBe("Renamed Only"); // proves updateProduct DID run
@@ -197,19 +197,18 @@ describe("updateProduct vs the columns it must not rewrite", () => {
   });
 });
 
-describe("updateProduct — server nulls what the instalment option doesn't call for (same rule as the pricing-only edit, through the merged action)", () => {
-  it("switching an existing Months12or24 product back to None nulls booking/monthly fields, even if the caller sends stale ones", async () => {
+describe("updateProduct — server nulls/replaces what an empty plan list doesn't call for (same rule as the pricing-only edit, through the merged action)", () => {
+  it("dropping every plan nulls bookingFee and clears the plan rows, even if the caller sends a stale bookingFee back", async () => {
     const id = await freshProduct(TAG + "NULLOUT1", {
-      instalmentOption: "Months12or24", bookingFee: "50.00", monthlyInstalment12: "41.66", monthlyInstalment24: "20.83",
+      bookingFee: "50.00", instalmentPlans: [{ months: 12, monthlyAmount: "41.66" }, { months: 24, monthlyAmount: "20.83" }],
     });
     const r = await updateProduct(id, {
-      productName: "Fake edit product", ...BASE_RATES, listedPrice: "999.99", instalmentOption: "None",
-      bookingFee: "50.00", monthlyInstalment12: "41.66", monthlyInstalment24: "20.83",
+      productName: "Fake edit product", ...BASE_RATES, listedPrice: "999.99",
+      bookingFee: "50.00", instalmentPlans: [],
     });
     expect(r).toEqual({ ok: true });
     const row = await prisma.product.findUniqueOrThrow({ where: { id } });
     expect(row.bookingFee).toBeNull();
-    expect(row.monthlyInstalment12).toBeNull();
-    expect(row.monthlyInstalment24).toBeNull();
+    expect(await prisma.productInstalmentPlan.count({ where: { productId: id } })).toBe(0);
   });
 });

@@ -91,7 +91,7 @@ describe("comCodeSchema", () => {
   });
 });
 
-const VALID_PRICING = { listedPrice: "199.99", instalmentOption: "None" as const };
+const VALID_PRICING = { listedPrice: "199.99" };
 
 describe("productSchema", () => {
   it("accepts a valid Percentage product and rejects a missing required rate", () => {
@@ -140,7 +140,7 @@ describe("productSchema", () => {
       }).success,
     ).toBe(false);
   });
-  it("rejects a product with no pricing at all (listedPrice/instalmentOption required)", () => {
+  it("rejects a product with no pricing at all (listedPrice required)", () => {
     expect(
       productSchema.safeParse({
         productCode: "P1",
@@ -153,7 +153,7 @@ describe("productSchema", () => {
         sdOverridePct: "5",
         isExternal: false,
         effectiveDate: "2026-01-01",
-        // no listedPrice, no instalmentOption
+        // no listedPrice
       }).success,
     ).toBe(false);
   });
@@ -195,9 +195,9 @@ describe("productSchema", () => {
 });
 
 describe("productPricingSchema", () => {
-  const base = { listedPrice: "199.99", instalmentOption: "None" as const };
+  const base = { listedPrice: "199.99" };
 
-  it("accepts listedPrice alone with instalmentOption None", () => {
+  it("accepts listedPrice alone, no instalment plans", () => {
     expect(productPricingSchema.safeParse(base).success).toBe(true);
   });
 
@@ -231,30 +231,46 @@ describe("productPricingSchema", () => {
     });
   });
 
-  describe("instalment fields required only when the option calls for them", () => {
-    it("None: bookingFee/monthly fields are NOT required", () => {
-      expect(productPricingSchema.safeParse({ listedPrice: "199.99", instalmentOption: "None" }).success).toBe(true);
+  describe("instalment plans — a repeatable add-on list (owner's change, 2026-10-09), not a fixed 12/24-month enum", () => {
+    it("no plans: bookingFee is NOT required, and defaults to an empty list when omitted", () => {
+      const r = productPricingSchema.safeParse({ listedPrice: "199.99" });
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.instalmentPlans).toEqual([]);
     });
-    it("Months12: bookingFee + monthlyInstalment12 required, monthlyInstalment24 NOT", () => {
-      expect(productPricingSchema.safeParse({ listedPrice: "199.99", instalmentOption: "Months12" }).success).toBe(false);
+    it("one plan: bookingFee required, and the plan's own monthlyAmount required", () => {
+      expect(productPricingSchema.safeParse({ listedPrice: "199.99", instalmentPlans: [{ months: 12, monthlyAmount: "16.66" }] }).success).toBe(false); // bookingFee missing
       expect(
         productPricingSchema.safeParse({
-          listedPrice: "199.99", instalmentOption: "Months12", bookingFee: "20.00", monthlyInstalment12: "16.66",
+          listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 12, monthlyAmount: "16.66" }],
         }).success,
       ).toBe(true);
     });
-    it("Months12or24: monthlyInstalment24 is ALSO required (not just bookingFee + 12)", () => {
+    it("several plans with DIFFERENT month counts: accepted", () => {
       expect(
         productPricingSchema.safeParse({
-          listedPrice: "199.99", instalmentOption: "Months12or24", bookingFee: "20.00", monthlyInstalment12: "16.66",
-          // monthlyInstalment24 missing
-        }).success,
-      ).toBe(false);
-      expect(
-        productPricingSchema.safeParse({
-          listedPrice: "199.99", instalmentOption: "Months12or24", bookingFee: "20.00", monthlyInstalment12: "16.66", monthlyInstalment24: "8.33",
+          listedPrice: "199.99", bookingFee: "20.00",
+          instalmentPlans: [{ months: 12, monthlyAmount: "16.66" }, { months: 24, monthlyAmount: "8.33" }, { months: 6, monthlyAmount: "33.33" }],
         }).success,
       ).toBe(true);
+    });
+    it("two plans at the SAME month count: rejected — nonsense per the owner's own framing, mirrors the DB's unique(productId, months)", () => {
+      const r = productPricingSchema.safeParse({
+        listedPrice: "199.99", bookingFee: "20.00",
+        instalmentPlans: [{ months: 12, monthlyAmount: "16.66" }, { months: 12, monthlyAmount: "99.00" }],
+      });
+      expect(r.success).toBe(false);
+    });
+    it("a term longer than the sale side's own 24-month cap is ACCEPTED here — that cap is a separate, unmade ruling (lib/schemas.ts saleSchema), not this schema's business", () => {
+      expect(
+        productPricingSchema.safeParse({
+          listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 36, monthlyAmount: "5.55" }],
+        }).success,
+      ).toBe(true);
+    });
+    it("a non-positive or non-integer months value is rejected", () => {
+      expect(productPricingSchema.safeParse({ listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 0, monthlyAmount: "5.00" }] }).success).toBe(false);
+      expect(productPricingSchema.safeParse({ listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: -1, monthlyAmount: "5.00" }] }).success).toBe(false);
+      expect(productPricingSchema.safeParse({ listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 1.5, monthlyAmount: "5.00" }] }).success).toBe(false);
     });
   });
 

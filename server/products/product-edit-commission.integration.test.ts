@@ -48,7 +48,7 @@ const APRIL = "2098-04";
 
 const OLD_RATES = { commissionType: "Percentage" as const, closingCommPct: "10", companyCutPct: "2", smOverridePct: "5", sdOverridePct: "3", isExternal: false, effectiveDate: OLD_EFFECTIVE };
 const NEW_RATES = { commissionType: "Percentage" as const, closingCommPct: "20", companyCutPct: "4", smOverridePct: "9", sdOverridePct: "6", isExternal: false, effectiveDate: NEW_EFFECTIVE };
-const PRICING = { listedPrice: "10000.00", instalmentOption: "None" as const };
+const PRICING = { listedPrice: "10000.00" };
 
 let companyId = "", productId = "", sdId = "", smId = "", closerId = "";
 
@@ -391,9 +391,9 @@ describe("updateProduct — pre-existing invalid commission data never blocks an
     externalCompanyRetainedPct: r.externalCompanyRetainedPct?.toString(), effectiveDate: r.effectiveDate.toISOString().slice(0, 10),
   });
   const seed = (suffix: string, extra: object) =>
-    prisma.product.create({ data: { productCode: TAG + suffix, productName: "Legacy", commissionType: "Percentage", ...base, listedPrice: "100.00", instalmentOption: "None", ...extra } });
+    prisma.product.create({ data: { productCode: TAG + suffix, productName: "Legacy", commissionType: "Percentage", ...base, listedPrice: "100.00", ...extra } });
   const rename = (r: Awaited<ReturnType<typeof seed>>, name: string) =>
-    updateProduct(r.id, { productName: name, ...asForm(r), listedPrice: "100.00", instalmentOption: "None" } as ProductDetailsRawInput);
+    updateProduct(r.id, { productName: name, ...asForm(r), listedPrice: "100.00" } as ProductDetailsRawInput);
   const after = async (r: { id: string }) => ({
     row: await prisma.product.findUniqueOrThrow({ where: { id: r.id } }),
     versions: await prisma.commissionStructureVersion.count({ where: { productId: r.id } }),
@@ -438,7 +438,7 @@ describe("updateProduct — pre-existing invalid commission data never blocks an
     who.session = ADMIN;
     const r = await seed("LEG5", { isExternal: true, externalCompanyRetainedPct: "5", closingCommPct: null });
     const form = { ...asForm(r), effectiveDate: earliestRateChangeDate() };
-    const send = (c: object) => updateProduct(r.id, { productName: "Legacy", ...form, ...c, listedPrice: "100.00", instalmentOption: "None" } as ProductDetailsRawInput);
+    const send = (c: object) => updateProduct(r.id, { productName: "Legacy", ...form, ...c, listedPrice: "100.00" } as ProductDetailsRawInput);
     expect(await send({ externalCompanyRetainedPct: "6" })).toEqual({ ok: false, error: "closingPctRequired" });
     expect((await after(r)).versions).toBe(0);
     expect(await send({ externalCompanyRetainedPct: "6", closingCommPct: "0" })).toEqual({ ok: true });
