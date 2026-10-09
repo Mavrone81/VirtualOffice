@@ -152,7 +152,16 @@ jobs:
       - run: pnpm prisma generate
       # No database and no browser: the checks are static reads of the document
       # templates, so this job stays fast enough to be a required gate.
+      # The unit project's globalSetup (lib/test-support/env-preflight.ts) validates
+      # the whole env schema before any worker starts, and fails closed when it
+      # cannot. Without these three the job dies in setup and NO assertion runs —
+      # which is how this gate sat on main having never checked anything. These are
+      # throwaway CI values; the job reads files off disk and touches no database.
       - name: Assert no client document carries internal money
+        env:
+          AUTH_SECRET: ci-only-not-a-real-secret-0123456789abcdef
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+          PII_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
         run: pnpm vitest run --project unit lib/pdf/client-document-disclosure.test.ts
 
   credential-shape:
