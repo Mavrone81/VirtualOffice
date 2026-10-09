@@ -129,6 +129,32 @@ jobs:
   # the job. (The `audit` job keeps its own flag on its own 2026-10-11
   # lifecycle — deliberately independent of this one.)
   # ---------------------------------------------------------------------------
+  client-document-disclosure:
+    name: Client-document disclosure
+    runs-on: ubuntu-latest
+    # Its own named check, beside Credential-shaped literals, for the same
+    # reason that one is: an invoice or a quotation that has been emailed to a
+    # client cannot be recalled. The owner ruled on 2026-10-08 that neither
+    # document may carry commission, upline/downline overrides, the Managing
+    # Director cut or company retained — only what the client pays.
+    #
+    # It also runs inside the main `test` job, since it is an ordinary vitest
+    # file. It is lifted out here so the gate is VISIBLE as its own red or
+    # green on the PR rather than one assertion among nineteen hundred, and so
+    # it can be made a required check independently of the whole suite.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma generate
+      # No database and no browser: the checks are static reads of the document
+      # templates, so this job stays fast enough to be a required gate.
+      - name: Assert no client document carries internal money
+        run: pnpm vitest run --project unit lib/pdf/client-document-disclosure.test.ts
+
   credential-shape:
     name: Credential-shaped literals
     runs-on: ubuntu-latest
