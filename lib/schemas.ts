@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX } from "./name-card-limits";
 import { PRODUCT_DESCRIPTION_MAX } from "./product-limits";
-import { D } from "./money";
+import { D, closingPrice } from "./money";
 import { DESIGNATION_VALUES } from "./roles";
 
 export { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX };
@@ -57,8 +57,10 @@ export const saleSchema = z
     clientContact: z.string().trim().max(200).optional(),
     paymentPlan: z.enum(["Full Payment", "Installment"]),
     deposit: z.number().finite().nonnegative().max(100_000_000).optional(),
-    // A-0b: the count is 1–24 on the server; refined below (deposit ≤ sale too).
-    installmentCount: z.number().finite().int().positive().max(24).optional(),
+    // A-0b: the count is 1–72 on the server (owner's ruling, 2026-10-09
+    // addendum — six years, raised from 24, moving together with the
+    // product side's own cap below); refined below (deposit ≤ sale too).
+    installmentCount: z.number().finite().int().positive().max(72).optional(),
     lines: z
       .array(
         z.object({
@@ -89,7 +91,7 @@ export const saleSchema = z
   })
   .refine(
     (d) => d.paymentPlan !== "Installment" || (d.installmentCount !== undefined && d.installmentCount >= 1),
-    { message: "Installment count must be between 1 and 24", path: ["installmentCount"] },
+    { message: "Installment count must be between 1 and 72", path: ["installmentCount"] },
   )
   .refine(
     (d) => {
@@ -160,13 +162,17 @@ const closingBasisEnum = z.enum(["ListedPrice", "DiscountedPrice"]);
 
 // Owner's change (2026-10-09): instalments are a repeatable add-on list, one
 // row per admin-typed month count — replaces the fixed Months12/Months12or24
-// enum. No upper cap on `months` itself (a ruling for the owner, not this
-// code, unlike the SALE side's installmentCount a few lines up, which stays
-// at max(24)) — 1200 (100 years) below is a pure overflow/abuse sanity bound
-// on the Int column, not a business rule.
+// enum. The cap below used to be a pure overflow/abuse sanity bound (1200,
+// 100 years) with no business rule behind it, because the owner hadn't
+// ruled on a maximum term; the 2026-10-09 addendum settled it at 72 months
+// (six years) — now a policy decision, not arithmetic, and the SAME number
+// as the SALE side's installmentCount a few lines up (also max(72)): the two
+// caps move together deliberately. Mirrored in the DB as an actual CHECK
+// constraint (prisma/migrations/.../months_within_policy), on the same
+// reasoning as `months > 0` below it: a raw write, a seed, or a later
+// backfill can all reach that table without passing through zod.
 const instalmentPlanShape = z.object({
-  months: z.number().int().positive().max(1200),
-  monthlyAmount: money,
+  months: z.number().int().positive().max(72),
 });
 
 const productPricingShape = {
@@ -183,7 +189,7 @@ type ProductPricingShape = {
   listedPrice: string;
   discountedPrice?: string;
   bookingFee?: string;
-  instalmentPlans: { months: number; monthlyAmount: string }[];
+  instalmentPlans: { months: number }[];
   closingBasis: z.infer<typeof closingBasisEnum>;
 };
 
@@ -203,6 +209,19 @@ function pricingRefine(v: ProductPricingShape, ctx: z.RefinementCtx): void {
   }
   if (v.instalmentPlans.length > 0 && v.bookingFee === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["bookingFee"], message: "bookingFeeRequired" });
+  }
+  // A booking fee that exceeds the closing price makes the derived schedule
+  // negative (lib/money.ts deriveInstalmentSchedule refuses to compute it
+  // at all) — caught here too so the admin gets a field-level message at
+  // save time instead of a silently-blank schedule discovered later. Blank
+  // bookingFee reads as 0 here, matching the display's own "blank = zero"
+  // convention (the owner's ruling) — it can never be the cause of this
+  // particular issue, only a real typed fee can.
+  if (v.bookingFee !== undefined && v.instalmentPlans.length > 0) {
+    const basis = closingPrice(v.listedPrice, v.discountedPrice ?? null, v.closingBasis);
+    if (D(v.bookingFee).greaterThan(basis)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["bookingFee"], message: "bookingFeeExceedsClosingPrice" });
+    }
   }
   // Two plans at the same month count is nonsense (the owner's own framing)
   // — mirrored here from the DB's own @@unique([productId, months]) so a bad

@@ -75,7 +75,7 @@ export type ProductInput = {
   // row per admin-typed month count. Empty/omitted means full payment only;
   // see lib/schemas.ts productPricingShape/pricingRefine for the shape and
   // rules (bookingFee required once any plan exists, months unique).
-  instalmentPlans?: { months: number; monthlyAmount: string }[];
+  instalmentPlans?: { months: number }[];
   // Closing basis (2026-10-01) — see lib/schemas.ts closingBasisEnum/
   // pricingRefine. Optional here for the same reason the pricing fields
   // above are: productPricingSchema/productSchema default it server-side
@@ -162,12 +162,15 @@ function pricingData(p: ProductPricingInput) {
 async function replaceInstalmentPlans(
   db: Prisma.TransactionClient,
   productId: string,
-  plans: { months: number; monthlyAmount: string }[],
+  plans: { months: number }[],
 ): Promise<void> {
   await db.productInstalmentPlan.deleteMany({ where: { productId } });
   if (plans.length > 0) {
+    // monthlyAmount is never written (2026-10-09 follow-up, owner's "no
+    // override allowed" ruling) — the column stays, frozen, nullable,
+    // unread, same posture as the pre-2026-10-09 columns on Product itself.
     await db.productInstalmentPlan.createMany({
-      data: plans.map((p) => ({ productId, months: p.months, monthlyAmount: p.monthlyAmount })),
+      data: plans.map((p) => ({ productId, months: p.months })),
     });
   }
 }
@@ -178,7 +181,7 @@ type PricingColumns = {
   bookingFee: Prisma.Decimal | null;
   closingBasis: ClosingBasis;
 };
-type InstalmentPlanColumns = { months: number; monthlyAmount: Prisma.Decimal | string | null };
+type InstalmentPlanColumns = { months: number };
 
 /** Pricing-only before/after for the audit row — money values as fixed
  *  2dp decimal strings (never a JS number, and never Decimal's own
@@ -186,15 +189,17 @@ type InstalmentPlanColumns = { months: number; monthlyAmount: Prisma.Decimal | s
  *  "999.00" in the audit record, not "999"), nothing else from the product.
  *  `plans` is read separately from the child table (never from the Product
  *  row, which no longer carries them) and sorted by months so the audit
- *  record doesn't depend on insertion order. */
+ *  record doesn't depend on insertion order. No monthlyAmount in the
+ *  snapshot: it isn't stored, and re-deriving it here would need the
+ *  product's own price fields duplicated into this function for a value
+ *  the audit reader can already recompute from `listedPrice`/`bookingFee`/
+ *  `months` in the SAME record. */
 function pricingSnapshot(p: PricingColumns, plans: InstalmentPlanColumns[]) {
   return {
     listedPrice: p.listedPrice?.toFixed(2) ?? null,
     discountedPrice: p.discountedPrice?.toFixed(2) ?? null,
     bookingFee: p.bookingFee?.toFixed(2) ?? null,
-    instalmentPlans: [...plans]
-      .sort((a, b) => a.months - b.months)
-      .map((pl) => ({ months: pl.months, monthlyAmount: pl.monthlyAmount !== null ? D(pl.monthlyAmount).toFixed(2) : null })),
+    instalmentPlans: [...plans].sort((a, b) => a.months - b.months).map((pl) => ({ months: pl.months })),
     closingBasis: p.closingBasis,
   } satisfies Prisma.InputJsonValue;
 }
@@ -271,7 +276,7 @@ export async function updateProductPricing(productId: string, pricing: ProductPr
     await prisma.$transaction(async (db) => {
       const existing = await db.product.findUnique({ where: { id: productId } });
       if (!existing) throw new ProductNotFound();
-      const existingPlans = await db.productInstalmentPlan.findMany({ where: { productId }, select: { months: true, monthlyAmount: true } });
+      const existingPlans = await db.productInstalmentPlan.findMany({ where: { productId }, select: { months: true } });
       const before = pricingSnapshot(existing, existingPlans);
       const updated = await db.product.update({ where: { id: productId }, data });
       await replaceInstalmentPlans(db, productId, validInput.instalmentPlans);
@@ -379,7 +384,7 @@ export async function updateProduct(productId: string, input: ProductDetailsRawI
       if (locked.length === 0) throw new ProductNotFound();
       const existing = await db.product.findUnique({ where: { id: productId } });
       if (!existing) throw new ProductNotFound();
-      const existingPlans = await db.productInstalmentPlan.findMany({ where: { productId }, select: { months: true, monthlyAmount: true } });
+      const existingPlans = await db.productInstalmentPlan.findMany({ where: { productId }, select: { months: true } });
       const before = productDetailsSnapshot(existing, existingPlans);
 
       const changedRates = changedCommissionFields(canonicalFromRow(existing), canonicalFromInput(validInput));

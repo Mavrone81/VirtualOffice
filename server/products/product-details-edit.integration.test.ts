@@ -200,7 +200,7 @@ describe("updateProduct vs the columns it must not rewrite", () => {
 describe("updateProduct — server nulls/replaces what an empty plan list doesn't call for (same rule as the pricing-only edit, through the merged action)", () => {
   it("dropping every plan nulls bookingFee and clears the plan rows, even if the caller sends a stale bookingFee back", async () => {
     const id = await freshProduct(TAG + "NULLOUT1", {
-      bookingFee: "50.00", instalmentPlans: [{ months: 12, monthlyAmount: "41.66" }, { months: 24, monthlyAmount: "20.83" }],
+      bookingFee: "50.00", instalmentPlans: [{ months: 12 }, { months: 24 }],
     });
     const r = await updateProduct(id, {
       productName: "Fake edit product", ...BASE_RATES, listedPrice: "999.99",

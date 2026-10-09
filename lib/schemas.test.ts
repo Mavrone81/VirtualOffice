@@ -44,17 +44,19 @@ describe("saleSchema", () => {
     ).toBe(false);
   });
 
-  // A-0b
-  it("accepts any installment count 1–24 (not just 12/24) and rejects out of range", () => {
+  // A-0b. Cap raised 24 -> 72 (owner's ruling, 2026-10-09 addendum): 72 months
+  // (six years) is now the shared maximum on both the sale side and the
+  // product side (lib/schemas.ts instalmentPlanShape).
+  it("accepts any installment count 1–72 (not just 12/24) and rejects out of range", () => {
     const base = {
       salesDate: "2026-07-01", clientName: "Acme", paymentPlan: "Installment" as const,
       lines: [{ productId: "p1", comCodeIds: [], lineSaleAmount: 1200 }],
     };
-    for (const n of [1, 6, 12, 18, 24]) {
+    for (const n of [1, 6, 12, 18, 24, 36, 72]) {
       expect(saleSchema.safeParse({ ...base, installmentCount: n }).success).toBe(true);
     }
     expect(saleSchema.safeParse({ ...base, installmentCount: 0 }).success).toBe(false);
-    expect(saleSchema.safeParse({ ...base, installmentCount: 25 }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...base, installmentCount: 73 }).success).toBe(false);
     expect(saleSchema.safeParse({ ...base, installmentCount: undefined }).success).toBe(false); // required for Installment
   });
 
@@ -260,12 +262,21 @@ describe("productPricingSchema", () => {
       });
       expect(r.success).toBe(false);
     });
-    it("a term longer than the sale side's own 24-month cap is ACCEPTED here — that cap is a separate, unmade ruling (lib/schemas.ts saleSchema), not this schema's business", () => {
+    // The owner has now ruled on what was an unmade question: 72 months (six
+    // years) is the shared maximum on BOTH sides — this schema's own cap
+    // (instalmentPlanShape) and the sale side's installmentCount (above)
+    // move together, deliberately, not by coincidence.
+    it("accepts up to and including 72 months, rejects 73", () => {
       expect(
         productPricingSchema.safeParse({
-          listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 36, monthlyAmount: "5.55" }],
+          listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 72 }],
         }).success,
       ).toBe(true);
+      expect(
+        productPricingSchema.safeParse({
+          listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 73 }],
+        }).success,
+      ).toBe(false);
     });
     it("a non-positive or non-integer months value is rejected", () => {
       expect(productPricingSchema.safeParse({ listedPrice: "199.99", bookingFee: "20.00", instalmentPlans: [{ months: 0, monthlyAmount: "5.00" }] }).success).toBe(false);

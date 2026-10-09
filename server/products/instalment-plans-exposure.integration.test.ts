@@ -29,7 +29,7 @@ beforeAll(async () => {
   const withTwo = await createProduct({
     productCode: TAG + "TWO", productName: "Fake two-plan product", ...BASE_RATES,
     listedPrice: "1200.00", bookingFee: "50.00",
-    instalmentPlans: [{ months: 12, monthlyAmount: "95.83" }, { months: 24, monthlyAmount: "47.92" }],
+    instalmentPlans: [{ months: 12 }, { months: 24 }],
   } as ProductInput);
   expect(withTwo).toEqual({ ok: true });
   twoPlansId = (await prisma.product.findFirstOrThrow({ where: { productCode: TAG + "TWO" } })).id;
@@ -52,17 +52,21 @@ describe("CASE (i) — a product with two plans exposes BOTH", () => {
     // This assertion examines every plan row this product actually has.
     expect(rows).toHaveLength(2);
     expect(rows.map((r) => r.months)).toEqual([12, 24]);
-    expect(rows[0].monthlyAmount?.toFixed(2)).toBe("95.83");
-    expect(rows[1].monthlyAmount?.toFixed(2)).toBe("47.92");
+    // monthlyAmount is never written (owner's "no override allowed" ruling,
+    // 2026-10-09 follow-up) — the column stays frozen, nullable, unread.
+    expect(rows[0].monthlyAmount).toBeNull();
+    expect(rows[1].monthlyAmount).toBeNull();
   });
 
-  it("the portal catalogue exposes both plans, sorted, to the buyer-facing surface", async () => {
+  it("the portal catalogue exposes both plans, sorted, with the DERIVED regular/final — not stored, computed from (listedPrice 1200 − bookingFee 50 = 1150 basis)", async () => {
     const catalogue = await getPortalProductCatalogue();
     const p = catalogue.find((c) => c.id === twoPlansId);
     expect(p).toBeDefined();
+    // 12 months: 1150 / 12 = floor(95.8333) = 95.83 regular, final absorbs the remainder: 95.87.
+    // 24 months: 1150 / 24 = floor(47.9166) = 47.91 regular, final absorbs the remainder: 48.07.
     expect(p?.instalmentPlans).toEqual([
-      { months: 12, monthlyAmount: "95.83" },
-      { months: 24, monthlyAmount: "47.92" },
+      { months: 12, regular: "95.83", final: "95.87" },
+      { months: 24, regular: "47.91", final: "48.07" },
     ]);
     expect(p?.bookingFee).toBe("50.00");
   });

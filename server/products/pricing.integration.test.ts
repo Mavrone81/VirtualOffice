@@ -215,7 +215,7 @@ describe("updateProductPricing — closingBasis (2026-10-01)", () => {
 describe("updateProductPricing — server nulls/replaces what an empty plan list doesn't call for", () => {
   it("dropping the last plan nulls bookingFee, even if the caller sends a stale value back", async () => {
     const id = await freshProduct(TAG + "NULLOUT1", {
-      bookingFee: "50.00", instalmentPlans: [{ months: 12, monthlyAmount: "41.66" }],
+      bookingFee: "50.00", instalmentPlans: [{ months: 12 }],
     });
     // The caller sends a STALE bookingFee back (a real client could easily
     // still be holding it in form state after clearing every plan row) —
@@ -230,16 +230,18 @@ describe("updateProductPricing — server nulls/replaces what an empty plan list
 
   it("replacing a two-plan product with one different plan leaves exactly that one plan row, not three", async () => {
     const id = await freshProduct(TAG + "REPLACE1", {
-      bookingFee: "50.00", instalmentPlans: [{ months: 12, monthlyAmount: "41.66" }, { months: 24, monthlyAmount: "20.83" }],
+      bookingFee: "50.00", instalmentPlans: [{ months: 12 }, { months: 24 }],
     });
     const r = await updateProductPricing(id, {
-      listedPrice: "999.99", bookingFee: "30.00", instalmentPlans: [{ months: 6, monthlyAmount: "161.66" }],
+      listedPrice: "999.99", bookingFee: "30.00", instalmentPlans: [{ months: 6 }],
     });
     expect(r).toEqual({ ok: true });
     // This assertion examines every plan row the product has after the edit.
     const rows = await prisma.productInstalmentPlan.findMany({ where: { productId: id } });
     expect(rows).toHaveLength(1);
     expect(rows[0].months).toBe(6);
-    expect(rows[0].monthlyAmount?.toFixed(2)).toBe("161.66");
+    // monthlyAmount is never written (owner's "no override allowed" ruling,
+    // 2026-10-09 follow-up) — frozen, nullable, unread.
+    expect(rows[0].monthlyAmount).toBeNull();
   });
 });

@@ -92,7 +92,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
   const pricingIncomplete =
     !pricing.listedPrice ||
     (pricing.instalmentPlans.length > 0 && !pricing.bookingFee) ||
-    pricing.instalmentPlans.some((p) => !p.months || !p.monthlyAmount);
+    pricing.instalmentPlans.some((p) => !p.months);
 
   const orUndef = (s: string) => (s.trim() === "" ? undefined : s);
 
@@ -105,7 +105,7 @@ export function ProductForm({ companies, today }: { companies: { id: string; nam
         discountedPrice: orUndef(pricing.discountedPrice),
         closingBasis: pricing.closingBasis,
         bookingFee: orUndef(pricing.bookingFee),
-        instalmentPlans: pricing.instalmentPlans.map((p) => ({ months: Number(p.months), monthlyAmount: p.monthlyAmount })),
+        instalmentPlans: pricing.instalmentPlans.map((p) => ({ months: Number(p.months) })),
       });
       if (r.ok) router.push("/admin/products");
       else setError(r.error ?? t("couldNotCreate"));

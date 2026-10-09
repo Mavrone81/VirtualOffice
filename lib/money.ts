@@ -86,6 +86,51 @@ export function closingPrice(listed: Numeric, discounted: Numeric | null | undef
   return basis === "DiscountedPrice" && discounted != null ? D(discounted) : D(listed);
 }
 
+export type InstalmentSchedule = { regular: Prisma.Decimal; final: Prisma.Decimal };
+
+/**
+ * THE one place an instalment schedule is computed (owner's change,
+ * 2026-10-09 follow-up) — the product no longer stores a monthly figure;
+ * every surface that shows one derives it here, from (closing price,
+ * booking fee, months) at render/read time, so it can never go stale
+ * against a later price edit.
+ *
+ * basis = closingPrice − bookingFee, in CENTS, as an exact Prisma.Decimal
+ * operation throughout — never a JavaScript float. `D(v).mul(100)` on a
+ * 2dp-precision Decimal is exact (no `0.29 * 100 = 28.999999999999996`
+ * artifact is possible, because Decimal multiplication isn't binary
+ * floating point), so the `.toDecimalPlaces(0, ROUND_HALF_UP)` below is a
+ * defensive no-op on this input shape, not the load-bearing step it would
+ * be on a float path — stated explicitly rather than silently relied on.
+ *
+ * `regular` is floor(basisCents / months) — safe as plain integer
+ * division (dividedToIntegerBy truncates toward zero, which equals floor
+ * for the non-negative basis this function guarantees) — applied to
+ * months−1 payments; `final` absorbs whatever floor() left over, so the
+ * schedule always sums to EXACTLY basis, never basis ± a rounding cent.
+ * Floor, not round-to-nearest: rounding the regular to the nearest cent can
+ * push it ABOVE the true average, which then forces `final` BELOW
+ * `regular` — a customer's last payment reading smaller than every other
+ * one, which is the shape of error this function exists to remove.
+ *
+ * Returns null when bookingFee exceeds closingPrice (a negative basis is
+ * refused outright, not computed — floor() on a negative tends toward
+ * minus infinity, so it would not even fail loudly). bookingFee EQUAL to
+ * closingPrice is allowed through to a well-defined (if commercially odd)
+ * $0.00-every-instalment schedule: it is arithmetically consistent, and
+ * rejecting it would be a business rule nobody asked for, not a safety
+ * guarantee like the negative-basis case.
+ */
+export function deriveInstalmentSchedule(closingPriceAmt: Numeric, bookingFee: Numeric, months: number): InstalmentSchedule | null {
+  if (!Number.isInteger(months) || months < 1) return null;
+  const basis = D(closingPriceAmt).sub(D(bookingFee));
+  if (basis.isNegative()) return null;
+  const basisCents = basis.mul(100).toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP);
+  const regularCents = basisCents.dividedToIntegerBy(months);
+  const finalCents = basisCents.sub(regularCents.mul(months - 1));
+  return { regular: regularCents.div(100), final: finalCents.div(100) };
+}
+
 /** Soft admin hint only (no DB constraint behind it, 2026-09-30): the
  *  total a buyer pays across the instalment plan. `monthly * months` is
  *  exact for Decimal(14,2) inputs and a whole-number `months` (no fractional
