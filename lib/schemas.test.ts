@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { saleSchema, comCodeSchema, productSchema, productPricingSchema, newAssociateSchema, onboardingSchema } from "./schemas";
+import { saleSchema, comCodeSchema, productSchema, productPricingSchema, newAssociateSchema, onboardingSchema, MAX_INSTALMENT_MONTHS } from "./schemas";
 import { validate } from "./validate";
 
 describe("saleSchema", () => {
@@ -44,17 +44,21 @@ describe("saleSchema", () => {
     ).toBe(false);
   });
 
-  // A-0b
-  it("accepts any installment count 1–24 (not just 12/24) and rejects out of range", () => {
+  // A-0b. The upper bound moved from 24 to 72 on the owner's ruling of
+  // 2026-10-09. Written against MAX_INSTALMENT_MONTHS rather than the number,
+  // so the next policy change edits one constant and this keeps guarding —
+  // the literal 24 in here is what made the sale side disagree with the
+  // product side for a day.
+  it("accepts any installment count up to the policy maximum, and rejects out of range", () => {
     const base = {
       salesDate: "2026-07-01", clientName: "Acme", paymentPlan: "Installment" as const,
       lines: [{ productId: "p1", comCodeIds: [], lineSaleAmount: 1200 }],
     };
-    for (const n of [1, 6, 12, 18, 24]) {
-      expect(saleSchema.safeParse({ ...base, installmentCount: n }).success).toBe(true);
+    for (const n of [1, 6, 12, 18, 24, 36, MAX_INSTALMENT_MONTHS]) {
+      expect(saleSchema.safeParse({ ...base, installmentCount: n }).success, `${n} months`).toBe(true);
     }
     expect(saleSchema.safeParse({ ...base, installmentCount: 0 }).success).toBe(false);
-    expect(saleSchema.safeParse({ ...base, installmentCount: 25 }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...base, installmentCount: MAX_INSTALMENT_MONTHS + 1 }).success).toBe(false);
     expect(saleSchema.safeParse({ ...base, installmentCount: undefined }).success).toBe(false); // required for Installment
   });
 

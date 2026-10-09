@@ -48,6 +48,21 @@ const splitShare = z
 // ---------------------------------------------------------------------------
 // Sales — mirrors SubmitSaleInput (server/sales/actions.ts)
 // ---------------------------------------------------------------------------
+/**
+ * The longest instalment term the business will write, in months.
+ *
+ * Owner's ruling, 2026-10-09: 72. Six years.
+ *
+ * It is exported and used by BOTH the product side (which offers a term) and
+ * the sale side (which writes one), because they were separately 1200 and 24
+ * before this and that gap let a term be quoted that could not then be sold.
+ * A database CHECK enforces the same number, because zod does not run for a
+ * raw write, a seed script, or a server action nobody has written yet — and a
+ * bad term there does not raise a validation error, it produces a signed
+ * contract with a payment schedule nobody agreed to.
+ */
+export const MAX_INSTALMENT_MONTHS = 72;
+
 export const saleSchema = z
   .object({
     salesDate: dateStr,
@@ -57,8 +72,9 @@ export const saleSchema = z
     clientContact: z.string().trim().max(200).optional(),
     paymentPlan: z.enum(["Full Payment", "Installment"]),
     deposit: z.number().finite().nonnegative().max(100_000_000).optional(),
-    // A-0b: the count is 1–24 on the server; refined below (deposit ≤ sale too).
-    installmentCount: z.number().finite().int().positive().max(24).optional(),
+    // A-0b: refined below (deposit ≤ sale too). Capped at MAX_INSTALMENT_MONTHS
+    // — the owner's ruling of 2026-10-09 on the maximum instalment term.
+    installmentCount: z.number().finite().int().positive().max(MAX_INSTALMENT_MONTHS).optional(),
     lines: z
       .array(
         z.object({
@@ -89,7 +105,7 @@ export const saleSchema = z
   })
   .refine(
     (d) => d.paymentPlan !== "Installment" || (d.installmentCount !== undefined && d.installmentCount >= 1),
-    { message: "Installment count must be between 1 and 24", path: ["installmentCount"] },
+    { message: `Installment count must be between 1 and ${MAX_INSTALMENT_MONTHS}`, path: ["installmentCount"] },
   )
   .refine(
     (d) => {
@@ -160,12 +176,13 @@ const closingBasisEnum = z.enum(["ListedPrice", "DiscountedPrice"]);
 
 // Owner's change (2026-10-09): instalments are a repeatable add-on list, one
 // row per admin-typed month count — replaces the fixed Months12/Months12or24
-// enum. No upper cap on `months` itself (a ruling for the owner, not this
-// code, unlike the SALE side's installmentCount a few lines up, which stays
-// at max(24)) — 1200 (100 years) below is a pure overflow/abuse sanity bound
-// on the Int column, not a business rule.
+// enum. The upper bound is now a BUSINESS RULE, not an overflow guard: the
+// owner ruled the maximum term at 72 months on 2026-10-09. It read 1200 only
+// because nobody had ruled yet, and the SALE side read 24 — which meant a
+// 36-month plan could be offered on a product and then refused at the point
+// of sale. One constant now bounds both, and a test below asserts it.
 const instalmentPlanShape = z.object({
-  months: z.number().int().positive().max(1200),
+  months: z.number().int().positive().max(MAX_INSTALMENT_MONTHS),
   monthlyAmount: money,
 });
 
