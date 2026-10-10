@@ -26,7 +26,7 @@ export default async function EditProductPricingPage({ params }: { params: Promi
       discountedPrice: true,
       closingBasis: true,
       bookingFee: true,
-      instalmentPlans: { select: { months: true, monthlyAmount: true }, orderBy: { months: "asc" } },
+      instalmentPlans: { select: { months: true }, orderBy: { months: "asc" } },
     },
   });
   if (!product) notFound();
@@ -37,10 +37,7 @@ export default async function EditProductPricingPage({ params }: { params: Promi
     discountedPrice: product.discountedPrice?.toFixed(2) ?? "",
     closingBasis: product.closingBasis,
     bookingFee: product.bookingFee?.toFixed(2) ?? "",
-    // Loaded from storage, so always `touched: true` — see pricing-card.tsx's
-    // InstalmentPlanValue doc comment for why an existing saved amount is
-    // never silently recomputed over.
-    instalmentPlans: product.instalmentPlans.map((p) => ({ months: String(p.months), monthlyAmount: p.monthlyAmount?.toFixed(2) ?? "", touched: true })),
+    instalmentPlans: product.instalmentPlans.map((p) => ({ months: String(p.months) })),
   };
 
   return (

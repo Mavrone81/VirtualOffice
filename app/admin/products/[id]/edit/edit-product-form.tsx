@@ -64,7 +64,7 @@ export function EditProductForm({
     !productName.trim() ||
     !pricing.listedPrice ||
     (pricing.instalmentPlans.length > 0 && !pricing.bookingFee) ||
-    pricing.instalmentPlans.some((p) => !p.months || !p.monthlyAmount);
+    pricing.instalmentPlans.some((p) => !p.months);
 
   function submit() {
     setError(undefined);
@@ -79,7 +79,7 @@ export function EditProductForm({
         discountedPrice: orUndef(pricing.discountedPrice),
         closingBasis: pricing.closingBasis,
         bookingFee: orUndef(pricing.bookingFee),
-        instalmentPlans: pricing.instalmentPlans.map((p) => ({ months: Number(p.months), monthlyAmount: p.monthlyAmount })),
+        instalmentPlans: pricing.instalmentPlans.map((p) => ({ months: Number(p.months) })),
       });
       if (r.ok) router.push("/admin/products");
       else setError(r.error ?? t("couldNotSaveProduct"));

@@ -48,9 +48,12 @@ export function ProductCard({ p, t, tc }: { p: PortalCatalogueProduct; t: Transl
             </div>
           )}
           {p.instalmentPlans.map((plan) => (
-            plan.monthlyAmount != null && (
+            plan.regular != null && plan.final != null && (
               <div key={plan.months}>
-                {t("portalInstalmentFor", { months: String(plan.months) })}: <b className="text-ink">{formatSGD(D(plan.monthlyAmount))}</b>
+                {t("portalInstalmentFor", { months: String(plan.months) })}: <b className="text-ink">{formatSGD(D(plan.regular))}</b>
+                {plan.regular !== plan.final && plan.months > 1 && (
+                  <span> ({t("instalmentFinalLine", { count: String(plan.months - 1), regular: formatSGD(D(plan.regular)), final: formatSGD(D(plan.final)) })})</span>
+                )}
               </div>
             )
           ))}

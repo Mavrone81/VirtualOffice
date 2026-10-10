@@ -1,6 +1,7 @@
 import { Prisma, ProductActiveStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { withCurrentRates } from "./current-rates";
+import { closingPrice, deriveInstalmentSchedule } from "@/lib/money";
 
 // Portal catalogue (2026-10-01): associates see commission only. Company cut
 // AND the external-provider retained percentage are both internal commission
@@ -22,7 +23,7 @@ export const PORTAL_PRODUCT_SELECT = {
   discountedPrice: true,
   closingBasis: true,
   bookingFee: true,
-  instalmentPlans: { select: { months: true, monthlyAmount: true }, orderBy: { months: "asc" } },
+  instalmentPlans: { select: { months: true }, orderBy: { months: "asc" } },
   commissionType: true,
   closingCommPct: true,
   closingCommFixed: true,
@@ -58,7 +59,7 @@ export type PortalCatalogueProduct = {
   discountedPrice: string | null;
   closingBasis: "ListedPrice" | "DiscountedPrice";
   bookingFee: string | null;
-  instalmentPlans: { months: number; monthlyAmount: string | null }[];
+  instalmentPlans: { months: number; regular: string | null; final: string | null }[];
   commissionType: "Percentage" | "Fixed";
   closingCommPct: string | null;
   closingCommFixed: string | null;
@@ -78,7 +79,18 @@ export async function getPortalProductCatalogue(now: Date = new Date()): Promise
     discountedPrice: p.discountedPrice?.toFixed(2) ?? null,
     closingBasis: p.closingBasis,
     bookingFee: p.bookingFee?.toFixed(2) ?? null,
-    instalmentPlans: p.instalmentPlans.map((pl) => ({ months: pl.months, monthlyAmount: pl.monthlyAmount?.toFixed(2) ?? null })),
+    // Derived at read time (owner's "no override allowed" ruling, 2026-10-09
+    // follow-up), never stored — blank booking fee reads as zero, matching
+    // the admin form's own convention. No listedPrice (a legacy row predating
+    // this feature) means nothing to derive from; such a row has no plans.
+    instalmentPlans:
+      p.listedPrice == null
+        ? []
+        : p.instalmentPlans.map((pl) => {
+            const basis = closingPrice(p.listedPrice!, p.discountedPrice, p.closingBasis);
+            const schedule = deriveInstalmentSchedule(basis, p.bookingFee ?? "0", pl.months);
+            return { months: pl.months, regular: schedule?.regular.toFixed(2) ?? null, final: schedule?.final.toFixed(2) ?? null };
+          }),
     commissionType: p.commissionType,
     closingCommPct: p.closingCommPct?.toFixed(4) ?? null,
     closingCommFixed: p.closingCommFixed?.toFixed(2) ?? null,
