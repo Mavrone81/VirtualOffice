@@ -3,6 +3,7 @@ import { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX } from "./name-c
 import { PRODUCT_DESCRIPTION_MAX } from "./product-limits";
 import { D, closingPrice } from "./money";
 import { DESIGNATION_VALUES } from "./roles";
+import { isWithinCommencementDateRange } from "./commencement-date";
 
 export { NAME_CARD_CHINESE_NAME_MAX, NAME_CARD_CUSTOM_TITLE_MAX };
 
@@ -383,10 +384,13 @@ export type NewAssociateSchemaInput = z.infer<typeof newAssociateSchema>;
 // the RFC 5321 maximum (newAssociateSchema.email above uses a tighter house
 // bound of 200; both are safe — this path takes the RFC max deliberately).
 //
-// The same schema makes Commencement Date REQUIRED on the invite (the Associate
-// Agreement's "All these information are required"). Enforced here, server-side,
-// not only by the form: a blank, missing or non-calendar value is rejected. The
-// messages are i18n error keys, surfaced via validate()'s `code`.
+// Owner ruling 2026-10-17: the CANDIDATE now sets their own, mandatory
+// Commencement Date at final onboarding submission (onboardingSchema's
+// candidateCommencementDate below, which adds a range check on top of this).
+// The inviter's own field here is a non-binding suggestion only, so it is
+// OPTIONAL — but when given, it still gets the same format/calendar check: a
+// stray typo shouldn't silently slot in as a real date. The messages are
+// i18n error keys, surfaced via validate()'s `code`.
 const commencementDate = z.string({ error: "commencementDateRequired" }).trim()
   .min(1, "commencementDateRequired")
   .refine((v) => {
@@ -396,9 +400,15 @@ const commencementDate = z.string({ error: "commencementDateRequired" }).trim()
     // Round-trip rejects impossible dates (2026-02-31) that Date would roll over.
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
   }, "commencementDateInvalid");
+// The candidate's OWN date (onboardingSchema only): same required/format
+// check, PLUS the range an onboarding submission must fall in — today
+// (the app's own day) through 12 months ahead. A separate derived schema
+// so this range rule can never leak onto the inviter's now-optional field
+// above, which carries no range requirement.
+const candidateCommencementDate = commencementDate.refine(isWithinCommencementDateRange, "commencementDateOutOfRange");
 export const inviteCandidateSchema = z.object({
   email: z.string().trim().email().max(254),
-  commencementDate,
+  commencementDate: commencementDate.optional(),
 });
 export type InviteCandidateSchemaInput = z.infer<typeof inviteCandidateSchema>;
 
@@ -439,6 +449,11 @@ export const nameCardSchema = z.object({
 // Task 7), not content-validated here — only their shape/size envelope is.
 // ---------------------------------------------------------------------------
 export const onboardingSchema = z.object({
+  // Owner ruling 2026-10-17: the candidate's own, mandatory commencement
+  // date — required/format-checked AND range-checked (today..+12 months);
+  // see candidateCommencementDate above. Supersedes the inviter's own,
+  // now-optional and non-binding field on inviteCandidateSchema.
+  commencementDate: candidateCommencementDate,
   businessName: z.string().trim().max(200).optional(),
   // Encrypted at rest — validate shape/length only. Both local NRIC/FIN and
   // foreign-passport-style identifiers flow through here, so no fixed regex.

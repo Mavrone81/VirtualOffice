@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { saleSchema, comCodeSchema, productSchema, productPricingSchema, newAssociateSchema, onboardingSchema } from "./schemas";
+import { addDays, format } from "date-fns";
+import { saleSchema, comCodeSchema, productSchema, productPricingSchema, newAssociateSchema, onboardingSchema, inviteCandidateSchema } from "./schemas";
 import { validate } from "./validate";
+
+// A real yyyy-mm-dd always inside candidateCommencementDate's today..+12-months
+// window, computed at test-run time rather than hardcoded — a fixed literal
+// would quietly start failing once "today" moves past it.
+const VALID_COMMENCEMENT_DATE = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
 describe("saleSchema", () => {
   it("rejects empty clientName and empty lines", () => {
@@ -349,11 +355,14 @@ describe("newAssociateSchema", () => {
 
 describe("onboardingSchema", () => {
   it("rejects junk input and requires nric/paymentMethod/agreementAccepted", () => {
-    expect(validate(onboardingSchema, { junk: true })).toEqual({ ok: false });
+    // commencementDate (owner ruling 2026-10-17) is the first required field
+    // to fail on this input, so validate() surfaces its own matched code.
+    expect(validate(onboardingSchema, { junk: true })).toEqual({ ok: false, code: "commencementDateRequired" });
   });
   it("accepts a valid minimal submission", () => {
     expect(
       onboardingSchema.safeParse({
+        commencementDate: VALID_COMMENCEMENT_DATE,
         nric: "S1234567A",
         paymentMethod: "PayNow",
         agreementAccepted: true,
@@ -371,6 +380,7 @@ describe("onboardingSchema", () => {
   it("rejects a submission that omits spouseConflict entirely", () => {
     expect(
       onboardingSchema.safeParse({
+        commencementDate: VALID_COMMENCEMENT_DATE,
         nric: "S1234567A", paymentMethod: "PayNow", agreementAccepted: true,
         nationality: "Singaporean", gender: "Male", religion: "Buddhism",
       }).success,
@@ -378,10 +388,43 @@ describe("onboardingSchema", () => {
   });
 
   const base = {
+    commencementDate: VALID_COMMENCEMENT_DATE,
     nric: "S1234567A", paymentMethod: "PayNow" as const, agreementAccepted: true,
     nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
     spouseConflict: false as const,
   };
+
+  // Owner ruling 2026-10-17: the candidate's OWN, mandatory commencement date
+  // — supersedes the inviter's now-optional one on inviteCandidateSchema.
+  describe("commencementDate (candidate's own, onboarding-submit path)", () => {
+    it("rejects a submission that omits it, or sends it blank", () => {
+      const { commencementDate: _omit, ...without } = base;
+      expect(onboardingSchema.safeParse(without).success).toBe(false);
+      expect(onboardingSchema.safeParse({ ...base, commencementDate: "" }).success).toBe(false);
+    });
+    it("rejects a malformed or impossible date", () => {
+      expect(onboardingSchema.safeParse({ ...base, commencementDate: "not-a-date" }).success).toBe(false);
+      expect(onboardingSchema.safeParse({ ...base, commencementDate: "2026-02-31" }).success).toBe(false);
+    });
+    it("rejects a date before today", () => {
+      const yesterday = format(addDays(new Date(), -1), "yyyy-MM-dd");
+      expect(onboardingSchema.safeParse({ ...base, commencementDate: yesterday }).success).toBe(false);
+    });
+    it("rejects a date more than 12 months ahead", () => {
+      const tooFar = format(addDays(new Date(), 366 + 30), "yyyy-MM-dd"); // comfortably past 12 months
+      expect(onboardingSchema.safeParse({ ...base, commencementDate: tooFar }).success).toBe(false);
+    });
+    it("accepts today itself", () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      expect(onboardingSchema.safeParse({ ...base, commencementDate: today }).success).toBe(true);
+    });
+    // inviteCandidateSchema's own field carries no range check — the inviter's
+    // date is a non-binding suggestion only, and must never inherit this rule.
+    it("does not leak the range check onto inviteCandidateSchema", () => {
+      const farPast = "2000-01-01";
+      expect(inviteCandidateSchema.safeParse({ email: "a@b.com", commencementDate: farPast }).success).toBe(true);
+    });
+  });
 
   // Printed on the Associate Agreement's particulars table (28 Sep) — each is
   // required, and a blank one is as bad as a missing one.
@@ -422,7 +465,7 @@ describe("onboardingSchema", () => {
 
 describe("validate()", () => {
   it("returns {ok:false} without throwing on bad input", () => {
-    expect(validate(onboardingSchema, { junk: true })).toEqual({ ok: false });
+    expect(validate(onboardingSchema, { junk: true })).toEqual({ ok: false, code: "commencementDateRequired" });
   });
   it("returns {ok:true, data} on good input", () => {
     const r = validate(comCodeSchema, { comCode: "A", label: "L", valueType: "Percentage", value: "10" });

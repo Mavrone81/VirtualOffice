@@ -530,6 +530,8 @@
     },
     "details": {
       "title": "Your details",
+      "commencementDate": "Commencement date *",
+      "commencementDateHint": "The date you'll start. Today or later, within 12 months.",
       "businessName": "Business / trading name",
       "businessNamePlaceholder": "Optional",
       "nric": "NRIC / FIN *",
@@ -568,7 +570,7 @@
       "spouseCompany": "Name of company",
       "spouseDesignation": "Designation",
       "photo": "Profile photo",
-      "photoHint": "Used on your name card and staff record. JPG, PNG or WebP, up to 5 MB. Optional."
+      "photoHint": "Used on your name card and staff record. JPG or PNG, up to 5 MB. Optional."
     },
     "payout": {
       "title": "Commission payout",
@@ -1099,7 +1101,8 @@
       "mobile": "Mobile *",
       "intendedTeam": "Intended team",
       "intendedDesignation": "Intended designation *",
-      "commencementDate": "Commencement date *",
+      "commencementDate": "Commencement date",
+      "commencementDateHint": "Optional — a suggestion only. The candidate sets their own date during onboarding.",
       "desSalesAssociate": "Sales Associate",
       "desAsmgr": "Assistant Sales Manager",
       "desSalesMgr": "Sales Manager",
@@ -1515,6 +1518,7 @@
     "emailRequired": "Email is required.",
     "commencementDateRequired": "Commencement date is required.",
     "commencementDateInvalid": "Commencement date must be a valid date.",
+    "commencementDateOutOfRange": "Commencement date must be today or later, within the next 12 months.",
     "uplineCodeNotFound": "Upline code not found.",
     "invalidOrExpiredLink": "Invalid or expired link.",
     "tooManyAttempts": "Too many attempts. Please try again later.",
@@ -1531,7 +1535,7 @@
     "paymentMethodRequired": "Please choose a payout method.",
     "agreementRequired": "You must accept the Associate Agreement to continue.",
     "signatureRequired": "A signature is required to complete your agreement.",
-    "photoInvalidFormat": "Photo must be a JPG, PNG, or WebP image.",
+    "photoInvalidFormat": "Photo must be a JPG or PNG image.",
     "photoTooLarge": "Photo must be under 5 MB.",
     "signatureInvalid": "Invalid signature image.",
     "signingFailed": "Could not complete signing — please try again.",

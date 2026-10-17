@@ -74,6 +74,7 @@ describe("submitOnboarding validation", () => {
     // checks: nric present, agreementAccepted true, signature present) but
     // paymentMethod is outside the enum — only schema validation catches this.
     const malformed = {
+      commencementDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       nric: "S1234567A",
       paymentMethod: "Crypto",
       agreementAccepted: true,
@@ -99,6 +100,7 @@ describe("submitOnboarding validation", () => {
   it("does not reject cleared optional fields sent as empty strings (form clears to '', not undefined)", async () => {
     prismaMock.candidate.update.mockResolvedValue({});
     const r = await submitOnboarding("tok123", {
+      commencementDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       nric: "S1234567A",
       paymentMethod: "PayNow",
       agreementAccepted: true,
@@ -117,6 +119,7 @@ describe("submitOnboarding validation", () => {
   // object storage, same as any other invalid-input refusal.
   it("refuses an otherwise well-formed submission that omits spouseConflict, with a clear message", async () => {
     const r = await submitOnboarding("tok123", {
+      commencementDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       nric: "S1234567A",
       paymentMethod: "PayNow",
       agreementAccepted: true,
@@ -133,6 +136,7 @@ describe("submitOnboarding validation", () => {
   // not just their name and company — the field this ruling added.
   it("refuses a declared spouse conflict missing the spouse's designation", async () => {
     const r = await submitOnboarding("tok123", {
+      commencementDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       nric: "S1234567A",
       paymentMethod: "PayNow",
       agreementAccepted: true,
@@ -151,11 +155,13 @@ describe("submitOnboarding validation", () => {
   // Each missing required field gets ITS OWN code — never the bare "invalidInput"
   // that left a new associate with no way to tell what was wrong.
   const complete = {
+    commencementDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     nric: "S1234567A", paymentMethod: "PayNow" as const, agreementAccepted: true,
     nationality: "Singaporean", gender: "Male" as const, religion: "Buddhism",
     spouseConflict: false, signature: "data:image/png;base64,iVBORw0KGgo=",
   };
   const cases: [string, Record<string, unknown>, string][] = [
+    ["commencementDate", { commencementDate: "" }, "commencementDateRequired"],
     ["nric", { nric: "" }, "nricRequired"],
     ["nationality", { nationality: "  " }, "nationalityRequired"],
     ["gender", { gender: undefined }, "genderRequired"],
@@ -175,13 +181,32 @@ describe("submitOnboarding validation", () => {
   }
 
   it("reports the FIRST missing field in document order when several are missing", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately incomplete input
-    const r = await submitOnboarding("tok123", { nric: "", paymentMethod: "PayNow", agreementAccepted: false } as any);
+    // commencementDate is given (and valid) so this test isolates document
+    // order among the fields it actually means to cover (nric ahead of
+    // nationality/gender/etc) rather than trivially landing on
+    // commencementDate itself, which now sits first in ONBOARDING_FIELD_ORDER.
+    const incomplete = {
+      commencementDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      nric: "", paymentMethod: "PayNow", agreementAccepted: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately incomplete input
+    } as any;
+    const r = await submitOnboarding("tok123", incomplete);
     expect(r).toEqual({ ok: false, error: "nricRequired" });
   });
 
   it("stays generic when every required field is present but the value is otherwise invalid", async () => {
     const r = await submitOnboarding("tok123", { ...complete, nric: "S".repeat(41) });
     expect(r).toEqual({ ok: false, error: "invalidInput" });
+  });
+
+  // A syntactically valid commencementDate outside today..+12-months is NOT a
+  // missing field — it would otherwise fall through to the generic
+  // "invalidInput" above, leaving the candidate with no idea why. Named
+  // explicitly (owner ruling 2026-10-17).
+  it("names an out-of-range commencementDate instead of the generic invalidInput", async () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const r = await submitOnboarding("tok123", { ...complete, commencementDate: yesterday });
+    expect(r).toEqual({ ok: false, error: "commencementDateOutOfRange" });
+    expect(prismaMock.candidate.update).not.toHaveBeenCalled();
   });
 });

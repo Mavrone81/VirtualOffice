@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitOnboarding, homeAddressWouldTruncate, type OnboardingSubmission } from "@/server/recruitment/actions";
 import { findInvalidOnboardingFields, ONBOARDING_FIELD_DOM_ID as FIELD_DOM_ID, ONBOARDING_REQUIRED_ERROR_CODE, type OnboardingField } from "@/lib/onboarding-fields";
+import { commencementDateBounds } from "@/lib/commencement-date";
+import type { OnboardingPrefill } from "@/lib/onboarding-prefill";
 import { SignaturePad } from "./signature-pad";
 
 // Debounce + blur pair keeps calls to the rate-limited (10/15min)
@@ -28,7 +30,7 @@ const selectCls =
 // bg-white on the same element and class order does not decide which wins.
 const invalidCls = "border-danger/40! bg-danger/5!";
 
-export function OnboardForm({ token, alreadySubmitted }: { token: string; alreadySubmitted: boolean }) {
+export function OnboardForm({ token, alreadySubmitted, prefill }: { token: string; alreadySubmitted: boolean; prefill: OnboardingPrefill }) {
   const t = useTranslations("onboarding");
   const te = useTranslations("errors");
   const [pending, start] = useTransition();
@@ -39,8 +41,36 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
   // possible to be true when it's ticked.
   const [opened, setOpened] = useState(false);
   const agreementUrl = `/onboard/${encodeURIComponent(token)}/agreement`;
+  const dateBounds = commencementDateBounds();
+  // Resubmitting before approval keeps earlier answers (owner ruling
+  // 2026-10-17): every field below comes from the server's own prefill
+  // (lib/onboarding-prefill.ts), which already masks nric/bankAccountNumber
+  // (e.g. "S•••••00A") rather than ever sending the real value. photo,
+  // signature and agreementAccepted are deliberately NEVER prefilled — a
+  // signature is an act, re-drawn and re-accepted on every submission.
   const [f, setF] = useState<OnboardingSubmission>({
-    nric: "", paymentMethod: "PayNow", agreementAccepted: false,
+    commencementDate: prefill.commencementDate ?? "",
+    businessName: prefill.businessName ?? undefined,
+    nric: prefill.nric ?? "",
+    dateOfBirth: prefill.dateOfBirth ?? undefined,
+    residentialAddress: prefill.residentialAddress ?? undefined,
+    emergencyContactName: prefill.emergencyContactName ?? undefined,
+    emergencyContactNumber: prefill.emergencyContactNumber ?? undefined,
+    emergencyContactRelationship: prefill.emergencyContactRelationship ?? undefined,
+    emergencyContactAddress: prefill.emergencyContactAddress ?? undefined,
+    paymentMethod: prefill.paymentMethod ?? "PayNow",
+    paynowNumber: prefill.paynowNumber ?? undefined,
+    bankName: prefill.bankName ?? undefined,
+    bankAccountNumber: prefill.bankAccountNumber ?? undefined,
+    agreementAccepted: false,
+    maritalStatus: prefill.maritalStatus ?? undefined,
+    nationality: prefill.nationality ?? undefined,
+    gender: prefill.gender ?? undefined,
+    religion: prefill.religion ?? undefined,
+    spouseConflict: prefill.spouseConflict ?? undefined,
+    spouseName: prefill.spouseName ?? undefined,
+    spouseCompany: prefill.spouseCompany ?? undefined,
+    spouseDesignation: prefill.spouseDesignation ?? undefined,
   });
   // Set by the first failed submit. From then on the invalid set is recomputed
   // from the live values on every render, so a field's highlight clears the
@@ -141,6 +171,14 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
       <div className="rounded-xl border border-line bg-white p-5">
         <h2 className="mb-4 font-display text-[16px] text-ink">{t("details.title")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="commencementDate">{t("details.commencementDate")}</Label>
+            <Input id="commencementDate" type="date" min={dateBounds.min} max={dateBounds.max}
+              value={f.commencementDate} onChange={(e) => set({ commencementDate: e.target.value })}
+              className={cls("commencementDate")} {...a11y("commencementDate")} />
+            <p className="mt-1 text-[12px] text-muted-2">{t("details.commencementDateHint")}</p>
+            {fieldError("commencementDate")}
+          </div>
           <div>
             <Label htmlFor="bn">{t("details.businessName")}</Label>
             <Input id="bn" value={f.businessName ?? ""} onChange={(e) => set({ businessName: e.target.value })} placeholder={t("details.businessNamePlaceholder")} />
@@ -298,7 +336,7 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
             <input
               id="photo"
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/png"
               onChange={(e) => set({ photo: e.target.files?.[0] ?? null })}
               className="block w-full text-[13px] text-body file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[13px] file:text-white hover:file:bg-ink-700"
             />
@@ -372,7 +410,7 @@ export function OnboardForm({ token, alreadySubmitted }: { token: string; alread
       </div>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
-      <Button onClick={submit} disabled={pending || !f.nric || !f.agreementAccepted || !f.signature} className="w-full sm:w-auto">
+      <Button onClick={submit} disabled={pending || !f.commencementDate || !f.nric || !f.agreementAccepted || !f.signature} className="w-full sm:w-auto">
         {pending ? t("submitPending") : t("submit")}
       </Button>
     </div>

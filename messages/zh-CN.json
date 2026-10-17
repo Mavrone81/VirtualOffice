@@ -530,6 +530,8 @@
     },
     "details": {
       "title": "您的个人资料",
+      "commencementDate": "入职日期 *",
+      "commencementDateHint": "您的入职日期。须为今天或之后，且在 12 个月内。",
       "businessName": "商业／交易名称",
       "businessNamePlaceholder": "选填",
       "nric": "身份证／工作准证号 *",
@@ -568,7 +570,7 @@
       "spouseCompany": "公司名称",
       "spouseDesignation": "职位",
       "photo": "个人照片",
-      "photoHint": "用于您的名片及人事档案。支持 JPG、PNG 或 WebP 格式，最大 5 MB。选填。"
+      "photoHint": "用于您的名片及人事档案。支持 JPG 或 PNG 格式，最大 5 MB。选填。"
     },
     "payout": {
       "title": "佣金发放",
@@ -1099,7 +1101,8 @@
       "mobile": "手机号码 *",
       "intendedTeam": "预定团队",
       "intendedDesignation": "预定职级 *",
-      "commencementDate": "入职日期 *",
+      "commencementDate": "入职日期",
+      "commencementDateHint": "选填——仅供参考。候选人将在入职时自行设定日期。",
       "desSalesAssociate": "销售专员",
       "desAsmgr": "助理销售经理",
       "desSalesMgr": "销售经理",
@@ -1515,6 +1518,7 @@
     "emailRequired": "邮箱为必填项。",
     "commencementDateRequired": "入职日期为必填项。",
     "commencementDateInvalid": "入职日期必须是有效日期。",
+    "commencementDateOutOfRange": "入职日期须为今天或之后，且在未来 12 个月内。",
     "uplineCodeNotFound": "上线代码未找到。",
     "invalidOrExpiredLink": "链接无效或已过期。",
     "tooManyAttempts": "尝试次数过多，请稍后再试。",
@@ -1531,7 +1535,7 @@
     "paymentMethodRequired": "请选择付款方式。",
     "agreementRequired": "您必须接受伙伴协议才能继续。",
     "signatureRequired": "完成协议需要提供签名。",
-    "photoInvalidFormat": "照片必须为 JPG、PNG 或 WebP 格式。",
+    "photoInvalidFormat": "照片必须为 JPG 或 PNG 格式。",
     "photoTooLarge": "照片大小不能超过 5 MB。",
     "signatureInvalid": "签名图片无效。",
     "signingFailed": "签署未完成 — 请重试。",
