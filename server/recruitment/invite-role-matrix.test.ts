@@ -120,13 +120,31 @@ describe.each(ROLES)("%s", (role) => {
     expect(d.commencementDate).toEqual(new Date("2026-10-15"));
   });
 
-  it("Commencement Date is required on this path (blank, missing, invalid)", async () => {
-    for (const bad of ["", "   ", undefined, "2026-13-45", "not-a-date"]) {
+  // Owner ruling 2026-10-17: Commencement Date on the invite is now optional
+  // (a non-binding suggestion — the candidate sets their own, mandatory date
+  // at onboarding submit). A role that can't recruit is still forbidden
+  // regardless of the date (the role check runs first); a role that CAN
+  // recruit is let through with blank/missing, but a non-blank garbage value
+  // is still rejected — "optional" isn't a bypass for a malformed one.
+  it("Commencement Date is optional on this path; still format-checked when given", async () => {
+    for (const blank of ["", "   ", undefined]) {
       vi.clearAllMocks();
       as(role);
-      const r = await inviteCandidate({ ...valid, commencementDate: bad as unknown as string });
+      const r = await inviteCandidate({ ...valid, commencementDate: blank as unknown as string });
+      if (!row.recruit) {
+        expect(r).toEqual({ ok: false, error: "forbidden" });
+        expect(prismaMock.candidate.create).not.toHaveBeenCalled();
+        continue;
+      }
+      expect(r.ok).toBe(true);
+      expect(prismaMock.candidate.create.mock.calls[0][0].data.commencementDate).toBeNull();
+    }
+    for (const bad of ["2026-13-45", "not-a-date"]) {
+      vi.clearAllMocks();
+      as(role);
+      const r = await inviteCandidate({ ...valid, commencementDate: bad });
       expect(r.ok).toBe(false);
-      expect(r.error).toBe(row.recruit ? (bad === "2026-13-45" || bad === "not-a-date" ? "commencementDateInvalid" : "commencementDateRequired") : "forbidden");
+      expect(r.error).toBe(row.recruit ? "commencementDateInvalid" : "forbidden");
       expect(prismaMock.candidate.create).not.toHaveBeenCalled();
     }
   });

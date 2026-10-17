@@ -10,6 +10,10 @@ import {
   ONBOARDING_REQUIRED_ERROR_CODE,
 } from "./onboarding-fields";
 
+// A real yyyy-mm-dd always inside candidateCommencementDate's today..+12-months
+// window, computed at test-run time rather than hardcoded.
+const VALID_COMMENCEMENT_DATE = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
 // The form's state exactly as a new associate first sees it.
 const INITIAL = { nric: "", paymentMethod: "PayNow" as const, agreementAccepted: false };
 
@@ -17,6 +21,7 @@ const INITIAL = { nric: "", paymentMethod: "PayNow" as const, agreementAccepted:
 // agreement box and the signature the Submit button already demands) —
 // spouseConflict is left at its default, i.e. unanswered.
 const ALL_FILLED_BUT_SPOUSE_CONFLICT = {
+  commencementDate: VALID_COMMENCEMENT_DATE,
   nric: "S1234567A",
   nationality: "Singaporean",
   gender: "Male" as const,
@@ -38,10 +43,11 @@ describe("findInvalidOnboardingFields", () => {
 
   it("Case B: an all-empty submit identifies the first required field in document order and marks every required field", () => {
     const r = findInvalidOnboardingFields(INITIAL);
-    expect(r.first).toBe("nric");
+    // commencementDate (owner ruling 2026-10-17) is now first in document order.
+    expect(r.first).toBe("commencementDate");
     // Spouse sub-fields are NOT required until the conflict is declared Yes.
     expect(r.invalid).toEqual([
-      "nric", "nationality", "gender", "religion", "spouseConflict", "agreementAccepted", "signature",
+      "commencementDate", "nric", "nationality", "gender", "religion", "spouseConflict", "agreementAccepted", "signature",
     ]);
   });
 
@@ -111,8 +117,8 @@ describe("wiring that the pure function depends on", () => {
   });
 
   it("every required label carries exactly one asterisk, in both catalogues", () => {
-    const labels = (c: typeof en) => [c.onboarding.details.nric, c.onboarding.details.nationality, c.onboarding.details.gender,
-      c.onboarding.details.religion, c.onboarding.details.spouseConflict];
+    const labels = (c: typeof en) => [c.onboarding.details.commencementDate, c.onboarding.details.nric, c.onboarding.details.nationality,
+      c.onboarding.details.gender, c.onboarding.details.religion, c.onboarding.details.spouseConflict];
     for (const l of [...labels(en), ...labels(zhCN as typeof en)]) {
       expect(l.match(/\*/g)).toHaveLength(1);
       expect(l.trimEnd().endsWith("*")).toBe(true);

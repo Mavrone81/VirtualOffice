@@ -154,7 +154,8 @@ export function InviteForm({
           </div>
           <div>
             <Label htmlFor="commence">{t("form.commencementDate")}</Label>
-            <Input id="commence" type="date" required value={f.commencementDate} onChange={(e) => set({ commencementDate: e.target.value })} />
+            <Input id="commence" type="date" value={f.commencementDate} onChange={(e) => set({ commencementDate: e.target.value })} />
+            <p className="mt-1 text-[12px] text-muted-2">{t("form.commencementDateHint")}</p>
           </div>
           <div>
             <Label htmlFor="up">{t("form.directUpline")}</Label>
@@ -167,7 +168,7 @@ export function InviteForm({
       </Card>
 
       {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger">{error}</p>}
-      <Button onClick={submit} disabled={pending || needsTeamPick || !f.fullName || !f.email || !f.mobileNumber || !f.commencementDate}>
+      <Button onClick={submit} disabled={pending || needsTeamPick || !f.fullName || !f.email || !f.mobileNumber}>
         {pending ? tc("creating") : t("form.createInviteLink")}
       </Button>
     </div>

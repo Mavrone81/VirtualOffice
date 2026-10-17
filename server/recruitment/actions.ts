@@ -13,7 +13,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { isAdminRole, canRecruit } from "@/lib/rbac";
-import { encryptPII, maskNric } from "@/lib/crypto";
+import { encryptPII, decryptPiiRaw, maskNric, maskAccount } from "@/lib/crypto";
 import { putObject, getObject } from "@/lib/storage";
 import { assertUpload } from "@/lib/file-type";
 import { humanize } from "@/lib/labels";
@@ -26,6 +26,7 @@ import { maskedPayee } from "@/server/associates/payee-audit";
 import { validate } from "@/lib/validate";
 import { onboardingSchema, inviteCandidateSchema } from "@/lib/schemas";
 import { findInvalidOnboardingFields, ONBOARDING_REQUIRED_ERROR_CODE } from "@/lib/onboarding-fields";
+import { isWithinCommencementDateRange } from "@/lib/commencement-date";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 import { fileSignedAgreement } from "@/server/recruitment/file-signed-agreement";
 import { normalizeEmail } from "@/lib/email";
@@ -125,7 +126,15 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
   if (!input.email?.trim()) return { ok: false, error: t("emailRequired") };
   // Bound the address before it can reach the mail transport's parser (DoS guard);
   // the same schema requires a real Commencement Date.
-  const emailCheck = validate(inviteCandidateSchema, { email: input.email, commencementDate: input.commencementDate });
+  // Owner ruling 2026-10-17: this field is now a non-binding suggestion only
+  // (the candidate sets their own, mandatory date at onboarding submit), so
+  // a blank/whitespace value is normalized to "absent" before validating —
+  // inviteCandidateSchema's commencementDate is optional, but "" is not the
+  // same value as undefined to zod's own .optional().
+  const emailCheck = validate(inviteCandidateSchema, {
+    email: input.email,
+    commencementDate: input.commencementDate?.trim() || undefined,
+  });
   if (!emailCheck.ok) return { ok: false, error: t(emailCheck.code && INVITE_ERROR_CODES.has(emailCheck.code) ? emailCheck.code : "invalidInput") };
 
   // Team rule (owner, Oct 2026): the team dropdown is for Business Admin only,
@@ -161,7 +170,7 @@ export async function inviteCandidate(input: InviteInput): Promise<{ ok: boolean
       intendedDesignation: input.intendedDesignation,
       intendedDirectUplineId: upline?.id ?? null,
       intendedTeam,
-      commencementDate: new Date(emailCheck.data.commencementDate),
+      commencementDate: emailCheck.data.commencementDate ? new Date(emailCheck.data.commencementDate) : null,
       onboardingToken: token,
       onboardingStage: OnboardingStage.Invited,
       invitedById: session.user.id,
@@ -210,6 +219,9 @@ export async function cancelInvite(candidateId: string): Promise<{ ok: boolean; 
 // Candidate self-onboarding (PUBLIC — no session, gated by unguessable token)
 // ---------------------------------------------------------------------------
 export type OnboardingSubmission = {
+  // The candidate's OWN, mandatory commencement date (owner ruling
+  // 2026-10-17) — supersedes the inviter's own, now-optional field.
+  commencementDate: string;
   businessName?: string;
   nric: string;
   dateOfBirth?: string;
@@ -287,12 +299,35 @@ export async function submitOnboarding(
     await recordFailure(token, "onboard_submit");
     // Name the first missing required field (document order) instead of a bare
     // "Invalid input." — the form shows it at the field. Anything the presence
-    // check does not explain (over-long, out-of-enum, tampered) stays generic.
+    // check does not explain (over-long, out-of-enum, tampered) stays generic,
+    // EXCEPT a syntactically valid but out-of-range commencementDate (today..+12
+    // months, candidateCommencementDate in lib/schemas.ts) — not a missing field,
+    // but common enough to deserve its own named reason rather than a bare
+    // "Invalid input."
     const firstMissing = findInvalidOnboardingFields(normalised).first;
     const code = firstMissing ? ONBOARDING_REQUIRED_ERROR_CODE[firstMissing] : undefined;
+    if (!code && typeof normalised.commencementDate === "string" && normalised.commencementDate.trim() &&
+        !isWithinCommencementDateRange(normalised.commencementDate.trim())) {
+      return { ok: false, error: t("commencementDateOutOfRange") };
+    }
     return { ok: false, error: t(code && ONBOARDING_ERROR_CODES.has(code) ? code : "invalidInput") };
   }
   const s = v.data;
+
+  // Resubmitting before approval keeps earlier answers (owner ruling
+  // 2026-10-17). nric/bankAccountNumber are "kept unless changed": the page
+  // prefilled them with a MASK the server itself computed from the stored
+  // ciphertext (lib/onboarding-prefill.ts) — if what comes back is exactly
+  // that mask, the candidate never touched the field, so the prior
+  // ciphertext is kept verbatim rather than re-encrypting the mask text
+  // itself (which would corrupt the stored value). Comparing against the
+  // server's OWN recomputed mask (not a client-asserted flag) means a
+  // tampered client can't force a "kept" or "changed" outcome either way.
+  const priorPayload = (c.submittedPayload as StoredPayload | null) ?? null;
+  const priorNricMask = priorPayload?.nric ? maskNric(decryptPiiRaw(priorPayload.nric)) : null;
+  const nricKept = priorNricMask !== null && s.nric === priorNricMask;
+  const priorBankMask = priorPayload?.bankAccountNumber ? maskAccount(decryptPiiRaw(priorPayload.bankAccountNumber)) : null;
+  const bankKept = priorBankMask !== null && !!s.bankAccountNumber && s.bankAccountNumber === priorBankMask;
 
   if (!s.nric?.trim()) {
     await recordFailure(token, "onboard_submit");
@@ -330,9 +365,12 @@ export async function submitOnboarding(
 
   // Sensitive fields are encrypted at rest inside the JSON payload; the same
   // ciphertext is copied verbatim onto the Associate record on approval.
+  // nric/bankAccountNumber reuse the PRIOR ciphertext verbatim when kept
+  // unchanged (see nricKept/bankKept above) instead of re-encrypting the
+  // mask text the candidate left in place.
   const payload = {
     businessName: s.businessName?.trim() || null,
-    nric: encryptPII(s.nric.trim()),
+    nric: nricKept ? priorPayload!.nric! : encryptPII(s.nric.trim()),
     dateOfBirth: s.dateOfBirth || null,
     residentialAddress: s.residentialAddress?.trim() || null,
     emergencyContactName: s.emergencyContactName?.trim() || null,
@@ -340,7 +378,7 @@ export async function submitOnboarding(
     paymentMethod: s.paymentMethod,
     paynowNumber: s.paynowNumber?.trim() || null,
     bankName: s.bankName?.trim() || null,
-    bankAccountNumber: s.bankAccountNumber ? encryptPII(s.bankAccountNumber.trim()) : null,
+    bankAccountNumber: bankKept ? priorPayload!.bankAccountNumber! : (s.bankAccountNumber ? encryptPII(s.bankAccountNumber.trim()) : null),
     maritalStatus: s.maritalStatus ?? null,
     nationality: s.nationality?.trim() || null,
     gender: s.gender ?? null,
@@ -421,7 +459,10 @@ export async function submitOnboarding(
     designation: humanize(c.intendedDesignation ?? "Sales Associate"),
     email: normalizeEmail(c.email),
     mobile: c.mobileNumber,
-    nricMasked: maskNric(s.nric.trim()),
+    // When kept unchanged, s.nric is the MASK text itself — mask the real
+    // prior plaintext (decrypted here, for this one line, then discarded)
+    // instead of double-masking the mask.
+    nricMasked: maskNric(nricKept ? decryptPiiRaw(priorPayload!.nric!) : s.nric.trim()),
     teamName: c.intendedTeam,
     uplineName: upline ? `${upline.fullName} (${upline.associateCode})` : null,
     signedDate: new Date(),
@@ -434,7 +475,9 @@ export async function submitOnboarding(
     maritalStatus: s.maritalStatus ?? null,
     religion: s.religion?.trim() || null,
     homeAddress: s.residentialAddress?.trim() || null,
-    commencementDate: c.commencementDate ? c.commencementDate.toISOString().slice(0, 10) : null,
+    // The candidate's OWN, mandatory date (owner ruling 2026-10-17) —
+    // onboardingSchema guarantees a valid, in-range value here.
+    commencementDate: s.commencementDate,
     spouseConflict: s.spouseConflict ?? null,
     spouseName: s.spouseConflict ? s.spouseName?.trim() || null : null,
     spouseCompany: s.spouseConflict ? s.spouseCompany?.trim() || null : null,
@@ -468,6 +511,9 @@ export async function submitOnboarding(
     where: { id: c.id },
     data: {
       submittedPayload: { ...payload, signedPdfSha256: createHash("sha256").update(agreementPdf).digest("hex") },
+      // The candidate's own choice, not the inviter's — admin views read
+      // this same column (owner ruling 2026-10-17).
+      commencementDate: new Date(s.commencementDate),
       photoFileKey,
       signedAgreementFileKey,
       companySignatoryNameAtSigning: companySignatory?.signatoryName ?? null,

@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Commencement Date is a required field on the Associate Agreement (register row
-// C2a). These assert the SERVER refuses an invite without one — the form's own
-// `required` is not what is under test. Mutation proof: making
-// `commencementDate` optional in inviteCandidateSchema (lib/schemas.ts) makes the
-// blank / missing / whitespace cases reach candidate.create and fail below.
+// Owner ruling 2026-10-17: Commencement Date on the INVITE is now a
+// non-binding suggestion only — the candidate sets their own, mandatory,
+// range-checked date at onboarding submit (see
+// server/recruitment/onboarding-validation.test.ts / lib/schemas.test.ts's
+// candidateCommencementDate coverage). This file replaces
+// invite-commencement-required.test.ts, whose premise (the server refuses an
+// invite without a date) is no longer true.
+// Mutation proof: reverting inviteCandidateSchema's commencementDate back to
+// required makes the blank/missing cases below fail (they'd be rejected
+// instead of creating the candidate with a null date).
 
 const { authMock, prismaMock, sendMailMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
@@ -50,9 +55,10 @@ beforeEach(() => {
   authMock.mockResolvedValue({ user: { id: "admin1", role: "Admin", associateId: null } });
 });
 
-describe("inviteCandidate — Commencement Date is required (server-side)", () => {
-  // Control: a valid date still creates the candidate, with that date. Without it a
-  // reject-everything guard would satisfy the rejection cases vacuously.
+describe("inviteCandidate — Commencement Date is OPTIONAL (owner ruling 2026-10-17)", () => {
+  // Control: a valid date still creates the candidate, with that date — a
+  // reject-everything guard would satisfy the acceptance cases below vacuously
+  // only if this one also happened to fail.
   it("accepts a valid date and stores it", async () => {
     const r = await inviteCandidate(input);
     expect(r.ok).toBe(true);
@@ -63,21 +69,23 @@ describe("inviteCandidate — Commencement Date is required (server-side)", () =
   it.each([
     ["blank", ""],
     ["whitespace only", "   "],
-  ])("rejects a %s date with commencementDateRequired, before create or sendMail", async (_label, value) => {
+  ])("accepts a %s date — creates the candidate with a null commencementDate", async (_label, value) => {
     const r = await inviteCandidate({ ...input, commencementDate: value });
-    expect(r).toEqual({ ok: false, error: "commencementDateRequired" });
-    expect(prismaMock.candidate.create).not.toHaveBeenCalled();
-    expect(sendMailMock).not.toHaveBeenCalled();
+    expect(r.ok).toBe(true);
+    expect(prismaMock.candidate.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.candidate.create.mock.calls[0][0].data.commencementDate).toBeNull();
   });
 
-  it("rejects a missing date (a caller that omits the field entirely)", async () => {
+  it("accepts a missing date (a caller that omits the field entirely)", async () => {
     const withoutDate: Partial<typeof input> = { ...input };
     delete withoutDate.commencementDate;
     const r = await inviteCandidate(withoutDate as typeof input);
-    expect(r).toEqual({ ok: false, error: "commencementDateRequired" });
-    expect(prismaMock.candidate.create).not.toHaveBeenCalled();
+    expect(r.ok).toBe(true);
+    expect(prismaMock.candidate.create.mock.calls[0][0].data.commencementDate).toBeNull();
   });
 
+  // A date that IS given is still checked for shape — an optional field isn't
+  // a bypass for a garbage one.
   it.each([
     ["not a date", "soon"],
     ["impossible calendar date", "2026-02-31"],
@@ -89,15 +97,15 @@ describe("inviteCandidate — Commencement Date is required (server-side)", () =
     expect(prismaMock.candidate.create).not.toHaveBeenCalled();
   });
 
-  it("applies to every role that may invite, not only Business Admin", async () => {
+  it("is optional for every role that may invite, not only Business Admin", async () => {
     authMock.mockResolvedValue({ user: { id: "u3", role: "SalesManager", associateId: "a3" } });
     const r = await inviteCandidate({ ...input, commencementDate: "" });
-    expect(r.ok).toBe(false);
-    expect(prismaMock.candidate.create).not.toHaveBeenCalled();
+    expect(r.ok).toBe(true);
+    expect(prismaMock.candidate.create).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("inviteCandidateSchema — commencementDate", () => {
+describe("inviteCandidateSchema — commencementDate (optional)", () => {
   const ok = { email: "jane@example.com" };
   it("passes a real yyyy-mm-dd date and trims it", () => {
     expect(inviteCandidateSchema.safeParse({ ...ok, commencementDate: " 2026-10-15 " }).data?.commencementDate).toBe("2026-10-15");
@@ -106,7 +114,7 @@ describe("inviteCandidateSchema — commencementDate", () => {
     expect(inviteCandidateSchema.safeParse({ ...ok, commencementDate: "2028-02-29" }).success).toBe(true);
     expect(inviteCandidateSchema.safeParse({ ...ok, commencementDate: "2027-02-29" }).success).toBe(false);
   });
-  it("fails when the field is absent", () => {
-    expect(inviteCandidateSchema.safeParse(ok).success).toBe(false);
+  it("passes when the field is absent", () => {
+    expect(inviteCandidateSchema.safeParse(ok).success).toBe(true);
   });
 });

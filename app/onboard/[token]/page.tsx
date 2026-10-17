@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { humanize } from "@/lib/labels";
 import { getTranslations } from "next-intl/server";
 import { OnboardForm } from "./onboard-form";
+import { buildOnboardingPrefill } from "@/lib/onboarding-prefill";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Welcome to Enshrine · Onboarding" };
@@ -39,7 +40,10 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
   const t = await getTranslations("onboarding");
   const c = await prisma.candidate.findUnique({
     where: { onboardingToken: token },
-    select: { fullName: true, intendedDesignation: true, onboardingStage: true },
+    select: {
+      fullName: true, intendedDesignation: true, onboardingStage: true,
+      commencementDate: true, submittedPayload: true,
+    },
   });
 
   if (!c) {
@@ -67,6 +71,10 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
   }
 
   const alreadySubmitted = c.onboardingStage !== OnboardingStage.Invited;
+  // Covers both the in-flight case (inviter's own, now-optional suggested
+  // date, from commencementDate) and the resubmit case (the candidate's own
+  // prior answers, from submittedPayload) — owner ruling 2026-10-17.
+  const prefill = buildOnboardingPrefill(c);
 
   return (
     <Shell>
@@ -78,7 +86,7 @@ export default async function OnboardPage({ params }: { params: Promise<{ token:
           {t("intro", { designation: humanize(c.intendedDesignation ?? "Sales Associate") })}
         </p>
       </div>
-      <OnboardForm token={token} alreadySubmitted={alreadySubmitted} />
+      <OnboardForm token={token} alreadySubmitted={alreadySubmitted} prefill={prefill} />
     </Shell>
   );
 }
